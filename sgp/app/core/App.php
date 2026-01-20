@@ -1,0 +1,54 @@
+<?php
+class App
+{
+    protected $controller = 'AuthController'; // Default controller
+    protected $method = 'index';
+    protected $params = [];
+
+    public function __construct()
+    {
+        $url = $this->parseUrl();
+
+        // Check controller first
+        if (isset($url[0])) {
+            // Primero intentar con el nombre exacto (para Admin, Tutor, Pasante)
+            $directControllerName = ucfirst($url[0]);
+            if (file_exists('../app/controllers/' . $directControllerName . '.php')) {
+                $this->controller = $directControllerName;
+                unset($url[0]);
+            } else {
+                // Si no existe, intentar con sufijo "Controller"
+                $controllerName = ucfirst($url[0]) . 'Controller';
+                if (file_exists('../app/controllers/' . $controllerName . '.php')) {
+                    $this->controller = $controllerName;
+                    unset($url[0]);
+                }
+            }
+        }
+
+        require_once '../app/controllers/' . $this->controller . '.php';
+        $this->controller = new $this->controller;
+
+        // Check method
+        if (isset($url[1])) {
+            if (method_exists($this->controller, $url[1])) {
+                $this->method = $url[1];
+                unset($url[1]);
+            }
+        }
+
+        // Params
+        $this->params = $url ? array_values($url) : [];
+
+        // Call method with params
+        call_user_func_array([$this->controller, $this->method], $this->params);
+    }
+
+    public function parseUrl()
+    {
+        if (isset($_GET['url'])) {
+            return explode('/', filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL));
+        }
+        return [];
+    }
+}

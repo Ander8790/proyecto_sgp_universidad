@@ -1,0 +1,16 @@
+==============================================
+CLAVE UNIVERSAL SGP
+==============================================
+Contrase├▒a: Sgp.123*
+Hash: $2y$10$v9I5kuLkxlONQTDBPdqyteligVx81bW3nC/kKMoOg1oMHdxVoJ.tC
+
+Requisitos cumplidos:
+Ô£ô May├║scula: S
+Ô£ô Min├║scula: gp
+Ô£ô N├║mero: 123
+Ô£ô Car├ícter especial: . *
+Ô£ô M├¡nimo 8 caracteres: 8
+
+SQL para actualizar:
+UPDATE usuarios SET password = '$2y$10$v9I5kuLkxlONQTDBPdqyteligVx81bW3nC/kKMoOg1oMHdxVoJ.tC' WHERE id IN (1,2,3);
+==============================================
