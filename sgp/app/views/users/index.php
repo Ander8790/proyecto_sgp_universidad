@@ -1,5 +1,265 @@
+
+
 <style>
-    /* Modal Styles */
+    /* =====================================================
+       MODERN USERS MANAGEMENT STYLES
+       ===================================================== */
+    
+    /* Page Header - Modern with gradient */
+    .page-header-modern {
+        background: linear-gradient(135deg, 
+            var(--color-primary) 0%, 
+            #0d1a3d 100%
+        );
+        border-radius: 20px;
+        padding: 32px 40px;
+        margin-bottom: 32px;
+        box-shadow: 0 10px 30px rgba(22, 38, 96, 0.15);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .page-header-modern::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 400px;
+        height: 400px;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+    
+    .page-header-content {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        z-index: 1;
+    }
+    
+    .page-header-icon {
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+    }
+    
+    .page-header-text h1 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 6px 0;
+        color: white;
+    }
+    
+    .page-header-text p {
+        font-size: 1.05rem;
+        opacity: 0.9;
+        margin: 0;
+    }
+    
+    /* Primary Button - Enhanced */
+    .btn-primary {
+        background: linear-gradient(135deg, var(--color-accent) 0%, #e8d4b8 100%);
+        color: var(--color-primary);
+        padding: 11px 20px;
+        border-radius: 12px;
+        border: none;
+        font-weight: 600;
+        font-size: 0.9rem;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all var(--transition-fast);
+        box-shadow: 0 4px 12px rgba(241, 228, 209, 0.3);
+        z-index: 1;
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(241, 228, 209, 0.4);
+    }
+    
+    .btn-primary i {
+        font-size: 16px;
+    }
+    
+    /* Table Container - Enhanced */
+    .table-card-modern {
+        background: var(--color-card);
+        border-radius: 20px;
+        padding: 0;
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+    }
+    
+    /* DataTable Styling */
+    table.dataTable {
+        border-collapse: separate !important;
+        border-spacing: 0;
+    }
+    
+    table.dataTable thead th {
+        background: linear-gradient(180deg, #f8f9fa 0%, #f1f3f5 100%);
+        color: var(--color-primary);
+        font-weight: 700;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 18px 16px;
+        border-bottom: 2px solid var(--color-primary);
+    }
+    
+    table.dataTable tbody tr {
+        transition: all var(--transition-fast);
+    }
+    
+    table.dataTable tbody tr:hover {
+        background: linear-gradient(90deg, 
+            rgba(22, 38, 96, 0.02) 0%, 
+            rgba(22, 38, 96, 0.05) 50%,
+            rgba(22, 38, 96, 0.02) 100%
+        );
+        transform: scale(1.005);
+    }
+    
+    table.dataTable tbody td {
+        padding: 16px;
+        vertical-align: middle;
+        border-bottom: 1px solid #f1f3f5;
+        color: var(--color-primary);
+        font-weight: 500;
+    }
+    
+    /* Action Buttons - Refined */
+    .btn-action {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all var(--transition-fast);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        margin: 0 3px;
+        min-width: 38px;
+        height: 38px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-action::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.3s, height 0.3s;
+    }
+    
+    .btn-action:hover::before {
+        width: 100%;
+        height: 100%;
+    }
+    
+    .btn-action i {
+        position: relative;
+        z-index: 1;
+        font-size: 16px;
+    }
+    
+    .btn-edit {
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+    }
+    
+    .btn-edit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    }
+    
+    .btn-reset {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
+    }
+    
+    .btn-reset:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+    }
+    
+    .btn-delete {
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+        color: white;
+        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+    }
+    
+    .btn-delete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+    }
+    
+    /* Status Badge - Enhanced */
+    .badge {
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    
+    .badge::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        display: inline-block;
+    }
+    
+    .badge-activo {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
+        color: #059669;
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    
+    .badge-activo::before {
+        background: #10B981;
+        box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+    
+    .badge-inactivo {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
+        color: #DC2626;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+    
+    .badge-inactivo::before {
+        background: #EF4444;
+        box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+    }
+    
+    /* Modal Styles - Enhanced */
     .modal {
         display: none;
         position: fixed;
@@ -8,7 +268,8 @@
         top: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(22, 38, 96, 0.6);
+        backdrop-filter: blur(4px);
         animation: fadeIn 0.3s;
     }
     
@@ -20,13 +281,14 @@
     
     .modal-content {
         background: white;
-        border-radius: 16px;
-        padding: 32px;
-        max-width: 500px;
+        border-radius: 20px;
+        padding: 36px;
+        max-width: 520px;
         width: 90%;
         max-height: 90vh;
         overflow-y: auto;
         animation: slideUp 0.3s;
+        box-shadow: 0 20px 60px rgba(22, 38, 96, 0.3);
     }
     
     @keyframes fadeIn {
@@ -35,7 +297,7 @@
     }
     
     @keyframes slideUp {
-        from { transform: translateY(20px); opacity: 0; }
+        from { transform: translateY(30px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
     }
     
@@ -43,110 +305,129 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
+        margin-bottom: 28px;
+        padding-bottom: 20px;
+        border-bottom: 2px solid var(--color-bg);
     }
     
     .modal-title {
-        font-size: 1.5rem;
+        font-size: 1.6rem;
         font-weight: 700;
         color: var(--color-primary);
+        display: flex;
+        align-items: center;
+        gap: 12px;
     }
     
     .modal-close {
-        background: none;
+        background: var(--color-bg);
         border: none;
-        font-size: 24px;
+        font-size: 20px;
         cursor: pointer;
         color: var(--text-body);
         padding: 0;
-        width: 32px;
-        height: 32px;
+        width: 36px;
+        height: 36px;
         display: flex;
         align-items: center;
         justify-content: center;
         border-radius: 50%;
-        transition: background 0.2s;
+        transition: all var(--transition-fast);
     }
     
     .modal-close:hover {
-        background: #F3F4F6;
-    }
-    
-    /* Action Buttons */
-    .btn-action {
-        padding: 6px 12px;
-        border: none;
-        border-radius: 8px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all 0.2s;
-        display: inline-flex;
-        align-items: center;
-        gap: 4px;
-    }
-    
-    .btn-edit {
-        background: #3B82F6;
+        background: var(--color-primary);
         color: white;
+        transform: rotate(90deg);
     }
     
-    .btn-edit:hover {
-        background: #2563EB;
-    }
-    
-    .btn-reset {
-        background: #F59E0B;
-        color: white;
-    }
-    
-    .btn-reset:hover {
-        background: #D97706;
-    }
-    
-    .btn-delete {
-        background: #EF4444;
-        color: white;
-    }
-    
-    .btn-delete:hover {
-        background: #DC2626;
-    }
-    
-    /* Status Badge */
-    .badge {
-        padding: 4px 12px;
+    /* Form Inputs - Modern */
+    .input-modern {
+        width: 100%;
+        padding: 14px 18px;
+        border: 2px solid #e5e7eb;
         border-radius: 12px;
-        font-size: 12px;
+        font-size: 0.95rem;
+        transition: all var(--transition-fast);
+        background: white;
+        color: var(--color-primary);
+        font-weight: 500;
+    }
+    
+    .input-modern:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 4px rgba(22, 38, 96, 0.1);
+        transform: translateY(-1px);
+    }
+    
+    .input-modern::placeholder {
+        color: #9ca3af;
+    }
+    
+    /* Form Labels */
+    label {
+        display: block;
         font-weight: 600;
+        color: var(--color-primary);
+        margin-bottom: 8px;
+        font-size: 0.9rem;
     }
     
-    .badge-activo {
-        background: rgba(16, 185, 129, 0.1);
-        color: #059669;
+    /* DataTable Search Input */
+    .dataTables_wrapper .dataTables_filter input {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 10px 16px;
+        margin-left: 8px;
+        transition: all var(--transition-fast);
     }
     
-    .badge-inactivo {
-        background: rgba(239, 68, 68, 0.1);
-        color: #DC2626;
+    .dataTables_wrapper .dataTables_filter input:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 4px rgba(22, 38, 96, 0.1);
+    }
+    
+    /* DataTable Pagination */
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        border-radius: 8px !important;
+        margin: 0 2px;
+        transition: all var(--transition-fast) !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: var(--color-primary) !important;
+        color: white !important;
+        border-color: var(--color-primary) !important;
+    }
+    
+    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
+        background: var(--color-accent) !important;
+        color: var(--color-primary) !important;
+        border-color: var(--color-accent) !important;
     }
 </style>
 
 <div class="dashboard-container">
-    <!-- Header -->
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <div>
-            <h1 style="font-size: 1.75rem; font-weight: 700; color: var(--color-primary); margin-bottom: 8px;">
-                Gestión de Usuarios
-            </h1>
-            <p style="color: var(--text-body);">Administra los usuarios del sistema</p>
+    <!-- Modern Header with Gradient -->
+    <div class="page-header-modern">
+        <div class="page-header-content">
+            <div class="page-header-icon">
+                <i class="ti ti-users"></i>
+            </div>
+            <div class="page-header-text">
+                <h1>Gestión de Usuarios</h1>
+                <p>Administra los usuarios del sistema</p>
+            </div>
         </div>
         <button onclick="openCreateModal()" class="btn-primary">
             <i class="ti ti-user-plus"></i> Nuevo Usuario
         </button>
     </div>
     
-    <!-- Users Table -->
-    <div class="smart-card">
+    <!-- Users Table with Modern Card -->
+    <div class="table-card-modern">
         <table id="usersTable" class="display" style="width:100%">
             <thead>
                 <tr>

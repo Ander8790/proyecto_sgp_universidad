@@ -22,6 +22,19 @@ class AuthController extends Controller
 
         $email = Validator::email('email');
         $password = Validator::post('password');
+        $captcha = Validator::post('captcha');
+
+        // Validar CAPTCHA primero
+        require_once APPROOT . '/helpers/CaptchaHelper.php';
+        if (!CaptchaHelper::validate($captcha)) {
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Código CAPTCHA incorrecto']);
+                exit;
+            }
+            $this->view('auth/login', ['error' => 'Código CAPTCHA incorrecto'], false);
+            return;
+        }
 
         $userModel = $this->model('User');
         $user = $userModel->findByEmail($email);

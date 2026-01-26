@@ -16,15 +16,30 @@ const notificationIcons = {
  */
 function loadNotifications() {
     fetch(URLROOT + '/notifications/getUnread')
-        .then(response => response.json())
+        .then(response => {
+            // Check if response is JSON before parsing
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+                return response.json();
+            } else {
+                // Return empty data if not JSON (notifications not available)
+                return { success: false, count: 0, notifications: [] };
+            }
+        })
         .then(data => {
-            if (data.success) {
+            if (data && data.success) {
                 updateNotificationBadge(data.count);
                 renderNotifications(data.notifications);
+            } else {
+                // Notifications not available - show empty state
+                updateNotificationBadge(0);
+                renderNotifications([]);
             }
         })
         .catch(error => {
-            console.error('Error loading notifications:', error);
+            // Network error or other issue - fail silently
+            updateNotificationBadge(0);
+            renderNotifications([]);
         });
 }
 

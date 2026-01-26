@@ -1,0 +1,155 @@
+/* ========================================
+   TOPBAR - EDGE TO EDGE (RESTAURADO)
+   ======================================== */
+
+.main-header {
+    /* POSICIONAMIENTO FIJO Y FULL WIDTH */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    z-index: 1000;
+    /* Menor que sidebar móvil (1050) */
+
+    /* ESTILOS VISUALES */
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    /* Sombra sutil del respaldo */
+
+    /* LAYOUT FLEX */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* Distribuye elementos */
+    padding: 0 20px;
+    margin: 0;
+}
+
+/* CINTILLO INSTITUCIONAL */
+.institutional-strip {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.institutional-strip img {
+    max-height: 50px;
+    width: auto;
+    object-fit: contain;
+}
+
+/* BOTONES HEADER */
+.header-icon-btn {
+    font-size: 1.2rem;
+    color: #64748b;
+    padding: 8px 12px;
+    transition: color 0.2s;
+}
+
+.header-icon-btn:hover {
+    color: #162660;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    font-size: 0.6rem;
+    padding: 3px 5px;
+    border-radius: 50%;
+}
+
+/* PERFIL USUARIO */
+.profile-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #162660 0%, #0d1a3d 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 5px rgba(22, 38, 96, 0.2);
+}
+
+.user-profile-link {
+    padding: 6px 12px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.user-profile-link:hover {
+    background: #f8fafc;
+}
+
+/* MENU DROPDOWN PERFIL */
+.profile-dropdown {
+    min-width: 240px;
+    border: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 8px;
+    margin-top: 10px;
+}
+
+/* HAMBURGUESA */
+.btn-toggle {
+    background: none;
+    border: none;
+    font-size: 24px;
+    color: #162660;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    margin-right: 5px;
+    transition: background 0.2s;
+}
+
+.btn-toggle:hover {
+    background: rgba(22, 38, 96, 0.05);
+}
+
+/* ========================================
+   RESPONSIVE
+   ======================================== */
+
+/* Desktop (>= 992px) */
+@media (min-width: 992px) {
+    .main-header {
+        /* EDGE TO EDGE - DE ESQUINA A ESQUINA */
+        left: 0 !important;
+        width: 100% !important;
+        padding-left: 20px;
+        /* Espacio para el logo */
+    }
+
+    /* OCULTAR hamburguesa en desktop */
+    .btn-toggle,
+    #sidebarToggle {
+        display: none !important;
+    }
+}
+
+/* Mobile (< 992px) */
+@media (max-width: 991px) {
+
+    /* El header ocupa TODO el ancho en móvil */
+    .main-header {
+        left: 0 !important;
+        width: 100% !important;
+        padding: 0 15px;
+        /* Menos padding lateral */
+    }
+
+    /* Hamburguesa visible */
+    #sidebarToggle {
+        display: block !important;
+    }
+
+    /* Cintillo se oculta (ya manejado por d-none d-lg-flex en HTML, refuerzo aquí si needed) */
+}

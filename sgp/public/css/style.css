@@ -80,99 +80,190 @@ a {
 /* =====================================================
    SIDEBAR SUBORDINADO (Comienza debajo del Header)
    ===================================================== */
+/* SIDEBAR NUCLEUS UI - Technical Precision */
 .sidebar {
     position: fixed;
     left: 0;
     top: 70px;
-    /* CAMBIADO: Comienza debajo del header */
     width: var(--sidebar-width);
     height: calc(100vh - 70px);
-    /* CAMBIADO: Altura ajustada */
-    background-color: var(--color-primary);
+
+    /* EFECTO PRO: Múltiples capas de fondo (igual que el banner) */
+    background-image:
+        /* CAPA SUPERIOR: Semicírculo de luz en esquina superior derecha */
+        radial-gradient(circle at 100% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+
+        /* CAPA INFERIOR: Degradado vertical de arriba a abajo */
+        linear-gradient(to bottom, #1e3a8a, #172554);
+
+    background-size: cover;
+    background-repeat: no-repeat;
+
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
     color: var(--white);
     display: flex;
     flex-direction: column;
     z-index: 1040;
-    /* CAMBIADO: Menor que header (1050) */
-    box-shadow: 4px 0 12px rgba(0, 0, 0, 0.05);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.2);
     transition: width var(--transition-speed);
-    padding-top: 0;
-    /* CAMBIADO: No necesita padding superior */
+    padding: 0;
 }
 
-/* Sidebar Header - YA NO SE USA (Logo movido al header principal) */
-/* Estilos de brand-link y brand-image ahora están en el header */
+/* --- VARIABLES DE COLORES (Ajusta según tu marca) --- */
+:root {
+    --sidebar-bg: #0F172A;
+    /* Fondo del Sidebar (Azul Oscuro) */
+    --marker-bg: #F8FAFC;
+    /* Color del Marcador (Blanco/Gris Claro - Igual a tu Dashboard) */
 
-/* Sidebar Menu Wrapper (Scrollable) */
-.sidebar-menu-wrapper {
-    flex: 1;
+    /* ESTADOS DE CONTRASTE */
+    --text-inactive: #94A3B8;
+    /* Color de texto normal (Gris sobre Azul) */
+    --text-active: #1E293B;
+    /* Color de texto activo (Oscuro sobre Blanco) */
+    --icon-active: #3B82F6;
+    /* Color del icono activo (Azul Brillante) */
+
+    --curve-size: 20px;
+    /* Tamaño de la curva líquida */
+}
+
+/* 1. CONFIGURACIÓN DEL PADRE */
+.sidebar {
+    background-color: var(--sidebar-bg);
+    height: 100vh;
     overflow-y: auto;
-    overflow-x: hidden;
-    padding: 10px 0;
+    /* Scroll si es muy largo */
 }
 
-.sidebar-menu-wrapper::-webkit-scrollbar {
-    width: 6px;
-}
-
-.sidebar-menu-wrapper::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-}
-
-.sidebar-menu-wrapper nav {
-    padding: 0 16px;
-}
-
-.brand {
+.sidebar-menu {
+    position: relative;
+    /* VITAL: Coordenadas 0,0 para el marcador */
+    padding-left: 10px;
+    /* Espacio a la izquierda */
+    padding-right: 0;
+    /* Pegado a la derecha para conectar con el dashboard */
+    padding-top: 20px;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 40px;
+    flex-direction: column;
 }
 
-.logo-icon {
-    width: 40px;
-    height: 40px;
-    background: var(--color-accent);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    color: var(--color-primary);
-}
-
+/* 2. SEPARADORES (Ocultos - diseño moderno) */
 .menu-label {
-    text-transform: uppercase;
-    font-size: 0.75rem;
-    letter-spacing: 1px;
-    opacity: 0.6;
-    margin: 20px 0 10px;
-    font-weight: 600;
+    display: none;
+    /* Ocultar completamente para diseño limpio */
 }
 
-.sidebar nav a {
+/* 3. EL MARCADOR (Fondo Blanco Móvil) */
+#marker {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 50px;
+    /* Se ajustará con JS */
+    background-color: var(--marker-bg);
+
+    /* Forma de bala */
+    border-top-left-radius: 30px;
+    border-bottom-left-radius: 30px;
+
+    /* CAPAS Y ANIMACIÓN */
+    z-index: 1;
+    /* Nivel bajo (detrás del texto) */
+    opacity: 0;
+    /* Invisible al inicio para evitar saltos */
+    transition: top 0.5s cubic-bezier(0.645, 0.045, 0.355, 1), opacity 0.2s;
+    pointer-events: none;
+    /* El clic lo traspasa */
+}
+
+/* Las Curvas Líquidas (Magia Visual) */
+/* Curva Superior */
+#marker::before {
+    content: "";
+    position: absolute;
+    top: calc(var(--curve-size) * -1);
+    /* Arriba */
+    right: 0;
+    width: var(--curve-size);
+    height: var(--curve-size);
+    background: transparent;
+    border-bottom-right-radius: 50%;
+    box-shadow: 10px 10px 0 0 var(--marker-bg);
+    /* Pinta el hueco de blanco */
+}
+
+/* Curva Inferior */
+#marker::after {
+    content: "";
+    position: absolute;
+    bottom: calc(var(--curve-size) * -1);
+    /* Abajo */
+    right: 0;
+    width: var(--curve-size);
+    height: var(--curve-size);
+    background: transparent;
+    border-top-right-radius: 50%;
+    box-shadow: 10px -10px 0 0 var(--marker-bg);
+    /* Pinta el hueco de blanco */
+}
+
+/* 4. LOS ENLACES (Interacción) */
+.nav-link {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 14px 16px;
-    color: rgba(255, 255, 255, 0.7);
-    border-radius: var(--btn-radius);
-    transition: 0.2s;
+    padding: 14px 20px;
+    width: 100%;
+    text-decoration: none;
+    font-size: 0.95rem;
     font-weight: 500;
+
+    /* CAPAS: El texto debe estar MUY ARRIBA */
+    z-index: 10;
+
+    /* ESTADO INACTIVO (Contraste sobre fondo oscuro) */
+    color: var(--text-inactive);
+    background: transparent !important;
+    /* Forzar transparencia SIEMPRE */
+    border: none !important;
+    transition: color 0.3s ease;
 }
 
-.sidebar nav a:hover,
-.sidebar nav a.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: var(--white);
+/* Iconos y Texto */
+.nav-link i,
+.nav-link .material-icons,
+.nav-link span {
+    position: relative;
+    z-index: 10;
+    /* Asegurar que el icono esté arriba */
 }
 
-.sidebar nav a.active {
-    background: var(--color-accent);
-    color: var(--color-primary);
+.nav-link i,
+.nav-link .material-icons {
+    margin-right: 12px;
+    font-size: 1.25rem;
+    transition: color 0.3s;
+}
+
+/* 5. ESTADO ACTIVO (Contraste sobre fondo blanco) */
+/* Cuando el enlace tiene la clase 'active', cambiamos colores */
+.nav-link.active {
+    color: var(--text-active);
+    /* Texto se vuelve Oscuro */
     font-weight: 600;
+}
+
+.nav-link.active i,
+.nav-link.active .material-icons {
+    color: var(--icon-active);
+    /* Icono se vuelve Azul */
+}
+
+/* Hover suave para inactivos */
+.nav-link:hover:not(.active) {
+    color: #ffffff;
 }
 
 .user-mini {
@@ -185,36 +276,89 @@ a {
     gap: 12px;
 }
 
-/* Sidebar Footer (Logout - Simetría con Header) */
+/* Sidebar Footer - LIQUID SIDEBAR */
 .sidebar-footer {
-    padding: 16px 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(0, 0, 0, 0.1);
+    margin-top: auto;
+    padding: 1.5rem 0 2rem 1.5rem;
+    /* Alineado con el nuevo padding */
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* Botón de Logout - GHOST STYLE PROFESIONAL */
 .btn-logout {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    width: 100%;
+    gap: 8px;
+    width: calc(100% - 1.5rem);
     padding: 12px;
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    background: rgba(255, 255, 255, 0.03);
+    color: rgba(255, 255, 255, 0.8);
+    border: 1.5px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
     text-decoration: none;
-    transition: all 0.3s ease;
-    font-weight: 500;
+    font-weight: 600;
+    font-size: 0.85rem;
+    position: relative;
+    overflow: hidden;
+
+    /* TRANSICIÓN PROFESIONAL 200ms */
+    transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.btn-logout:hover {
-    background-color: #dc3545;
-    color: #fff;
-    transform: translateY(-1px);
-}
-
+/* Icono del logout */
 .btn-logout i {
-    font-size: 18px;
+    font-size: 20px;
+    position: relative;
+    z-index: 2;
+    color: inherit;
+    transition: inherit;
+}
+
+/* Texto del botón */
+.btn-logout span {
+    position: relative;
+    z-index: 2;
+    color: inherit;
+    transition: inherit;
+}
+
+/* Efecto de relleno ROJO desde abajo */
+.btn-logout::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 0;
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+    transition: height 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 1;
+}
+
+/* Hover: Se vuelve ROJO BRILLANTE */
+.btn-logout:hover {
+    color: #ffffff;
+    border-color: #EF4444;
+    box-shadow:
+        0 0 0 1px rgba(239, 68, 68, 0.3),
+        0 4px 16px rgba(239, 68, 68, 0.4),
+        0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.btn-logout:hover::before {
+    height: 100%;
+    /* El rojo llena desde abajo */
+}
+
+.btn-logout:hover i {
+    transform: rotate(-10deg) scale(1.05);
+    /* Icono rota y crece */
+}
+
+.btn-logout:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
 }
 
 /* Sidebar Header con Logo */
@@ -1949,4 +2093,745 @@ body.sidebar-collapse .menu-toggle span {
 
 body.sidebar-collapse .content-wrapper {
     margin-left: 80px;
+}
+
+/* ======================================================
+   🚨 CSS DE RESCATE - DASHBOARD RECONSTRUCTION
+   ====================================================== */
+
+/* 1. ARREGLAR EL FONDO DEL CONTENT WRAPPER */
+.content-wrapper {
+    background-color: #F8FAFC;
+    /* Gris azulado suave */
+    min-height: 100vh;
+    padding-bottom: 80px;
+    /* Espacio para el footer fijo */
+}
+
+/* 2. DASHBOARD BENTO GRID (Sistema de Grid Principal) */
+.dashboard-bento {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    /* 4 columnas iguales */
+    gap: 24px;
+    padding: 0;
+}
+
+/* 3. BANNER AZUL DE BIENVENIDA - EFECTO PRO CON MÚLTIPLES CAPAS */
+.welcome-banner {
+    grid-column: 1 / -1;
+    padding: 24px 32px;
+    border-radius: 16px;
+    color: #ffffff;
+
+    /* EFECTO PRO: Múltiples capas de fondo apiladas */
+    background-image:
+        /* CAPA SUPERIOR: Semicírculo de luz en esquina inferior derecha */
+        /* 'circle at 100% 100%' = centro del círculo en esquina inferior derecha */
+        radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.25) 0%, transparent 50%),
+
+        /* CAPA INFERIOR: Degradado base de izquierda a derecha */
+        /* Azul sólido (#1e3a8a) que se oscurece hacia la derecha (#172554) */
+        linear-gradient(to right, #1e3a8a, #172554);
+
+    /* Asegura que el fondo cubra todo */
+    background-size: cover;
+    background-repeat: no-repeat;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(30, 58, 138, 0.25);
+    position: relative;
+    overflow: hidden;
+    min-height: 100px;
+}
+
+/* Decoración del banner - DESHABILITADA */
+.welcome-banner::before {
+    display: none;
+}
+
+.welcome-banner-compact {
+    min-height: 120px;
+    padding: 24px 32px;
+}
+
+.welcome-icon {
+    width: 48px;
+    /* Más pequeño */
+    height: 48px;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    /* Más pequeño */
+    color: white;
+    flex-shrink: 0;
+}
+
+.welcome-content {
+    flex: 1;
+    margin-left: 24px;
+}
+
+/* Título con efecto degradado premium */
+.welcome-title {
+    font-size: 1.75rem;
+    /* Tamaño más moderado */
+    font-weight: 700;
+    /* Bold normal */
+    margin: 0 0 8px 0;
+    color: #FFFFFF;
+    /* Blanco sólido - SIN degradado */
+    letter-spacing: -0.3px;
+    line-height: 1.2;
+}
+
+/* Animación sutil del degradado */
+@keyframes gradient-shift {
+
+    0%,
+    100% {
+        background-position: 0% center;
+    }
+
+    50% {
+        background-position: 100% center;
+    }
+}
+
+.welcome-subtitle {
+    font-size: 0.875rem;
+    /* Más pequeño */
+    margin: 0;
+    color: rgba(255, 255, 255, 0.9);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.welcome-meta {
+    display: flex;
+    gap: 24px;
+    align-items: center;
+}
+
+.welcome-date,
+.welcome-time {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.1);
+    padding: 8px 16px;
+    border-radius: 10px;
+}
+
+.welcome-date i,
+.welcome-time i {
+    font-size: 18px;
+}
+
+/* 4. KPI CARDS (Tarjetas de Métricas - ESTILO CÁPSULA) */
+.kpi-card {
+    background: white;
+    padding: 20px 24px;
+    border-radius: 50px;
+    /* Bordes muy redondeados = cápsula */
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: row;
+    /* HORIZONTAL: gráfico a la izquierda, info a la derecha */
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s ease;
+    min-height: 80px;
+    /* Más compacto */
+}
+
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.kpi-card-compact {
+    min-height: 80px;
+    padding: 16px 20px;
+}
+
+.kpi-chart {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+    /* No se encoge */
+    width: 56px;
+    /* Tamaño fijo para el gráfico circular */
+    height: 56px;
+}
+
+.kpi-info {
+    flex: 1;
+    /* Ocupa el espacio restante */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    text-align: left;
+    /* Alineado a la izquierda */
+}
+
+.kpi-label {
+    font-size: 0.75rem;
+    color: #94A3B8;
+    font-weight: 600;
+    text-transform: none;
+    /* Sin mayúsculas */
+    letter-spacing: 0;
+    display: block;
+    margin-bottom: 4px;
+}
+
+.kpi-value {
+    font-size: 1.5rem;
+    /* Más pequeño para el estilo compacto */
+    font-weight: 700;
+    color: #162660;
+    margin: 0;
+    line-height: 1;
+}
+
+.kpi-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    margin-top: 4px;
+}
+
+.kpi-badge.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.kpi-badge.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
+}
+
+.kpi-badge.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563EB;
+}
+
+/* 5. CARDS QUE OCUPAN MÚLTIPLES COLUMNAS */
+.span-2 {
+    grid-column: span 2;
+    /* Ocupa 2 columnas */
+}
+
+.span-3 {
+    grid-column: span 3;
+    /* Ocupa 3 columnas */
+}
+
+.span-4 {
+    grid-column: span 4;
+    /* Ocupa 4 columnas (ancho completo) */
+}
+
+/* 6. CARD GENÉRICA (Para gráficos y tablas) */
+.card {
+    background: white;
+    padding: 28px;
+    border-radius: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.card-header-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #F1F5F9;
+}
+
+.card-header-compact h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #162660;
+    margin: 0;
+}
+
+.btn-text-link {
+    color: #3B82F6;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.btn-text-link:hover {
+    color: #2563EB;
+}
+
+/* 7. ACTIVITY LIST (Lista de Actividades) */
+.activity-list-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.activity-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px;
+    border-radius: 12px;
+    transition: background 0.2s;
+}
+
+.activity-item:hover {
+    background: #F8FAFC;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+
+.activity-details {
+    flex: 1;
+}
+
+.activity-name {
+    font-weight: 600;
+    color: #162660;
+    margin-bottom: 2px;
+}
+
+.activity-action {
+    font-size: 0.875rem;
+    color: #64748B;
+    margin-bottom: 2px;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: #94A3B8;
+}
+
+/* 8. MODERN TABLE (Tablas Compactas) */
+.modern-table-compact {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.modern-table-compact thead th {
+    background: #F8FAFC;
+    color: #64748B;
+    font-weight: 600;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 2px solid #E2E8F0;
+}
+
+.modern-table-compact tbody tr {
+    transition: background 0.2s;
+}
+
+.modern-table-compact tbody tr:hover {
+    background: #F8FAFC;
+}
+
+.modern-table-compact tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #F1F5F9;
+    color: #162660;
+    font-weight: 500;
+}
+
+/* 9. BADGES (Etiquetas de Estado) */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.badge.success {
+    background: rgba(16, 185, 129, 0.1);
+    color: #059669;
+}
+
+.badge.warning {
+    background: rgba(245, 158, 11, 0.1);
+    color: #D97706;
+}
+
+.badge.info {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563EB;
+}
+
+.badge.danger {
+    background: rgba(239, 68, 68, 0.1);
+    color: #DC2626;
+}
+
+/* 10. RESPONSIVE (Adaptación a pantallas pequeñas) */
+@media (max-width: 1400px) {
+    .dashboard-bento {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columnas en tablets */
+    }
+
+    .span-2 {
+        grid-column: span 2;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-bento {
+        grid-template-columns: 1fr;
+        /* 1 columna en móviles */
+    }
+
+    .span-2,
+    .span-3,
+    .span-4 {
+        grid-column: span 1;
+    }
+
+    .welcome-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .welcome-meta {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .content-wrapper {
+        padding: 16px;
+    }
+}
+
+/* ======================================================
+   🎨 FOOTER PROFESIONAL - SAAS DESIGN
+   ====================================================== */
+
+.main-footer {
+    position: fixed;
+    bottom: 0;
+    left: var(--sidebar-width);
+    right: 0;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(22, 38, 96, 0.08);
+    padding: 16px 32px;
+    z-index: 1030;
+    transition: left var(--transition-speed);
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.03);
+}
+
+body.sidebar-collapse .main-footer {
+    left: 80px;
+}
+
+.footer-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 32px;
+    max-width: 100%;
+}
+
+/* Left Section: Brand & Copyright */
+.footer-left {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    background: linear-gradient(135deg, #162660 0%, #0f1a3d 100%);
+    border-radius: 10px;
+    color: white;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.footer-brand i {
+    font-size: 18px;
+    color: #F1E4D1;
+}
+
+.footer-brand-text {
+    letter-spacing: 0.5px;
+}
+
+.footer-copyright {
+    font-size: 0.85rem;
+    color: #64748B;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.footer-version {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    background: rgba(22, 38, 96, 0.08);
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #162660;
+}
+
+/* Center Section: Quick Links */
+.footer-center {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.footer-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    color: #64748B;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.footer-link i {
+    font-size: 16px;
+}
+
+.footer-link::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(90deg, #162660, #F1E4D1);
+    transform: translateX(-50%);
+    transition: width 0.3s;
+}
+
+.footer-link:hover {
+    color: #162660;
+    background: rgba(22, 38, 96, 0.05);
+}
+
+.footer-link:hover::before {
+    width: 80%;
+}
+
+/* Right Section: Status & Credits */
+.footer-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+}
+
+.footer-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(16, 185, 129, 0.08);
+    border-radius: 8px;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    background: #10B981;
+    border-radius: 50%;
+    position: relative;
+    animation: pulse-status 2s infinite;
+}
+
+.status-indicator::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    height: 100%;
+    background: #10B981;
+    border-radius: 50%;
+    animation: pulse-ring 2s infinite;
+}
+
+@keyframes pulse-status {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes pulse-ring {
+    0% {
+        width: 100%;
+        height: 100%;
+        opacity: 0.8;
+    }
+
+    100% {
+        width: 200%;
+        height: 200%;
+        opacity: 0;
+    }
+}
+
+.status-text {
+    font-size: 0.8rem;
+    color: #059669;
+    font-weight: 600;
+}
+
+.footer-credits {
+    font-size: 0.8rem;
+    color: #94A3B8;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.footer-credits i {
+    color: #EF4444;
+    font-size: 14px;
+    animation: heartbeat 1.5s infinite;
+}
+
+@keyframes heartbeat {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    10%,
+    30% {
+        transform: scale(1.1);
+    }
+
+    20%,
+    40% {
+        transform: scale(1);
+    }
+}
+
+/* Responsive Footer */
+@media (max-width: 1200px) {
+    .footer-container {
+        gap: 20px;
+    }
+
+    .footer-center {
+        gap: 4px;
+    }
+
+    .footer-link {
+        padding: 6px 10px;
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .main-footer {
+        padding: 12px 20px;
+    }
+
+    .footer-container {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .footer-left,
+    .footer-center,
+    .footer-right {
+        width: 100%;
+    }
+
+    .footer-right {
+        align-items: flex-start;
+    }
+
+    .footer-center {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-footer {
+        position: relative;
+        left: 0;
+        padding: 16px;
+    }
+
+    .footer-left {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .footer-copyright {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
 }

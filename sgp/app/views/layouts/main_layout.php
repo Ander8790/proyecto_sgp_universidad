@@ -13,6 +13,8 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <!-- IMPORTANTE: style.css debe cargar AL FINAL para tener prioridad sobre otros frameworks -->
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/sidebar-hybrid.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/topbar.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/loading.css">
     
     <!-- Global JavaScript Constants -->
@@ -42,8 +44,8 @@
             ?>
         </div>
 
-        <!-- Footer -->
-        <?php require APPROOT . '/views/inc/footer.php'; ?>
+        <!-- Sidebar Overlay (para móvil) -->
+        <div id="sidebarOverlay" class="sidebar-overlay"></div>
     </div>
 
     <!-- JavaScript Assets (Al final del body) -->
@@ -52,26 +54,31 @@
     <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
     <script src="<?= URLROOT ?>/js/notyf.min.js"></script>
     <script src="<?= URLROOT ?>/js/apexcharts.min.js"></script>
+    <script src="<?= URLROOT ?>/js/notifications.js"></script>
+    <script src="<?= URLROOT ?>/js/sidebar-hybrid.js"></script>
     
-    <!-- Sidebar Toggle Script -->
+    <!-- FIX PARA APEXCHARTS - Previene error "attribute r: A negative value" -->
     <script>
-        // Sidebar Toggle Functionality
-        const menuToggle = document.getElementById('menuToggle');
-        const sidebar = document.querySelector('.sidebar');
-        const body = document.body;
-
-        if (menuToggle && sidebar) {
-            menuToggle.addEventListener('click', function() {
-                // Toggle sidebar collapse class on body
-                body.classList.toggle('sidebar-collapse');
-                
-                // Toggle active class on button for animation
-                this.classList.toggle('active');
+        // Espera a que el layout cargue y fuerza redimensionamiento
+        document.addEventListener("DOMContentLoaded", function() {
+            setTimeout(function() {
+                window.dispatchEvent(new Event('resize'));
+            }, 300);
+        });
+        
+        // Redimensionar gráficas al colapsar sidebar
+        const toggleBtn = document.getElementById('sidebarToggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => {
+                setTimeout(() => { 
+                    window.dispatchEvent(new Event('resize')); 
+                }, 300);
             });
         }
-
-        // ===== LOADING SPINNER HELPER FUNCTIONS =====
-        
+    </script>
+    
+    <!-- ===== LOADING SPINNER HELPER FUNCTIONS ===== -->
+    <script>
         /**
          * Show loading overlay with optional message
          * @param {string} message - Optional loading message (default: "Cargando...")
@@ -149,6 +156,5 @@
         window.setButtonLoading = setButtonLoading;
         window.resetButton = resetButton;
     </script>
-
 </body>
 </html>

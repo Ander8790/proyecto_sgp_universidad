@@ -38,6 +38,35 @@
                 <i class="ti ti-x input-feedback icon-error"></i>
             </div>
 
+            <!-- CAPTCHA Component -->
+            <div class="captcha-wrapper">
+                <label class="captcha-label">Código de Verificación</label>
+                <div class="captcha-container">
+                    <img src="<?= URLROOT ?>/captcha/generate" 
+                         alt="CAPTCHA" 
+                         class="captcha-image" 
+                         id="captchaImage">
+                    <button type="button" 
+                            class="captcha-refresh-btn" 
+                            onclick="refreshCaptcha()"
+                            title="Generar nuevo código">
+                        <i class="ti ti-refresh"></i>
+                    </button>
+                </div>
+                <div class="form-group" style="margin-top: 12px;">
+                    <input type="text" 
+                           name="captcha" 
+                           id="captcha" 
+                           class="input-modern" 
+                           placeholder="Ingrese los 5 caracteres que ve en la imagen" 
+                           required 
+                           maxlength="5"
+                           autocomplete="off">
+                    <i class="ti ti-check input-feedback icon-check"></i>
+                    <i class="ti ti-x input-feedback icon-error"></i>
+                </div>
+            </div>
+
             <!-- Enlace de Recuperación -->
             <div style="text-align: right; margin-bottom: 28px;">
                 <a href="<?= URLROOT ?>/auth/recovery" class="auth-link" style="font-size: 0.9rem;">
@@ -69,6 +98,26 @@
     <script src="<?= URLROOT ?>/js/validation.js"></script>
     
     <script>
+        // Función para refrescar CAPTCHA
+        function refreshCaptcha() {
+            const captchaImage = document.getElementById('captchaImage');
+            const captchaInput = document.getElementById('captcha');
+            
+            // Agregar timestamp para evitar cache
+            captchaImage.src = '<?= URLROOT ?>/captcha/generate?' + Date.now();
+            
+            // Limpiar input
+            captchaInput.value = '';
+            captchaInput.classList.remove('valid', 'invalid');
+            
+            // Animación de rotación del botón
+            const refreshBtn = document.querySelector('.captcha-refresh-btn i');
+            refreshBtn.style.transform = 'rotate(360deg)';
+            setTimeout(() => {
+                refreshBtn.style.transform = 'rotate(0deg)';
+            }, 500);
+        }
+        
         // Validación en tiempo real de email
         const emailInput = document.getElementById('email');
         emailInput.addEventListener('input', function() {
@@ -79,6 +128,12 @@
         const passwordInput = document.getElementById('password');
         passwordInput.addEventListener('input', function() {
             validatePasswordLength(this, 6);
+        });
+        
+        // Validación de CAPTCHA (solo longitud)
+        const captchaInput = document.getElementById('captcha');
+        captchaInput.addEventListener('input', function() {
+            validatePasswordLength(this, 5);
         });
         
         // Submit del formulario

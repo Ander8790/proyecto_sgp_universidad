@@ -22,6 +22,9 @@ class PerfilController extends Controller
         $this->userModel = $this->model('User');
         $config = require '../app/config/config.php';
         $this->db = new Database($config['db']);
+        
+        // Import Notification model
+        require_once '../app/models/Notification.php';
         $this->notificationModel = new Notification($this->db);
     }
 
