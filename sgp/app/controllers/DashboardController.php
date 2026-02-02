@@ -24,9 +24,9 @@ class DashboardController extends Controller {
         // Redirigir según rol
         $roleId = Session::get('role_id');
         $routes = [
-            1 => '/admin',      // Administrador
-            2 => '/tutor',      // Tutor
-            3 => '/pasante'     // Pasante
+            1 => '/admin',            // Administrador → AdminController::index()
+            2 => '/tutor',            // Tutor → TutorController::index()
+            3 => '/pasante/dashboard' // Pasante → PasanteController::dashboard() [FIX: Evita bucle infinito]
         ];
         
         $this->redirect($routes[$roleId] ?? '/auth/login');

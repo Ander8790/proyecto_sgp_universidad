@@ -1,15 +1,33 @@
 <?php
 /**
- * Header Component - Restaurado & Mejorado
- * Basado en respaldo + Mejoras UI/UX
+ * Header - Barra Superior del Sistema
+ * 
+ * MIDDLEWARE "LA JAULA":
+ * Si el usuario tiene requiere_cambio_clave = 1, NO se renderiza el header.
+ * Esto complementa la supresión del sidebar para "enjaular" al usuario en el wizard.
  */
+
+// ============================================
+// MIDDLEWARE: Verificar Estado del Usuario
+// ============================================
+if (Session::get('requiere_cambio_clave') == 1) {
+    // Usuario está "enjaulado" → NO renderizar header
+    return;
+}
 ?>
 <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     
     <!-- ZONA IZQUIERDA: Hamburguesa + Logo SGP -->
     <ul class="navbar-nav align-items-center">
-        <!-- Hamburguesa (Mobile Only via CSS) -->
-        <li class="nav-item">
+        <!-- Toggle Desktop - Colapsar/Expandir Sidebar (Desktop Only) -->
+        <li class="nav-item d-none d-lg-block">
+            <button id="sidebarCollapseToggle" class="btn-toggle" aria-label="Colapsar/Expandir sidebar" title="Colapsar sidebar">
+                <i class="ti ti-menu-2"></i>
+            </button>
+        </li>
+        
+        <!-- Hamburguesa Mobile (Mobile Only) -->
+        <li class="nav-item d-lg-none">
             <button id="sidebarToggle" class="btn-toggle" aria-label="Toggle sidebar">
                 <i class="ti ti-menu-2"></i>
             </button>
@@ -31,10 +49,11 @@
         </li>
     </ul>
 
-    <!-- ZONA CENTRAL: Cintillo Institucional (Restaurado del Respaldo) -->
-    <div class="institutional-strip mx-auto d-none d-lg-flex align-items-center justify-content-center flex-grow-1">
-        <img src="<?= URLROOT ?>/img/cintillo.png" alt="Cintillo Institucional" 
-             style="height: 50px; width: auto; max-width: 700px; object-fit: contain;">
+    <!-- ZONA CENTRAL: Logo Institucional -->
+    <div class="institutional-strip mx-auto d-none d-lg-flex align-items-center justify-content-center">
+        <img src="<?= URLROOT ?>/img/gobe.png" 
+             alt="Gobernación de Bolívar - Salud" 
+             style="height: 52px; width: auto; max-width: 320px; object-fit: contain;">
     </div>
 
     <!-- ZONA DERECHA: Notificaciones + Perfil -->
@@ -42,7 +61,7 @@
         
         <!-- Notificaciones -->
         <li class="nav-item dropdown">
-            <a class="nav-link position-relative header-icon-btn" data-toggle="dropdown" href="#">
+            <a class="nav-link position-relative header-icon-btn" data-toggle="dropdown" href="#" aria-label="Notificaciones">
                 <i class="ti ti-bell"></i>
                 <span id="notificationCount" class="badge badge-danger notification-badge" style="display: none;">0</span>
             </a>
@@ -59,7 +78,7 @@
 
         <!-- Perfil Usuario -->
         <li class="nav-item dropdown">
-            <a class="nav-link d-flex align-items-center user-profile-link" data-toggle="dropdown" href="#">
+            <a class="nav-link d-flex align-items-center user-profile-link" data-toggle="dropdown" href="#" aria-label="Perfil de usuario">
                 <div class="profile-avatar">
                     <?php 
                     $user_name = Session::get('user_name') ?? Session::get('nombres') ?? 'Usuario';
@@ -106,7 +125,12 @@
 </nav>
 
 <script>
-// Confirmar Logout
+/**
+ * Confirmar Logout con SweetAlert
+ * 
+ * PROPÓSITO:
+ * Mostrar confirmación antes de cerrar sesión para evitar cierres accidentales.
+ */
 function confirmLogout() {
     Swal.fire({
         title: '¿Cerrar Sesión?',

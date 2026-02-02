@@ -340,6 +340,26 @@
         color: white;
         transform: rotate(90deg);
     }
+
+    /* 3. BOTÓN PREMIUM (Blanco/Azul - Alto Contraste) */
+    .btn-stitch-gold {
+        background-color: #ffffff !important;
+        color: var(--color-primary) !important;
+        font-weight: 700;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        transition: all 0.2s ease;
+    }
+    .btn-stitch-gold:hover {
+        background-color: #f8fafc !important;
+        transform: translateY(-2px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
     
     /* Form Inputs - Modern */
     .input-modern {
@@ -407,65 +427,204 @@
         color: var(--color-primary) !important;
         border-color: var(--color-accent) !important;
     }
+    
+    /* === MICROANIMACIONES === */
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+    }
+    
+    .welcome-icon {
+        animation: pulse 2s ease-in-out infinite;
+    }
+    
+    /* Filtros con hover */
+    .filter-select {
+        transition: all 0.2s ease;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+        padding: 8px 12px;
+        font-size: 0.9rem;
+        cursor: pointer;
+    }
+    
+    .filter-select:hover {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(22, 38, 96, 0.1);
+    }
+    
+    .filter-select:focus {
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(22, 38, 96, 0.15);
+        outline: none;
+    }
+    
+    /* Botón limpiar */
+    .btn-clear-filters {
+        transition: all 0.2s ease;
+    }
+    
+    .btn-clear-filters:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Input de búsqueda mejorado */
+    .search-input-wrapper {
+        background-color: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 4px 12px;
+        display: flex;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+    
+    .search-input-wrapper:focus-within {
+        background-color: #fff;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(22, 38, 96, 0.1);
+    }
+    
+    .search-input-wrapper input {
+        border: none;
+        background: transparent;
+        width: 100%;
+        padding: 8px;
+        color: #374151;
+        outline: none;
+    }
+    
+    .search-input-wrapper input::placeholder {
+        color: #9ca3af;
+    }
 </style>
 
 <div class="dashboard-container">
-    <!-- Modern Header with Gradient -->
-    <div class="page-header-modern">
-        <div class="page-header-content">
-            <div class="page-header-icon">
-                <i class="ti ti-users"></i>
-            </div>
-            <div class="page-header-text">
-                <h1>Gestión de Usuarios</h1>
-                <p>Administra los usuarios del sistema</p>
+    <!-- BANNER MEJORADO (Estilo Dashboard) -->
+    <div class="welcome-banner welcome-banner-compact mb-4">
+        <div class="welcome-icon">
+            <i class="ti ti-users"></i>
+        </div>
+        
+        <div class="welcome-content">
+            <div class="welcome-text">
+                <h1 class="welcome-title">Gestión de Usuarios</h1>
+                <p class="welcome-subtitle">
+                    <i class="ti ti-shield-check"></i>
+                    <span>Control de Accesos</span>
+                    <span class="subtitle-separator">-</span>
+                    <span>Administración</span>
+                </p>
             </div>
         </div>
-        <button onclick="openCreateModal()" class="btn-primary">
-            <i class="ti ti-user-plus"></i> Nuevo Usuario
+        
+        <div class="welcome-meta">
+            <div class="welcome-stats">
+                <i class="ti ti-users-group"></i>
+                <span id="totalUsers">0</span> usuarios
+            </div>
+        </div>
+        
+        <button onclick="openCreateModal()" class="btn btn-stitch-gold shadow-sm" style="position: absolute; right: 20px; top: 50%; transform: translateY(-50%);">
+            <i class="ti ti-user-plus"></i>
+            Nuevo Usuario
         </button>
     </div>
+
+    <!-- BARRA DE BÚSQUEDA Y FILTROS FUNCIONALES -->
+    <div class="card border-0 shadow-sm mb-4 rounded-3">
+        <div class="card-body p-3">
+            <div class="row g-3 align-items-center">
+                <!-- Búsqueda Global -->
+                <div class="col-md-5">
+                    <div class="search-input-wrapper">
+                        <i class="ti ti-search text-muted"></i>
+                        <input type="text" id="globalSearch" placeholder="Buscar por nombre, cédula o institución...">
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="col-md-7 d-flex justify-content-end gap-2 flex-wrap">
+                    <select id="filterRole" class="form-select filter-select" style="width: auto; min-width: 150px;">
+                        <option value="">Todos los Roles</option>
+                        <option value="Administrador">Administrador</option>
+                        <option value="Tutor">Tutor</option>
+                        <option value="Pasante">Pasante</option>
+                    </select>
+                    
+                    <select id="filterStatus" class="form-select filter-select" style="width: auto; min-width: 150px;">
+                        <option value="">Todos los Estados</option>
+                        <option value="activo">Activo</option>
+                        <option value="inactivo">Inactivo</option>
+                    </select>
+                    
+                    <button id="clearFilters" class="btn btn-outline-secondary btn-clear-filters">
+                        <i class="ti ti-filter-off"></i> Limpiar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     
-    <!-- Users Table with Modern Card -->
-    <div class="table-card-modern">
-        <table id="usersTable" class="display" style="width:100%">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Correo</th>
-                    <th>Rol</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php foreach ($users as $user): ?>
-                <tr>
-                    <td><?= $user['id'] ?></td>
-                    <td><?= htmlspecialchars($user['name']) ?></td>
-                    <td><?= htmlspecialchars($user['email']) ?></td>
-                    <td><?= htmlspecialchars($user['role_name']) ?></td>
-                    <td>
-                        <span class="badge badge-<?= $user['estado'] ?>">
-                            <?= ucfirst($user['estado']) ?>
-                        </span>
-                    </td>
-                    <td>
-                        <button onclick="editUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-edit" title="Editar">
-                            <i class="ti ti-edit"></i>
-                        </button>
-                        <button onclick="resetUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-reset" title="Resetear">
-                            <i class="ti ti-key"></i>
-                        </button>
-                        <button onclick="deleteUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-delete" title="Eliminar">
-                            <i class="ti ti-trash"></i>
-                        </button>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
-            </tbody>
-        </table>
+    <!-- BLOQUE 3: TABLA DE DATOS (Clean Card con Footer) -->
+    <div class="card border-0 shadow-soft rounded-xl overflow-hidden">
+        <div class="table-responsive">
+            <table id="usersTable" class="table table-hover align-middle mb-0" style="width:100%">
+                <thead class="bg-light text-uppercase text-muted small fw-bold">
+                    <tr>
+                        <th class="px-4 py-3 border-0">ID</th>
+                        <th class="px-4 py-3 border-0">Nombre</th>
+                        <th class="px-4 py-3 border-0">Correo</th>
+                        <th class="px-4 py-3 border-0">Rol</th>
+                        <th class="px-4 py-3 border-0">Institución</th>
+                        <th class="px-4 py-3 border-0">Estado</th>
+                        <th class="px-4 py-3 border-0 text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="border-top-0">
+                    <?php foreach ($users as $user): ?>
+                    <tr style="transition: all 0.2s;">
+                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;"><?= $user['id'] ?></td>
+                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;">
+                            <div class="fw-medium text-dark"><?= htmlspecialchars($user['name']) ?></div>
+                            <div class="small text-muted"><?= htmlspecialchars($user['email']) ?></div>
+                        </td>
+                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;"><?= htmlspecialchars($user['email']) ?></td>
+                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;">
+                            <span class="badge bg-light text-dark"><?= htmlspecialchars($user['role_name']) ?></span>
+                        </td>
+                        <td class="px-4 py-3 border-bottom text-center" style="border-color: #f1f3f5;">
+                            <?php if (!empty($user['institucion_procedencia'])): ?>
+                                <span class="text-muted small"><?= htmlspecialchars($user['institucion_procedencia']) ?></span>
+                            <?php else: ?>
+                                <span class="text-muted">-</span>
+                            <?php endif; ?>
+                        </td>
+                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;">
+                            <span class="badge badge-<?= $user['estado'] ?>">
+                                <?= ucfirst($user['estado']) ?>
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 border-bottom text-center" style="border-color: #f1f3f5;">
+                            <button onclick="editUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-edit" title="Editar">
+                                <i class="ti ti-edit"></i>
+                            </button>
+                            <button onclick="resetUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-reset" title="Resetear">
+                                <i class="ti ti-key"></i>
+                            </button>
+                            <button onclick="deleteUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-delete" title="Eliminar">
+                                <i class="ti ti-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white border-top border-light p-3">
+            <!-- DataTables pagination will be injected here -->
+        </div>
     </div>
 </div>
 
@@ -649,7 +808,7 @@
     
     // Initialize DataTable
     $(document).ready(function() {
-        $('#usersTable').DataTable({
+        var table = $('#usersTable').DataTable({
             language: {
                 "decimal": "",
                 "emptyTable": "No hay datos disponibles en la tabla",
@@ -674,8 +833,53 @@
                     "sortDescending": ": activar para ordenar la columna descendente"
                 }
             },
-            order: [[0, 'desc']]
+            dom: 'rtip', // Hide default search box
+            order: [[0, 'desc']],
+            drawCallback: function() {
+                // Update total users count on every draw
+                $('#totalUsers').text(this.api().rows({filter: 'applied'}).count());
+            }
         });
+        
+        // --- FUNCTIONAL FILTERS IMPLEMENTATION ---
+        
+        // 1. Global Search
+        $('#globalSearch').on('keyup change clear', function() {
+            table.search(this.value).draw();
+        });
+        
+        // 2. Role Filter (Column 3)
+        $('#filterRole').on('change', function() {
+            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+            table.column(3).search(val ? val : '', true, false).draw();
+        });
+        
+        // 3. Status Filter (Column 5)
+        $('#filterStatus').on('change', function() {
+            var val = $.fn.dataTable.util.escapeRegex($(this).val());
+            table.column(5).search(val ? val : '', true, false).draw();
+        });
+        
+        // 4. Clear Filters Button
+        $('#clearFilters').on('click', function() {
+            $('#globalSearch').val('');
+            $('#filterRole').val('');
+            $('#filterStatus').val('');
+            
+            table.search('').columns().search('').draw();
+            $('#totalUsers').text(table.rows().count());
+        });
+        
+        // Prevent form submission on enter in search
+        $('#globalSearch').on('keypress', function(e) {
+            if(e.which == 13) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        
+        // Set initial count
+        $('#totalUsers').text(table.rows().count());
     });
     
     // Create Modal Functions

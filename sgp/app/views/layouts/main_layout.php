@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <!-- IMPORTANTE: style.css debe cargar AL FINAL para tener prioridad sobre otros frameworks -->
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/sidebar-hybrid.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/sidebar.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/topbar.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/loading.css">
     
@@ -54,8 +54,9 @@
     <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
     <script src="<?= URLROOT ?>/js/notyf.min.js"></script>
     <script src="<?= URLROOT ?>/js/apexcharts.min.js"></script>
+    <script src="<?= URLROOT ?>/js/modern-charts.js"></script>
     <script src="<?= URLROOT ?>/js/notifications.js"></script>
-    <script src="<?= URLROOT ?>/js/sidebar-hybrid.js"></script>
+    <script src="<?= URLROOT ?>/js/sidebar.js"></script>
     
     <!-- FIX PARA APEXCHARTS - Previene error "attribute r: A negative value" -->
     <script>

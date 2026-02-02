@@ -6,6 +6,36 @@ $role = $data['role'] ?? 'Pasante';
 
 <div class="dashboard-bento">
     
+    <!-- Banner de Bienvenida (Compacto) - Clonado del Admin Dashboard -->
+    <div class="welcome-banner welcome-banner-compact">
+        <div class="welcome-icon">
+            <i class="ti ti-sparkles"></i>
+        </div>
+        
+        <div class="welcome-content">
+            <div class="welcome-text">
+                <h1 class="welcome-title">¡Bienvenido de nuevo, <?= htmlspecialchars(explode(' ', $user_name)[0]) ?>!</h1>
+                <p class="welcome-subtitle">
+                    <i class="ti ti-layout-dashboard"></i>
+                    <span>Panel de Control</span>
+                    <span class="subtitle-separator">-</span>
+                    <span><?= $role ?></span>
+                </p>
+            </div>
+        </div>
+        
+        <div class="welcome-meta">
+            <div class="welcome-date">
+                <i class="ti ti-calendar"></i>
+                <span id="currentDate"></span>
+            </div>
+            <div class="welcome-time">
+                <i class="ti ti-clock"></i>
+                <span id="currentTime"></span>
+            </div>
+        </div>
+    </div>
+    
     <!-- Fila 1: 3 KPIs para Pasante -->
     <div class="card kpi-card">
         <div class="kpi-header">
@@ -104,4 +134,29 @@ function confirmLogout() {
         if (result.isConfirmed) window.location.href = '<?= URLROOT ?>/auth/logout';
     });
 }
+
+// ========================================
+// ACTUALIZAR FECHA Y HORA EN BANNER
+// ========================================
+function updateDateTime() {
+    const now = new Date();
+    
+    // Formato de fecha: "Jueves, 23 de Enero 2026"
+    const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const dateStr = now.toLocaleDateString('es-ES', dateOptions);
+    
+    // Formato de hora: "22:56:03"
+    const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    
+    const dateEl = document.getElementById('currentDate');
+    const timeEl = document.getElementById('currentTime');
+    
+    if (dateEl) dateEl.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+    if (timeEl) timeEl.textContent = timeStr;
+}
+
+// Actualizar inmediatamente y cada segundo
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
 </script>

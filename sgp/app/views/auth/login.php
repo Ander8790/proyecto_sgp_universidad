@@ -38,14 +38,17 @@
                 <i class="ti ti-x input-feedback icon-error"></i>
             </div>
 
+
             <!-- CAPTCHA Component -->
             <div class="captcha-wrapper">
                 <label class="captcha-label">Código de Verificación</label>
                 <div class="captcha-container">
-                    <img src="<?= URLROOT ?>/captcha/generate" 
-                         alt="CAPTCHA" 
-                         class="captcha-image" 
-                         id="captchaImage">
+                    <div class="captcha-display">
+                        <img src="<?= URLROOT ?>/captcha/generate" 
+                             alt="CAPTCHA" 
+                             class="captcha-image" 
+                             id="captchaImage">
+                    </div>
                     <button type="button" 
                             class="captcha-refresh-btn" 
                             onclick="refreshCaptcha()"
@@ -53,32 +56,38 @@
                         <i class="ti ti-refresh"></i>
                     </button>
                 </div>
-                <div class="form-group" style="margin-top: 12px;">
+                <div class="form-group" style="margin-top: 0; margin-bottom: 0;">
                     <input type="text" 
                            name="captcha" 
                            id="captcha" 
                            class="input-modern" 
-                           placeholder="Ingrese los 5 caracteres que ve en la imagen" 
+                           placeholder=" " 
                            required 
                            maxlength="5"
-                           autocomplete="off">
+                           autocomplete="off"
+                           style="text-transform: uppercase;"
+                           oninput="this.value = this.value.toUpperCase()">
+                    <label for="captcha" class="label-floating">
+                        <i class="ti ti-shield-check" style="margin-right: 8px; font-size: 18px;"></i>Ingrese el código
+                    </label>
                     <i class="ti ti-check input-feedback icon-check"></i>
                     <i class="ti ti-x input-feedback icon-error"></i>
                 </div>
             </div>
 
-            <!-- Enlace de Recuperación -->
-            <div style="text-align: right; margin-bottom: 28px;">
-                <a href="<?= URLROOT ?>/auth/recovery" class="auth-link" style="font-size: 0.9rem;">
-                    ¿Olvidaste tu contraseña?
-                </a>
-            </div>
 
             <!-- Botón Premium -->
-            <button type="submit" class="btn-primary">
+            <button type="submit" class="btn-primary" style="margin-bottom: 16px;">
                 Ingresar
                 <i class="ti ti-arrow-right" style="font-size: 20px;"></i>
             </button>
+
+            <!-- Enlace de Recuperación (debajo del botón) -->
+            <div style="text-align: center; margin-bottom: 20px;">
+                <a href="<?= URLROOT ?>/auth/recovery" class="auth-link" style="font-size: 0.85rem;">
+                    ¿Olvidaste tu contraseña?
+                </a>
+            </div>
         </form>
 
         <div class="auth-footer">
@@ -178,6 +187,10 @@
                         text: data.message,
                         confirmButtonColor: '#162660'
                     });
+                    
+                    // AUTO-REFRESH CAPTCHA on error
+                    refreshCaptcha();
+                    
                     btn.disabled = false;
                 }
             })
@@ -190,18 +203,88 @@
                     text: 'Ocurrió un error inesperado',
                     confirmButtonColor: '#162660'
                 });
+                
+                // AUTO-REFRESH CAPTCHA on error
+                refreshCaptcha();
+                
                 btn.disabled = false;
             });
         });
 
+        // ============================================
+        // SWEETALERT: REGISTRO EXITOSO
+        // ============================================
+        // Cuando el usuario se registra y es redirigido al login,
+        // mostramos un modal de éxito (no un toast pasajero)
         <?php if (!empty($success)): ?>
             Swal.fire({
                 icon: 'success',
-                title: '¡Éxito!',
+                title: '¡Cuenta Creada!',
                 text: '<?= htmlspecialchars($success) ?>',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#162660',
+                allowOutsideClick: false
+            });
+        <?php endif; ?>
+        
+        // ============================================
+        // SWEETALERT: SOLICITUD DE AYUDA ENVIADA
+        // ============================================
+        // Cuando el usuario solicita ayuda y es redirigido al login
+        <?php if (Session::hasFlash('success')): ?>
+            Swal.fire({
+                icon: 'success',
+                title: '¡Solicitud Enviada!',
+                text: '<?= addslashes(Session::getFlash('success')) ?>',
+                confirmButtonText: 'Entendido',
+                confirmButtonColor: '#162660',
+                allowOutsideClick: false
+            });
+        <?php endif; ?>
+        
+        // ============================================
+        // SWEETALERT: ERRORES
+        // ============================================
+        <?php if (Session::hasFlash('error')): ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: '<?= addslashes(Session::getFlash('error')) ?>',
                 confirmButtonColor: '#162660'
             });
         <?php endif; ?>
+        
+        // ============================================
+        // SWEETALERT: ERRORES ESPECÍFICOS DE LOGIN
+        // ============================================
+        // Mostrar errores específicos (correo no existe, contraseña incorrecta)
+        <?php if (Session::hasFlash('login_error')): ?>
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Acceso',
+                text: '<?= addslashes(Session::getFlash('login_error')) ?>',
+                confirmButtonColor: '#162660',
+                confirmButtonText: 'Entendido'
+            });
+        <?php endif; ?>
+
+        // ============================================
+        // PATRÓN PRG: ALERTA DE REGISTRO EXITOSO
+        // ============================================
+        // Detectar si venimos de un registro exitoso (parámetro ?status=success)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('status') === 'success') {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Cuenta Creada!',
+                text: 'Tu registro fue exitoso. Por favor inicia sesión con tus credenciales.',
+                confirmButtonColor: '#162660',
+                confirmButtonText: 'Entendido'
+            }).then(() => {
+                // Limpiar la URL para que no salga la alerta al recargar
+                window.history.replaceState({}, document.title, window.location.pathname);
+            });
+        }
     </script>
 </body>
 </html>

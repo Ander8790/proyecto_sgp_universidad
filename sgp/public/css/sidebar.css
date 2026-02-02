@@ -1,0 +1,379 @@
+/* ========================================
+   SGP SIDEBAR - PROFESSIONAL LAYOUT
+   Basado en respaldo + Mejoras UI/UX
+   ======================================== */
+
+:root {
+    --sidebar-width: 260px;
+    --header-height: 70px;
+    --z-header: 1000;
+    --z-overlay: 1040;
+    --z-sidebar-mobile: 1050;
+
+    /* Gradient Profesional (Match Banner) */
+    --gradient-start: #2d4a9e;
+    --gradient-mid: #1e3a8a;
+    --gradient-end: #162660;
+
+    /* Colores WCAG */
+    --text-light: rgba(255, 255, 255, 0.8);
+    --text-white: #ffffff;
+    --text-dark: #1e2a5e;
+    --border-light: rgba(255, 255, 255, 0.3);
+    --danger: #ff4757;
+}
+
+/* ========================================
+   SIDEBAR BASE
+   ======================================== */
+
+.main-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+
+    /* GRADIENT VERTICAL */
+    background: linear-gradient(180deg,
+            var(--gradient-start) 0%,
+            var(--gradient-mid) 50%,
+            var(--gradient-end) 100%);
+
+    box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+
+    display: flex;
+    flex-direction: column;
+    padding: 20px 12px;
+    z-index: 1040;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Deshabilitar transiciones durante carga inicial */
+.main-sidebar.no-transition {
+    transition: none !important;
+}
+
+.no-transition .content-wrapper {
+    transition: none !important;
+}
+
+.main-sidebar::-webkit-scrollbar {
+    width: 4px;
+}
+
+.main-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 4px;
+}
+
+/* ========================================
+   NAVEGACIÓN
+   ======================================== */
+
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+
+.nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* ========================================
+   NAV LINK - SOLID BORDERS
+   ======================================== */
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    margin: 4px 12px 4px 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
+
+    background: transparent;
+    border: 1px solid var(--border-light);
+    color: var(--text-light);
+
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.nav-link i {
+    font-size: 1.2rem;
+    width: 26px;
+    text-align: center;
+    margin-right: 12px;
+    transition: transform 0.3s;
+}
+
+.nav-link:hover:not(.active):not(.logout-link) {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.4);
+    color: var(--text-white);
+    transform: translateX(3px);
+}
+
+/* Deshabilitar transform en collapsed */
+.main-sidebar.collapsed .nav-link:hover:not(.active) {
+    transform: none !important;
+}
+
+.nav-link:hover:not(.active):not(.logout-link) i {
+    transform: scale(1.1);
+}
+
+/* ACTIVE - Professional Design (Complete Border) */
+.nav-link.active {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border: 1px solid rgba(255, 255, 255, 1) !important;
+    color: var(--text-dark) !important;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    margin: 4px 12px 4px 8px !important;
+    border-radius: 12px !important;
+}
+
+.nav-link.active i {
+    color: var(--text-dark) !important;
+}
+
+/* ========================================
+   SIDEBAR COLLAPSED STATE (Desktop Only)
+   ======================================== */
+
+.main-sidebar.collapsed {
+    width: 80px;
+    overflow-x: visible !important;
+}
+
+/* Soporte para collapsed desde HTML */
+html.sidebar-collapsed .main-sidebar,
+.sidebar-collapsed .main-sidebar {
+    width: 80px;
+}
+
+.main-sidebar.collapsed .nav-link {
+    justify-content: center;
+    padding: 16px 12px;
+    position: relative;
+}
+
+.main-sidebar.collapsed .nav-link i {
+    font-size: 1.5rem;
+    margin-right: 0;
+}
+
+.main-sidebar.collapsed .menu-text {
+    display: none;
+}
+
+.main-sidebar.collapsed .btn-logout span {
+    display: none;
+}
+
+.main-sidebar.collapsed .btn-logout {
+    justify-content: center;
+    padding: 14px;
+}
+
+.main-sidebar.collapsed .btn-logout i {
+    margin: 0;
+    font-size: 22px;
+}
+
+/* ========================================
+   TOOLTIPS (Collapsed State Only)
+   ======================================== */
+
+.main-sidebar.collapsed .nav-link::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+
+    background: #1e293b;
+    color: white;
+    padding: 8px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+
+    font-size: 0.875rem;
+    font-weight: 500;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 2000;
+
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Arrow del tooltip */
+.main-sidebar.collapsed .nav-link::before {
+    content: '';
+    position: absolute;
+    left: calc(100% + 4px);
+    top: 50%;
+    transform: translateY(-50%);
+
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 6px 8px 6px 0;
+    border-color: transparent #1e293b transparent transparent;
+
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 2000;
+}
+
+.main-sidebar.collapsed .nav-link:hover::after,
+.main-sidebar.collapsed .nav-link:hover::before {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* ========================================
+   LOGOUT BUTTON
+   ======================================== */
+
+.sidebar-footer {
+    margin-top: auto;
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: rgba(0, 0, 0, 0.1);
+}
+
+.btn-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-weight: 500;
+    border: none;
+}
+
+.btn-logout:hover {
+    background-color: #dc3545;
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+}
+
+.btn-logout i {
+    font-size: 18px;
+}
+
+/* ========================================
+   OVERLAY
+   ======================================== */
+
+.sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: var(--z-overlay);
+    display: none;
+    backdrop-filter: blur(3px);
+    transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+    display: block;
+}
+
+/* ========================================
+   DESKTOP (≥ 992px)
+   ======================================== */
+
+@media (min-width: 992px) {
+    .main-sidebar {
+        top: var(--header-height);
+        height: calc(100vh - var(--header-height));
+        left: 0;
+        transform: translateX(0);
+    }
+
+    .content-wrapper {
+        margin-left: var(--sidebar-width) !important;
+        margin-top: var(--header-height);
+        padding: 30px;
+        min-height: calc(100vh - var(--header-height));
+        background-color: #F8FAFC;
+        transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Content ajuste cuando sidebar está colapsado */
+    body.sidebar-collapsed .content-wrapper {
+        margin-left: 80px !important;
+    }
+
+    #sidebarToggle {
+        display: none !important;
+    }
+}
+
+/* ========================================
+   MOBILE (< 992px)
+   ======================================== */
+
+@media (max-width: 991px) {
+    .main-sidebar {
+        left: -100%;
+        top: 0;
+        height: 100vh;
+        z-index: var(--z-sidebar-mobile) !important;
+        transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .main-sidebar.show {
+        left: 0;
+    }
+
+    .content-wrapper {
+        margin-left: 0 !important;
+        width: 100%;
+        margin-top: var(--header-height);
+        padding: 20px 15px;
+        min-height: calc(100vh - var(--header-height));
+        background-color: #F8FAFC;
+    }
+}
+
+/* ========================================
+   WRAPPER LAYOUT
+   ======================================== */
+
+.wrapper {
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}

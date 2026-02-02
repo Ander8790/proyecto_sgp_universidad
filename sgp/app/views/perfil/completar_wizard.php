@@ -1,22 +1,77 @@
+<?php
+/**
+ * Vista: Wizard de Completar Perfil
+ * 
+ * PROPÓSITO EDUCATIVO:
+ * Esta vista implementa un formulario de 3 pasos (wizard) para que usuarios nuevos
+ * configuren su cuenta completamente.
+ * 
+ * LÓGICA DINÁMICA:
+ * - Campos READONLY si el usuario tiene datos pre-poblados (creado por admin)
+ * - Campos EDITABLES si el usuario NO tiene datos (registro externo)
+ * - Preguntas de seguridad como SELECT (no inputs de texto)
+ * - Campo "Cargo" solo para Admin/Tutor, "Departamento" solo para Pasante
+ * 
+ * FLUJO:
+ * Step 1: Cambiar contraseña temporal → nueva contraseña
+ * Step 2: Responder 3 preguntas de seguridad
+ * Step 3: Completar datos personales
+ * 
+ * @var object $user Datos del usuario desde PerfilController
+ * @var array $questions Preguntas de seguridad desde BD
+ */
+?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Completar Perfil - SGP</title>
+    
+    <!-- CSS Moderno para Preguntas de Seguridad -->
+    <style>
+        .modern-select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background-color: white;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23374151' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            padding: 12px 40px 12px 16px;
+            border: 2px solid #E5E7EB;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        .modern-select:hover { border-color: #D1D5DB; background-color: #F9FAFB; }
+        .modern-select:focus { outline: none; border-color: var(--color-primary, #162660); box-shadow: 0 0 0 3px rgba(22, 38, 96, 0.1); background-color: white; }
+        .input-icon-wrapper { position: relative; display: flex; align-items: center; }
+        .input-icon { position: absolute; left: 16px; color: var(--color-primary, #162660); font-size: 20px; pointer-events: none; z-index: 10; transition: all 0.3s ease; }
+        .input-with-icon { padding-left: 48px !important; border: 2px solid #E5E7EB; border-radius: 10px; font-size: 14px; font-weight: 500; color: #374151; transition: all 0.3s ease; }
+        .input-with-icon:hover { border-color: #D1D5DB; background-color: #F9FAFB; }
+        .input-with-icon:focus { outline: none; border-color: var(--color-primary, #162660); box-shadow: 0 0 0 3px rgba(22, 38, 96, 0.1); background-color: white; }
+        .modern-label { display: block; font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 8px; letter-spacing: 0.3px; }
+        .modern-label i { margin-right: 6px; color: var(--color-primary, #162660); font-size: 16px; }
+        .security-question-row { margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%); border-radius: 12px; border: 1px solid #F3F4F6; transition: all 0.3s ease; }
+        .security-question-row:hover { border-color: #E5E7EB; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
+    </style>
 </head>
 <body class="auth-wrapper">
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
     
-    <!-- Tarjeta Premium Flotante -->
-    <div class="auth-card" style="max-width: 700px;">
+    <div class="auth-card" style="max-width: 750px;">
         <div class="auth-header">
             <img src="<?= URLROOT ?>/img/logo.png" alt="SGP Logo" class="auth-logo">
             <h1 class="auth-title">Completar Perfil</h1>
             <p class="auth-subtitle">Configura tu cuenta en 3 sencillos pasos</p>
         </div>
 
-        <!-- Progress Steps -->
         <div class="wizard-progress" style="margin-bottom: 32px;">
             <div class="progress-steps">
                 <div class="step active" data-step="1">
@@ -38,13 +93,15 @@
         </div>
 
         <form id="wizardForm" method="POST" action="<?= URLROOT ?>/perfil/guardarWizard">
-            <!-- Step 1: Security -->
+            
+            <!-- ============================================ -->
+            <!-- STEP 1: CAMBIO DE CONTRASEÑA -->
+            <!-- ============================================ -->
             <div class="wizard-step active" data-step="1">
                 <h3 style="font-size: 18px; font-weight: 600; color: var(--color-primary); margin-bottom: 24px;">
                     Cambio de Contraseña
                 </h3>
 
-                <!-- Current Password -->
                 <div class="form-group has-toggle">
                     <input type="password" name="current_password" id="current_password" class="input-modern" placeholder=" " required style="padding-right: 48px;">
                     <label for="current_password" class="label-floating">
@@ -54,7 +111,6 @@
                     <span class="input-hint">Formato: Sgp.TuCédula (Ej: Sgp.12345678)</span>
                 </div>
 
-                <!-- New Password -->
                 <div class="form-group has-toggle">
                     <input type="password" name="new_password" id="new_password" class="input-modern" placeholder=" " required style="padding-right: 48px;">
                     <label for="new_password" class="label-floating">
@@ -67,7 +123,6 @@
                     <span class="password-strength-text" id="strengthText"></span>
                 </div>
 
-                <!-- Confirm Password -->
                 <div class="form-group has-toggle">
                     <input type="password" name="confirm_password" id="confirm_password" class="input-modern" placeholder=" " required style="padding-right: 48px;">
                     <label for="confirm_password" class="label-floating">
@@ -77,43 +132,121 @@
                 </div>
             </div>
 
-            <!-- Step 2: Security Questions -->
+            <!-- ============================================ -->
+            <!-- STEP 2: PREGUNTAS DE SEGURIDAD -->
+            <!-- ============================================ -->
             <div class="wizard-step" data-step="2">
-                <h3 style="font-size: 18px; font-weight: 600; color: var(--color-primary); margin-bottom: 24px;">
+                <h3 style="font-size: 18px; font-weight: 600; color: var(--color-primary); margin-bottom: 8px;">
                     Preguntas de Seguridad
                 </h3>
+                <p style="font-size: 13px; color: #6B7280; margin-bottom: 20px;">
+                    Selecciona 3 preguntas diferentes y proporciona respuestas que solo tú conozcas.
+                </p>
 
                 <?php 
-                // Assign first 3 questions automatically to avoid duplicates
-                $assignedQuestions = array_slice($questions, 0, 3);
-                foreach ($assignedQuestions as $index => $q): 
+                /**
+                 * DISEÑO PREMIUM: Grid Layout + Custom Selects + Input Groups
+                 */
+                for ($i = 1; $i <= 3; $i++): 
                 ?>
-                <input type="hidden" name="question_<?= $index + 1 ?>" value="<?= $q['id'] ?>">
-                <div class="form-group">
-                    <input type="text" name="answer_<?= $index + 1 ?>" id="answer_<?= $index + 1 ?>" class="input-modern" placeholder=" " required>
-                    <label for="answer_<?= $index + 1 ?>" class="label-floating">
-                        <i class="ti ti-help" style="margin-right: 8px; font-size: 18px;"></i><?= htmlspecialchars($q['pregunta']) ?>
-                    </label>
+                <div class="security-question-row">
+                    <div class="row">
+                        <!-- COLUMNA IZQUIERDA: PREGUNTA CON SELECT PERSONALIZADO -->
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <label for="question_<?= $i ?>" class="modern-label">
+                                <i class="ti ti-help-circle"></i>
+                                Pregunta <?= $i ?>
+                            </label>
+                            <select name="question_<?= $i ?>" 
+                                    id="question_<?= $i ?>" 
+                                    class="modern-select" 
+                                    required
+                                    onchange="validateDuplicateQuestions()">
+                                <option value="" disabled selected>Selecciona una opción...</option>
+                                <?php foreach ($questions as $q): ?>
+                                <option value="<?= $q['id'] ?>"><?= htmlspecialchars($q['pregunta']) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <small class="text-danger" id="error_question_<?= $i ?>" style="display: none; font-size: 12px; margin-top: 6px; font-weight: 600;">
+                                <i class="ti ti-alert-circle" style="font-size: 14px;"></i> Esta pregunta ya fue seleccionada
+                            </small>
+                        </div>
+
+                        <!-- COLUMNA DERECHA: RESPUESTA CON ICONO INTEGRADO -->
+                        <div class="col-md-6">
+                            <label for="answer_<?= $i ?>" class="modern-label">
+                                <i class="ti ti-key"></i>
+                                Tu Respuesta
+                            </label>
+                            <div class="input-icon-wrapper">
+                                <input type="text" 
+                                       name="answer_<?= $i ?>" 
+                                       id="answer_<?= $i ?>" 
+                                       class="form-control input-with-icon" 
+                                       placeholder="Escribe tu respuesta..." 
+                                       required
+                                       maxlength="100"
+                                       oninput="sanitizeAnswer(this)"
+                                       style="height: 48px;">
+                                <i class="ti ti-pencil input-icon"></i>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <?php endforeach; ?>
+                <?php endfor; ?>
+
+                <div class="alert alert-info" style="background: #EFF6FF; border: 1px solid #BFDBFE; border-radius: 12px; padding: 14px; margin-top: 8px;">
+                    <i class="ti ti-info-circle" style="margin-right: 8px; color: #3B82F6; font-size: 18px;"></i>
+                    <strong>Importante:</strong> Recuerda tus respuestas. Las necesitarás si olvidas tu contraseña.
+                </div>
             </div>
 
-            <!-- Step 3: Personal Data -->
+
+            <!-- ============================================ -->
+            <!-- STEP 3: DATOS PERSONALES -->
+            <!-- ============================================ -->
             <div class="wizard-step" data-step="3">
                 <h3 style="font-size: 18px; font-weight: 600; color: var(--color-primary); margin-bottom: 24px;">
                     Datos Personales
                 </h3>
 
                 <div class="form-row">
+                    <?php
+                    /**
+                     * LÓGICA DINÁMICA: Campos Readonly vs Editables
+                     * 
+                     * ESCENARIO A (Usuario Externo - Registro Público):
+                     * - $user->nombres es NULL o vacío
+                     * - Campos son EDITABLES (sin readonly)
+                     * 
+                     * ESCENARIO B (Usuario Interno - Creado por Admin):
+                     * - $user->nombres tiene valor
+                     * - Campos son READONLY (pre-llenados)
+                     * 
+                     * RAZÓN TÉCNICA:
+                     * Evitamos que usuarios creados por admin cambien datos críticos (cedula, nombres)
+                     * que ya fueron validados por el administrador.
+                     */
+                    $esUsuarioExterno = empty($user->nombres) || empty($user->cedula);
+                    ?>
+                    
                     <div class="form-group">
-                        <input type="text" name="nombres" value="<?= htmlspecialchars($user->nombres ?? '') ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
+                        <?php if ($esUsuarioExterno): ?>
+                            <input type="text" name="nombres" class="input-modern" placeholder=" " required>
+                        <?php else: ?>
+                            <input type="text" name="nombres" value="<?= htmlspecialchars($user->nombres) ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
+                        <?php endif; ?>
                         <label class="label-floating">
                             <i class="ti ti-user" style="margin-right: 8px; font-size: 18px;"></i>Nombres
                         </label>
                     </div>
 
                     <div class="form-group">
-                        <input type="text" name="apellidos" value="<?= htmlspecialchars($user->apellidos ?? '') ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
+                        <?php if ($esUsuarioExterno): ?>
+                            <input type="text" name="apellidos" class="input-modern" placeholder=" " required>
+                        <?php else: ?>
+                            <input type="text" name="apellidos" value="<?= htmlspecialchars($user->apellidos) ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
+                        <?php endif; ?>
                         <label class="label-floating">
                             <i class="ti ti-user" style="margin-right: 8px; font-size: 18px;"></i>Apellidos
                         </label>
@@ -122,18 +255,45 @@
 
                 <div class="form-row">
                     <div class="form-group">
-                        <input type="text" name="cedula" value="<?= htmlspecialchars($user->cedula ?? '') ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
+                        <?php if ($esUsuarioExterno): ?>
+                            <input type="text" name="cedula" class="input-modern" placeholder=" " required>
+                        <?php else: ?>
+                            <input type="text" name="cedula" value="<?= htmlspecialchars($user->cedula) ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
+                        <?php endif; ?>
                         <label class="label-floating">
                             <i class="ti ti-id" style="margin-right: 8px; font-size: 18px;"></i>Cédula
                         </label>
                     </div>
 
-                    <div class="form-group">
-                        <input type="text" name="departamento" value="<?= htmlspecialchars($user->departamento_nombre ?? 'N/A') ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
-                        <label class="label-floating">
-                            <i class="ti ti-building" style="margin-right: 8px; font-size: 18px;"></i>Departamento
-                        </label>
-                    </div>
+                    <?php
+                    /**
+                     * LÓGICA BASADA EN ROL:
+                     * 
+                     * - Pasante (rol_id = 3): Mostrar campo "Departamento" (readonly)
+                     * - Admin/Tutor (rol_id = 1 o 2): Mostrar campo "Cargo" (editable)
+                     * 
+                     * RAZÓN:
+                     * Los pasantes son asignados a un departamento por el admin.
+                     * Los admin/tutores definen su propio cargo.
+                     */
+                    ?>
+                    <?php if ($user->rol_id == 3): ?>
+                        <!-- Campo Departamento para Pasantes (Readonly) -->
+                        <div class="form-group">
+                            <input type="text" name="departamento" value="<?= htmlspecialchars($user->departamento_nombre ?? 'N/A') ?>" class="input-modern" placeholder=" " readonly style="background: #F3F4F6;">
+                            <label class="label-floating">
+                                <i class="ti ti-building" style="margin-right: 8px; font-size: 18px;"></i>Departamento
+                            </label>
+                        </div>
+                    <?php else: ?>
+                        <!-- Campo Cargo para Admin/Tutor (Editable) -->
+                        <div class="form-group">
+                            <input type="text" name="cargo" class="input-modern" placeholder="Ej: Analista de Soporte">
+                            <label class="label-floating">
+                                <i class="ti ti-briefcase" style="margin-right: 8px; font-size: 18px;"></i>Cargo <span class="text-muted" style="font-weight: 400;">(Opcional)</span>
+                            </label>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="form-row">
@@ -145,15 +305,6 @@
                     </div>
 
                     <div class="form-group">
-                        <input type="text" name="cargo" class="input-modern" placeholder="Ej: Analista de Soporte">
-                        <label class="label-floating">
-                            <i class="ti ti-briefcase" style="margin-right: 8px; font-size: 18px;"></i>Cargo <span class="text-muted" style="font-weight: 400;">(Opcional)</span>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
                         <select name="genero" class="input-modern" required>
                             <option value="">Seleccione...</option>
                             <option value="M">Masculino</option>
@@ -163,24 +314,26 @@
                             <i class="ti ti-gender-bigender" style="margin-right: 8px; font-size: 18px;"></i>Género
                         </label>
                     </div>
+                </div>
 
+                <div class="form-row">
                     <div class="form-group">
                         <input type="date" name="fecha_nacimiento" class="input-modern" placeholder=" " required>
                         <label class="label-floating">
                             <i class="ti ti-calendar" style="margin-right: 8px; font-size: 18px;"></i>Fecha de Nacimiento
                         </label>
                     </div>
-                </div>
 
-                <div class="form-group">
-                    <textarea name="direccion" class="input-modern" placeholder="Ej: Av. Táchira, Casa Nro 5..." required rows="3"></textarea>
-                    <label class="label-floating">
-                        <i class="ti ti-map-pin" style="margin-right: 8px; font-size: 18px;"></i>Dirección
-                    </label>
+                    <div class="form-group">
+                        <textarea name="direccion" class="input-modern" placeholder="Ej: Av. Táchira, Casa Nro 5..." required rows="1"></textarea>
+                        <label class="label-floating">
+                            <i class="ti ti-map-pin" style="margin-right: 8px; font-size: 18px;"></i>Dirección
+                        </label>
+                    </div>
                 </div>
             </div>
 
-            <!-- Navigation Buttons -->
+            <!-- Botones de Navegación -->
             <div class="wizard-buttons">
                 <button type="button" class="btn-secondary" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
                     <i class="ti ti-arrow-left"></i> Anterior
@@ -204,145 +357,31 @@
     <?php include_once APPROOT . '/views/layouts/footer.php'; ?>
 
     <style>
-        /* Wizard Progress Styles */
-        .wizard-progress {
-            margin-bottom: 32px;
-        }
-
-        .progress-steps {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            position: relative;
-        }
-
-        .step {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            flex: 1;
-            position: relative;
-        }
-
-        .step-circle {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #E5E7EB;
-            color: #6B7280;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            margin-bottom: 8px;
-            transition: all 0.3s;
-            z-index: 2;
-        }
-
-        .step.active .step-circle {
-            background: var(--color-primary);
-            color: white;
-        }
-
-        .step.completed .step-circle {
-            background: #10B981;
-            color: white;
-        }
-
-        .step-label {
-            font-size: 12px;
-            color: #6B7280;
-            font-weight: 500;
-        }
-
-        .step.active .step-label {
-            color: var(--color-primary);
-            font-weight: 600;
-        }
-
-        .progress-bar {
-            height: 4px;
-            background: #E5E7EB;
-            border-radius: 2px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--color-primary);
-            width: 0%;
-            transition: width 0.3s ease;
-        }
-
-        /* Wizard Steps */
-        .wizard-step {
-            display: none;
-        }
-
-        .wizard-step.active {
-            display: block;
-            animation: fadeIn 0.3s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        /* Form Row for Grid */
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-
-        @media (max-width: 640px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Wizard Buttons */
-        .wizard-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 32px;
-        }
-
-        .wizard-buttons button {
-            flex: 1;
-        }
-
-        /* Password Strength */
-        .password-strength-container {
-            margin-top: -12px;
-            margin-bottom: 20px;
-        }
-
-        .password-strength-bar {
-            height: 4px;
-            background: #E5E7EB;
-            border-radius: 2px;
-            overflow: hidden;
-            margin-bottom: 4px;
-        }
-
-        .password-strength-bar::after {
-            content: '';
-            display: block;
-            height: 100%;
-            width: 0%;
-            transition: all 0.3s;
-        }
-
+        .wizard-progress { margin-bottom: 32px; }
+        .progress-steps { display: flex; justify-content: space-between; margin-bottom: 16px; position: relative; }
+        .step { display: flex; flex-direction: column; align-items: center; flex: 1; position: relative; }
+        .step-circle { width: 40px; height: 40px; border-radius: 50%; background: #E5E7EB; color: #6B7280; display: flex; align-items: center; justify-content: center; font-weight: 700; margin-bottom: 8px; transition: all 0.3s; z-index: 2; }
+        .step.active .step-circle { background: var(--color-primary); color: white; }
+        .step.completed .step-circle { background: #10B981; color: white; }
+        .step-label { font-size: 12px; color: #6B7280; font-weight: 500; }
+        .step.active .step-label { color: var(--color-primary); font-weight: 600; }
+        .progress-bar { height: 4px; background: #E5E7EB; border-radius: 2px; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--color-primary); width: 0%; transition: width 0.3s ease; }
+        .wizard-step { display: none; }
+        .wizard-step.active { display: block; animation: fadeIn 0.3s; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
+        .wizard-buttons { display: flex; gap: 12px; margin-top: 32px; }
+        .wizard-buttons button { flex: 1; }
+        .password-strength-container { margin-top: -12px; margin-bottom: 20px; }
+        .password-strength-bar { height: 4px; background: #E5E7EB; border-radius: 2px; overflow: hidden; margin-bottom: 4px; }
+        .password-strength-bar::after { content: ''; display: block; height: 100%; width: 0%; transition: all 0.3s; }
         .password-strength-bar.weak::after { width: 33%; background: #EF4444; }
         .password-strength-bar.medium::after { width: 66%; background: #F59E0B; }
         .password-strength-bar.strong::after { width: 100%; background: #10B981; }
-
-        .password-strength-text {
-            font-size: 12px;
-            color: #6B7280;
-        }
+        .password-strength-text { font-size: 12px; color: #6B7280; }
+        .input-hint { display: block; font-size: 11px; color: #6B7280; margin-top: 4px; }
     </style>
 
     <script>
@@ -401,13 +440,11 @@
         }
 
         function updateUI() {
-            // Update steps
             document.querySelectorAll('.wizard-step').forEach(step => {
                 step.classList.remove('active');
             });
             document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
 
-            // Update progress circles
             document.querySelectorAll('.step').forEach((step, index) => {
                 step.classList.remove('active', 'completed');
                 if (index + 1 < currentStep) {
@@ -417,11 +454,9 @@
                 }
             });
 
-            // Update progress bar
             const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
             document.getElementById('progressFill').style.width = progress + '%';
 
-            // Update buttons
             document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'flex';
             document.getElementById('nextBtn').style.display = currentStep === totalSteps ? 'none' : 'flex';
             document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'flex' : 'none';
@@ -440,7 +475,6 @@
             }
         }
 
-        // Password strength indicator
         document.getElementById('new_password').addEventListener('input', function() {
             const password = this.value;
             const strengthBar = document.getElementById('strengthBar');
@@ -468,7 +502,6 @@
             }
         });
 
-        // Form submission
         document.getElementById('wizardForm').addEventListener('submit', function(e) {
             e.preventDefault();
             
@@ -483,6 +516,168 @@
             
             this.submit();
         });
+
+        /**
+         * VALIDACIÓN: Detectar Preguntas Duplicadas
+         * 
+         * PROPÓSITO:
+         * Evitar que el usuario seleccione la misma pregunta en múltiples selects.
+         * 
+         * FLUJO:
+         * 1. Obtener valores de los 3 selects
+         * 2. Comparar cada uno con los demás
+         * 3. Si hay duplicado, mostrar error y limpiar el select duplicado
+         * 
+         * RAZÓN TÉCNICA:
+         * Si permitimos duplicados, el usuario podría elegir 3 veces "¿Tu mascota?"
+         * y responder siempre "Firulais", haciendo la seguridad inútil.
+         */
+        function validateDuplicateQuestions() {
+            const q1 = document.getElementById('question_1').value;
+            const q2 = document.getElementById('question_2').value;
+            const q3 = document.getElementById('question_3').value;
+            
+            // Resetear errores
+            document.getElementById('error_question_1').style.display = 'none';
+            document.getElementById('error_question_2').style.display = 'none';
+            document.getElementById('error_question_3').style.display = 'none';
+            
+            let hasDuplicate = false;
+            
+            // Validar duplicados entre pregunta 1 y 2
+            if (q1 && q2 && q1 === q2) {
+                document.getElementById('error_question_2').style.display = 'block';
+                document.getElementById('question_2').value = '';
+                hasDuplicate = true;
+            }
+            
+            // Validar duplicados entre pregunta 1 y 3
+            if (q1 && q3 && q1 === q3) {
+                document.getElementById('error_question_3').style.display = 'block';
+                document.getElementById('question_3').value = '';
+                hasDuplicate = true;
+            }
+            
+            // Validar duplicados entre pregunta 2 y 3
+            if (q2 && q3 && q2 === q3) {
+                document.getElementById('error_question_3').style.display = 'block';
+                document.getElementById('question_3').value = '';
+                hasDuplicate = true;
+            }
+            
+            if (hasDuplicate) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Pregunta Duplicada',
+                    text: 'Debes seleccionar 3 preguntas diferentes para mayor seguridad',
+                    confirmButtonColor: '#162660',
+                    timer: 3000
+                });
+            }
+        }
+
+        /**
+         * SANITIZACIÓN: Limpiar Respuestas de Caracteres Peligrosos
+         * 
+         * PROPÓSITO:
+         * Eliminar caracteres especiales que podrían usarse para ataques XSS o SQL Injection.
+         * 
+         * FLUJO:
+         * 1. Capturar el valor del input en tiempo real (evento oninput)
+         * 2. Aplicar regex para eliminar caracteres no permitidos
+         * 3. Actualizar el valor del input con el texto limpio
+         * 
+         * CARACTERES PERMITIDOS:
+         * - Letras (a-z, A-Z)
+         * - Números (0-9)
+         * - Espacios
+         * - Letras con tildes (á, é, í, ó, ú, ñ)
+         * 
+         * CARACTERES BLOQUEADOS:
+         * - Símbolos especiales: < > / ; ' " ` ( ) { } [ ] = + - * & % $ # @ !
+         * 
+         * RAZÓN TÉCNICA:
+         * Aunque el backend también valida (password_hash), esta validación frontend
+         * mejora la UX mostrando el error inmediatamente y previene intentos básicos de XSS.
+         * 
+         * EJEMPLO:
+         * Usuario escribe: "Mi perro<script>alert('hack')</script>"
+         * Resultado sanitizado: "Mi perroscipt alerthackscript"
+         */
+        function sanitizeAnswer(input) {
+            // Regex: Solo permite letras, números, espacios y caracteres latinos
+            const sanitized = input.value.replace(/[^a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚüÜ]/g, '');
+            
+            // Si el valor cambió, actualizar el input y mostrar feedback visual
+            if (input.value !== sanitized) {
+                input.value = sanitized;
+                
+                // Feedback visual temporal (borde rojo por 500ms)
+                input.style.borderColor = '#EF4444';
+                setTimeout(() => {
+                    input.style.borderColor = '#D1D5DB';
+                }, 500);
+            }
+        }
+
+        /**
+         * VALIDACIÓN ADICIONAL: Verificar que las 3 preguntas estén seleccionadas
+         * 
+         * Se ejecuta antes de permitir avanzar al Step 3
+         */
+        function validateSecurityQuestions() {
+            const q1 = document.getElementById('question_1').value;
+            const q2 = document.getElementById('question_2').value;
+            const q3 = document.getElementById('question_3').value;
+            
+            if (!q1 || !q2 || !q3) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Preguntas Incompletas',
+                    text: 'Debes seleccionar las 3 preguntas de seguridad',
+                    confirmButtonColor: '#162660'
+                });
+                return false;
+            }
+            
+            // Verificar que las respuestas no estén vacías
+            const a1 = document.getElementById('answer_1').value.trim();
+            const a2 = document.getElementById('answer_2').value.trim();
+            const a3 = document.getElementById('answer_3').value.trim();
+            
+            if (!a1 || !a2 || !a3) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Respuestas Incompletas',
+                    text: 'Debes responder las 3 preguntas de seguridad',
+                    confirmButtonColor: '#162660'
+                });
+                return false;
+            }
+            
+            // Verificar longitud mínima de respuestas (al menos 3 caracteres)
+            if (a1.length < 3 || a2.length < 3 || a3.length < 3) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Respuestas Muy Cortas',
+                    text: 'Cada respuesta debe tener al menos 3 caracteres',
+                    confirmButtonColor: '#162660'
+                });
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Modificar la función validateStep para incluir validación de preguntas
+        const originalValidateStep = validateStep;
+        validateStep = function(step) {
+            if (step === 2) {
+                return validateSecurityQuestions();
+            }
+            return originalValidateStep(step);
+        };
     </script>
+
 </body>
 </html>

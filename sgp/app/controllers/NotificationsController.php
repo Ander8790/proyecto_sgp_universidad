@@ -22,7 +22,7 @@ class NotificationsController extends Controller
         // Load model
         $config = require '../app/config/config.php';
         $db = new Database($config['db']);
-        $this->notificationModel = new Notification($db);
+        $this->notificationModel = new NotificationModel($db);
     }
 
     /**

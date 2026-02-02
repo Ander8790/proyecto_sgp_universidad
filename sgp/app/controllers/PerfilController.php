@@ -1,7 +1,21 @@
 <?php
 /**
- * PerfilController - Role-Based Profile Management
- * Handles profile completion for Pasantes and Tutores
+ * PerfilController - Gestión de Perfiles de Usuario
+ * 
+ * PROPÓSITO EDUCATIVO:
+ * Este controlador maneja el flujo completo de configuración de perfil para nuevos usuarios.
+ * Implementa el patrón MVC separando la lógica de negocio (Controller) de la presentación (View)
+ * y el acceso a datos (Model).
+ * 
+ * FLUJO PRINCIPAL:
+ * 1. Usuario inicia sesión con contraseña temporal (requiere_cambio_clave = 1)
+ * 2. Sistema lo redirige al wizard de 3 pasos (completar_wizard.php)
+ * 3. Usuario completa: Contraseña → Preguntas Seguridad → Datos Personales
+ * 4. Sistema guarda todo en una transacción atómica (todo o nada)
+ * 5. Usuario es redirigido al dashboard con perfil completo
+ * 
+ * @author Sistema SGP
+ * @version 2.0 - Refactorización Educativa
  */
 
 class PerfilController extends Controller
@@ -10,253 +24,430 @@ class PerfilController extends Controller
     private $db;
     private $notificationModel;
 
+    /**
+     * Constructor del Controlador
+     * 
+     * FLUJO:
+     * 1. Inicia sesión PHP (necesaria para verificar autenticación)
+     * 2. Verifica que el usuario esté autenticado (tiene user_id en sesión)
+     * 3. Carga el modelo User para acceder a datos de usuarios
+     * 4. Carga la conexión a BD para queries complejas
+     * 5. Carga el modelo de Notificaciones
+     * 
+     * SEGURIDAD:
+     * Si no hay user_id en sesión, redirige al login (previene acceso no autorizado)
+     */
     public function __construct()
     {
         Session::start();
         
+        // Verificar autenticación: Si no hay user_id, el usuario no ha iniciado sesión
         if (!Session::get('user_id')) {
             header('Location: ' . URLROOT . '/auth/login');
             exit;
         }
         
+        // Cargar dependencias
         $this->userModel = $this->model('User');
         $config = require '../app/config/config.php';
         $this->db = new Database($config['db']);
         
-        // Import Notification model
-        require_once '../app/models/Notification.php';
-        $this->notificationModel = new Notification($this->db);
+        require_once '../app/models/NotificationModel.php';
+        $this->notificationModel = new NotificationModel($this->db);
     }
 
     /**
-     * Default action - redirect to completar
+     * Vista Principal del Perfil - Redirige a ver()
      */
     public function index()
     {
-        $this->completar();
+        $this->ver();
     }
 
     /**
- * Route to appropriate profile form based on role
- */
-public function completar()
-{
-    Session::start();
-    $userId = Session::get('user_id');
-    
-    // Get user data with department name
-    $this->db->query("
-        SELECT 
-            u.id,
-            u.correo,
-            u.rol_id,
-            u.departamento_id,
-            dp.cedula,
-            dp.nombres,
-            dp.apellidos,
-            d.nombre as departamento_nombre
-        FROM usuarios u
-        LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
-        LEFT JOIN departamentos d ON u.departamento_id = d.id
-        WHERE u.id = :uid
-    ");
-    $this->db->bind(':uid', $userId);
-    $user = $this->db->single();
-    
-    // Get security questions
-    $questions = $this->userModel->getSecurityQuestions();
-    
-    $data = [
-        'user' => $user,
-        'questions' => $questions
-    ];
-    
-    $this->view('perfil/completar_wizard', $data);
-}
-
-
-
-
-
-
-
-    /**
- * Save Wizard data (all 3 steps) - ATOMIC TRANSACTION
- */
-public function guardarWizard()
-{
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-        $this->redirect('/perfil/completar');
-        return;
-    }
-
-    Session::start();
-    $userId = Session::get('user_id');
-    
-    // Get current user
-    $user = $this->userModel->findById($userId);
-    
-    // STEP 1: Validate and STORE password in session (don't commit yet)
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-    
-    // Verify current password
-    if (!password_verify($currentPassword, $user['password'])) {
-        Session::setFlash('error', 'La contraseña actual es incorrecta');
-        $this->redirect('/perfil/completar');
-        return;
-    }
-    
-    // Validate new password
-    if ($newPassword !== $confirmPassword) {
-        Session::setFlash('error', 'Las contraseñas no coinciden');
-        $this->redirect('/perfil/completar');
-        return;
-    }
-    
-    if (strlen($newPassword) < 8) {
-        Session::setFlash('error', 'La contraseña debe tener al menos 8 caracteres');
-        $this->redirect('/perfil/completar');
-        return;
-    }
-    
-    // STEP 2: Validate and STORE security questions in session
-    $securityQuestions = [];
-    for ($i = 1; $i <= 3; $i++) {
-        $questionId = $_POST["question_$i"] ?? null;
-        $answer = $_POST["answer_$i"] ?? '';
+     * Mostrar Wizard de Completar Perfil
+     * 
+     * PROPÓSITO:
+     * Renderiza el formulario de 3 pasos para que el usuario configure su cuenta.
+     * 
+     * LÓGICA DINÁMICA:
+     * - Si el usuario tiene datos personales (cedula, nombres, apellidos) → Campos READONLY
+     * - Si NO tiene datos personales → Campos EDITABLES
+     * 
+     * RAZÓN TÉCNICA:
+     * Usamos LEFT JOIN porque usuarios nuevos pueden NO tener registro en datos_personales todavía.
+     * Un INNER JOIN excluiría estos usuarios y causaría error.
+     * 
+     * FLUJO DE DATOS:
+     * Input: user_id desde Session
+     * Proceso: Query a BD con LEFT JOIN
+     * Output: Array $data con información del usuario y preguntas de seguridad
+     * Destino: Vista completar_wizard.php
+     */
+    public function completar()
+    {
+        Session::start();
+        $userId = Session::get('user_id');
         
-        if (!$questionId || !$answer) {
-            Session::setFlash('error', 'Debe completar todas las preguntas de seguridad');
-            $this->redirect('/perfil/completar');
-            return;
-        }
+        /**
+         * Query con LEFT JOIN para obtener datos del usuario
+         * 
+         * LEFT JOIN permite que usuarios SIN datos_personales también aparezcan.
+         * Si no existe registro en datos_personales, los campos (cedula, nombres, apellidos) serán NULL.
+         * 
+         * COLUMNAS:
+         * - u.id, u.correo, u.rol_id: Datos básicos del usuario
+         * - dp.cedula, dp.nombres, dp.apellidos: Datos personales (pueden ser NULL)
+         * - d.nombre as departamento_nombre: Nombre del departamento (puede ser NULL)
+         */
+        $this->db->query("
+            SELECT 
+                u.id,
+                u.correo,
+                u.rol_id,
+                u.departamento_id,
+                dp.cedula,
+                dp.nombres,
+                dp.apellidos,
+                d.nombre as departamento_nombre
+            FROM usuarios u
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+            LEFT JOIN departamentos d ON u.departamento_id = d.id
+            WHERE u.id = :uid
+        ");
+        $this->db->bind(':uid', $userId);
+        $user = $this->db->single();
         
-        $securityQuestions[] = [
-            'question_id' => $questionId,
-            'answer' => $answer
+        // Obtener preguntas de seguridad aleatorias desde la BD
+        $questions = $this->userModel->getSecurityQuestions();
+        
+        // Preparar datos para la vista
+        $data = [
+            'user' => $user,
+            'questions' => $questions
         ];
+        
+        // Renderizar vista del wizard
+        $this->view('perfil/completar_wizard', $data);
     }
-    
-    // STEP 3: Validate personal data
-    $datosPersonales = [
-        'usuario_id' => $userId,
-        'cedula' => trim($_POST['cedula']),
-        'nombres' => trim($_POST['nombres']),
-        'apellidos' => trim($_POST['apellidos']),
-        'cargo' => trim($_POST['cargo'] ?? ''),
-        'telefono' => trim($_POST['telefono']),
-        'direccion' => trim($_POST['direccion']),
-        'genero' => $_POST['genero'],
-        'fecha_nacimiento' => $_POST['fecha_nacimiento']
-    ];
-    
-    // Validate required fields
-    foreach ($datosPersonales as $key => $value) {
-        if ($key !== 'usuario_id' && empty($value)) {
-            Session::setFlash('error', 'Todos los campos son obligatorios');
+
+    /**
+     * Guardar Datos del Wizard (3 Pasos) - TRANSACCIÓN ATÓMICA
+     * 
+     * PROPÓSITO EDUCATIVO:
+     * Este método implementa el concepto de "transacción atómica" en bases de datos.
+     * Una transacción atómica garantiza que TODAS las operaciones se ejecuten correctamente,
+     * o NINGUNA se ejecute (principio "todo o nada").
+     * 
+     * FLUJO:
+     * 1. Validar contraseña actual (verificar que el usuario conoce su clave temporal)
+     * 2. Validar nueva contraseña (longitud, coincidencia)
+     * 3. Validar preguntas de seguridad (3 preguntas con respuestas)
+     * 4. Validar datos personales (todos los campos requeridos)
+     * 5. BEGIN TRANSACTION → Iniciar transacción
+     * 6. Actualizar contraseña en tabla usuarios
+     * 7. Guardar 3 respuestas de seguridad en usuarios_respuestas
+     * 8. Guardar/Actualizar datos personales en datos_personales
+     * 9. COMMIT → Confirmar todos los cambios
+     * 10. Si hay error en cualquier paso → ROLLBACK (deshacer todo)
+     * 
+     * SEGURIDAD:
+     * - Usamos password_verify() para comparar contraseñas (NO comparación directa)
+     * - Usamos password_hash() con BCRYPT para almacenar contraseñas de forma segura
+     * - Las respuestas de seguridad también se hashean (previene lectura directa en BD)
+     * 
+     * PREVENCIÓN DE ERRORES:
+     * - Si falla la contraseña pero se guardan las preguntas → INCONSISTENCIA
+     * - Si fallan las preguntas pero se guardan los datos → INCONSISTENCIA
+     * - Con transacciones: O se guarda TODO correctamente, o NO se guarda NADA
+     */
+    public function guardarWizard()
+    {
+        // Solo aceptar peticiones POST (formularios)
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             $this->redirect('/perfil/completar');
             return;
         }
-    }
-    
-    // ============================================
-    // ATOMIC COMMIT: All or nothing
-    // ============================================
-    
-    try {
-        // Begin transaction
-        $this->db->beginTransaction();
+
+        Session::start();
+        $userId = Session::get('user_id');
         
-        // 1. Update password and remove flag
-        $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
-        $this->db->query("UPDATE usuarios SET password = :password, requiere_cambio_clave = 0 WHERE id = :id");
-        $this->db->bind(':password', $hashedPassword);
-        $this->db->bind(':id', $userId);
+        // Obtener datos actuales del usuario desde BD
+        $user = $this->userModel->findById($userId);
         
-        if (!$this->db->execute()) {
-            throw new Exception('Error al actualizar contraseña');
+        // ============================================
+        // PASO 1: VALIDAR CONTRASEÑA
+        // ============================================
+        
+        $currentPassword = $_POST['current_password'] ?? '';
+        $newPassword = $_POST['new_password'] ?? '';
+        $confirmPassword = $_POST['confirm_password'] ?? '';
+        
+        /**
+         * Verificar contraseña actual con password_verify()
+         * 
+         * RAZÓN TÉCNICA:
+         * NO podemos comparar directamente ($currentPassword == $user['password'])
+         * porque la contraseña en BD está hasheada con BCRYPT.
+         * 
+         * password_verify() compara el texto plano con el hash de forma segura.
+         */
+        if (!password_verify($currentPassword, $user['password'])) {
+            Session::setFlash('error', 'La contraseña actual es incorrecta');
+            $this->redirect('/perfil/completar');
+            return;
         }
         
-        // 2. Save security questions
-        foreach ($securityQuestions as $sq) {
-            $this->db->query("
-                INSERT INTO usuarios_respuestas (usuario_id, pregunta_id, respuesta_hash)
-                VALUES (:usuario_id, :pregunta_id, :respuesta_hash)
-            ");
-            $this->db->bind(':usuario_id', $userId);
-            $this->db->bind(':pregunta_id', $sq['question_id']);
-            $this->db->bind(':respuesta_hash', password_hash(strtolower(trim($sq['answer'])), PASSWORD_DEFAULT));
+        // Validar que las contraseñas nuevas coincidan
+        if ($newPassword !== $confirmPassword) {
+            Session::setFlash('error', 'Las contraseñas no coinciden');
+            $this->redirect('/perfil/completar');
+            return;
+        }
+        
+        // Validar longitud mínima (seguridad básica)
+        if (strlen($newPassword) < 8) {
+            Session::setFlash('error', 'La contraseña debe tener al menos 8 caracteres');
+            $this->redirect('/perfil/completar');
+            return;
+        }
+        
+        // ============================================
+        // PASO 2: VALIDAR PREGUNTAS DE SEGURIDAD
+        // ============================================
+        
+        $securityQuestions = [];
+        for ($i = 1; $i <= 3; $i++) {
+            $questionId = $_POST["question_$i"] ?? null;
+            $answer = $_POST["answer_$i"] ?? '';
             
-            if (!$this->db->execute()) {
-                throw new Exception('Error al guardar preguntas de seguridad');
+            if (!$questionId || !$answer) {
+                Session::setFlash('error', 'Debe completar todas las preguntas de seguridad');
+                $this->redirect('/perfil/completar');
+                return;
+            }
+            
+            // Almacenar temporalmente (aún no guardamos en BD)
+            $securityQuestions[] = [
+                'question_id' => $questionId,
+                'answer' => $answer
+            ];
+        }
+        
+        // ============================================
+        // PASO 3: VALIDAR DATOS PERSONALES
+        // ============================================
+        
+        $datosPersonales = [
+            'usuario_id' => $userId,
+            'cedula' => trim($_POST['cedula']),
+            'nombres' => trim($_POST['nombres']),
+            'apellidos' => trim($_POST['apellidos']),
+            'cargo' => trim($_POST['cargo'] ?? ''),
+            'telefono' => trim($_POST['telefono']),
+            'direccion' => trim($_POST['direccion']),
+            'genero' => $_POST['genero'],
+            'fecha_nacimiento' => $_POST['fecha_nacimiento']
+        ];
+        
+        // Validar que ningún campo esté vacío (excepto cargo que es opcional)
+        foreach ($datosPersonales as $key => $value) {
+            if ($key !== 'usuario_id' && $key !== 'cargo' && empty($value)) {
+                Session::setFlash('error', 'Todos los campos son obligatorios');
+                $this->redirect('/perfil/completar');
+                return;
             }
         }
         
-        // 3. Save or update personal data
-        $this->db->query("SELECT id FROM datos_personales WHERE usuario_id = :uid");
-        $this->db->bind(':uid', $userId);
-        $exists = $this->db->single();
+        // ============================================
+        // TRANSACCIÓN ATÓMICA: TODO O NADA
+        // ============================================
         
-        if ($exists) {
-            // Update
-            $this->db->query("
-                UPDATE datos_personales 
-                SET cedula = :cedula,
-                    nombres = :nombres,
-                    apellidos = :apellidos,
-                    cargo = :cargo,
-                    telefono = :telefono,
-                    direccion = :direccion,
-                    genero = :genero,
-                    fecha_nacimiento = :fecha_nacimiento
-                WHERE usuario_id = :usuario_id
-            ");
-        } else {
-            // Insert
-            $this->db->query("
-                INSERT INTO datos_personales 
-                (usuario_id, cedula, nombres, apellidos, cargo, telefono, direccion, genero, fecha_nacimiento) 
-                VALUES (:usuario_id, :cedula, :nombres, :apellidos, :cargo, :telefono, :direccion, :genero, :fecha_nacimiento)
-            ");
+        try {
+            /**
+             * BEGIN TRANSACTION
+             * 
+             * A partir de aquí, todos los cambios en la BD son TEMPORALES.
+             * Solo se harán permanentes si ejecutamos COMMIT.
+             * Si hay un error, ejecutamos ROLLBACK y TODO se deshace.
+             */
+            $this->db->beginTransaction();
+            
+            // ----------------------------------------
+            // 1. Actualizar contraseña y quitar flag
+            // ----------------------------------------
+            
+            /**
+             * Hashear la nueva contraseña con BCRYPT
+             * 
+             * RAZÓN TÉCNICA:
+             * NUNCA guardamos contraseñas en texto plano en la BD.
+             * password_hash() usa BCRYPT, un algoritmo diseñado para ser LENTO
+             * (dificulta ataques de fuerza bruta).
+             * 
+             * El hash generado incluye el "salt" automáticamente, por lo que
+             * no necesitamos generarlo manualmente.
+             */
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+            
+            /**
+             * Query con prepared statement
+             * 
+             * RAZÓN TÉCNICA:
+             * Usamos prepare() + bind() en lugar de concatenar variables directamente
+             * para prevenir SQL Injection.
+             * 
+             * MAL:  "UPDATE usuarios SET password = '$hashedPassword' WHERE id = $userId"
+             * BIEN: prepare() + bind() (lo que hacemos aquí)
+             */
+            $this->db->query("UPDATE usuarios SET password = :password, requiere_cambio_clave = 0 WHERE id = :id");
+            $this->db->bind(':password', $hashedPassword);
+            $this->db->bind(':id', $userId);
+            
+            if (!$this->db->execute()) {
+                throw new Exception('Error al actualizar contraseña');
+            }
+            
+            // ----------------------------------------
+            // 2. Guardar preguntas de seguridad
+            // ----------------------------------------
+            
+            /**
+             * Iterar sobre las 3 preguntas y guardar cada respuesta
+             * 
+             * IMPORTANTE:
+             * Las respuestas también se hashean con password_hash() para seguridad.
+             * Usamos strtolower() y trim() para normalizar (evitar errores por mayúsculas/espacios).
+             */
+            foreach ($securityQuestions as $sq) {
+                $this->db->query("
+                    INSERT INTO usuarios_respuestas (usuario_id, pregunta_id, respuesta_hash)
+                    VALUES (:usuario_id, :pregunta_id, :respuesta_hash)
+                ");
+                $this->db->bind(':usuario_id', $userId);
+                $this->db->bind(':pregunta_id', $sq['question_id']);
+                
+                // Hashear respuesta (normalizada a minúsculas y sin espacios extra)
+                $this->db->bind(':respuesta_hash', password_hash(strtolower(trim($sq['answer'])), PASSWORD_DEFAULT));
+                
+                if (!$this->db->execute()) {
+                    throw new Exception('Error al guardar preguntas de seguridad');
+                }
+            }
+            
+            // ----------------------------------------
+            // 3. Guardar o actualizar datos personales
+            // ----------------------------------------
+            
+            /**
+             * Verificar si el usuario ya tiene registro en datos_personales
+             * 
+             * RAZÓN:
+             * - Si existe → UPDATE (actualizar datos)
+             * - Si NO existe → INSERT (crear nuevo registro)
+             */
+            $this->db->query("SELECT id FROM datos_personales WHERE usuario_id = :uid");
+            $this->db->bind(':uid', $userId);
+            $exists = $this->db->single();
+            
+            if ($exists) {
+                // Usuario ya tiene datos personales → Actualizar
+                $this->db->query("
+                    UPDATE datos_personales 
+                    SET cedula = :cedula,
+                        nombres = :nombres,
+                        apellidos = :apellidos,
+                        cargo = :cargo,
+                        telefono = :telefono,
+                        direccion = :direccion,
+                        genero = :genero,
+                        fecha_nacimiento = :fecha_nacimiento
+                    WHERE usuario_id = :usuario_id
+                ");
+            } else {
+                // Usuario NO tiene datos personales → Insertar
+                $this->db->query("
+                    INSERT INTO datos_personales 
+                    (usuario_id, cedula, nombres, apellidos, cargo, telefono, direccion, genero, fecha_nacimiento) 
+                    VALUES (:usuario_id, :cedula, :nombres, :apellidos, :cargo, :telefono, :direccion, :genero, :fecha_nacimiento)
+                ");
+            }
+            
+            // Vincular parámetros (funciona tanto para UPDATE como INSERT)
+            foreach ($datosPersonales as $key => $value) {
+                $this->db->bind(':' . $key, $value);
+            }
+            
+            if (!$this->db->execute()) {
+                throw new Exception('Error al guardar datos personales');
+            }
+            
+            /**
+             * COMMIT TRANSACTION
+             * 
+             * Si llegamos aquí, TODOS los pasos anteriores se ejecutaron correctamente.
+             * Ahora hacemos los cambios permanentes en la BD.
+             */
+            $this->db->commit();
+            
+            // ----------------------------------------
+            // 4. Actualizar sesión del usuario
+            // ----------------------------------------
+            
+            /**
+             * Actualizar variables de sesión
+             * 
+             * RAZÓN:
+             * La sesión almacena datos del usuario para evitar consultar la BD en cada página.
+             * Actualizamos requiere_cambio_clave y user_name para reflejar el nuevo estado.
+             */
+            Session::set('requiere_cambio_clave', 0);
+            Session::set('user_name', trim($_POST['nombres']) . ' ' . trim($_POST['apellidos']));
+            
+            // Mensaje de éxito y redirección
+            Session::setFlash('success', '¡Bienvenido a SGP! Tu perfil ha sido completado exitosamente');
+            $this->redirect('/dashboard');
+            
+        } catch (Exception $e) {
+            /**
+             * ROLLBACK TRANSACTION
+             * 
+             * Si hubo un error en CUALQUIER paso, deshacemos TODOS los cambios.
+             * Esto garantiza que la BD no quede en un estado inconsistente.
+             * 
+             * EJEMPLO DE INCONSISTENCIA SIN ROLLBACK:
+             * - Se guardó la contraseña ✓
+             * - Se guardaron las preguntas ✓
+             * - Falló guardar datos personales ✗
+             * → Usuario puede iniciar sesión pero no tiene perfil completo (ERROR)
+             * 
+             * CON ROLLBACK:
+             * - Falla cualquier paso → Se deshace TODO
+             * → Usuario mantiene su estado original y puede intentar de nuevo
+             */
+            $this->db->rollback();
+            Session::setFlash('error', 'Error al guardar: ' . $e->getMessage());
+            $this->redirect('/perfil/completar');
         }
-        
-        foreach ($datosPersonales as $key => $value) {
-            $this->db->bind(':' . $key, $value);
-        }
-        
-        if (!$this->db->execute()) {
-            throw new Exception('Error al guardar datos personales');
-        }
-        
-        // Commit transaction
-        $this->db->commit();
-        
-        // Update session
-        Session::set('requiere_cambio_clave', 0);
-        Session::set('user_name', trim($_POST['nombres']) . ' ' . trim($_POST['apellidos']));
-        
-        Session::setFlash('success', '¡Bienvenido a SGP! Tu perfil ha sido completado exitosamente');
-        $this->redirect('/dashboard');
-        
-    } catch (Exception $e) {
-        // Rollback on error
-        $this->db->rollback();
-        Session::setFlash('error', 'Error al guardar: ' . $e->getMessage());
-        $this->redirect('/perfil/completar');
     }
-}
 
     /**
-     * View user profile
+     * Ver Perfil del Usuario Autenticado
+     * 
+     * PROPÓSITO:
+     * Mostrar los datos completos del perfil del usuario actual.
+     * 
+     * FLUJO DE DATOS:
+     * Input: user_id desde Session
+     * Proceso: Query con LEFT JOINs para obtener todos los datos
+     * Output: Vista perfil/ver.php con array de datos del usuario
      */
     public function ver()
     {
         $userId = Session::get('user_id');
         $roleId = Session::get('role_id');
         
-        // Base query
+        // Query base con datos comunes
         $query = "
             SELECT 
                 u.id,
@@ -272,17 +463,21 @@ public function guardarWizard()
                 dp.telefono,
                 dp.direccion,
                 dp.genero,
-                dp.fecha_nacimiento
+                dp.fecha_nacimiento";
+        
+        // Agregar campo específico para pasantes (SOLO institucion_procedencia)
+        if ($roleId == 3) { // Pasante
+            $query .= ",
+                dpa.institucion_procedencia";
+        }
+        
+        $query .= "
             FROM usuarios u
             LEFT JOIN roles r ON u.rol_id = r.id
-            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
-        ";
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id";
         
-        // Add role-specific joins
-        if ($roleId == 2) { // Tutor
-            $query .= " LEFT JOIN datos_tutor dt ON u.id = dt.usuario_id
-                       LEFT JOIN departamentos d ON dt.departamento_id = d.id";
-        } elseif ($roleId == 3) { // Pasante
+        // Agregar JOIN específico para pasantes
+        if ($roleId == 3) { // Pasante
             $query .= " LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id";
         }
         
@@ -303,119 +498,448 @@ public function guardarWizard()
         ]);
     }
     
+    
+
     /**
-     * Update user profile
+     * Actualizar Datos del Perfil (AJAX)
+     * 
+     * PROPÓSITO:
+     * Procesar la actualización de información personal del usuario.
+     * Retorna JSON para manejo con Notyf.
+     * 
+     * @return void (JSON response)
      */
     public function actualizar()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            $this->redirect('/perfil/ver');
-            return;
-        }
-
-        $userId = Session::get('user_id');
-        $roleId = Session::get('role_id');
+        // CRÍTICO: Forzar HTTP 200 para que JavaScript pueda leer la respuesta
+        http_response_code(200);
+        header('Content-Type: application/json; charset=utf-8');
         
-        // Common personal data
-        $datosPersonales = [
-            'cedula' => trim($_POST['cedula']),
-            'nombres' => trim($_POST['nombres']),
-            'apellidos' => trim($_POST['apellidos']),
-            'cargo' => trim($_POST['cargo']),
-            'telefono' => trim($_POST['telefono']),
-            'direccion' => trim($_POST['direccion']),
-            'genero' => $_POST['genero'],
-            'fecha_nacimiento' => $_POST['fecha_nacimiento']
-        ];
+        // Suprimir warnings para evitar contaminar JSON
+        error_reporting(0);
+        ini_set('display_errors', 0);
         
         try {
-            // Update datos_personales
+            Session::start();
+            
+            // Verificar método POST
+            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+                throw new Exception('Método no permitido');
+            }
+            
+            $userId = Session::get('user_id');
+            
+            if (!$userId) {
+                throw new Exception('Usuario no autenticado');
+            }
+            
+            // Capturar datos del formulario (NO incluir cédula, es inmutable)
+            $data = [
+                'nombres' => trim(Validator::post('nombres')),
+                'apellidos' => trim(Validator::post('apellidos')),
+                'telefono' => trim(Validator::post('telefono')),
+                'direccion' => trim(Validator::post('direccion')),
+                'genero' => Validator::post('genero'),
+                'fecha_nacimiento' => Validator::post('fecha_nacimiento'),
+                'cargo' => trim(Validator::post('cargo'))
+            ];
+            
+            // Validar campos obligatorios
+            if (empty($data['nombres']) || empty($data['apellidos']) || empty($data['telefono'])) {
+                throw new Exception('Los campos Nombres, Apellidos y Teléfono son obligatorios');
+            }
+            
+            // Logging para depuración
+            error_log("=== ACTUALIZANDO PERFIL ===");
+            error_log("User ID: $userId");
+            error_log("Datos: " . print_r($data, true));
+            
+            // Actualizar en base de datos (SIN cédula)
             $this->db->query("
-                UPDATE datos_personales 
-                SET cedula = :cedula,
+                UPDATE datos_personales
+                SET 
                     nombres = :nombres,
                     apellidos = :apellidos,
-                    cargo = :cargo,
                     telefono = :telefono,
                     direccion = :direccion,
                     genero = :genero,
-                    fecha_nacimiento = :fecha_nacimiento
+                    fecha_nacimiento = :fecha_nacimiento,
+                    cargo = :cargo
                 WHERE usuario_id = :usuario_id
             ");
             
-            foreach ($datosPersonales as $key => $value) {
-                $this->db->bind(':' . $key, $value);
-            }
+            $this->db->bind(':nombres', $data['nombres']);
+            $this->db->bind(':apellidos', $data['apellidos']);
+            $this->db->bind(':telefono', $data['telefono']);
+            $this->db->bind(':direccion', $data['direccion'] ?: null);
+            $this->db->bind(':genero', $data['genero'] ?: null);
+            $this->db->bind(':fecha_nacimiento', $data['fecha_nacimiento'] ?: null);
+            $this->db->bind(':cargo', $data['cargo'] ?: null);
             $this->db->bind(':usuario_id', $userId);
             
-            if (!$this->db->execute()) {
-                Session::setFlash('error', 'Error al actualizar datos personales');
-                $this->redirect('/perfil/ver');
-                return;
+            $resultado = $this->db->execute();
+            
+            if (!$resultado) {
+                throw new Exception('Error al ejecutar la consulta SQL. Verifica los logs del servidor.');
             }
             
-            // Update role-specific data
-            if ($roleId == 3 && !empty($_POST['institucion_procedencia'])) { // Pasante
+            // Si es pasante, actualizar institución (UPSERT: UPDATE o INSERT)
+            if (Session::get('role_id') == 3) {
+                $institucion = trim(Validator::post('institucion_procedencia'));
+                if (!empty($institucion)) {
+                    try {
+                        // Intentar UPDATE primero
+                        $this->db->query("
+                            UPDATE datos_pasante
+                            SET institucion_procedencia = :institucion
+                            WHERE usuario_id = :usuario_id
+                        ");
+                        $this->db->bind(':institucion', $institucion);
+                        $this->db->bind(':usuario_id', $userId);
+                        $this->db->execute();
+                        
+                        // Si no se actualizó ninguna fila, el registro no existe → INSERT
+                        if ($this->db->rowCount() == 0) {
+                            error_log("=== REGISTRO NO EXISTE EN datos_pasante, CREANDO... ===");
+                            $this->db->query("
+                                INSERT INTO datos_pasante (usuario_id, institucion_procedencia)
+                                VALUES (:usuario_id, :institucion)
+                            ");
+                            $this->db->bind(':usuario_id', $userId);
+                            $this->db->bind(':institucion', $institucion);
+                            $this->db->execute();
+                            error_log("=== REGISTRO CREADO EXITOSAMENTE ===");
+                        } else {
+                            error_log("=== INSTITUCIÓN ACTUALIZADA: $institucion ===");
+                        }
+                    } catch (Exception $e) {
+                        error_log("Error actualizando institución: " . $e->getMessage());
+                        // No lanzar excepción, el perfil principal ya se guardó
+                    }
+                }
+            }
+            
+            // Actualizar nombre en sesión
+            Session::set('user_name', $data['nombres'] . ' ' . $data['apellidos']);
+            
+            // Registrar en bitácora
+            try {
+                require_once '../app/models/AuditModel.php';
+                AuditModel::log('UPDATE_PROFILE', 'datos_personales', $userId, [
+                    'campos_actualizados' => array_keys($data)
+                ]);
+            } catch (Exception $e) {
+                error_log("Error en auditoría: " . $e->getMessage());
+                // No lanzar excepción, el perfil ya se guardó
+            }
+            
+            error_log("=== PERFIL ACTUALIZADO EXITOSAMENTE ===");
+            
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Perfil actualizado exitosamente'
+            ]);
+            
+        } catch (PDOException $e) {
+            // Error de base de datos
+            error_log("=== ERROR PDO EN ACTUALIZAR PERFIL ===");
+            error_log("Mensaje: " . $e->getMessage());
+            error_log("Código: " . $e->getCode());
+            error_log("Trace: " . $e->getTraceAsString());
+            
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Error de base de datos: ' . $e->getMessage(),
+                'debug' => [
+                    'code' => $e->getCode(),
+                    'type' => 'PDOException'
+                ]
+            ]);
+        } catch (Throwable $e) {
+            // Captura CUALQUIER error (incluso fatales)
+            error_log("=== ERROR FATAL EN ACTUALIZAR PERFIL ===");
+            error_log("Tipo: " . get_class($e));
+            error_log("Mensaje: " . $e->getMessage());
+            error_log("Archivo: " . $e->getFile() . ":" . $e->getLine());
+            error_log("Trace: " . $e->getTraceAsString());
+            
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Error del sistema: ' . $e->getMessage(),
+                'debug' => [
+                    'type' => get_class($e),
+                    'file' => basename($e->getFile()),
+                    'line' => $e->getLine()
+                ]
+            ]);
+        }
+        
+        exit;
+    }
+
+    /**
+     * Cambiar Contraseña (AJAX)
+     * 
+     * PROPÓSITO:
+     * Permitir al usuario cambiar su contraseña validando la actual.
+     * Retorna JSON para manejo con Notyf.
+     * 
+     * SEGURIDAD:
+     * - Verifica contraseña actual con password_verify()
+     * - Valida requisitos de la nueva contraseña
+     * - Hashea la nueva contraseña con BCRYPT
+     * 
+     * @return void (JSON response)
+     */
+    public function cambiar_password()
+    {
+        Session::start();
+        
+        // Solo aceptar POST
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            exit;
+        }
+        
+        $userId = Session::get('user_id');
+        
+        // Capturar datos
+        $passwordActual = Validator::post('password_actual');
+        $passwordNueva = Validator::post('password_nueva');
+        $passwordConfirmar = Validator::post('password_confirmar');
+        
+        // Validar campos
+        if (empty($passwordActual) || empty($passwordNueva) || empty($passwordConfirmar)) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Todos los campos son obligatorios'
+            ]);
+            exit;
+        }
+        
+        // Validar que coincidan
+        if ($passwordNueva !== $passwordConfirmar) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Las contraseñas nuevas no coinciden'
+            ]);
+            exit;
+        }
+        
+        // Validar longitud mínima
+        if (strlen($passwordNueva) < 8) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'La contraseña debe tener al menos 8 caracteres'
+            ]);
+            exit;
+        }
+        
+        // Obtener usuario actual
+        $user = $this->userModel->findById($userId);
+        
+        // Verificar contraseña actual
+        if (!password_verify($passwordActual, $user['password'])) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'La contraseña actual es incorrecta'
+            ]);
+            exit;
+        }
+        
+        // Validar que la nueva contraseña sea diferente a la actual
+        if ($passwordActual === $passwordNueva) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'La nueva contraseña debe ser diferente a la actual'
+            ]);
+            exit;
+        }
+        
+        // Validar requisitos de seguridad de la nueva contraseña
+        if (strlen($passwordNueva) < 8 || 
+            !preg_match('/[A-Z]/', $passwordNueva) || 
+            !preg_match('/[a-z]/', $passwordNueva) || 
+            !preg_match('/[0-9]/', $passwordNueva) ||
+            !preg_match('/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/', $passwordNueva)) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'La contraseña debe tener al menos 8 caracteres, incluir mayúsculas, minúsculas, números y caracteres especiales'
+            ]);
+            exit;
+        }
+        
+        // Actualizar contraseña
+        if ($this->userModel->updatePassword($userId, $passwordNueva)) {
+            // Registrar en bitácora
+            require_once '../app/models/AuditModel.php';
+            AuditModel::log('CHANGE_PASSWORD', 'usuarios', $userId);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true, 
+                'message' => 'Contraseña cambiada exitosamente'
+            ]);
+        } else {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false, 
+                'message' => 'Error al cambiar la contraseña'
+            ]);
+        }
+        
+        exit;
+    }
+
+    /**
+     * Vista: Gestionar Preguntas de Seguridad
+     * 
+     * PROPÓSITO:
+     * Mostrar formulario para que el usuario actualice sus preguntas de seguridad.
+     */
+    public function gestionar_preguntas()
+    {
+        Session::start();
+        $userId = Session::get('user_id');
+        
+        // Obtener preguntas disponibles
+        $preguntas = $this->userModel->getSecurityQuestions();
+        
+        // CORRECCIÓN PHP: Validar que preguntas no sea false
+        if ($preguntas === false || !is_array($preguntas)) {
+            $preguntas = [];
+        }
+        
+        // Obtener respuestas actuales del usuario
+        $this->db->query("
+            SELECT ur.id, ur.pregunta_id, ps.pregunta
+            FROM usuarios_respuestas ur
+            INNER JOIN preguntas_seguridad ps ON ur.pregunta_id = ps.id
+            WHERE ur.usuario_id = :usuario_id
+            ORDER BY ur.id ASC
+        ");
+        $this->db->bind(':usuario_id', $userId);
+        $respuestas = $this->db->resultSet();
+        
+        // CORRECCIÓN PHP: Validar que respuestas no sea false
+        if ($respuestas === false || !is_array($respuestas)) {
+            $respuestas = [];
+        }
+        
+        $this->view('perfil/gestionar_preguntas', [
+            'title' => 'Gestionar Preguntas de Seguridad',
+            'preguntas' => $preguntas,
+            'respuestas' => $respuestas
+        ]);
+    }
+
+    /**
+     * Actualizar Preguntas de Seguridad (AJAX)
+     * 
+     * PROPÓSITO:
+     * Procesar la actualización de preguntas de seguridad del usuario.
+     * 
+     * SEGURIDAD:
+     * - Hashea las respuestas con password_hash()
+     * - Valida que no se repitan preguntas
+     * - Usa transacción para garantizar atomicidad
+     */
+    public function actualizar_preguntas()
+    {
+        Session::start();
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            exit;
+        }
+        
+        $userId = Session::get('user_id');
+        
+        // Capturar datos
+        $pregunta1 = Validator::post('pregunta_1');
+        $respuesta1 = Validator::post('respuesta_1');
+        $pregunta2 = Validator::post('pregunta_2');
+        $respuesta2 = Validator::post('respuesta_2');
+        $pregunta3 = Validator::post('pregunta_3');
+        $respuesta3 = Validator::post('respuesta_3');
+        
+        // Validar que no se repitan preguntas
+        if ($pregunta1 == $pregunta2 || $pregunta1 == $pregunta3 || $pregunta2 == $pregunta3) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'No puedes seleccionar la misma pregunta dos veces'
+            ]);
+            exit;
+        }
+        
+        // Validar que todos los campos estén completos
+        if (empty($pregunta1) || empty($respuesta1) || empty($pregunta2) || empty($respuesta2) || empty($pregunta3) || empty($respuesta3)) {
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Todos los campos son obligatorios'
+            ]);
+            exit;
+        }
+        
+        try {
+            // Iniciar transacción
+            $this->db->beginTransaction();
+            
+            // Eliminar respuestas anteriores
+            $this->db->query("DELETE FROM usuarios_respuestas WHERE usuario_id = :usuario_id");
+            $this->db->bind(':usuario_id', $userId);
+            $this->db->execute();
+            
+            // Insertar nuevas respuestas (hasheadas)
+            $preguntas = [
+                ['pregunta_id' => $pregunta1, 'respuesta' => $respuesta1],
+                ['pregunta_id' => $pregunta2, 'respuesta' => $respuesta2],
+                ['pregunta_id' => $pregunta3, 'respuesta' => $respuesta3]
+            ];
+            
+            foreach ($preguntas as $pregunta) {
                 $this->db->query("
-                    UPDATE datos_pasante 
-                    SET institucion_procedencia = :institucion
-                    WHERE usuario_id = :usuario_id
+                    INSERT INTO usuarios_respuestas (usuario_id, pregunta_id, respuesta_hash)
+                    VALUES (:usuario_id, :pregunta_id, :respuesta_hash)
                 ");
-                $this->db->bind(':institucion', trim($_POST['institucion_procedencia']));
                 $this->db->bind(':usuario_id', $userId);
+                $this->db->bind(':pregunta_id', $pregunta['pregunta_id']);
+                $this->db->bind(':respuesta_hash', password_hash(strtolower(trim($pregunta['respuesta'])), PASSWORD_DEFAULT));
                 $this->db->execute();
             }
             
-            // Update session name
-            Session::set('user_name', trim($_POST['nombres']) . ' ' . trim($_POST['apellidos']));
+            // Confirmar transacción
+            $this->db->commit();
             
-            // Create notification
-            $this->notificationModel->create([
-                'usuario_id' => $userId,
-                'tipo' => 'perfil_actualizado',
-                'titulo' => 'Perfil Actualizado',
-                'mensaje' => 'Tu información personal ha sido actualizada correctamente',
-                'url' => '/perfil/ver'
+            // Registrar en bitácora
+            require_once '../app/models/AuditModel.php';
+            AuditModel::log('UPDATE_SECURITY_QUESTIONS', 'usuarios_respuestas', $userId);
+            
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => true,
+                'message' => 'Preguntas de seguridad actualizadas exitosamente'
             ]);
             
-            Session::setFlash('success', 'Perfil actualizado exitosamente');
-            $this->redirect('/perfil/ver');
-            
-        } catch (PDOException $e) {
-            // Check if it's a duplicate entry error
-            if ($e->getCode() == 23000 && strpos($e->getMessage(), 'Duplicate entry') !== false) {
-                // Extract field name from error message
-                // MySQL error format: "Duplicate entry 'value' for key 'field_name'"
-                $errorMessage = $e->getMessage();
-                $fieldName = 'desconocido';
-                
-                // Try to extract the field name from the error message
-                if (preg_match("/for key '(\w+)'/", $errorMessage, $matches)) {
-                    $fieldName = $matches[1];
-                }
-                
-                // Map database field names to user-friendly names
-                $fieldLabels = [
-                    'cedula' => 'cédula',
-                    'telefono' => 'teléfono',
-                    'correo' => 'correo electrónico',
-                    'usuario_id' => 'usuario'
-                ];
-                
-                $friendlyFieldName = $fieldLabels[$fieldName] ?? $fieldName;
-                
-                // Extract the duplicate value if possible
-                if (preg_match("/Duplicate entry '([^']+)'/", $errorMessage, $valueMatches)) {
-                    $duplicateValue = $valueMatches[1];
-                    Session::setFlash('error', "El valor '{$duplicateValue}' para el campo {$friendlyFieldName} ya está registrado en el sistema. Por favor, verifica el dato ingresado.");
-                } else {
-                    Session::setFlash('error', "El {$friendlyFieldName} ingresado ya está registrado en el sistema. Por favor, verifica los datos.");
-                }
-            } else {
-                // Generic database error
-                Session::setFlash('error', 'Error al actualizar el perfil. Por favor, intenta nuevamente.');
-            }
-            $this->redirect('/perfil/ver');
+        } catch (Exception $e) {
+            $this->db->rollback();
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al actualizar las preguntas: ' . $e->getMessage()
+            ]);
         }
+        
+        exit;
     }
 }

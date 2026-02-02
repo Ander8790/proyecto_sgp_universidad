@@ -1144,8 +1144,9 @@ td {
     transform: translateY(-1px);
 }
 
+
 /* ====================================================
-   CINTILLO INSTITUCIONAL 
+   CINTILLO INSTITUCIONAL
    ==================================================== */
 .cintillo-container {
     position: fixed;
@@ -1154,7 +1155,7 @@ td {
     right: 0;
     width: 100%;
     background: #FFFFFF;
-    padding: 10px 0;
+    padding: 6px 0;
     box-shadow: 0 4px 15px -3px rgba(0, 0, 0, 0.15);
     z-index: 9999;
     display: flex;
@@ -1163,26 +1164,38 @@ td {
 }
 
 .cintillo-container img {
-    height: 80px;
+    height: 55px;
     width: auto;
     max-width: 98%;
     object-fit: contain;
 }
 
-/* Responsividad del cintillo */
-@media (max-width: 768px) {
+/* Responsive - Tablet */
+@media (max-width: 992px) {
     .cintillo-container {
-        padding: 6px 0;
+        padding: 4px 0;
     }
 
     .cintillo-container img {
-        height: 60px;
+        height: 48px;
     }
 }
 
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+    .cintillo-container {
+        padding: 3px 0;
+    }
+
+    .cintillo-container img {
+        height: 40px;
+    }
+}
+
+/* Responsive - Small Mobile */
 @media (max-width: 480px) {
     .cintillo-container img {
-        height: 50px;
+        height: 35px;
     }
 }
 
@@ -2091,7 +2104,8 @@ body.sidebar-collapse .menu-toggle span {
     transition: margin-left var(--transition-speed);
 }
 
-body.sidebar-collapse .content-wrapper {
+
+body.sidebar-collapsed .content-wrapper {
     margin-left: 80px;
 }
 
@@ -2117,31 +2131,20 @@ body.sidebar-collapse .content-wrapper {
     padding: 0;
 }
 
-/* 3. BANNER AZUL DE BIENVENIDA - EFECTO PRO CON MÚLTIPLES CAPAS */
+/* 3. BANNER AZUL DE BIENVENIDA - DEGRADADO DIAGONAL PROFESIONAL */
 .welcome-banner {
     grid-column: 1 / -1;
     padding: 24px 32px;
     border-radius: 16px;
     color: #ffffff;
 
-    /* EFECTO PRO: Múltiples capas de fondo apiladas */
-    background-image:
-        /* CAPA SUPERIOR: Semicírculo de luz en esquina inferior derecha */
-        /* 'circle at 100% 100%' = centro del círculo en esquina inferior derecha */
-        radial-gradient(circle at 100% 100%, rgba(59, 130, 246, 0.25) 0%, transparent 50%),
-
-        /* CAPA INFERIOR: Degradado base de izquierda a derecha */
-        /* Azul sólido (#1e3a8a) que se oscurece hacia la derecha (#172554) */
-        linear-gradient(to right, #1e3a8a, #172554);
-
-    /* Asegura que el fondo cubra todo */
-    background-size: cover;
-    background-repeat: no-repeat;
+    /* Degradado diagonal elegante (version1 style) */
+    background: linear-gradient(135deg, #162660 0%, #1e3a8a 100%);
 
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 20px rgba(30, 58, 138, 0.25);
+    box-shadow: 0 10px 30px rgba(22, 38, 96, 0.15);
     position: relative;
     overflow: hidden;
     min-height: 100px;

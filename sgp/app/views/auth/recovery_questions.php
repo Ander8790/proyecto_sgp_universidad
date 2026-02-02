@@ -35,6 +35,23 @@
             </button>
         </form>
         
+        <!-- SECCIÓN: SOLICITUD DE AYUDA -->
+        <div class="text-center" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #E5E7EB;">
+            <p style="font-size: 13px; color: #6B7280; margin-bottom: 0.75rem;">
+                ¿No recuerdas tus respuestas?
+            </p>
+            <a href="#" 
+               id="btnSolicitarAyuda"
+               class="btn-link" 
+               style="color: #EF4444; font-weight: 600; font-size: 14px; text-decoration: none; display: inline-flex; align-items: center; transition: all 0.3s ease;">
+                <i class="ti ti-help-circle" style="margin-right: 6px; font-size: 18px;"></i>
+                Solicitar ayuda al administrador
+            </a>
+            <p style="font-size: 12px; color: #9CA3AF; margin-top: 0.5rem;">
+                El administrador revisará tu solicitud y te contactará pronto.
+            </p>
+        </div>
+        
         <div class="auth-footer">
              <a href="<?= URLROOT ?>/auth/login" class="auth-link">Cancelar</a>
         </div>
@@ -42,6 +59,33 @@
     
     <?php include_once APPROOT . '/views/layouts/footer.php'; ?>
     <script>
+        // ============================================
+        // SWEETALERT: CONFIRMACIÓN DE SOLICITUD DE AYUDA
+        // ============================================
+        document.getElementById('btnSolicitarAyuda')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            Swal.fire({
+                icon: 'question',
+                title: '¿Solicitar ayuda?',
+                text: 'Se notificará al administrador para resetear tu cuenta. ¿Deseas continuar?',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, solicitar',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#162660',
+                cancelButtonColor: '#6B7280',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Redirigir a la ruta de desbloqueo
+                    window.location.href = '<?= URLROOT ?>/auth/solicitarDesbloqueo';
+                }
+            });
+        });
+        
+        // ============================================
+        // SWEETALERT: RESPUESTAS INCORRECTAS
+        // ============================================
         <?php if (!empty($error)): ?>
             Swal.fire({
                 icon: 'error',

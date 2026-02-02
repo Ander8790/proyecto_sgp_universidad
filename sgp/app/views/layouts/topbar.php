@@ -19,11 +19,11 @@
         </a>
     </div>
     
-    <!-- Zona Central: Cintillo Institucional (oculto en móvil) -->
+    <!-- Zona Central: Logo Institucional (oculto en móvil) -->
     <div class="header-center d-none d-md-flex" style="position: absolute; left: 50%; transform: translateX(-50%); height: 100%; align-items: center;">
-        <img src="<?= URLROOT ?>/img/cintillo_sf.png" 
-             alt="Institución" 
-             style="max-height: 55px; width: auto; object-fit: contain;">
+        <img src="<?= URLROOT ?>/img/gobe.png" 
+             alt="Gobernación de Bolívar - Salud" 
+             style="max-height: 52px; width: auto; max-width: 320px; object-fit: contain;">
     </div>
     
     <!-- Zona Derecha: Notificaciones + Perfil -->

@@ -1,18 +1,81 @@
 <?php
+/**
+ * UserModel - Modelo de Usuarios
+ * 
+ * PROPÓSITO EDUCATIVO:
+ * Este modelo implementa el patrón MVC separando la lógica de acceso a datos (Model)
+ * de la lógica de negocio (Controller) y la presentación (View).
+ * 
+ * RESPONSABILIDADES:
+ * - Interactuar con la base de datos (tabla usuarios y relacionadas)
+ * - Encapsular queries SQL complejas
+ * - Proporcionar métodos reutilizables para operaciones CRUD
+ * - Manejar la seguridad de contraseñas (hashing)
+ * 
+ * SEGURIDAD:
+ * - Todas las queries usan prepared statements (prevención SQL Injection)
+ * - Las contraseñas se hashean con BCRYPT (nunca se almacenan en texto plano)
+ * - Las respuestas de seguridad también se hashean
+ * 
+ * @author Sistema SGP
+ * @version 2.0 - Refactorización Educativa
+ */
+
 declare(strict_types=1);
 
 class UserModel
 {
     private Database $db;
 
+    /**
+     * Constructor del Modelo
+     * 
+     * @param Database $db Instancia de conexión a la base de datos
+     * 
+     * RAZÓN TÉCNICA:
+     * Recibimos la conexión por parámetro (Dependency Injection) en lugar de crearla aquí.
+     * Esto facilita testing y reutilización.
+     */
     public function __construct(Database $db)
     {
         $this->db = $db;
     }
 
+    /**
+     * Buscar Usuario por Correo Electrónico
+     * 
+     * PROPÓSITO:
+     * Método principal para autenticación. Busca un usuario por su email.
+     * 
+     * FLUJO DE DATOS:
+     * Input: $email (string) - Correo del usuario
+     * Proceso: Query con LEFT JOIN a datos_personales
+     * Output: Array con datos del usuario o NULL si no existe
+     * 
+     * RAZÓN DEL LEFT JOIN:
+     * Usuarios recién creados pueden NO tener registro en datos_personales todavía.
+     * LEFT JOIN permite que estos usuarios también se autentiquen.
+     * 
+     * COALESCE:
+     * Si no hay datos_personales, usamos el correo como nombre temporal.
+     * Ejemplo: COALESCE(CONCAT('Juan', 'Pérez'), 'juan@sgp.local') → 'Juan Pérez'
+     *          COALESCE(NULL, 'juan@sgp.local') → 'juan@sgp.local'
+     * 
+     * @param string $email Correo electrónico del usuario
+     * @return array|null Datos del usuario o null si no existe
+     */
     public function findByEmail(string $email): ?array
     {
-        // LEFT JOIN porque usuarios nuevos pueden NO tener datos_personales todavía
+        /**
+         * Query con prepared statement
+         * 
+         * SEGURIDAD:
+         * Usamos :email como placeholder en lugar de concatenar directamente.
+         * Esto previene SQL Injection.
+         * 
+         * MAL:  "SELECT * FROM usuarios WHERE correo = '$email'"
+         * BIEN: prepare() + bind() (lo que hacemos aquí)
+         */
         $this->db->query("
             SELECT 
                 u.id, 
@@ -28,11 +91,61 @@ class UserModel
             WHERE u.correo = :email 
             LIMIT 1
         ");
+        
+        // Vincular el parámetro :email con el valor recibido
         $this->db->bind(':email', $email);
+        
+        // Ejecutar query y obtener un solo resultado
         $row = $this->db->single();
+        
+        // Convertir objeto a array (o retornar null si no existe)
         return $row ? (array) $row : null;
     }
 
+    /**
+     * Buscar Usuario por Cédula
+     * 
+     * PROPÓSITO:
+     * Verificar si una cédula ya está registrada en el sistema.
+     * 
+     * FLUJO:
+     * Input: $cedula (string) - Número de cédula
+     * Proceso: JOIN con datos_personales para buscar la cédula
+     * Output: Array con datos del usuario o null si no existe
+     * 
+     * @param string $cedula Cédula de identidad
+     * @return array|null Datos del usuario o null si no existe
+     */
+    public function findByCedula(string $cedula): ?array
+    {
+        $this->db->query("
+            SELECT u.id, u.correo, dp.cedula, dp.nombres, dp.apellidos
+            FROM usuarios u
+            INNER JOIN datos_personales dp ON u.id = dp.usuario_id
+            WHERE dp.cedula = :cedula
+            LIMIT 1
+        ");
+        
+        $this->db->bind(':cedula', $cedula);
+        
+        $row = $this->db->single();
+        
+        return $row ? (array) $row : null;
+    }
+
+    /**
+     * Buscar Usuario por ID
+     * 
+     * PROPÓSITO:
+     * Obtener datos de un usuario específico por su ID.
+     * 
+     * DIFERENCIA CON findByEmail():
+     * - findByEmail() se usa para LOGIN (busca por correo)
+     * - findById() se usa para OPERACIONES INTERNAS (busca por ID)
+     * 
+     * @param int $id ID del usuario
+     * @return array|null Datos del usuario o null si no existe
+     */
     public function findById(int $id): ?array
     {
         $this->db->query("SELECT * FROM usuarios WHERE id = :id LIMIT 1");
@@ -41,15 +154,51 @@ class UserModel
         return $row ? (array) $row : null;
     }
 
+    /**
+     * Crear Nuevo Usuario
+     * 
+     * PROPÓSITO:
+     * Registrar un nuevo usuario en el sistema.
+     * 
+     * FLUJO:
+     * Input: Array con datos del usuario (email, password, role_id, etc.)
+     * Proceso: INSERT en tabla usuarios con contraseña hasheada
+     * Output: true si se creó correctamente, false si hubo error
+     * 
+     * SEGURIDAD:
+     * - La contraseña se hashea con password_hash() antes de guardar
+     * - NUNCA se almacena la contraseña en texto plano
+     * 
+     * CAMPO requiere_cambio_clave:
+     * - 0 = Usuario se registró públicamente (eligió su contraseña)
+     * - 1 = Usuario fue creado por admin (tiene contraseña temporal)
+     * 
+     * @param array $data Datos del usuario ['email', 'password', 'role_id', 'requiere_cambio_clave', 'departamento_id']
+     * @return bool true si se creó correctamente
+     */
     public function create(array $data): bool
     {
-        // Nueva arquitectura: Solo guardamos email, password y rol
-        // Los nombres se guardarán en datos_personales (Nivel 2)
-        // requiere_cambio_clave: 0 = registro público, 1 = creado por admin
+        /**
+         * Hashear contraseña con BCRYPT
+         * 
+         * RAZÓN TÉCNICA:
+         * password_hash() usa el algoritmo BCRYPT por defecto (PASSWORD_DEFAULT).
+         * BCRYPT está diseñado para ser LENTO intencionalmente, lo que dificulta
+         * ataques de fuerza bruta.
+         * 
+         * El hash generado incluye:
+         * - Algoritmo usado ($2y$ = BCRYPT)
+         * - Costo computacional (10 por defecto)
+         * - Salt aleatorio (generado automáticamente)
+         * - Hash de la contraseña
+         * 
+         * Ejemplo de hash: $2y$10$xwCcDMHXaKGfAOpi2puiaPfzia9NGBGghfyiq4c2
+         */
         $this->db->query("
             INSERT INTO usuarios (correo, password, rol_id, estado, requiere_cambio_clave, departamento_id) 
             VALUES (:email, :pass, :role, 'activo', :req_cambio, :depto)
         ");
+        
         $this->db->bind(':email', $data['email']);
         $this->db->bind(':pass', password_hash($data['password'], PASSWORD_DEFAULT));
         $this->db->bind(':role', $data['role_id']);
@@ -59,24 +208,91 @@ class UserModel
         return $this->db->execute();
     }
     
-    // For getting last insert ID if needed, mainly for answers
+    /**
+     * Obtener ID del Último Registro Insertado
+     * 
+     * PROPÓSITO:
+     * Después de crear un usuario, necesitamos su ID para crear registros relacionados
+     * (ej: datos_personales, usuarios_respuestas).
+     * 
+     * @return int ID del último registro insertado
+     */
     public function getLastId(): int 
     {
          return (int) $this->db->lastInsertId();
     }
 
+    /**
+     * Obtener TODAS las Preguntas de Seguridad Activas
+     * 
+     * PROPÓSITO:
+     * Obtener todas las preguntas de seguridad disponibles para que el usuario
+     * pueda ELEGIR 3 de ellas en el registro o wizard.
+     * 
+     * CAMBIO IMPORTANTE (2026-01-30):
+     * - ANTES: Traía solo 3 preguntas aleatorias (LIMIT 3)
+     * - AHORA: Trae TODAS las preguntas activas (sin LIMIT)
+     * 
+     * RAZÓN DEL CAMBIO:
+     * Si solo traemos 3 preguntas, el usuario NO puede elegir.
+     * Con 10 preguntas disponibles, el usuario puede seleccionar
+     * las 3 que más le convengan (mejor UX y seguridad).
+     * 
+     * ORDER BY id ASC:
+     * - Ordenamiento consistente (siempre en el mismo orden)
+     * - Mejor UX: el usuario ve las mismas opciones en el mismo orden
+     * 
+     * @return array Array de preguntas ['id', 'pregunta', 'activa', 'created_at']
+     */
     public function getSecurityQuestions(): array
     {
-        $this->db->query("SELECT * FROM preguntas_seguridad WHERE activa = 1 ORDER BY RAND() LIMIT 3");
+        /**
+         * Query SIN LIMIT para traer todas las preguntas
+         * 
+         * ANTES: ORDER BY RAND() LIMIT 3 (aleatorio, solo 3)
+         * AHORA: ORDER BY id ASC (todas, ordenadas)
+         */
+        $this->db->query("SELECT * FROM preguntas_seguridad WHERE activa = 1 ORDER BY id ASC");
         $results = $this->db->resultSet();
-        // Convert objects to arrays
-        return array_map(fn($item) => (array) $item, $results);
+        
+        // Devolver objetos PDO directamente (la vista espera objetos)
+        return $results ?: [];
     }
 
+    /**
+     * Guardar Respuesta de Seguridad
+     * 
+     * PROPÓSITO:
+     * Almacenar la respuesta a una pregunta de seguridad (hasheada).
+     * 
+     * NORMALIZACIÓN:
+     * - strtolower(): Convertir a minúsculas ("CHOCOLATE" → "chocolate")
+     * - trim(): Eliminar espacios extra ("  chocolate  " → "chocolate")
+     * 
+     * RAZÓN:
+     * Al recuperar contraseña, el usuario podría escribir "Chocolate" o "chocolate".
+     * Normalizamos para que ambas sean válidas.
+     * 
+     * SEGURIDAD:
+     * La respuesta se hashea con password_hash() para que no sea legible en la BD.
+     * 
+     * @param int $userId ID del usuario
+     * @param int $questionId ID de la pregunta
+     * @param string $answer Respuesta en texto plano
+     * @return bool true si se guardó correctamente
+     */
     public function saveSecurityAnswer(int $userId, int $questionId, string $answer): bool
     {
-        // Normalize answer
+        /**
+         * Normalizar y hashear respuesta
+         * 
+         * FLUJO:
+         * 1. trim($answer) → Eliminar espacios: "  chocolate  " → "chocolate"
+         * 2. strtolower() → Convertir a minúsculas: "Chocolate" → "chocolate"
+         * 3. password_hash() → Hashear: "chocolate" → "$2y$10$..."
+         */
         $hash = password_hash(strtolower(trim($answer)), PASSWORD_DEFAULT);
+        
         $this->db->query("INSERT INTO usuarios_respuestas (usuario_id, pregunta_id, respuesta_hash) VALUES (:uid, :qid, :hash)");
         $this->db->bind(':uid', $userId);
         $this->db->bind(':qid', $questionId);
@@ -85,6 +301,21 @@ class UserModel
         return $this->db->execute();
     }
 
+    /**
+     * Obtener Respuestas de Seguridad de un Usuario
+     * 
+     * PROPÓSITO:
+     * Recuperar las preguntas y respuestas hasheadas de un usuario
+     * para el proceso de recuperación de contraseña.
+     * 
+     * FLUJO:
+     * Input: $userId
+     * Proceso: JOIN entre usuarios_respuestas y preguntas_seguridad
+     * Output: Array con ['question', 'answer_hash', 'question_id']
+     * 
+     * @param int $userId ID del usuario
+     * @return array Array de respuestas con sus preguntas
+     */
     public function getUserAnswers(int $userId): array
     {
          $sql = "SELECT q.pregunta as question, a.respuesta_hash as answer_hash, a.pregunta_id as question_id 
@@ -97,6 +328,25 @@ class UserModel
          return array_map(fn($item) => (array) $item, $results);
     }
 
+    /**
+     * Actualizar Contraseña de Usuario
+     * 
+     * PROPÓSITO:
+     * Cambiar la contraseña de un usuario y quitar el flag de cambio obligatorio.
+     * 
+     * FLUJO:
+     * Input: $userId, $newPassword (texto plano)
+     * Proceso: Hashear contraseña y UPDATE en tabla usuarios
+     * Output: true si se actualizó correctamente
+     * 
+     * SEGURIDAD:
+     * - La contraseña se hashea antes de guardar
+     * - Se actualiza requiere_cambio_clave a 0 (usuario ya cambió su clave)
+     * 
+     * @param int $userId ID del usuario
+     * @param string $newPassword Nueva contraseña en texto plano
+     * @return bool true si se actualizó correctamente
+     */
     public function updatePassword(int $userId, string $newPassword): bool
     {
         $this->db->query("UPDATE usuarios SET password = :pass, requiere_cambio_clave = 0 WHERE id = :uid");
@@ -104,9 +354,23 @@ class UserModel
         $this->db->bind(':uid', $userId);
         return $this->db->execute();
     }
+
+    /**
+     * Obtener Todos los Usuarios del Sistema
+     * 
+     * PROPÓSITO:
+     * Listar todos los usuarios para el panel de administración.
+     * 
+     * COALESCE:
+     * Si el usuario no tiene datos_personales, mostramos su correo como nombre.
+     * 
+     * CASE WHEN:
+     * Calculamos si el perfil está completo (1 = completo, 0 = incompleto).
+     * 
+     * @return array Array de usuarios con sus datos básicos
+     */
     public function getAllUsers(): array
     {
-        // Obtener nombres desde datos_personales (nueva arquitectura)
         $this->db->query("
             SELECT 
                 u.id, 
@@ -117,22 +381,36 @@ class UserModel
                 u.created_at,
                 u.estado,
                 d.nombre as departamento_nombre,
+                dpa.institucion_procedencia,
                 CASE WHEN dp.id IS NOT NULL THEN 1 ELSE 0 END as perfil_completado
             FROM usuarios u 
             JOIN roles r ON u.rol_id = r.id 
             LEFT JOIN departamentos d ON u.departamento_id = d.id
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+            LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
             ORDER BY u.created_at DESC
         ");
         $results = $this->db->resultSet();
         return array_map(fn($item) => (array) $item, $results);
     }
 
+    /**
+     * Actualizar Datos de Usuario
+     * 
+     * PROPÓSITO:
+     * Actualizar email, rol, departamento y opcionalmente contraseña.
+     * 
+     * LÓGICA CONDICIONAL:
+     * - Si se proporciona contraseña → UPDATE con password
+     * - Si NO se proporciona → UPDATE sin password
+     * 
+     * @param array $data Datos a actualizar ['id', 'email', 'role_id', 'departamento_id', 'password' (opcional)]
+     * @return bool true si se actualizó correctamente
+     */
     public function update(array $data): bool
     {
-        // Nueva arquitectura: Solo actualizamos email, rol y opcionalmente password
-        // Los nombres se actualizan en datos_personales
         if (!empty($data['password'])) {
+            // Actualizar con nueva contraseña
             $this->db->query("
                 UPDATE usuarios 
                 SET correo = :email, rol_id = :role, password = :pass, departamento_id = :depto 
@@ -140,6 +418,7 @@ class UserModel
             ");
             $this->db->bind(':pass', password_hash($data['password'], PASSWORD_DEFAULT));
         } else {
+            // Actualizar sin cambiar contraseña
             $this->db->query("
                 UPDATE usuarios 
                 SET correo = :email, rol_id = :role, departamento_id = :depto 
@@ -155,6 +434,22 @@ class UserModel
         return $this->db->execute();
     }
 
+    /**
+     * Eliminar Usuario
+     * 
+     * PROPÓSITO:
+     * Eliminar un usuario del sistema.
+     * 
+     * CASCADE:
+     * La BD tiene configurado ON DELETE CASCADE, por lo que al eliminar el usuario
+     * también se eliminan automáticamente:
+     * - datos_personales
+     * - usuarios_respuestas
+     * - datos_pasante / datos_tutor (si existen)
+     * 
+     * @param int $id ID del usuario a eliminar
+     * @return bool true si se eliminó correctamente
+     */
     public function delete(int $id): bool
     {
         $this->db->query("DELETE FROM usuarios WHERE id = :id");
@@ -162,7 +457,19 @@ class UserModel
         return $this->db->execute();
     }
 
-    // 🔒 NIVEL 2: VERIFICACIÓN DE PERFIL
+    /**
+     * Verificar si Usuario Tiene Perfil Completo
+     * 
+     * PROPÓSITO:
+     * Determinar si un usuario ya completó sus datos personales.
+     * 
+     * USO:
+     * - Middleware para forzar completar perfil
+     * - Validaciones en controllers
+     * 
+     * @param int $usuario_id ID del usuario
+     * @return bool true si tiene perfil, false si no
+     */
     public function tienePerfil(int $usuario_id): bool
     {
         $this->db->query("SELECT COUNT(*) as total FROM datos_personales WHERE usuario_id = :uid");
@@ -171,7 +478,15 @@ class UserModel
         return $result && $result->total > 0;
     }
 
-    // 🔒 NIVEL 2: REGISTRO DE PERFIL
+    /**
+     * Registrar Datos Personales de Usuario
+     * 
+     * PROPÓSITO:
+     * Crear el registro inicial de datos personales (usado en registro público).
+     * 
+     * @param array $datos Datos personales ['usuario_id', 'cedula', 'nombres', 'apellidos', 'telefono', 'direccion', 'genero', 'fecha_nacimiento']
+     * @return bool true si se registró correctamente
+     */
     public function registrarPerfil(array $datos): bool
     {
         $this->db->query("
@@ -193,16 +508,13 @@ class UserModel
         return $this->db->execute();
     }
 
-    // Check if Tutor has completed profile
-    public function tieneDatosTutor(int $usuario_id): bool
-    {
-        $this->db->query("SELECT COUNT(*) as total FROM datos_tutor WHERE usuario_id = :uid");
-        $this->db->bind(':uid', $usuario_id);
-        $result = $this->db->single();
-        return $result && $result->total > 0;
-    }
 
-    // Check if Pasante has completed profile
+    /**
+     * Verificar si Pasante Tiene Datos Completos
+     * 
+     * @param int $usuario_id ID del usuario
+     * @return bool true si tiene datos de pasante
+     */
     public function tieneDatosPasante(int $usuario_id): bool
     {
         $this->db->query("SELECT COUNT(*) as total FROM datos_pasante WHERE usuario_id = :uid");
@@ -211,13 +523,41 @@ class UserModel
         return $result && $result->total > 0;
     }
 
-    // Generate temporary password for admin-created users
+    /**
+     * Generar Contraseña Temporal para Usuarios Creados por Admin
+     * 
+     * PROPÓSITO:
+     * Crear una contraseña predecible para usuarios creados internamente.
+     * 
+     * FORMATO:
+     * Sgp.{cedula}
+     * 
+     * EJEMPLOS:
+     * - Cedula 12345678 → Contraseña: Sgp.12345678
+     * - Cedula 98765432 → Contraseña: Sgp.98765432
+     * 
+     * SEGURIDAD:
+     * Esta contraseña es TEMPORAL. El usuario DEBE cambiarla en el primer login
+     * (requiere_cambio_clave = 1).
+     * 
+     * @param string $cedula Cédula del usuario
+     * @return string Contraseña temporal
+     */
     public function generateTempPassword(string $cedula): string
     {
         return 'Sgp.' . $cedula;
     }
 
-    // Create user with temporary password (Admin function)
+    /**
+     * Crear Usuario con Contraseña Temporal (Función de Administrador)
+     * 
+     * PROPÓSITO:
+     * Cuando un admin crea un usuario, este método genera la contraseña temporal
+     * y marca requiere_cambio_clave = 1.
+     * 
+     * @param array $data Datos del usuario ['correo', 'cedula', 'rol_id']
+     * @return bool true si se creó correctamente
+     */
     public function createWithTempPassword(array $data): bool
     {
         $tempPassword = $this->generateTempPassword($data['cedula']);
@@ -233,7 +573,20 @@ class UserModel
         return $this->db->execute();
     }
 
-    // Reset user password to temporary (Admin function)
+    /**
+     * Resetear Contraseña a Temporal (Función de Administrador)
+     * 
+     * PROPÓSITO:
+     * Permitir al admin resetear la contraseña de un usuario a la temporal.
+     * 
+     * USO:
+     * - Usuario olvidó su contraseña
+     * - Admin necesita dar acceso temporal
+     * 
+     * @param int $userId ID del usuario
+     * @param string $cedula Cédula del usuario (para generar contraseña temporal)
+     * @return bool true si se reseteó correctamente
+     */
     public function resetToTempPassword(int $userId, string $cedula): bool
     {
         $tempPassword = $this->generateTempPassword($cedula);
@@ -247,5 +600,188 @@ class UserModel
         $this->db->bind(':uid', $userId);
         
         return $this->db->execute();
+    }
+
+    /**
+     * Obtener Datos Completos del Perfil
+     * 
+     * PROPÓSITO:
+     * Retornar toda la información del usuario para mostrar en su perfil.
+     * Combina datos de usuarios y datos_personales.
+     * 
+     * @param int $id ID del usuario
+     * @return array|null Datos completos del perfil
+     */
+    public function getProfileData(int $id): ?array
+    {
+        $this->db->query("
+            SELECT 
+                u.id,
+                u.correo,
+                u.role_id,
+                u.departamento_id,
+                u.avatar,
+                u.activo,
+                u.created_at,
+                dp.cedula,
+                dp.nombres,
+                dp.apellidos,
+                dp.telefono,
+                dp.direccion,
+                dp.genero,
+                dp.fecha_nacimiento,
+                r.nombre as rol_nombre,
+                dept.nombre as departamento_nombre
+            FROM usuarios u
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+            LEFT JOIN roles r ON u.role_id = r.id
+            LEFT JOIN departamentos dept ON u.departamento_id = dept.id
+            WHERE u.id = :id
+            LIMIT 1
+        ");
+        
+        $this->db->bind(':id', $id);
+        
+        $row = $this->db->single();
+        
+        return $row ? (array) $row : null;
+    }
+
+    /**
+     * Verificar Completitud del Perfil
+     * 
+     * PROPÓSITO:
+     * Determinar si el usuario ha completado todos los campos obligatorios.
+     * 
+     * CAMPOS OBLIGATORIOS:
+     * - Cédula
+     * - Nombres
+     * - Apellidos
+     * - Teléfono
+     * 
+     * @param int $id ID del usuario
+     * @return array ['complete' => bool, 'missing' => array, 'percentage' => int]
+     */
+    public function checkProfileCompletion(int $id): array
+    {
+        $profile = $this->getProfileData($id);
+        
+        if (!$profile) {
+            return [
+                'complete' => false,
+                'missing' => ['Todos los datos'],
+                'percentage' => 0
+            ];
+        }
+        
+        $requiredFields = [
+            'cedula' => 'Cédula',
+            'nombres' => 'Nombres',
+            'apellidos' => 'Apellidos',
+            'telefono' => 'Teléfono'
+        ];
+        
+        $missing = [];
+        $completed = 0;
+        
+        foreach ($requiredFields as $field => $label) {
+            if (!empty($profile[$field])) {
+                $completed++;
+            } else {
+                $missing[] = $label;
+            }
+        }
+        
+        $percentage = (int) (($completed / count($requiredFields)) * 100);
+        
+        return [
+            'complete' => count($missing) === 0,
+            'missing' => $missing,
+            'percentage' => $percentage
+        ];
+    }
+
+    /**
+     * Actualizar Datos del Perfil
+     * 
+     * @param int $id ID del usuario
+     * @param array $data Datos a actualizar
+     * @return bool True si se actualizó exitosamente
+     */
+    public function updateProfile(int $id, array $data): bool
+    {
+        $this->db->query("
+            UPDATE datos_personales
+            SET 
+                nombres = :nombres,
+                apellidos = :apellidos,
+                telefono = :telefono,
+                direccion = :direccion,
+                genero = :genero,
+                fecha_nacimiento = :fecha_nacimiento
+            WHERE usuario_id = :usuario_id
+        ");
+        
+        $this->db->bind(':nombres', $data['nombres'] ?? null);
+        $this->db->bind(':apellidos', $data['apellidos'] ?? null);
+        $this->db->bind(':telefono', $data['telefono'] ?? null);
+        $this->db->bind(':direccion', $data['direccion'] ?? null);
+        $this->db->bind(':genero', $data['genero'] ?? null);
+        $this->db->bind(':fecha_nacimiento', $data['fecha_nacimiento'] ?? null);
+        $this->db->bind(':usuario_id', $id);
+        
+        return $this->db->execute();
+    }
+
+    // ============================================
+    // MÉTODOS DE TRANSACCIÓN (ACID)
+    // ============================================
+    
+    /**
+     * Iniciar Transacción
+     * 
+     * PROPÓSITO:
+     * Iniciar una transacción de base de datos para operaciones atómicas.
+     * 
+     * ACID:
+     * - Atomicidad: Todo o nada
+     * - Consistencia: Los datos quedan en estado válido
+     * - Aislamiento: Las transacciones no interfieren entre sí
+     * - Durabilidad: Los cambios confirmados persisten
+     * 
+     * @return bool true si se inició correctamente
+     */
+    public function beginTransaction(): bool
+    {
+        return $this->db->beginTransaction();
+    }
+
+    /**
+     * Confirmar Transacción
+     * 
+     * PROPÓSITO:
+     * Confirmar todos los cambios realizados en la transacción.
+     * 
+     * @return bool true si se confirmó correctamente
+     */
+    public function commit(): bool
+    {
+        return $this->db->commit();
+    }
+
+    /**
+     * Revertir Transacción
+     * 
+     * PROPÓSITO:
+     * Revertir todos los cambios realizados en la transacción.
+     * 
+     * USO:
+     * Se llama en el bloque catch cuando algo falla.
+     * 
+     * @return bool true si se revirtió correctamente
+     */
+    public function rollBack(): bool
+    {
+        return $this->db->rollBack();
     }
 }

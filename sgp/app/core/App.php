@@ -11,18 +11,11 @@ class App
 
         // Check controller first
         if (isset($url[0])) {
-            // Primero intentar con el nombre exacto (para Admin, Tutor, Pasante)
-            $directControllerName = ucfirst($url[0]);
-            if (file_exists('../app/controllers/' . $directControllerName . '.php')) {
-                $this->controller = $directControllerName;
+            // Buscar controlador con sufijo estándar "Controller"
+            $controllerName = ucfirst($url[0]) . 'Controller';
+            if (file_exists('../app/controllers/' . $controllerName . '.php')) {
+                $this->controller = $controllerName;
                 unset($url[0]);
-            } else {
-                // Si no existe, intentar con sufijo "Controller"
-                $controllerName = ucfirst($url[0]) . 'Controller';
-                if (file_exists('../app/controllers/' . $controllerName . '.php')) {
-                    $this->controller = $controllerName;
-                    unset($url[0]);
-                }
             }
         }
 

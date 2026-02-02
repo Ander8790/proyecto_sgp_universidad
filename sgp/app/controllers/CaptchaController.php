@@ -17,9 +17,9 @@ class CaptchaController extends Controller {
         // Almacenar en sesión
         CaptchaHelper::storeInSession($code);
         
-        // Dimensiones de la imagen
-        $width = 200;
-        $height = 70;
+        // Dimensiones de la imagen (optimizadas para diseño compacto)
+        $width = 180;
+        $height = 60;
         
         // Crear imagen
         $image = imagecreatetruecolor($width, $height);
@@ -59,16 +59,16 @@ class CaptchaController extends Controller {
             imagesetpixel($image, rand(0, $width), rand(0, $height), $dotAlpha);
         }
         
-        // Configurar fuente y tamaño
-        $fontSize = 28;
+        // Configurar fuente y tamaño (optimizado para diseño compacto)
+        $fontSize = 16; // Texto más pequeño
         $fontPath = $this->getFontPath();
         
-        // Dibujar cada carácter con rotación aleatoria
-        $x = 20;
+        // Dibujar cada carácter con rotación aleatoria y espaciado compacto
+        $x = 15; // Menos margen izquierdo
         for ($i = 0; $i < strlen($code); $i++) {
             $char = $code[$i];
-            $angle = rand(-15, 15);
-            $y = rand(45, 52);
+            $angle = rand(-12, 12); // Menos rotación para más compacto
+            $y = rand(38, 42); // Centrado vertical para font size 16px
             
             // Sombra del texto
             $shadowColor = imagecolorallocatealpha($image, 0, 0, 0, 80);
@@ -77,7 +77,7 @@ class CaptchaController extends Controller {
             // Texto principal
             imagettftext($image, $fontSize, $angle, $x, $y, $textColor, $fontPath, $char);
             
-            $x += 35;
+            $x += 28; // Espaciado más compacto entre caracteres
         }
         
         // Headers para imagen PNG
