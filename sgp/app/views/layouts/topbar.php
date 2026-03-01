@@ -28,13 +28,36 @@
     
     <!-- Zona Derecha: Notificaciones + Perfil -->
     <div class="header-right">
-        <!-- Notificaciones -->
-        <button class="notification-btn" aria-label="Notificaciones">
-            <i class="ti ti-bell"></i>
-            <span class="notification-badge">3</span>
-        </button>
+        <!-- ========== NOTIFICACIONES ========== -->
+        <div class="notifications-wrapper">
+            <button class="notification-btn" id="notificationBtn" aria-label="Notificaciones">
+                <i class="ti ti-bell"></i>
+                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+            </button>
+            
+            <!-- Dropdown de Notificaciones -->
+            <div class="notifications-dropdown" id="notificationsDropdown">
+                <!-- Header -->
+                <div class="notifications-header">
+                    <span class="notifications-title">Notificaciones</span>
+                    <button class="mark-all-read-btn" id="markAllReadBtn" title="Marcar todas como leídas">
+                        <i class="ti ti-checks"></i>
+                    </button>
+                </div>
+                
+                <!-- Body (Lista de notificaciones) -->
+                <div class="notifications-body" id="notificationList">
+                    <!-- Se inyecta dinámicamente vía JS -->
+                </div>
+                
+                <!-- Footer -->
+                <div class="notifications-footer">
+                    <a href="<?= URLROOT ?>/notificaciones">Ver todas las notificaciones</a>
+                </div>
+            </div>
+        </div>
         
-        <!-- Dropdown de Perfil -->
+        <!-- ========== PERFIL ========== -->
         <div class="profile-dropdown" onclick="toggleProfileMenu()">
             <div class="profile-avatar">
                 <?php 
@@ -43,7 +66,6 @@
                 ?>
             </div>
             <div class="profile-info">
-                <!-- Mostrar NOMBRE, no correo -->
                 <div class="profile-name"><?= $userName ?></div>
                 <div class="profile-role">
                     <?php

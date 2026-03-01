@@ -84,18 +84,18 @@ class NotificationModel
     /**
      * Create a new notification
      */
-    public function create($data)
+    public function create($usuario_id, $tipo, $titulo, $mensaje, $url = '#')
     {
         $this->db->query("
             INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, url)
             VALUES (:usuario_id, :tipo, :titulo, :mensaje, :url)
         ");
         
-        $this->db->bind(':usuario_id', $data['usuario_id']);
-        $this->db->bind(':tipo', $data['tipo']);
-        $this->db->bind(':titulo', $data['titulo']);
-        $this->db->bind(':mensaje', $data['mensaje']);
-        $this->db->bind(':url', $data['url'] ?? null);
+        $this->db->bind(':usuario_id', $usuario_id);
+        $this->db->bind(':tipo', $tipo);
+        $this->db->bind(':titulo', $titulo);
+        $this->db->bind(':mensaje', $mensaje);
+        $this->db->bind(':url', $url);
         
         return $this->db->execute();
     }

@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGP - Restablecer Contraseña</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= URLROOT ?>/img/favicon.png">
+    
+    <!-- CSS Assets -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
 </head>
 <body class="auth-wrapper">
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>

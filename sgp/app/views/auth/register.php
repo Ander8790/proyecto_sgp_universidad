@@ -6,37 +6,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGP - Registro</title>
     
-    <!-- JAVASCRIPT EN HEAD - CARGA PRIMERO -->
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= URLROOT ?>/img/favicon.png">
+    
+    <!-- CSS Assets -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/choices/choices.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/choices-sgp.css">
+    
+    <!-- ============================================ -->
+    <!-- DEFINIR URLROOT PARA JAVASCRIPT -->
+    <!-- ============================================ -->
     <script>
-        console.log("=== SISTEMA DE REGISTRO HÍBRIDO INICIADO ===");
+        /**
+         * Definir constante URLROOT para uso en JavaScript
+         * Necesario para notifications.js y otros scripts del sistema
+         */
+        const URLROOT = '<?php echo URLROOT; ?>';
+    </script>
+    
+    <!-- JAVASCRIPT EN HEAD - FUNCIONES ESPECÍFICAS DEL REGISTRO -->
+    <script>
+        console.log("=== SISTEMA DE REGISTRO INICIADO ===");
+        // Las funciones de validación básica se cargan desde validation.js
+        // Aquí solo definimos las funciones específicas del flujo de registro
         
-        // ====================================================
-        // FUNCIONES GLOBALES (window.*)
-        // ====================================================
-        
-        // 1. TOGGLE PASSWORD VISIBILITY
-        window.togglePass = function(fieldId, icon) {
-            console.log("👁️ Toggle activado para: " + fieldId);
-            var input = document.getElementById(fieldId);
-            if (!input) { 
-                console.error("❌ Input no encontrado: " + fieldId); 
-                return; 
-            }
-
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('ti-eye');
-                icon.classList.add('ti-eye-off');
-                console.log("✅ Contraseña visible");
-            } else {
-                input.type = 'password';
-                icon.classList.remove('ti-eye-off');
-                icon.classList.add('ti-eye');
-                console.log("✅ Contraseña oculta");
-            }
-        };
-        
-        // 2. VALIDAR PASO 1
+        // VALIDAR PASO 1 (con lógica específica de registro)
         window.validarPaso1 = function() {
             console.log("🔍 Validando paso 1...");
             
@@ -46,62 +44,57 @@
             var password = document.getElementById('password');
             var confirm = document.getElementById('password_confirm');
             
-            // Validar que todos los campos existan y estén llenos
             if (!nombre || !nombre.value.trim()) {
-                alert('Por favor ingresa tu nombre completo');
+                NotificationService.error('Por favor ingresa tu nombre completo');
                 if (nombre) nombre.focus();
                 return false;
             }
             
             if (!cedula || !cedula.value.trim()) {
-                alert('Por favor ingresa tu cédula');
+                NotificationService.error('Por favor ingresa tu cédula');
                 if (cedula) cedula.focus();
                 return false;
             }
             
-            // Validar formato de cédula (solo números, 7-8 dígitos)
             if (!/^[0-9]{7,8}$/.test(cedula.value)) {
-                alert('La cédula debe contener solo números (7-8 dígitos)');
+                NotificationService.error('La cédula debe contener solo números (7-8 dígitos)');
                 cedula.focus();
                 return false;
             }
             
             if (!email || !email.value.trim()) {
-                alert('Por favor ingresa tu correo electrónico');
+                NotificationService.error('Por favor ingresa tu correo electrónico');
                 if (email) email.focus();
                 return false;
             }
             
-            // Validar formato de email
             var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(email.value)) {
-                alert('Por favor ingresa un correo electrónico válido');
+                NotificationService.error('Por favor ingresa un correo electrónico válido');
                 email.focus();
                 return false;
             }
             
             if (!password || !password.value) {
-                alert('Por favor ingresa una contraseña');
+                NotificationService.error('Por favor ingresa una contraseña');
                 if (password) password.focus();
                 return false;
             }
             
-            // Validar longitud mínima de contraseña
             if (password.value.length < 8) {
-                alert('La contraseña debe tener al menos 8 caracteres');
+                NotificationService.error('La contraseña debe tener al menos 8 caracteres');
                 password.focus();
                 return false;
             }
             
             if (!confirm || !confirm.value) {
-                alert('Por favor confirma tu contraseña');
+                NotificationService.error('Por favor confirma tu contraseña');
                 if (confirm) confirm.focus();
                 return false;
             }
             
-            // Validar que las contraseñas coincidan
             if (password.value !== confirm.value) {
-                alert('Las contraseñas no coinciden');
+                NotificationService.error('Las contraseñas no coinciden');
                 confirm.focus();
                 return false;
             }
@@ -110,7 +103,7 @@
             return true;
         };
         
-        // 3. AVANZAR AL PASO 2
+        // AVANZAR AL PASO 2
         window.nextStep = function() {
             console.log("➡️ Intentando avanzar al paso 2...");
             
@@ -127,29 +120,21 @@
                 return;
             }
             
-            // Cambiar formularios
             step1.style.display = 'none';
             step2.style.display = 'block';
             
-            // ============================================
-            // ACTUALIZAR INDICADOR VISUAL (BOLITAS)
-            // ============================================
             var steps = document.querySelectorAll('.steps-indicator .step');
             if (steps.length >= 2) {
-                // Paso 1: Completado (verde/check)
                 steps[0].classList.remove('active');
                 steps[0].classList.add('completed');
-                
-                // Paso 2: Activo (azul)
                 steps[1].classList.add('active');
-                
                 console.log("✅ Indicador visual actualizado");
             }
             
             console.log("✅ Avanzado a paso 2");
         };
         
-        // 4. VOLVER AL PASO 1
+        // VOLVER AL PASO 1
         window.prevStep = function() {
             console.log("⬅️ Volviendo al paso 1...");
             
@@ -161,114 +146,21 @@
                 return;
             }
             
-            // Cambiar formularios
             step2.style.display = 'none';
             step1.style.display = 'block';
             
-            // ============================================
-            // REVERTIR INDICADOR VISUAL (BOLITAS)
-            // ============================================
             var steps = document.querySelectorAll('.steps-indicator .step');
             if (steps.length >= 2) {
-                // Paso 1: Activo de nuevo
                 steps[0].classList.add('active');
                 steps[0].classList.remove('completed');
-                
-                // Paso 2: Inactivo
                 steps[1].classList.remove('active');
-                
                 console.log("✅ Indicador visual revertido");
             }
             
             console.log("✅ Vuelto a paso 1");
         };
         
-        // 5. VALIDACIÓN DE EMAIL EN TIEMPO REAL
-        window.validarEmail = function(input) {
-            var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            var value = input.value.trim();
-            
-            if (value.length === 0) {
-                input.classList.remove('valid', 'invalid');
-                return null;
-            }
-            
-            if (emailRegex.test(value)) {
-                input.classList.remove('invalid');
-                input.classList.add('valid');
-                return true;
-            } else {
-                input.classList.remove('valid');
-                input.classList.add('invalid');
-                return false;
-            }
-        };
-        
-        // 6. MEDIDOR DE FORTALEZA DE CONTRASEÑA
-        window.actualizarFortaleza = function(input) {
-            var password = input.value;
-            var strengthBar = document.getElementById('strengthBar');
-            var strengthText = document.getElementById('strengthText');
-            
-            if (!strengthBar || !strengthText) return;
-            
-            if (password.length === 0) {
-                strengthBar.className = 'password-strength-bar';
-                strengthText.textContent = '';
-                return;
-            }
-            
-            var strength = 0;
-            if (password.length >= 8) strength++;
-            if (/[a-z]/.test(password)) strength++;
-            if (/[A-Z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
-            
-            if (strength <= 2) {
-                strengthBar.className = 'password-strength-bar weak';
-                strengthText.textContent = 'Débil';
-                strengthText.style.color = '#ef4444';
-            } else if (strength <= 4) {
-                strengthBar.className = 'password-strength-bar medium';
-                strengthText.textContent = 'Media';
-                strengthText.style.color = '#f59e0b';
-            } else {
-                strengthBar.className = 'password-strength-bar strong';
-                strengthText.textContent = 'Fuerte';
-                strengthText.style.color = '#10b981';
-            }
-            
-            // Actualizar requisitos visuales
-            var reqLength = document.getElementById('req-length');
-            var reqUpper = document.getElementById('req-uppercase');
-            var reqLower = document.getElementById('req-lowercase');
-            var reqNumber = document.getElementById('req-number');
-            var reqSpecial = document.getElementById('req-special');
-            
-            if (reqLength) reqLength.classList.toggle('met', password.length >= 8);
-            if (reqUpper) reqUpper.classList.toggle('met', /[A-Z]/.test(password));
-            if (reqLower) reqLower.classList.toggle('met', /[a-z]/.test(password));
-            if (reqNumber) reqNumber.classList.toggle('met', /[0-9]/.test(password));
-            if (reqSpecial) reqSpecial.classList.toggle('met', /[!@#$%^&*(),.?":{}|<>]/.test(password));
-        };
-        
-        // 7. VALIDAR CONFIRMACIÓN DE CONTRASEÑA
-        window.validarConfirmacion = function(passwordInput, confirmInput) {
-            if (!confirmInput.value) return null;
-            
-            if (passwordInput.value === confirmInput.value) {
-                confirmInput.classList.remove('invalid');
-                confirmInput.classList.add('valid');
-                return true;
-            } else {
-                confirmInput.classList.remove('valid');
-                confirmInput.classList.add('invalid');
-                return false;
-            }
-        };
-        
-        // 8. VALIDAR PREGUNTAS DE SEGURIDAD (NO DUPLICADAS)
+        // VALIDAR PREGUNTAS DE SEGURIDAD
         window.validarPreguntasSeguridad = function() {
             console.log("🔍 Validando preguntas de seguridad...");
             
@@ -280,60 +172,53 @@
             var respuesta2 = document.getElementById('respuesta_2');
             var respuesta3 = document.getElementById('respuesta_3');
             
-            // Validar que todas las preguntas estén seleccionadas
             if (!pregunta1 || !pregunta1.value || pregunta1.value === '') {
-                alert('Por favor selecciona la Pregunta de Seguridad 1');
+                NotificationService.error('Por favor selecciona la Pregunta de Seguridad 1');
                 if (pregunta1) pregunta1.focus();
                 return false;
             }
             
             if (!pregunta2 || !pregunta2.value || pregunta2.value === '') {
-                alert('Por favor selecciona la Pregunta de Seguridad 2');
+                NotificationService.error('Por favor selecciona la Pregunta de Seguridad 2');
                 if (pregunta2) pregunta2.focus();
                 return false;
             }
             
             if (!pregunta3 || !pregunta3.value || pregunta3.value === '') {
-                alert('Por favor selecciona la Pregunta de Seguridad 3');
+                NotificationService.error('Por favor selecciona la Pregunta de Seguridad 3');
                 if (pregunta3) pregunta3.focus();
                 return false;
             }
             
-            // Validar que las preguntas sean diferentes
-            if (pregunta1.value === pregunta2.value) {
-                alert('Las Preguntas 1 y 2 deben ser diferentes');
-                pregunta2.focus();
+            if (pregunta1.value === pregunta2.value || pregunta1.value === pregunta3.value || pregunta2.value === pregunta3.value) {
+                NotificationService.error('Debes seleccionar 3 preguntas diferentes');
                 return false;
             }
             
-            if (pregunta1.value === pregunta3.value) {
-                alert('Las Preguntas 1 y 3 deben ser diferentes');
-                pregunta3.focus();
-                return false;
-            }
-            
-            if (pregunta2.value === pregunta3.value) {
-                alert('Las Preguntas 2 y 3 deben ser diferentes');
-                pregunta3.focus();
-                return false;
-            }
-            
-            // Validar que todas las respuestas estén llenas
             if (!respuesta1 || !respuesta1.value.trim()) {
-                alert('Por favor ingresa la Respuesta 1');
+                NotificationService.error('Por favor ingresa la Respuesta 1');
                 if (respuesta1) respuesta1.focus();
                 return false;
             }
             
             if (!respuesta2 || !respuesta2.value.trim()) {
-                alert('Por favor ingresa la Respuesta 2');
+                NotificationService.error('Por favor ingresa la Respuesta 2');
                 if (respuesta2) respuesta2.focus();
                 return false;
             }
             
             if (!respuesta3 || !respuesta3.value.trim()) {
-                alert('Por favor ingresa la Respuesta 3');
+                NotificationService.error('Por favor ingresa la Respuesta 3');
                 if (respuesta3) respuesta3.focus();
+                return false;
+            }
+            
+            var r1 = respuesta1.value.trim().toLowerCase();
+            var r2 = respuesta2.value.trim().toLowerCase();
+            var r3 = respuesta3.value.trim().toLowerCase();
+            
+            if (r1 === r2 || r1 === r3 || r2 === r3) {
+                NotificationService.error('Las respuestas de seguridad deben ser diferentes');
                 return false;
             }
             
@@ -341,7 +226,7 @@
             return true;
         };
         
-        console.log("✅ Funciones globales cargadas correctamente");
+        console.log("✅ Funciones de registro cargadas correctamente");
     </script>
 </head>
 <body class="auth-wrapper">
@@ -386,26 +271,26 @@
 
                 <!-- Cédula -->
                 <div class="form-group">
-                    <input type="number" name="cedula" id="cedula" class="input-modern" placeholder=" " required autocomplete="off" value="<?= htmlspecialchars($_POST['cedula'] ?? '', ENT_QUOTES, 'UTF-8') ?>" oninput="if(this.value.length > 8) this.value = this.value.slice(0, 8);">
+                    <input type="text" name="cedula" id="cedula" class="input-modern" placeholder=" " required autocomplete="off" inputmode="numeric" maxlength="8" value="<?= htmlspecialchars($_POST['cedula'] ?? '', ENT_QUOTES, 'UTF-8') ?>" oninput="validateCedulaInput(event)">
                     <label for="cedula" class="label-floating">
-                        <i class="ti ti-id" style="margin-right: 8px; font-size: 18px;"></i>Cédula de Identidad
+                        <i class="ti ti-id-badge-2" style="margin-right: 8px; font-size: 18px;"></i>Cédula de Identidad
                     </label>
-                    <small style="color: #6b7280; font-size: 0.85rem;">Solo números, sin puntos ni guiones (máx. 8 dígitos)</small>
+                    <small class="form-hint"><i class="ti ti-info-circle"></i> Solo números (máx. 8 dígitos)</small>
                 </div>
 
                 <!-- Email -->
                 <div class="form-group">
-                    <input type="email" name="email" id="email" class="input-modern validate-email" placeholder=" " required autocomplete="off" value="<?= htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" oninput="window.validarEmail(this)">
+                    <input type="email" name="email" id="email" class="input-modern validate-email" placeholder=" " required autocomplete="off" value="<?= htmlspecialchars($_POST['email'] ?? '', ENT_QUOTES, 'UTF-8') ?>" onblur="validateEmailWithFeedback(this)">
                     <label for="email" class="label-floating">
                         <i class="ti ti-mail" style="margin-right: 8px; font-size: 18px;"></i>Correo Electrónico
                     </label>
-                    <i class="ti ti-check input-feedback icon-check"></i>
-                    <i class="ti ti-x input-feedback icon-error"></i>
+                    <div class="email-feedback"></div>
+                    <small class="form-hint">Usaremos este correo para recuperar tu cuenta</small>
                 </div>
 
                 <!-- Contraseña -->
                 <div class="form-group has-toggle">
-                    <input type="password" name="password" id="password" class="input-modern" placeholder=" " required oninput="window.actualizarFortaleza(this)">
+                    <input type="password" name="password" id="password" class="input-modern" placeholder=" " required oninput="actualizarFortaleza(this)">
                     <label for="password" class="label-floating">
                         <i class="ti ti-lock" style="margin-right: 8px; font-size: 18px;"></i>Contraseña
                     </label>
@@ -620,7 +505,7 @@
                     <button type="button" class="btn-secondary" onclick="window.prevStep()">
                         <i class="ti ti-arrow-left"></i> Atrás
                     </button>
-                    <button type="button" class="btn-primary" style="flex: 1;" onclick="if(window.validarPreguntasSeguridad()) { document.getElementById('registerForm').submit(); }">
+                    <button type="button" class="btn-primary" style="flex: 1;" onclick="submitRegister(this)">
                         Registrarse <i class="ti ti-user-plus" style="margin-left: 8px;"></i>
                     </button>
                 </div>
@@ -634,24 +519,83 @@
 
     <?php include_once APPROOT . '/views/layouts/footer.php'; ?>
     
+    <script src="<?= URLROOT ?>/js/validation.js"></script>
+    <script src="<?= URLROOT ?>/assets/libs/choices/choices.min.js"></script>
+    <script src="<?= URLROOT ?>/js/choices-init.js"></script>
     <script>
         console.log("🚀 Inicializando eventos del DOM...");
         
         // Mostrar errores PHP si existen
         <?php if (!empty($error)): ?>
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'No se pudo registrar',
-                    text: '<?= htmlspecialchars($error) ?>',
-                    confirmButtonColor: '#162660'
-                });
-            } else {
-                alert('Error: <?= htmlspecialchars($error) ?>');
-            }
+            Swal.fire({
+                icon: 'error',
+                title: 'Error en el Registro',
+                text: '<?= addslashes(htmlspecialchars($error)) ?>',
+                confirmButtonColor: '#162660',
+                confirmButtonText: 'Entendido',
+                customClass: { popup: 'swal2-popup' }
+            });
         <?php endif; ?>
         
         console.log("✅ Sistema de registro completamente inicializado");
+
+        // Función para manejar el envío con loading state
+        function submitRegister(btn) {
+            if (window.validarPreguntasSeguridad()) {
+                setLoading(btn, true, 'Registrando...');
+                document.getElementById('registerForm').submit();
+            }
+        }
+
+        // ============================================================
+        // FILTRO DINÁMICO DE PREGUNTAS DE SEGURIDAD
+        // Evita seleccionar la misma pregunta en dos selects distintos
+        // ============================================================
+        (function() {
+            const selects = [
+                document.getElementById('pregunta_1'),
+                document.getElementById('pregunta_2'),
+                document.getElementById('pregunta_3')
+            ];
+
+            function updateOptions() {
+                // Obtener valores actualmente seleccionados por cada select
+                const selected = selects.map(s => s ? s.value : '');
+
+                selects.forEach(function(sel, idx) {
+                    if (!sel) return;
+                    const currentVal = sel.value;
+                    Array.from(sel.options).forEach(function(opt) {
+                        if (opt.value === '') return; // Dejar la opción vacía siempre habilitada
+                        // Deshabilitar si otro select ya tiene este valor seleccionado
+                        const usedByOther = selected.some(function(val, i) {
+                            return i !== idx && val === opt.value;
+                        });
+                        opt.disabled = usedByOther;
+                        // Marcar visualmente (color grisado)
+                        opt.style.color = usedByOther ? '#9ca3af' : '';
+                    });
+                    
+                    // Reconfigurar la instancia de Choices.js si está activa
+                    if (window.SGPChoices) {
+                        // Para no romper UX, solo reiniciamos los selects que NO dispararon el evento actual
+                        // Si llamamos a todos, el que acaba de cambiar podría perder su evento o animación
+                        // Pero la forma más segura de que todo haga match visual es re-inicializar el nodo
+                        window.SGPChoices.reinit(sel);
+                        
+                        // Asegurarnos de rescatar el valor que tenía antes del reinit (a veces Choices resetea)
+                        if (currentVal) sel.value = currentVal;
+                    }
+                });
+            }
+
+            selects.forEach(function(sel) {
+                if (sel) sel.addEventListener('change', updateOptions);
+            });
+
+            // Ejecutar al cargar por si hay valores pre-seleccionados (error de vuelta)
+            updateOptions();
+        })();
     </script>
 </body>
 </html>

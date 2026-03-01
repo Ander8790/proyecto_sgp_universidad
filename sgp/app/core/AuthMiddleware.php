@@ -103,8 +103,17 @@ class AuthMiddleware
      */
     public static function isAjaxRequest()
     {
-        return !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-               strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+        // Check X-Requested-With (jQuery/axios style)
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+            return true;
+        }
+        // Check Accept header (fetch() style)
+        if (isset($_SERVER['HTTP_ACCEPT']) && 
+            strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false) {
+            return true;
+        }
+        return false;
     }
     
     /**
@@ -121,6 +130,14 @@ class AuthMiddleware
      * Verificar estado del usuario - Sistema "La Jaula"
      * Fuerza cambio de contraseña y verifica completitud del perfil
      * 
+     * CAMBIO ARQUITECTÓNICO (v3.0 - 2026-02-02):
+     * - Antes: Redirigía a /perfil/completar (PerfilController)
+     * - Ahora: Redirige a /wizard/index (WizardController dedicado)
+     * 
+     * RAZÓN: Separación de responsabilidades (SRP - SOLID)
+     * - WizardController: SOLO seguridad inicial
+     * - PerfilController: SOLO gestión de perfil
+     * 
      * @return void
      */
     public static function verificarEstado(): void
@@ -136,13 +153,17 @@ class AuthMiddleware
         $currentUrl = $_SERVER['REQUEST_URI'];
         $urlPath = parse_url($currentUrl, PHP_URL_PATH);
         
-        // NIVEL 1: LA JAULA - Cambio de Clave Obligatorio
-        // Check if user needs to change password (admin-created users)
-        if (Session::get('requiere_cambio_clave') == 1) {
+        // NIVEL 1: LA JAULA - Cambio de Clave Obligatorio O Perfil Incompleto
+        if (Session::get('requiere_cambio_clave') == 1 || Session::get('perfil_completado') === false) {
+            /**
+             * WHITELIST: Rutas permitidas durante "La Jaula"
+             * 
+             * ACTUALIZADO v3.0: Cambiadas rutas de /perfil/* a /wizard/*
+             */
             $allowedPaths = [
-                '/auth/logout',
-                '/perfil/completar',
-                '/perfil/guardarWizard'
+                '/auth/logout',           // Permitir cerrar sesión
+                '/wizard/index',          // Vista del wizard (NUEVO)
+                '/wizard/procesar'        // Procesamiento del wizard (NUEVO)
             ];
             
             $currentPath = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
@@ -158,53 +179,29 @@ class AuthMiddleware
             }
             
             if (!$isAllowed) {
-                header('Location: ' . URLROOT . '/perfil/completar');
-                exit;
-            }
-            // Si está en ruta permitida, dejar continuar
-            return;
-        }
-        
-        // NIVEL 2: Datos Personales Incompletos
-        // =====================================================
-        // Cargar modelo para verificar perfil
-        require_once '../app/models/UserModel.php';
-        
-        // Cargar configuración de base de datos
-        $config = require '../app/config/config.php';
-        
-        $db = new Database($config['db']);
-        $userModel = new UserModel($db);
-        
-        // Verificar si el usuario tiene perfil completo
-        if (!$userModel->tienePerfil(Session::get('user_id'))) {
-            // LISTA BLANCA: Permitir solo rutas de perfil
-            $allowedPaths = [
-                '/perfil/completar',
-                '/perfil/guardarWizard',
-                '/auth/logout'
-            ];
-            
-            $isAllowed = false;
-            foreach ($allowedPaths as $path) {
-                if (strpos($urlPath, $path) !== false) {
-                    $isAllowed = true;
-                    break;
+                /**
+                 * REDIRECCIÓN FORZOSA (La Jaula)
+                 * 
+                 * CAMBIO v3.0: /perfil/completar → /wizard/index
+                 * Ahora redirige al WizardController dedicado
+                 */
+                if (self::isAjaxRequest()) {
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success' => false,
+                        'message' => 'Debe completar el wizard de configuración',
+                        'redirect' => URLROOT . '/wizard/index'
+                    ]);
+                    exit;
                 }
-            }
-            
-            // Si no está en ruta permitida, redirigir a completar perfil
-            if (!$isAllowed) {
-                header('Location: ' . URLROOT . '/perfil/completar');
+                header('Location: ' . URLROOT . '/wizard/index');
                 exit;
             }
-            
             // Si está en ruta permitida, dejar continuar
             return;
         }
         
-        // NIVEL 3: Pasante sin Departamento
-        // =====================================================
-        // TODO: Implementar verificación de asignación
+        // Usuario ha completado el wizard y tiene acceso completo
+        // No se requieren validaciones adicionales
     }
 }

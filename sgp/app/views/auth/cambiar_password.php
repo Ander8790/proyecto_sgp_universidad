@@ -4,9 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cambio de Contraseña Requerido - SGP</title>
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    
+    <!-- ============================================ -->
+    <!-- DEFINIR URLROOT PARA JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        /**
+         * Definir constante URLROOT para uso en JavaScript
+         * Necesario para notifications.js y otros scripts del sistema
+         */
+        const URLROOT = '<?php echo URLROOT; ?>';
+    </script>
 </head>
 <body class="auth-wrapper">
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
@@ -137,6 +150,18 @@
                     icon: 'error',
                     title: 'Error',
                     text: 'La nueva contraseña debe ser diferente a la contraseña temporal',
+                    confirmButtonColor: '#162660'
+                });
+                return;
+            }
+
+            // Validar requisitos estrictos
+            const validation = validatePasswordRequirements(newPassword);
+            if (!validation.isValid) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Contraseña Débil',
+                    text: validation.message,
                     confirmButtonColor: '#162660'
                 });
                 return;

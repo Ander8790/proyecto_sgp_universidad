@@ -6,6 +6,35 @@ $role = $data['role'] ?? 'Tutor';
 
 <div class="dashboard-bento">
     
+    <!-- Banner de Bienvenida (Compacto) - Consistencia Global -->
+    <div class="welcome-banner welcome-banner-compact slide-up">
+        <div class="welcome-icon">
+            <i class="ti ti-sparkles"></i>
+        </div>
+        
+        <div class="welcome-content">
+            <div class="welcome-text">
+                <h1 class="welcome-title">¡Bienvenido de nuevo, <?= htmlspecialchars(explode(' ', $_SESSION['user_name'] ?? 'Usuario')[0]) ?>!</h1>
+                <p class="welcome-subtitle">
+                    <i class="ti ti-layout-dashboard"></i>
+                    <span>Panel de Control</span>
+                    <span class="subtitle-separator">-</span>
+                    <span><?= $role ?></span>
+                </p>
+            </div>
+        </div>
+        
+        <div class="welcome-meta">
+            <div class="welcome-date">
+                <i class="ti ti-calendar"></i>
+                <span id="currentDate"></span>
+            </div>
+            <div class="welcome-time">
+                <i class="ti ti-clock"></i>
+                <span id="currentTime"></span>
+            </div>
+        </div>
+    </div>
     <!-- Fila 1: 3 KPIs para Tutor -->
     <div class="card kpi-card">
         <div class="kpi-header">

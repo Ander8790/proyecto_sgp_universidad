@@ -19,6 +19,31 @@ class RoleMiddleware
     ];
     
     /**
+     * Autoriza el acceso basado en un array de roles permitidos.
+     * Si no está autorizado, usa Session::flash y redirige.
+     * 
+     * @param array $allowed_roles Ejemplo: [1] para Admin, [1,2] para Admin+Tutor
+     * @return void
+     */
+    public static function authorize(array $allowed_roles): void
+    {
+        Session::start();
+        $currentRoleId = Session::get('role_id');
+
+        // Normaliza a enteros estrictos (PHP 8 Best Practice)
+        $allowed_roles = array_map('intval', $allowed_roles);
+
+        if (!in_array((int)$currentRoleId, $allowed_roles, true)) {
+            // Guardamos el mensaje flash de error intercepción
+            Session::setFlash('error', 'Acceso Denegado: No tienes permisos para ver este módulo');
+            
+            // Forzar redirección al dashboard correspondiente a su rol
+            self::redirectToRoleDashboard($currentRoleId);
+            exit; // Cortamos el flujo de ejecución
+        }
+    }
+    
+    /**
      * Requiere que el usuario tenga un rol específico
      * Si no lo tiene, redirige al dashboard correcto
      * 

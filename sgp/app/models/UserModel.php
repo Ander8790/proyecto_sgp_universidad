@@ -85,6 +85,8 @@ class UserModel
                 u.requiere_cambio_clave,
                 u.departamento_id,
                 u.estado,
+                dp.nombres,
+                dp.apellidos,
                 COALESCE(CONCAT(dp.nombres, ' ', dp.apellidos), u.correo) as name
             FROM usuarios u
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
@@ -119,10 +121,10 @@ class UserModel
     public function findByCedula(string $cedula): ?array
     {
         $this->db->query("
-            SELECT u.id, u.correo, dp.cedula, dp.nombres, dp.apellidos
+            SELECT u.id, u.correo, u.cedula, dp.nombres, dp.apellidos
             FROM usuarios u
-            INNER JOIN datos_personales dp ON u.id = dp.usuario_id
-            WHERE dp.cedula = :cedula
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+            WHERE u.cedula = :cedula
             LIMIT 1
         ");
         
@@ -148,7 +150,20 @@ class UserModel
      */
     public function findById(int $id): ?array
     {
-        $this->db->query("SELECT * FROM usuarios WHERE id = :id LIMIT 1");
+        $this->db->query("
+            SELECT 
+                u.*, 
+                dp.nombres, 
+                dp.apellidos, 
+                u.cedula as account_cedula,
+                dp.telefono,
+                dp.genero,
+                dp.fecha_nacimiento
+            FROM usuarios u 
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id 
+            WHERE u.id = :id 
+            LIMIT 1
+        ");
         $this->db->bind(':id', $id);
         $row = $this->db->single();
         return $row ? (array) $row : null;
@@ -195,12 +210,13 @@ class UserModel
          * Ejemplo de hash: $2y$10$xwCcDMHXaKGfAOpi2puiaPfzia9NGBGghfyiq4c2
          */
         $this->db->query("
-            INSERT INTO usuarios (correo, password, rol_id, estado, requiere_cambio_clave, departamento_id) 
-            VALUES (:email, :pass, :role, 'activo', :req_cambio, :depto)
+            INSERT INTO usuarios (correo, password, cedula, rol_id, estado, requiere_cambio_clave, departamento_id) 
+            VALUES (:email, :pass, :cedula, :role, 'activo', :req_cambio, :depto)
         ");
         
         $this->db->bind(':email', $data['email']);
         $this->db->bind(':pass', password_hash($data['password'], PASSWORD_DEFAULT));
+        $this->db->bind(':cedula', $data['cedula'] ?? null);
         $this->db->bind(':role', $data['role_id']);
         $this->db->bind(':req_cambio', $data['requiere_cambio_clave'] ?? 1); // Default 1 para admin-created
         $this->db->bind(':depto', $data['departamento_id'] ?? null);
@@ -458,6 +474,28 @@ class UserModel
     }
 
     /**
+     * Verificar si Usuario Tiene Perfil Completo (Simple)
+     * 
+     * @param int $user_id ID del usuario
+     * @return bool true si tiene perfil, false si no
+     */
+    public function verificarPerfilCompleto(int $user_id): bool
+    {
+        // No basta con que exista la fila, deben estar los campos clave del wizard
+        $this->db->query("
+            SELECT COUNT(*) as total 
+            FROM datos_personales 
+            WHERE usuario_id = :uid 
+            AND telefono IS NOT NULL 
+            AND genero IS NOT NULL 
+            AND fecha_nacimiento IS NOT NULL
+        ");
+        $this->db->bind(':uid', $user_id);
+        $result = $this->db->single();
+        return $result && $result->total > 0;
+    }
+
+    /**
      * Verificar si Usuario Tiene Perfil Completo
      * 
      * PROPÓSITO:
@@ -491,17 +529,15 @@ class UserModel
     {
         $this->db->query("
             INSERT INTO datos_personales 
-            (usuario_id, cedula, nombres, apellidos, telefono, direccion, genero, fecha_nacimiento) 
+            (usuario_id, nombres, apellidos, telefono, genero, fecha_nacimiento) 
             VALUES 
-            (:usuario_id, :cedula, :nombres, :apellidos, :telefono, :direccion, :genero, :fecha_nacimiento)
+            (:usuario_id, :nombres, :apellidos, :telefono, :genero, :fecha_nacimiento)
         ");
         
         $this->db->bind(':usuario_id', $datos['usuario_id']);
-        $this->db->bind(':cedula', $datos['cedula']);
         $this->db->bind(':nombres', $datos['nombres']);
         $this->db->bind(':apellidos', $datos['apellidos']);
         $this->db->bind(':telefono', $datos['telefono']);
-        $this->db->bind(':direccion', $datos['direccion']);
         $this->db->bind(':genero', $datos['genero']);
         $this->db->bind(':fecha_nacimiento', $datos['fecha_nacimiento']);
         
@@ -563,12 +599,13 @@ class UserModel
         $tempPassword = $this->generateTempPassword($data['cedula']);
         
         $this->db->query("
-            INSERT INTO usuarios (correo, password, rol_id, estado, requiere_cambio_clave) 
-            VALUES (:email, :pass, :role, 'activo', 1)
+            INSERT INTO usuarios (correo, password, rol_id, cedula, estado, requiere_cambio_clave) 
+            VALUES (:email, :pass, :role, :cedula, 'activo', 1)
         ");
-        $this->db->bind(':email', $data['correo']);
-        $this->db->bind(':pass', password_hash($tempPassword, PASSWORD_DEFAULT));
-        $this->db->bind(':role', $data['rol_id']);
+        $this->db->bind(':email',  $data['correo']);
+        $this->db->bind(':pass',   password_hash($tempPassword, PASSWORD_DEFAULT));
+        $this->db->bind(':role',   $data['rol_id']);
+        $this->db->bind(':cedula', $data['cedula']);
         
         return $this->db->execute();
     }
@@ -623,11 +660,10 @@ class UserModel
                 u.avatar,
                 u.activo,
                 u.created_at,
-                dp.cedula,
+                u.cedula,
                 dp.nombres,
                 dp.apellidos,
                 dp.telefono,
-                dp.direccion,
                 dp.genero,
                 dp.fecha_nacimiento,
                 r.nombre as rol_nombre,
@@ -716,7 +752,6 @@ class UserModel
                 nombres = :nombres,
                 apellidos = :apellidos,
                 telefono = :telefono,
-                direccion = :direccion,
                 genero = :genero,
                 fecha_nacimiento = :fecha_nacimiento
             WHERE usuario_id = :usuario_id
@@ -725,7 +760,6 @@ class UserModel
         $this->db->bind(':nombres', $data['nombres'] ?? null);
         $this->db->bind(':apellidos', $data['apellidos'] ?? null);
         $this->db->bind(':telefono', $data['telefono'] ?? null);
-        $this->db->bind(':direccion', $data['direccion'] ?? null);
         $this->db->bind(':genero', $data['genero'] ?? null);
         $this->db->bind(':fecha_nacimiento', $data['fecha_nacimiento'] ?? null);
         $this->db->bind(':usuario_id', $id);

@@ -28,6 +28,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Completar Perfil - SGP</title>
     
+    <!-- CSS Assets -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    
     <!-- CSS Moderno para Preguntas de Seguridad -->
     <style>
         .modern-select {
@@ -61,6 +67,50 @@
         .security-question-row { margin-bottom: 20px; padding: 16px; background: linear-gradient(135deg, #F9FAFB 0%, #FFFFFF 100%); border-radius: 12px; border: 1px solid #F3F4F6; transition: all 0.3s ease; }
         .security-question-row:hover { border-color: #E5E7EB; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04); }
     </style>
+    
+    <!-- ============================================ -->
+    <!-- 🔧 PASSWORD TOGGLE - CARGA TEMPRANA         -->
+    <!-- ============================================ -->
+    <script>
+        /**
+         * Función Global: Toggle Password Visibility
+         * 
+         * UBICACIÓN CRÍTICA: En el <head> para garantizar carga ANTES de los onclick
+         * 
+         * @param {string} fieldId - ID del campo de contraseña
+         * @param {HTMLElement} iconElement - Elemento del icono (this desde onclick)
+         */
+        window.togglePasswordVisibility = function(fieldId, iconElement) {
+            console.log("🔍 Toggle llamado para:", fieldId);
+            
+            var input = document.getElementById(fieldId);
+            
+            if (!input) {
+                console.error("❌ Input no encontrado:", fieldId);
+                return;
+            }
+            
+            if (!iconElement) {
+                console.error("❌ Elemento de icono no proporcionado");
+                return;
+            }
+            
+            // Toggle tipo de input
+            if (input.type === "password") {
+                input.type = "text";
+                iconElement.classList.remove('ti-eye');
+                iconElement.classList.add('ti-eye-off');
+                console.log("👁️ Contraseña visible");
+            } else {
+                input.type = "password";
+                iconElement.classList.remove('ti-eye-off');
+                iconElement.classList.add('ti-eye');
+                console.log("🔒 Contraseña oculta");
+            }
+        };
+        
+        console.log("✅ Función togglePasswordVisibility cargada en window.");
+    </script>
 </head>
 <body class="auth-wrapper">
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
@@ -316,18 +366,11 @@
                     </div>
                 </div>
 
-                <div class="form-row">
+                <div style="margin-bottom:1rem;">
                     <div class="form-group">
                         <input type="date" name="fecha_nacimiento" class="input-modern" placeholder=" " required>
                         <label class="label-floating">
                             <i class="ti ti-calendar" style="margin-right: 8px; font-size: 18px;"></i>Fecha de Nacimiento
-                        </label>
-                    </div>
-
-                    <div class="form-group">
-                        <textarea name="direccion" class="input-modern" placeholder="Ej: Av. Táchira, Casa Nro 5..." required rows="1"></textarea>
-                        <label class="label-floating">
-                            <i class="ti ti-map-pin" style="margin-right: 8px; font-size: 18px;"></i>Dirección
                         </label>
                     </div>
                 </div>
@@ -368,8 +411,8 @@
         .progress-bar { height: 4px; background: #E5E7EB; border-radius: 2px; overflow: hidden; }
         .progress-fill { height: 100%; background: var(--color-primary); width: 0%; transition: width 0.3s ease; }
         .wizard-step { display: none; }
-        .wizard-step.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .wizard-step.active { display: block; animation: slideUp 0.4s ease-out; }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         @media (max-width: 640px) { .form-row { grid-template-columns: 1fr; } }
         .wizard-buttons { display: flex; gap: 12px; margin-top: 32px; }
@@ -384,6 +427,7 @@
         .input-hint { display: block; font-size: 11px; color: #6B7280; margin-top: 4px; }
     </style>
 
+    <script src="<?= URLROOT ?>/js/validation.js"></script>
     <script>
         let currentStep = 1;
         const totalSteps = 3;
@@ -416,22 +460,54 @@
                 const confirmPass = document.getElementById('confirm_password').value;
                 
                 if (newPass !== confirmPass) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'Las contraseñas no coinciden',
-                        confirmButtonColor: '#162660'
-                    });
+                    NotificationService.error('Las contraseñas no coinciden');
                     return false;
                 }
                 
                 if (newPass.length < 8) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
-                        text: 'La contraseña debe tener al menos 8 caracteres',
-                        confirmButtonColor: '#162660'
-                    });
+                    NotificationService.error('La contraseña debe tener al menos 8 caracteres');
+                    return false;
+                }
+
+                // Validación estricta usando validation.js
+                const validation = validatePasswordRequirements(newPass);
+                if (!validation.isValid) {
+                // Validación estricta usando validation.js
+                const validation = validatePasswordRequirements(newPass);
+                if (!validation.isValid) {
+                    NotificationService.error(validation.message);
+                    return false;
+                }
+            }
+
+            // VALIDACIÓN STEP 2: Preguntas de Seguridad
+            if (step === 2) {
+                const q1 = document.getElementById('question_1').value;
+                const q2 = document.getElementById('question_2').value;
+                const q3 = document.getElementById('question_3').value;
+                
+                if (!q1 || !q2 || !q3) {
+                if (!q1 || !q2 || !q3) {
+                    NotificationService.error('Debes seleccionar las 3 preguntas de seguridad');
+                    return false;
+                }
+                
+                // Verificar que las respuestas no estén vacías
+                const a1 = document.getElementById('answer_1').value.trim();
+                const a2 = document.getElementById('answer_2').value.trim();
+                const a3 = document.getElementById('answer_3').value.trim();
+                
+                if (!a1 || !a2 || !a3) {
+                if (!a1 || !a2 || !a3) {
+                    NotificationService.error('Debes responder las 3 preguntas de seguridad');
+                    return false;
+                }
+                
+                // Verificar longitud mínima de respuestas (al menos 3 caracteres)
+                if (a1.length < 3 || a2.length < 3 || a3.length < 3) {
+                // Verificar longitud mínima de respuestas (al menos 3 caracteres)
+                if (a1.length < 3 || a2.length < 3 || a3.length < 3) {
+                    NotificationService.error('Cada respuesta debe tener al menos 3 caracteres');
                     return false;
                 }
             }
@@ -476,30 +552,7 @@
         }
 
         document.getElementById('new_password').addEventListener('input', function() {
-            const password = this.value;
-            const strengthBar = document.getElementById('strengthBar');
-            const strengthText = document.getElementById('strengthText');
-            
-            let strength = 0;
-            if (password.length >= 8) strength++;
-            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
-            if (/[0-9]/.test(password)) strength++;
-            if (/[^a-zA-Z0-9]/.test(password)) strength++;
-            
-            strengthBar.className = 'password-strength-bar';
-            if (strength <= 1) {
-                strengthBar.classList.add('weak');
-                strengthText.textContent = 'Débil';
-                strengthText.style.color = '#EF4444';
-            } else if (strength <= 3) {
-                strengthBar.classList.add('medium');
-                strengthText.textContent = 'Media';
-                strengthText.style.color = '#F59E0B';
-            } else {
-                strengthBar.classList.add('strong');
-                strengthText.textContent = 'Fuerte';
-                strengthText.style.color = '#10B981';
-            }
+            updatePasswordStrengthWithRequirements(this, document.getElementById('strengthBar'), document.getElementById('strengthText'));
         });
 
         document.getElementById('wizardForm').addEventListener('submit', function(e) {
@@ -510,9 +563,13 @@
             }
             
             const btn = document.getElementById('submitBtn');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Guardando...';
-            btn.disabled = true;
+            if (typeof setLoading === 'function') {
+                setLoading(btn, true, 'Guardando...');
+            } else {
+                // Fallback
+                btn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Guardando...';
+                btn.disabled = true;
+            }
             
             this.submit();
         });
@@ -566,13 +623,7 @@
             }
             
             if (hasDuplicate) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Pregunta Duplicada',
-                    text: 'Debes seleccionar 3 preguntas diferentes para mayor seguridad',
-                    confirmButtonColor: '#162660',
-                    timer: 3000
-                });
+                NotificationService.warning('Debes seleccionar 3 preguntas diferentes para mayor seguridad');
             }
         }
 
@@ -617,66 +668,45 @@
                 setTimeout(() => {
                     input.style.borderColor = '#D1D5DB';
                 }, 500);
-            }
         }
-
+        
         /**
-         * VALIDACIÓN ADICIONAL: Verificar que las 3 preguntas estén seleccionadas
+         * Toggle Password Visibility
          * 
-         * Se ejecuta antes de permitir avanzar al Step 3
+         * PROPÓSITO:
+         * Alternar entre mostrar/ocultar contraseña al hacer clic en el icono del ojo.
+         * 
+         * IMPORTANTE:
+         * Esta función se llama desde onclick="togglePasswordVisibility('id', this)"
+         * donde 'this' es el elemento <i> del icono.
+         * 
+         * @param {string} inputId - ID del campo de contraseña
+         * @param {HTMLElement} iconElement - Elemento del icono (this desde onclick)
          */
-        function validateSecurityQuestions() {
-            const q1 = document.getElementById('question_1').value;
-            const q2 = document.getElementById('question_2').value;
-            const q3 = document.getElementById('question_3').value;
+        function togglePasswordVisibility(inputId, iconElement) {
+            const input = document.getElementById(inputId);
             
-            if (!q1 || !q2 || !q3) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Preguntas Incompletas',
-                    text: 'Debes seleccionar las 3 preguntas de seguridad',
-                    confirmButtonColor: '#162660'
-                });
-                return false;
+            if (!input) {
+                console.error('❌ Input field not found:', inputId);
+                return;
             }
             
-            // Verificar que las respuestas no estén vacías
-            const a1 = document.getElementById('answer_1').value.trim();
-            const a2 = document.getElementById('answer_2').value.trim();
-            const a3 = document.getElementById('answer_3').value.trim();
-            
-            if (!a1 || !a2 || !a3) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Respuestas Incompletas',
-                    text: 'Debes responder las 3 preguntas de seguridad',
-                    confirmButtonColor: '#162660'
-                });
-                return false;
+            if (!iconElement) {
+                console.error('❌ Icon element not provided');
+                return;
             }
             
-            // Verificar longitud mínima de respuestas (al menos 3 caracteres)
-            if (a1.length < 3 || a2.length < 3 || a3.length < 3) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Respuestas Muy Cortas',
-                    text: 'Cada respuesta debe tener al menos 3 caracteres',
-                    confirmButtonColor: '#162660'
-                });
-                return false;
+            // Toggle input type
+            if (input.type === 'password') {
+                input.type = 'text';
+                iconElement.classList.remove('ti-eye');
+                iconElement.classList.add('ti-eye-off');
+            } else {
+                input.type = 'password';
+                iconElement.classList.remove('ti-eye-off');
+                iconElement.classList.add('ti-eye');
             }
-            
-            return true;
         }
-
-        // Modificar la función validateStep para incluir validación de preguntas
-        const originalValidateStep = validateStep;
-        validateStep = function(step) {
-            if (step === 2) {
-                return validateSecurityQuestions();
-            }
-            return originalValidateStep(step);
-        };
     </script>
 
 </body>

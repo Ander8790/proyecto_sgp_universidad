@@ -17,5 +17,5 @@
 
 <!-- Global Scripts -->
 <script src="<?= URLROOT ?>/js/main.js"></script>
-<script src="<?= URLROOT ?>/js/notyf.min.js"></script>
+<!-- Notyf ya cargado en main_layout.php -->
 <script src="<?= URLROOT ?>/js/email-validation.js"></script>

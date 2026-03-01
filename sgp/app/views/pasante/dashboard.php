@@ -7,14 +7,14 @@ $role = $data['role'] ?? 'Pasante';
 <div class="dashboard-bento">
     
     <!-- Banner de Bienvenida (Compacto) - Clonado del Admin Dashboard -->
-    <div class="welcome-banner welcome-banner-compact">
+    <div class="welcome-banner welcome-banner-compact slide-up">
         <div class="welcome-icon">
             <i class="ti ti-sparkles"></i>
         </div>
         
         <div class="welcome-content">
             <div class="welcome-text">
-                <h1 class="welcome-title">¡Bienvenido de nuevo, <?= htmlspecialchars(explode(' ', $user_name)[0]) ?>!</h1>
+                <h1 class="welcome-title">¡Bienvenido de nuevo, <?= htmlspecialchars(explode(' ', $_SESSION['user_name'] ?? 'Usuario')[0]) ?>!</h1>
                 <p class="welcome-subtitle">
                     <i class="ti ti-layout-dashboard"></i>
                     <span>Panel de Control</span>
@@ -37,7 +37,7 @@ $role = $data['role'] ?? 'Pasante';
     </div>
     
     <!-- Fila 1: 3 KPIs para Pasante -->
-    <div class="card kpi-card">
+    <div class="card kpi-card slide-up" style="animation-delay: 0.1s;">
         <div class="kpi-header">
             <span class="kpi-label">Horas Completadas</span>
             <div class="kpi-icon">
@@ -50,7 +50,7 @@ $role = $data['role'] ?? 'Pasante';
         </div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card slide-up" style="animation-delay: 0.2s;">
         <div class="kpi-header">
             <span class="kpi-label">Asistencias Este Mes</span>
             <div class="kpi-icon">
@@ -60,7 +60,7 @@ $role = $data['role'] ?? 'Pasante';
         <div class="kpi-value">18</div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card slide-up" style="animation-delay: 0.3s;">
         <div class="kpi-header">
             <span class="kpi-label">Bitácoras Registradas</span>
             <div class="kpi-icon">
@@ -70,7 +70,7 @@ $role = $data['role'] ?? 'Pasante';
         <div class="kpi-value">24</div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card slide-up" style="animation-delay: 0.4s;">
         <div class="kpi-header">
             <span class="kpi-label">Progreso General</span>
             <div class="kpi-icon">
@@ -84,7 +84,7 @@ $role = $data['role'] ?? 'Pasante';
     </div>
 
     <!-- Fila 2: Tabla de Actividades Recientes -->
-    <div class="card span-4">
+    <div class="card span-4 slide-up" style="animation-delay: 0.5s;">
         <h3 style="color: var(--deep-azure); font-size: 1.125rem; font-weight: 600; margin-bottom: 16px;">Mis Actividades Recientes</h3>
         <table class="modern-table">
             <thead>

@@ -70,6 +70,289 @@ a {
     transform: translateY(-2px);
 }
 
+/* =====================================================
+   ESTILO FIGMA PREMIUM (Phase 12)
+   ===================================================== */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+    margin-bottom: 32px;
+}
+
+.figma-card {
+    background: #ffffff;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 10px 25px rgba(22, 38, 96, 0.08);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(22, 38, 96, 0.05);
+}
+
+.figma-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 40px rgba(22, 38, 96, 0.12);
+    border-color: rgba(22, 38, 96, 0.1);
+}
+
+/* Cristaline variant */
+.figma-card-glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+@media (max-width: 1200px) {
+    .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Bento Split Layout (70/30) - ARCHIVED for 50/50 reference */
+.bento-split-layout {
+    display: grid;
+    grid-template-columns: 7fr 3fr;
+    gap: 20px;
+    margin-bottom: 20px;
+    grid-column: span 4;
+}
+
+/* Hybrid Layouts (Phase 17) - OBSOLETE in Phase 18 but kept for grid structure reference */
+/* === OVERRIDE DEL CONTENEDOR MAESTRO === */
+.dashboard-bento {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 24px;
+    width: 100%;
+}
+
+.dashboard-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    width: 100%;
+}
+
+/* === FIX ESTABILIDAD GRÁFICAS === */
+.figma-card .chart-wrapper {
+    height: 320px !important;
+    min-height: 320px !important;
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+#chart-registrations,
+#chart-asistencia-depto {
+    width: 100%;
+    height: 100%;
+}
+
+.charts-grid-50 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    align-items: start;
+}
+
+.bottom-grid-60-40 {
+    display: grid;
+    grid-template-columns: 6fr 4fr;
+    gap: 20px;
+    width: 100%;
+    align-items: start;
+}
+
+/* === RESPONSIVIDAD === */
+@media (max-width: 1200px) {
+    .dashboard-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .charts-grid-50,
+    .bottom-grid-60-40 {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Bento Premium Actions (Phase 18) */
+/* === KPI CARDS PREMIUM (Fixed Ribbons & Glow) === */
+.kpi-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(22, 38, 96, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-left: 5px solid var(--kpi-color, transparent);
+    position: relative;
+    overflow: hidden;
+}
+
+.kpi-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 25px var(--kpi-glow, rgba(0, 0, 0, 0.1));
+}
+
+.kpi-card.kpi-blue {
+    --kpi-color: #2563eb;
+    --kpi-glow: rgba(37, 99, 235, 0.15);
+}
+
+.kpi-card.kpi-orange {
+    --kpi-color: #F59E0B;
+    --kpi-glow: rgba(245, 158, 11, 0.15);
+}
+
+.kpi-card.kpi-green {
+    --kpi-color: #059669;
+    --kpi-glow: rgba(5, 150, 105, 0.15);
+}
+
+.kpi-card.kpi-red {
+    --kpi-color: #DC2626;
+    --kpi-glow: rgba(220, 38, 38, 0.15);
+}
+
+.kpi-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.kpi-label {
+    display: block;
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.kpi-value {
+    margin: 4px 0 0;
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: #162660;
+    line-height: 1;
+}
+
+.btn-bento-action {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    min-width: 80px;
+}
+
+.btn-bento-action i {
+    font-size: 1.4rem;
+}
+
+.btn-bento-action:hover {
+    transform: scale(1.05);
+}
+
+/* Purple Palette (Phase 18) */
+.purple-chart-toggle .btn-micro.active {
+    color: #8B5CF6 !important;
+    border-bottom: 2px solid #8B5CF6;
+    border-radius: 0;
+}
+
+/* === SCROLL ESTABLE PARA PANELES INFERIORES === */
+.activity-list-scroll,
+.table-container-scroll {
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 6px;
+}
+
+.activity-list-scroll::-webkit-scrollbar,
+.table-container-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.activity-list-scroll::-webkit-scrollbar-thumb,
+.table-container-scroll::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.activity-list-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.activity-list-scroll::-webkit-scrollbar-thumb {
+    background: #E2E8F0;
+    border-radius: 10px;
+}
+
+/* Micro Buttons (Chart Toggles & Actions) */
+.btn-micro {
+    border: none;
+    background: transparent;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #64748B;
+}
+
+.btn-micro.active {
+    background: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    color: var(--color-primary);
+}
+
+.btn-micro-action {
+    background: #EFF6FF;
+    border: none;
+    color: #3B82F6;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-micro-action:hover {
+    background: #DBEAFE;
+    transform: scale(1.05);
+}
+
+
 /* Sidebar & Layout */
 .app-container {
     display: flex;
@@ -926,8 +1209,8 @@ body.sidebar-collapse .brand-logo-circle {
 .main-content {
     flex: 1;
     margin-left: var(--sidebar-width);
-    margin-top: 70px;
-    min-height: calc(100vh - 70px);
+    margin-top: var(--topbar-height);
+    min-height: calc(100vh - var(--topbar-height));
     overflow-y: auto;
     padding: 40px 32px;
     background: #f4f6f9;
@@ -938,6 +1221,16 @@ body.sidebar-collapse .brand-logo-circle {
 /* Main Content cuando sidebar está colapsado */
 body.sidebar-collapse .main-content {
     margin-left: 80px;
+}
+
+/* Responsive móvil: sidebar oculto, header apilado */
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 0 !important;
+        margin-top: 110px;
+        /* header se apila en móvil, ocupa más altura */
+        padding: 20px 16px;
+    }
 }
 
 /* Dashboard Container - Profesional */
@@ -1019,12 +1312,8 @@ body.sidebar-collapse .main-content {
     font-weight: 600;
 }
 
-.welcome-date {
-    font-size: 0.95rem;
-    opacity: 0.85;
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.welcome-date,
+.welcome-time {
     z-index: 1;
 }
 
@@ -1210,7 +1499,8 @@ td {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
+    /* Centrado vertical perfecto */
     background: url('../img/institution_bg.png') center center / cover no-repeat fixed;
     padding: 120px 20px 40px 20px;
     position: relative;
@@ -2131,15 +2421,18 @@ body.sidebar-collapsed .content-wrapper {
     padding: 0;
 }
 
-/* 3. BANNER AZUL DE BIENVENIDA - DEGRADADO DIAGONAL PROFESIONAL */
+/* 3. BANNER AZUL DE BIENVENIDA - DEGRADADO DIAGONAL PREMIUM */
 .welcome-banner {
     grid-column: 1 / -1;
-    padding: 24px 32px;
-    border-radius: 16px;
+    padding: 32px 40px;
+    border-radius: 20px;
     color: #ffffff;
 
-    /* Degradado diagonal elegante (version1 style) */
-    background: linear-gradient(135deg, #162660 0%, #1e3a8a 100%);
+    /* Degradado de 3 colores para mayor profundidad (Premium style) */
+    background: linear-gradient(135deg,
+            #172554 0%,
+            #1e3a8a 50%,
+            #2563eb 100%);
 
     display: flex;
     justify-content: space-between;
@@ -2147,13 +2440,43 @@ body.sidebar-collapsed .content-wrapper {
     box-shadow: 0 10px 30px rgba(22, 38, 96, 0.15);
     position: relative;
     overflow: hidden;
-    min-height: 100px;
+    min-height: 120px;
 }
 
-/* Decoración del banner - DESHABILITADA */
+/* Blobs decorativos (Figma style) */
 .welcome-banner::before {
-    display: none;
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -10%;
+    width: 300px;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    filter: blur(40px);
+    pointer-events: none;
+    z-index: 0;
 }
+
+.welcome-banner::after {
+    content: '';
+    position: absolute;
+    bottom: -20%;
+    left: 20%;
+    width: 150px;
+    height: 150px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
+    filter: blur(20px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.welcome-banner>* {
+    position: relative;
+    z-index: 1;
+}
+
 
 .welcome-banner-compact {
     min-height: 120px;
@@ -2229,11 +2552,16 @@ body.sidebar-collapsed .content-wrapper {
     align-items: center;
     gap: 8px;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.9);
-    background: rgba(255, 255, 255, 0.1);
-    padding: 8px 16px;
-    border-radius: 10px;
+    color: var(--color-primary);
+    background: #ffffff !important;
+    padding: 10px 18px;
+    border-radius: 12px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    opacity: 1 !important;
 }
+
 
 .welcome-date i,
 .welcome-time i {
@@ -2837,4 +3165,433 @@ body.sidebar-collapse .main-footer {
         align-items: flex-start;
         gap: 6px;
     }
+}
+
+/* =====================================================
+   LOADING STATES & MICRO-INTERACTIONS
+   ===================================================== */
+
+/* Spinner Animation */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}
+
+/* Button Loading State */
+.btn-loading {
+    position: relative;
+    pointer-events: none;
+    opacity: 0.8 !important;
+    cursor: not-allowed !important;
+}
+
+.btn-loading i.ti-loader {
+    margin-right: 8px;
+    font-size: 1.1em;
+}
+
+/* Micro-animations */
+.fade-in {
+    animation: fadeIn 0.3s ease-in;
+}
+
+.slide-up {
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* =====================================================
+   FORM HINTS & FEEDBACK (Phase 4)
+   ===================================================== */
+.form-hint {
+    display: block;
+    margin-top: 4px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    transition: color 0.3s ease;
+}
+
+.form-hint.error {
+    color: #ef4444;
+}
+
+.form-hint i {
+    font-size: 1rem;
+    vertical-align: text-bottom;
+    margin-right: 4px;
+}
+
+/* =====================================================
+   NOTIFICATIONS DROPDOWN
+   ===================================================== */
+
+/* Wrapper */
+.notifications-wrapper {
+    position: relative;
+    margin-right: 16px;
+}
+
+/* Notification Button */
+.notification-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-body);
+    font-size: 1.4rem;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.notification-btn:hover,
+.notification-btn.active {
+    background: rgba(22, 38, 96, 0.08);
+    color: var(--color-primary);
+}
+
+/* Badge (Contador) */
+.notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    min-width: 18px;
+    text-align: center;
+    border: 2px solid white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    animation: badgePulse 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+@keyframes badgePulse {
+    0% {
+        transform: scale(0);
+    }
+
+    50% {
+        transform: scale(1.2);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Dropdown Container */
+.notifications-dropdown {
+    position: absolute;
+    top: calc(100% + 12px);
+    right: 0;
+    width: 360px;
+    max-width: 90vw;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px -10px rgba(22, 38, 96, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    z-index: 1000;
+    border: 1px solid rgba(22, 38, 96, 0.08);
+    overflow: hidden;
+}
+
+.notifications-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Header */
+.notifications-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(to bottom, #f8fafc, #ffffff);
+}
+
+.notifications-title {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--color-primary);
+}
+
+.mark-all-read-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1.1rem;
+    padding: 6px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mark-all-read-btn:hover {
+    color: var(--color-primary);
+    background: rgba(22, 38, 96, 0.08);
+}
+
+/* Body (Lista) */
+.notifications-body {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.notifications-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Notification Item */
+.notification-item {
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s;
+    position: relative;
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-item.unread {
+    background: rgba(59, 130, 246, 0.03);
+}
+
+.notification-link {
+    display: flex;
+    gap: 12px;
+    padding: 14px 20px;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s;
+}
+
+.notification-link:hover {
+    background: rgba(22, 38, 96, 0.04);
+}
+
+.notification-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.15));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #3b82f6;
+    font-size: 1.1rem;
+}
+
+.notification-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.notification-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 4px;
+    line-height: 1.3;
+}
+
+.notification-message {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 6px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.notification-time {
+    font-size: 0.75rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.notification-time i {
+    font-size: 0.7rem;
+}
+
+/* Unread Indicator */
+.unread-indicator {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 8px;
+    height: 8px;
+    background: #3b82f6;
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Footer */
+.notifications-footer {
+    padding: 12px 20px;
+    text-align: center;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+
+.notifications-footer a {
+    color: var(--color-primary);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.notifications-footer a:hover {
+    color: #1e3a8a;
+    text-decoration: underline;
+}
+
+/* Empty State */
+.notifications-empty {
+    padding: 48px 20px;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.notifications-empty i {
+    font-size: 3rem;
+    color: #cbd5e1;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.notifications-empty p {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #64748b;
+    margin: 8px 0 4px;
+}
+
+.notifications-empty span {
+    font-size: 0.85rem;
+    color: #94a3b8;
+}
+
+/* Scrollbar Styling */
+.notifications-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.notifications-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+
+.notifications-body::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 3px;
+}
+
+.notifications-body::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .notifications-dropdown {
+        width: calc(100vw - 32px);
+        right: -80px;
+    }
+
+    .notification-link {
+        padding: 12px 16px;
+        gap: 10px;
+    }
+
+    .notification-icon {
+        width: 32px;
+        height: 32px;
+        font-size: 1rem;
+    }
+}
+
+/* =====================================================
+   NOTYF — BARRA DE PROGRESO PERSONALIZADA
+   Clase: notyf--has-bar (asignada en notification-service.js)
+   ===================================================== */
+
+@keyframes notyfProgressBar {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
+
+.notyf--has-bar {
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+/* La barra va en la parte SUPERIOR del toast (más visible) */
+.notyf--has-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.55);
+    transform-origin: left center;
+    /* Duración sincronizada con el JS (4000ms en NotificationService) */
+    animation: notyfProgressBar 4s linear forwards;
 }

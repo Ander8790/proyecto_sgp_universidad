@@ -9,7 +9,8 @@
     top: 0;
     left: 0;
     width: 100%;
-    height: 70px;
+    height: var(--header-height);
+    /* usa la variable de sidebar.css :root */
     z-index: 1000;
 
     /* ESTILOS VISUALES */
@@ -40,6 +41,42 @@
     max-height: 50px;
     width: auto;
     object-fit: contain;
+}
+
+/* ✨ NUEVO: Cintillo centrado simétrico (ambos logos juntos) */
+.institutional-strip-center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    /* Separación entre logos */
+    z-index: 10;
+}
+
+/* Separador visual entre logos */
+.institutional-separator {
+    width: 2px;
+    height: 45px;
+    background: linear-gradient(to bottom,
+            transparent,
+            rgba(22, 38, 96, 0.2),
+            rgba(22, 38, 96, 0.3),
+            rgba(22, 38, 96, 0.2),
+            transparent);
+}
+
+/* ✨ NUEVO: Logos institucionales con transiciones suaves */
+.institutional-logo {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: grayscale(0%) opacity(1);
+}
+
+.institutional-logo:hover {
+    transform: scale(1.02);
+    filter: grayscale(0%) opacity(0.85);
 }
 
 /* BOTONES HEADER */
@@ -162,12 +199,28 @@
         padding: 0 15px;
     }
 
+    /* OCULTAR logos centrales en tablet para evitar superposición */
+    .main-header .institutional-strip-center {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+
     .institutional-strip {
         max-width: 500px;
+        gap: 12px !important;
+        /* Reducir espacio entre logos */
     }
 
     .institutional-strip img {
-        max-height: 45px;
+        max-height: 42px;
+        /* Logos más pequeños */
+        max-width: 220px !important;
+    }
+
+    /* Separador más delgado en tablet */
+    .institutional-strip>div {
+        height: 32px !important;
     }
 
     /* Ocultar texto del perfil en tablet */
@@ -198,6 +251,14 @@
     /* Cintillo oculto en móvil */
     .institutional-strip {
         display: none !important;
+    }
+
+    /* NUEVO: Ocultar cintillo central en móvil */
+    .main-header .institutional-strip-center {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
     }
 
     /* Logo SGP más pequeño */

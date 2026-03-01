@@ -35,19 +35,16 @@ abstract class Controller
             extract($data);
             
             if ($useMasterLayout) {
-                // Use master layout (Dashboard, Profile, etc.)
-                ob_start();
-                require_once $viewPath;
-                $viewContent = ob_get_clean();
-                
                 // Set content path for layout to include
                 $content = $viewPath;
                 
-                // Load main layout (which will require the $content path)
-                require_once '../app/views/layouts/main_layout.php';
+                // Load main layout — usar require (no require_once) para garantizar
+                // que el layout se renderice siempre, incluso si PHP ya registró
+                // el archivo en una solicitud previa.
+                require '../app/views/layouts/main_layout.php';
             } else {
                 // Load standalone view (Login, Register, Landing, etc.)
-                require_once $viewPath;
+                require $viewPath;
             }
         } else {
             // View does not exist

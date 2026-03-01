@@ -93,6 +93,22 @@ function isActive($url) {
                 </a>
             </li>
             <li>
+                <a href="<?= URLROOT ?>/asignaciones" 
+                   class="nav-link <?= isActive('/asignaciones') ?>"
+                   data-tooltip="Asignaciones">
+                    <i class="ti ti-link"></i>
+                    <span class="menu-text">Asignaciones</span>
+                </a>
+            </li>
+            <li>
+                <a href="<?= URLROOT ?>/evaluaciones" 
+                   class="nav-link <?= isActive('/evaluaciones') ?>"
+                   data-tooltip="Evaluaciones">
+                    <i class="ti ti-star"></i>
+                    <span class="menu-text">Evaluaciones</span>
+                </a>
+            </li>
+            <li>
                 <a href="<?= URLROOT ?>/reportes" 
                    class="nav-link <?= isActive('/reportes') ?>"
                    data-tooltip="Informes">
@@ -114,6 +130,14 @@ function isActive($url) {
                    data-tooltip="Respaldos">
                     <i class="ti ti-database"></i>
                     <span class="menu-text">Respaldos</span>
+                </a>
+            </li>
+            <li>
+                <a href="<?= URLROOT ?>/bitacora" 
+                   class="nav-link <?= isActive('/bitacora') ?>"
+                   data-tooltip="Bitácora">
+                    <i class="ti ti-file-analytics"></i>
+                    <span class="menu-text">Bitácora</span>
                 </a>
             </li>
             <li>
@@ -170,14 +194,6 @@ function isActive($url) {
                    data-tooltip="Mi Asistencia">
                     <i class="ti ti-clock"></i>
                     <span class="menu-text">Mi Asistencia</span>
-                </a>
-            </li>
-            <li>
-                <a href="<?= URLROOT ?>/bitacora" 
-                   class="nav-link <?= isActive('/bitacora') ?>"
-                   data-tooltip="Bitácora">
-                    <i class="ti ti-file-text"></i>
-                    <span class="menu-text">Bitácora</span>
                 </a>
             </li>
             <li>

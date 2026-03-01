@@ -380,25 +380,16 @@ require_once APPROOT . '/views/inc/header.php';
 
 <?php require_once APPROOT . '/views/inc/footer.php'; ?>
 
-<!-- Notyf Library -->
-<link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
-<script src="<?= URLROOT ?>/js/notyf.min.js"></script>
+<!-- Toast: usando NotificationService global -->
 
 <script>
-// Initialize Notyf
-const notyf = new Notyf({
-    duration: 4000,
-    position: { x: 'right', y: 'top' },
-    dismissible: true
-});
-
-// Show flash messages
+    // Flash messages via SGP Toast
 <?php if (Session::hasFlash('success')): ?>
-    notyf.success('<?= addslashes(Session::getFlash('success')) ?>');
+    NotificationService.success('<?= addslashes(Session::getFlash('success')) ?>');
 <?php endif; ?>
 
 <?php if (Session::hasFlash('error')): ?>
-    notyf.error('<?= addslashes(Session::getFlash('error')) ?>');
+    NotificationService.error('<?= addslashes(Session::getFlash('error')) ?>');
 <?php endif; ?>
 
 /**
@@ -431,7 +422,7 @@ document.getElementById('formSecurityQuestions').addEventListener('submit', func
     const pregunta3 = document.getElementById('pregunta_3').value;
     
     if (pregunta1 === pregunta2 || pregunta1 === pregunta3 || pregunta2 === pregunta3) {
-        notyf.error('No puedes seleccionar la misma pregunta dos veces');
+        NotificationService.error('No puedes seleccionar la misma pregunta dos veces');
         return;
     }
     
@@ -441,7 +432,7 @@ document.getElementById('formSecurityQuestions').addEventListener('submit', func
     const respuesta3 = document.getElementById('respuesta_3').value.trim();
     
     if (!respuesta1 || !respuesta2 || !respuesta3) {
-        notyf.error('Todas las respuestas son obligatorias');
+        NotificationService.error('Todas las respuestas son obligatorias');
         return;
     }
     
@@ -460,17 +451,17 @@ document.getElementById('formSecurityQuestions').addEventListener('submit', func
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            notyf.success(data.message || 'Preguntas actualizadas exitosamente');
+            NotificationService.success(data.message || 'Preguntas actualizadas exitosamente');
             setTimeout(() => window.location.href = '<?= URLROOT ?>/perfil/ver', 1500);
         } else {
-            notyf.error(data.message || 'Error al actualizar las preguntas');
+            NotificationService.error(data.message || 'Error al actualizar las preguntas');
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        notyf.error('Error de conexión. Por favor intenta nuevamente.');
+        NotificationService.error('Error de conexión. Por favor intenta nuevamente.');
         submitBtn.disabled = false;
         submitBtn.innerHTML = originalText;
     });

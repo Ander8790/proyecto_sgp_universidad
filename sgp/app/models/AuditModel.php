@@ -243,4 +243,17 @@ class AuditModel
         
         return $this->db->resultSet();
     }
+
+    /**
+     * Obtener Instancia de Database
+     * 
+     * PROPÓSITO:
+     * Exponer la conexión a BD para queries personalizadas en el controlador.
+     * 
+     * @return Database Instancia de la conexión
+     */
+    public function getDb(): Database
+    {
+        return $this->db;
+    }
 }

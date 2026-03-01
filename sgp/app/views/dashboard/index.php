@@ -1,5 +1,5 @@
 <?php
-// === ADAPTADOR DE COMPATIBILIDAD V1 ===
+// === ADAPTADOR DE COMPATIBILIDAD ===
 $user_name = Session::get('user_name') ?? Session::get('nombres') ?? Session::get('nombre') ?? 'Usuario';
 
 // Definir Rol
@@ -20,7 +20,8 @@ switch ($rol_id) {
     
     <?php if ($role == 'Administrador'): ?>
     <!-- Fila 1: 4 KPIs -->
-    <div class="card kpi-card">
+
+    <div class="card kpi-card slide-up" style="animation-delay: 0.1s;">
         <div class="kpi-header">
             <span class="kpi-label">Pasantes Activos</span>
             <div class="kpi-icon">
@@ -33,7 +34,7 @@ switch ($rol_id) {
         </div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card slide-up" style="animation-delay: 0.2s;">
         <div class="kpi-header">
             <span class="kpi-label">Tutores Activos</span>
             <div class="kpi-icon">
@@ -43,39 +44,39 @@ switch ($rol_id) {
         <div class="kpi-value">12</div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card slide-up" style="animation-delay: 0.3s;">
         <div class="kpi-header">
-            <span class="kpi-label">Instituciones</span>
+            <span class="kpi-label">Departamentos</span>
             <div class="kpi-icon">
                 <i class="ti ti-building-hospital"></i>
             </div>
         </div>
-        <div class="kpi-value">8</div>
+        <div class="kpi-value">4</div>
     </div>
 
-    <div class="card kpi-card">
+    <div class="card kpi-card slide-up" style="animation-delay: 0.4s;">
         <div class="kpi-header">
-            <span class="kpi-label">Cupos Disponibles</span>
+            <span class="kpi-label">Asignaciones pendientes</span>
             <div class="kpi-icon">
                 <i class="ti ti-clipboard-check"></i>
             </div>
         </div>
         <div class="kpi-value">23</div>
         <div class="kpi-badge warning">
-            <i class="ti ti-alert-circle"></i> Limitados
+            <i class="ti ti-alert-circle"></i> en espera
         </div>
     </div>
 
     <!-- Fila 2: Gráfico Principal + Activity Feed -->
-    <div class="card span-3 row-span-2">
+    <div class="card span-3 row-span-2 slide-up" style="animation-delay: 0.5s;">
         <div class="card-header">
-            <h3>Pasantes por Mes</h3>
-            <p>Ingresos mensuales de pasantes al sistema</p>
+            <h3>Asistencias por Mes</h3>
+            <p>Asistencias mensuales de pasantes</p>
         </div>
-        <div id="chart-pasantes-mes"></div>
+        <div id="chart-asistencias-mes"></div>
     </div>
 
-    <div class="card span-1 row-span-2">
+    <div class="card span-1 row-span-2 slide-up" style="animation-delay: 0.6s;">
         <h3 style="color: var(--deep-azure); font-size: 1.125rem; font-weight: 600; margin-bottom: 16px;">Actividad Reciente</h3>
         <div class="activity-list">
             <div class="activity-item">
@@ -121,12 +122,12 @@ switch ($rol_id) {
     </div>
 
     <!-- Fila 3: Donut + Tabla -->
-    <div class="card span-2">
+    <div class="card span-2 slide-up" style="animation-delay: 0.7s;">
         <h3 style="color: var(--deep-azure); font-size: 1.125rem; font-weight: 600; margin-bottom: 16px;">Distribución por Departamentos</h3>
         <div id="chart-departamentos"></div>
     </div>
 
-    <div class="card span-2">
+    <div class="card span-2 slide-up" style="animation-delay: 0.8s;">
         <h3 style="color: var(--deep-azure); font-size: 1.125rem; font-weight: 600; margin-bottom: 16px;">Últimos Registros</h3>
         <table class="modern-table">
             <thead>

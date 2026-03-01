@@ -5,10 +5,8 @@
  * PROPÓSITO:
  * Modelo simple para obtener la lista de departamentos del
  * Instituto de Salud Pública. Se usa principalmente para
- * llenar dropdowns en formularios.
- * 
- * @author Sistema SGP
- * @version 1.0
+ * llenar los formularios.
+
  */
 
 class DepartamentoModel

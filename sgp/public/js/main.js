@@ -38,7 +38,8 @@ function togglePasswordVisibility(fieldId, icon) {
 // WIZARD NAVIGATION (Para Registro Multi-Paso)
 // ============================================
 
-let currentStep = 1;
+// ✅ REMOVED: Duplicate declaration - already exists in validation.js
+// let currentStep = 1;
 
 /**
  * Mostrar paso específico del wizard
@@ -69,7 +70,10 @@ function showStep(step) {
         }
     });
 
-    currentStep = step;
+    // ✅ NOTA: currentStep está declarado en validation.js
+    if (typeof currentStep !== 'undefined') {
+        currentStep = step;
+    }
 }
 
 /**
@@ -138,20 +142,26 @@ function validateCurrentStep() {
 
 /**
  * Avanzar al siguiente paso
+ * NOTA: Solo se define si no existe ya una versión personalizada en window
  */
-function nextStep() {
-    if (validateCurrentStep()) {
-        showStep(currentStep + 1);
-    }
+if (!window.nextStep) {
+    window.nextStep = function nextStep() {
+        if (validateCurrentStep()) {
+            showStep(currentStep + 1);
+        }
+    };
 }
 
 /**
  * Retroceder al paso anterior
+ * NOTA: Solo se define si no existe ya una versión personalizada en window
  */
-function prevStep() {
-    if (currentStep > 1) {
-        showStep(currentStep - 1);
-    }
+if (!window.prevStep) {
+    window.prevStep = function prevStep() {
+        if (currentStep > 1) {
+            showStep(currentStep - 1);
+        }
+    };
 }
 
 // ============================================

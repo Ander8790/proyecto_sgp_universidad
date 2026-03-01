@@ -20,6 +20,8 @@ require_once '../app/core/AuthMiddleware.php';
 require_once '../app/core/RoleMiddleware.php';
 require_once '../app/helpers/CacheControl.php';
 require_once '../app/libraries/UrlSecurity.php';
+require_once '../app/models/NotificationModel.php'; // Modelo de notificaciones
+require_once '../app/models/AuditModel.php'; // Modelo de auditoría (Global)
 require_once '../app/core/App.php';
 
 // ============================================

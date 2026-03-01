@@ -1,19 +1,14 @@
 <?php
 /**
  * PasanteModel - Gestión de Datos de Pasantes
- * 
- * PROPÓSITO EDUCATIVO:
- * Este modelo maneja EXCLUSIVAMENTE los datos específicos del rol Pasante.
- * Trabaja con la tabla `datos_pasante` que tiene relación 1:1 con `usuarios`.
- * 
- * IMPORTANTE:
- * Después de la refactorización, la columna `institucion_procedencia`
- * está DIRECTAMENTE en `datos_pasante` (ya no en datos_academicos).
- * 
- * @author Sistema SGP
- * @version 2.0 (Post-Refactorización)
+ *
+ * ARQUITECTURA NORMALIZADA (3NF):
+ *   - `usuarios`        : autenticación (correo, password, pin, rol, estado)
+ *   - `datos_personales`: biografía (cedula, nombres, apellidos, cargo, teléfono)
+ *   - `datos_pasante`   : lógica académica (horas, estado_pasantia, departamento)
+ *
+ * @version 4.0 — Arquitectura Normalizada con JOINs
  */
-
 class PasanteModel
 {
     private $db;
@@ -24,199 +19,219 @@ class PasanteModel
         $this->db = new Database($config['db']);
     }
 
-    /**
-     * Obtener Datos Completos de un Pasante
-     * 
-     * PROPÓSITO:
-     * Retornar toda la información de un pasante específico
-     * combinando datos de: usuarios, datos_personales y datos_pasante.
-     * 
-     * DEFENSA ACADÉMICA:
-     * "Profesor, uso un solo JOIN para obtener todos los datos en una
-     * consulta. Esto es más eficiente que hacer múltiples consultas
-     * separadas (evita el problema N+1)."
-     * 
-     * @param int $usuarioId ID del usuario
-     * @return array|null Datos del pasante o null si no existe
-     */
-    public function getByUsuarioId(int $usuarioId): ?array
-    {
-        $this->db->query("
-            SELECT 
-                u.id,
-                u.correo,
-                u.activo,
-                u.created_at as fecha_registro,
-                dp.cedula,
-                dp.nombres,
-                dp.apellidos,
-                dp.telefono,
-                dp.direccion,
-                dp.genero,
-                dp.fecha_nacimiento,
-                dpa.institucion_procedencia,
-                dpa.carrera,
-                dpa.semestre,
-                dpa.cargo,
-                dpa.estado_pasantia,
-                dpa.fecha_inicio_pasantia,
-                dpa.fecha_fin_estimada,
-                dpa.horas_acumuladas,
-                dpa.horas_meta,
-                dpa.departamento_asignado_id,
-                dpa.observaciones,
-                dept.nombre as departamento_nombre
-            FROM usuarios u
-            INNER JOIN datos_personales dp ON u.id = dp.usuario_id
-            LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
-            LEFT JOIN departamentos dept ON dpa.departamento_asignado_id = dept.id
-            WHERE u.id = :usuario_id AND u.role_id = 3
-            LIMIT 1
-        ");
-        
-        $this->db->bind(':usuario_id', $usuarioId);
-        
-        $result = $this->db->single();
-        
-        return $result ? (array) $result : null;
-    }
+    // ────────────────────────────────────────────────────────────────
+    // CÁLCULO DE FECHAS — DÍAS HÁBILES
+    // ────────────────────────────────────────────────────────────────
 
     /**
-     * Crear Registro de Pasante
-     * 
-     * PROPÓSITO:
-     * Insertar datos iniciales del pasante en la tabla datos_pasante.
-     * Se llama después de crear el usuario y datos_personales.
-     * 
-     * @param array $data Datos del pasante
-     * @return bool True si se creó exitosamente
+     * Calcular Fecha Fin Estimada saltando Sábados y Domingos.
+     *
+     * @param string $fecha_inicio  Formato Y-m-d
+     * @param int    $dias_habiles  Por defecto 180 (≈ 9 meses laborales)
+     * @return string Fecha fin en formato Y-m-d
      */
-    public function create(array $data): bool
+    public function calcularFechaFin(string $fecha_inicio, int $dias_habiles = 180): string
     {
-        $this->db->query("
-            INSERT INTO datos_pasante (
-                usuario_id,
-                institucion_procedencia,
-                carrera,
-                semestre,
-                cargo,
-                estado_pasantia,
-                horas_meta
-            ) VALUES (
-                :usuario_id,
-                :institucion,
-                :carrera,
-                :semestre,
-                :cargo,
-                'Pendiente',
-                240
-            )
-        ");
-        
-        $this->db->bind(':usuario_id', $data['usuario_id']);
-        $this->db->bind(':institucion', $data['institucion_procedencia'] ?? null);
-        $this->db->bind(':carrera', $data['carrera'] ?? null);
-        $this->db->bind(':semestre', $data['semestre'] ?? null);
-        $this->db->bind(':cargo', $data['cargo'] ?? null);
-        
-        return $this->db->execute();
+        $feriados = [];
+        $fecha    = new DateTime($fecha_inicio);
+        $conteo   = 0;
+
+        while ($conteo < $dias_habiles) {
+            $fecha->modify('+1 day');
+            $diaSemana = (int)$fecha->format('N'); // 1=Lun … 7=Dom
+
+            if ($diaSemana >= 6) continue;
+            if (in_array($fecha->format('Y-m-d'), $feriados)) continue;
+
+            $conteo++;
+        }
+
+        return $fecha->format('Y-m-d');
     }
 
-    /**
-     * Actualizar Estado de Pasantía (Formalización)
-     * 
-     * PROPÓSITO:
-     * Cambiar el estado de un pasante de "Pendiente" a "Activo"
-     * y registrar fecha de inicio, departamento asignado.
-     * 
-     * DEFENSA ACADÉMICA:
-     * "Profesor, esta actualización es atómica. Si falla cualquier
-     * parte, se revierte todo gracias a las transacciones de MySQL.
-     * Además, registro la acción en la bitácora para trazabilidad."
-     * 
-     * @param int $usuarioId ID del usuario
-     * @param array $data Datos de formalización
-     * @return bool True si se actualizó exitosamente
-     */
-    public function formalizar(int $usuarioId, array $data): bool
-    {
-        // Calcular fecha fin estimada (6 meses después)
-        $fechaInicio = $data['fecha_inicio'];
-        $fechaFin = date('Y-m-d', strtotime($fechaInicio . ' + 6 months'));
-        
-        $this->db->query("
-            UPDATE datos_pasante
-            SET 
-                estado_pasantia = 'Activo',
-                fecha_inicio_pasantia = :fecha_inicio,
-                fecha_fin_estimada = :fecha_fin,
-                departamento_asignado_id = :departamento_id,
-                institucion_procedencia = COALESCE(:institucion, institucion_procedencia)
-            WHERE usuario_id = :usuario_id
-        ");
-        
-        $this->db->bind(':fecha_inicio', $fechaInicio);
-        $this->db->bind(':fecha_fin', $fechaFin);
-        $this->db->bind(':departamento_id', $data['departamento_id']);
-        $this->db->bind(':institucion', $data['institucion_procedencia'] ?? null);
-        $this->db->bind(':usuario_id', $usuarioId);
-        
-        return $this->db->execute();
-    }
+    // ────────────────────────────────────────────────────────────────
+    // CONSULTAS
+    // ────────────────────────────────────────────────────────────────
 
     /**
-     * Actualizar Horas Acumuladas
-     * 
-     * @param int $usuarioId ID del usuario
-     * @param int $horas Horas a sumar
-     * @return bool True si se actualizó exitosamente
-     */
-    public function actualizarHoras(int $usuarioId, int $horas): bool
-    {
-        $this->db->query("
-            UPDATE datos_pasante
-            SET horas_acumuladas = horas_acumuladas + :horas
-            WHERE usuario_id = :usuario_id
-        ");
-        
-        $this->db->bind(':horas', $horas);
-        $this->db->bind(':usuario_id', $usuarioId);
-        
-        return $this->db->execute();
-    }
-
-    /**
-     * Obtener Todos los Pasantes
-     * 
-     * @return array Lista de pasantes
+     * Obtener todos los pasantes (rol_id = 3) con datos de las 3 tablas.
+     *
+     * JOIN con datos_personales (cedula, nombres, apellidos)
+     * JOIN con datos_pasante    (horas_acumuladas, estado_pasantia)
+     *
+     * @return array Lista de pasantes como objetos stdClass
      */
     public function getAll(): array
     {
         $this->db->query("
-            SELECT 
+            SELECT
                 u.id,
-                u.correo,
-                u.activo,
-                dp.cedula,
+                u.cedula,
                 dp.nombres,
                 dp.apellidos,
+                dp.cargo,
+                u.correo,
+                dp.telefono                                 AS telefono,
+                u.estado                                     AS activo,
+                u.pin_asistencia,
+                -- Lógica de negocio: datos académicos viven en datos_pasante
+                COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
+                COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
+                COALESCE(dpa.horas_meta, 1440)               AS horas_meta,
+                dpa.fecha_inicio_pasantia                    AS fecha_inicio,
+                dpa.fecha_fin_estimada                       AS fecha_fin_estimada,
                 dpa.institucion_procedencia,
-                dpa.estado_pasantia,
-                dpa.horas_acumuladas,
-                dpa.horas_meta,
-                dept.nombre as departamento_nombre,
-                CASE 
-                    WHEN dpa.horas_meta > 0 THEN ROUND((dpa.horas_acumuladas / dpa.horas_meta) * 100, 2)
+                u.created_at                                             AS fecha_registro,
+                d.nombre                                                 AS departamento_nombre,
+                dpa.institucion_procedencia                              AS institucion_nombre,
+                CASE
+                    WHEN COALESCE(dpa.horas_meta, 1440) > 0
+                    THEN ROUND(
+                        (COALESCE(dpa.horas_acumuladas, 0) / COALESCE(dpa.horas_meta, 1440)) * 100,
+                    2)
                     ELSE 0
-                END as progreso_porcentaje
+                END AS progreso_porcentaje
             FROM usuarios u
-            INNER JOIN datos_personales dp ON u.id = dp.usuario_id
-            LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
-            LEFT JOIN departamentos dept ON dpa.departamento_asignado_id = dept.id
-            WHERE u.role_id = 3
-            ORDER BY dpa.estado_pasantia ASC, dp.apellidos ASC
+            LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
+            LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
+            WHERE u.rol_id = 3
+            ORDER BY
+                FIELD(COALESCE(dpa.estado_pasantia, 'Sin Asignar'), 'Sin Asignar', 'Activo', 'Finalizado'),
+                IFNULL(dp.apellidos, u.correo) ASC
         ");
-        
+
         return $this->db->resultSet();
+    }
+
+    /**
+     * Obtener un pasante por su ID de usuario.
+     *
+     * @param int $usuarioId
+     * @return object|null stdClass con todos los datos o null
+     */
+    public function getByUsuarioId(int $usuarioId): ?object
+    {
+        $this->db->query("
+            SELECT
+                u.id,
+                u.cedula,
+                dp.nombres,
+                dp.apellidos,
+                dp.cargo,
+                u.correo,
+                dp.telefono                           AS telefono,
+                dp.genero                             AS genero,
+                dp.fecha_nacimiento,
+                u.estado                               AS activo,
+                u.pin_asistencia,
+                COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
+                COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
+                COALESCE(dpa.horas_meta, 1440)               AS horas_meta,
+                dpa.fecha_inicio_pasantia                    AS fecha_inicio,
+                dpa.fecha_fin_estimada                       AS fecha_fin_estimada,
+                dpa.institucion_procedencia,
+                u.created_at  AS fecha_registro,
+                d.nombre      AS departamento_nombre,
+                dpa.institucion_procedencia AS institucion_nombre,
+                CASE
+                    WHEN COALESCE(dpa.horas_meta, 1440) > 0
+                    THEN ROUND(
+                        (COALESCE(dpa.horas_acumuladas, 0) / COALESCE(dpa.horas_meta, 1440)) * 100,
+                    2)
+                    ELSE 0
+                END AS progreso_porcentaje
+            FROM usuarios u
+            LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
+            LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
+            WHERE u.id = :uid AND u.rol_id = 3
+            LIMIT 1
+        ");
+
+        $this->db->bind(':uid', $usuarioId);
+        $result = $this->db->single();
+
+        return $result ?: null;
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // ASIGNACIÓN
+    // ────────────────────────────────────────────────────────────────
+
+    /**
+     * Asignar pasante a un departamento y marcar la pasantía como Activa.
+     *
+     * ESTRATEGIA: Actualiza (o crea) el registro en datos_pasante.
+     * Si el pasante aún no tiene fila en datos_pasante, la inserta (UPSERT).
+     *
+     * @param int    $pasanteId
+     * @param int    $departamentoId
+     * @param string $fechaInicio     Y-m-d
+     * @return bool
+     */
+    public function asignar(int $pasanteId, int $departamentoId, string $fechaInicio): bool
+    {
+        $fechaFin = $this->calcularFechaFin($fechaInicio, 180);
+
+        // UPSERT: si ya existe fila en datos_pasante → UPDATE, si no → INSERT
+        $this->db->query("
+            INSERT INTO datos_pasante
+                (usuario_id, departamento_asignado_id, fecha_inicio_pasantia, fecha_fin_estimada, estado_pasantia)
+            VALUES
+                (:uid, :dept_id, :fecha_inicio, :fecha_fin, 'Activo')
+            ON DUPLICATE KEY UPDATE
+                departamento_asignado_id = VALUES(departamento_asignado_id),
+                fecha_inicio_pasantia    = VALUES(fecha_inicio_pasantia),
+                fecha_fin_estimada       = VALUES(fecha_fin_estimada),
+                estado_pasantia          = 'Activo'
+        ");
+
+        $this->db->bind(':uid',          $pasanteId);
+        $this->db->bind(':dept_id',      $departamentoId);
+        $this->db->bind(':fecha_inicio', $fechaInicio);
+        $this->db->bind(':fecha_fin',    $fechaFin);
+
+        return $this->db->execute();
+    }
+
+    /**
+     * Sumar horas acumuladas a un pasante.
+     *
+     * @param int $pasanteId
+     * @param int $horas
+     * @return bool
+     */
+    public function sumarHoras(int $pasanteId, int $horas): bool
+    {
+        $this->db->query("
+            UPDATE datos_pasante
+            SET horas_acumuladas = horas_acumuladas + :horas
+            WHERE usuario_id = :pasante_id
+        ");
+
+        $this->db->bind(':horas',      $horas);
+        $this->db->bind(':pasante_id', $pasanteId);
+
+        return $this->db->execute();
+    }
+
+    /**
+     * Marcar pasantía como Finalizada.
+     *
+     * @param int $pasanteId
+     * @return bool
+     */
+    public function finalizar(int $pasanteId): bool
+    {
+        $this->db->query("
+            UPDATE datos_pasante
+            SET estado_pasantia = 'Finalizado'
+            WHERE usuario_id = :pasante_id
+        ");
+
+        $this->db->bind(':pasante_id', $pasanteId);
+
+        return $this->db->execute();
     }
 }

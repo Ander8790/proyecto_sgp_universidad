@@ -5,6 +5,18 @@ class AuthController extends Controller
         $this->login();
     }
 
+    /**
+     * Iniciar Sesión de Usuario
+     * 
+     * LÓGICA DE CONTROL (Dualidad de Acceso):
+     * 1. Autenticación: Verifica credenciales contra hashed password en BD.
+     * 2. Auditoría: Valida que la cuenta esté 'activa'.
+     * 3. "La Jaula" (Fuerza Wizard):
+     *    - Si requiere_cambio_clave = 1: Redirige al Wizard (Paso 1). Típico en usuarios creados por Admin.
+     *    - Si perfil_completado = false: Redirige al Wizard (Paso 3). Típico en auto-registros.
+     * 
+     * @return void
+     */
     public function login(): void
     {
         Session::start();
@@ -19,6 +31,28 @@ class AuthController extends Controller
         }
 
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
+
+        // ============================================
+        // LÍMITE DE INTENTOS DE LOGIN (5 MAX)
+        // ============================================
+        if (!isset($_SESSION['login_attempts'])) {
+            $_SESSION['login_attempts'] = 0;
+            $_SESSION['login_blocked_until'] = null;
+        }
+
+        // Verificar si está bloqueado
+        if ($_SESSION['login_blocked_until'] && time() < $_SESSION['login_blocked_until']) {
+            $remaining = ceil(($_SESSION['login_blocked_until'] - time()) / 60);
+            $errorMsg = "Demasiados intentos fallidos. Intenta de nuevo en {$remaining} minutos.";
+            
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $errorMsg]);
+                exit;
+            }
+            $this->view('auth/login', ['error' => $errorMsg], false);
+            return;
+        }
 
         $email = Validator::email('email');
         $password = Validator::post('password');
@@ -46,7 +80,20 @@ class AuthController extends Controller
         
         // 1. Verificar si el correo existe
         if (!$user) {
+            // Incrementar contador de intentos fallidos
+            $_SESSION['login_attempts']++;
+            
+            // Calcular intentos restantes y mensaje
+            $remaining_attempts = 5 - $_SESSION['login_attempts'];
             $errorMsg = 'El correo electrónico no se encuentra registrado.';
+            
+            if ($_SESSION['login_attempts'] >= 3 && $_SESSION['login_attempts'] < 5) {
+                $errorMsg .= " Te quedan {$remaining_attempts} intentos.";
+            } elseif ($_SESSION['login_attempts'] >= 5) {
+                $_SESSION['login_blocked_until'] = time() + (15 * 60); // 15 minutos
+                $errorMsg = 'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.';
+            }
+            
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $errorMsg]);
@@ -59,7 +106,20 @@ class AuthController extends Controller
         
         // 2. Verificar si la contraseña es correcta
         if (!password_verify($password, $user['password'])) {
+            // Incrementar contador de intentos fallidos
+            $_SESSION['login_attempts']++;
+            
+            // Calcular intentos restantes y mensaje
+            $remaining_attempts = 5 - $_SESSION['login_attempts'];
             $errorMsg = 'La contraseña ingresada es incorrecta.';
+            
+            if ($_SESSION['login_attempts'] >= 3 && $_SESSION['login_attempts'] < 5) {
+                $errorMsg .= " Te quedan {$remaining_attempts} intentos.";
+            } elseif ($_SESSION['login_attempts'] >= 5) {
+                $_SESSION['login_blocked_until'] = time() + (15 * 60); // 15 minutos
+                $errorMsg = 'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.';
+            }
+            
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $errorMsg]);
@@ -70,34 +130,89 @@ class AuthController extends Controller
             return;
         }
 
+        // 3. Verificar si la cuenta está activa (Estado Auditoría Nivel Crítico)
+        if (($user['estado'] ?? 'activo') === 'inactivo') {
+            $errorMsg = 'Esta cuenta ha sido desactivada. Contacte al administrador.';
+            
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $errorMsg]);
+                exit;
+            }
+            
+            Session::setFlash('login_error', $errorMsg);
+            $this->view('auth/login', [], false);
+            return;
+        }
+
+        // ✨ LOGIN EXITOSO: Reset contador de intentos
+        $_SESSION['login_attempts'] = 0;
+        $_SESSION['login_blocked_until'] = null;
+
         Session::regenerate();
         Session::set('user_id', $user['id']);
         Session::set('role_id', $user['role_id']);
-        Session::set('user_name', $user['name']);
+        
+        // Tarea: Establecer nombre real desde datos_personales
+        $fullName = trim(($user['nombres'] ?? '') . ' ' . ($user['apellidos'] ?? ''));
+        if (empty($fullName)) $fullName = 'Usuario';
+        Session::set('user_name', $fullName);
+
         Session::set('requiere_cambio_clave', $user['requiere_cambio_clave'] ?? 0);
         Session::set('departamento_id', $user['departamento_id'] ?? null);
         Session::set('last_activity', time());
 
-        // Check if password change is required ("La Jaula")
-        if ($user['requiere_cambio_clave'] == 1) {
+        // Verificar si el perfil está completo
+        $perfilCompletado = $userModel->verificarPerfilCompleto((int)$user['id']);
+        Session::set('perfil_completado', $perfilCompletado);
+
+        // Registrar login en bitácora
+        AuditModel::log('LOGIN');
+
+        // Redirección al Wizard si requiere cambio de clave O perfil incompleto
+        if ($user['requiere_cambio_clave'] == 1 || !$perfilCompletado) {
             if ($isAjax) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => true, 'redirect' => URLROOT . '/auth/cambiar-password']);
+                echo json_encode([
+                    'success'   => true,
+                    'redirect'  => URLROOT . '/wizard/index',
+                    'user_name' => $fullName
+                ]);
                 exit;
             }
-            $this->redirect('/auth/cambiar-password');
+            $this->redirect('/wizard/index');
             return;
         }
 
         if ($isAjax) {
             header('Content-Type: application/json');
-            echo json_encode(['success' => true, 'redirect' => URLROOT . '/dashboard']);
+            echo json_encode([
+                'success' => true, 
+                'redirect' => URLROOT . '/dashboard',
+                'user_name' => $fullName
+            ]);
             exit;
         }
+
+        // ✨ Toast de bienvenida en el Dashboard
+        Session::setFlash('success', '¡Bienvenido, ' . $fullName . '!');
 
         $this->redirectByRole($user['role_id']);
     }
 
+    /**
+     * Registro Público de Pasantes
+     * 
+     * FLUJO TÉCNICO:
+     * 1. Validación de Entrada: Email y Cédula únicos.
+     * 2. Transacción ACID: Crea cuenta y perfil simultáneamente.
+     * 3. Configuración Inicial:
+     *    - requiere_cambio_clave = 0: El usuario mismo elije su clave.
+     *    - perfil_completado = false: Disparad por falta de campos obligatorios.
+     * 4. Seguridad: Inserta 3 respuestas de seguridad hasheadas.
+     * 
+     * @return void
+     */
     public function register(): void
     {
         Session::start();
@@ -167,6 +282,7 @@ class AuthController extends Controller
             $userData = [
                 'email' => $email,
                 'password' => $password,
+                'cedula' => $cedula, // FIX: PERSISTENCIA EN TABLA USUARIOS
                 'role_id' => $roleId,
                 'departamento_id' => null,
                 'requiere_cambio_clave' => 0
@@ -200,6 +316,20 @@ class AuthController extends Controller
                 throw new Exception('Debes seleccionar 3 preguntas diferentes');
             }
 
+            // ✨ NUEVO: Validar que las 3 respuestas sean diferentes (case-insensitive)
+            $r1_lower = strtolower(trim($respuesta1));
+            $r2_lower = strtolower(trim($respuesta2));
+            $r3_lower = strtolower(trim($respuesta3));
+
+            if ($r1_lower === $r2_lower || $r1_lower === $r3_lower || $r2_lower === $r3_lower) {
+                throw new Exception('Las respuestas de seguridad deben ser diferentes');
+            }
+
+            // ✨ NUEVO: Validar longitud mínima de respuestas (seguridad)
+            if (strlen($respuesta1) < 3 || strlen($respuesta2) < 3 || strlen($respuesta3) < 3) {
+                throw new Exception('Las respuestas deben tener al menos 3 caracteres');
+            }
+
             // Guardar las 3 respuestas (si falla alguna, se hace rollback)
             if (!$userModel->saveSecurityAnswer((int)$newUser['id'], (int)$pregunta1, $respuesta1)) {
                 throw new Exception('Error al guardar la respuesta de seguridad 1');
@@ -222,7 +352,6 @@ class AuthController extends Controller
                 'nombres' => $nombres,
                 'apellidos' => $apellidos,
                 'telefono' => null,
-                'direccion' => null,
                 'genero' => null,
                 'fecha_nacimiento' => null
             ];
@@ -438,6 +567,10 @@ class AuthController extends Controller
         
         Session::start();
         
+        // Registrar logout en bitácora
+        // Usamos el ID de la sesión actual antes de destruirla
+        AuditModel::log('LOGOUT');
+
         // Limpiar todas las variables de sesión
         $_SESSION = [];
         
@@ -543,6 +676,75 @@ class AuthController extends Controller
         } else {
             Session::setFlash('error', 'Error al enviar la solicitud. Intenta nuevamente.');
             $this->redirect('/auth/recovery');
+        }
+    }
+
+    /**
+     * Solicitar ayuda al administrador para reseteo de credenciales (AJAX)
+     */
+    public function request_help() {
+        Session::start();
+        
+        // Verificar AJAX
+        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || 
+            $_SERVER['HTTP_X_REQUESTED_WITH'] !== 'XMLHttpRequest') {
+            $this->redirect('/auth/login');
+            return;
+        }
+        
+        header('Content-Type: application/json');
+        
+        try {
+            $data = json_decode(file_get_contents('php://input'), true);
+            $email = trim($data['email'] ?? '');
+            
+            if (empty($email)) {
+                echo json_encode(['success' => false, 'message' => 'Email requerido']);
+                return;
+            }
+            
+            $config = require APPROOT . '/config/config.php';
+            $db = new Database($config['db']);
+
+            // Buscar usuario
+            $db->query("SELECT u.id, dp.nombres, dp.apellidos FROM usuarios u LEFT JOIN datos_personales dp ON dp.usuario_id = u.id WHERE u.correo = :email");
+            $db->bind(':email', $email);
+            $user = $db->single();
+            
+            if (!$user) {
+                echo json_encode(['success' => false, 'message' => 'Usuario no encontrado']);
+                return;
+            }
+            
+            // Crear notificación para administradores
+            require_once APPROOT . '/models/NotificationModel.php';
+            $notificationModel = new NotificationModel($db);
+            $nombreC = trim(($user->nombres ?? 'Usuario') . ' ' . ($user->apellidos ?? ''));
+
+            $db->query("SELECT id FROM usuarios WHERE rol_id = 1 AND estado = 'activo'");
+            $admins = $db->resultSet();
+
+            foreach ($admins as $admin) {
+                $notificationModel->create(
+                    $admin->id, 
+                    'solicitud_recovery', 
+                    'Solicitud de Recuperación',
+                    "El usuario {$nombreC} ({$email}) ha solicitado ayuda para recuperar su acceso al sistema.",
+                    URLROOT . '/users'
+                );
+            }
+            
+            echo json_encode([
+                'success' => true,
+                'message' => 'Solicitud enviada correctamente'
+            ]);
+            
+        } catch (Exception $e) {
+            error_log("Error en request_help: " . $e->getMessage());
+            echo json_encode([
+                'success' => false,
+                'message' => 'Error al procesar solicitud'
+            ]);
         }
     }
 

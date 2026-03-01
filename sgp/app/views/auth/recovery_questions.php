@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGP - Preguntas de Seguridad</title>
+    
+    <!-- CSS Assets -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/bootstrap.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
 </head>
 <body class="auth-wrapper">
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
@@ -34,6 +41,19 @@
                 Verificar <i class="ti ti-check" style="margin-left: 8px;"></i>
             </button>
         </form>
+
+        <script>
+            document.querySelector('form').addEventListener('submit', function() {
+                const btn = this.querySelector('button[type="submit"]');
+                if (typeof setLoading === 'function') {
+                    setLoading(btn, true, 'Verificando...');
+                } else {
+                    // Fallback si validation.js no está cargado (aunque debería por footer)
+                    btn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Verificando...';
+                    btn.disabled = true;
+                }
+            });
+        </script>
         
         <!-- SECCIÓN: SOLICITUD DE AYUDA -->
         <div class="text-center" style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #E5E7EB;">
@@ -77,22 +97,68 @@
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Redirigir a la ruta de desbloqueo
-                    window.location.href = '<?= URLROOT ?>/auth/solicitarDesbloqueo';
+                    // ✨ MEJORADO: Usar AJAX en lugar de redirect
+                    sendHelpRequest();
                 }
             });
         });
+        
+        /**
+         * Enviar solicitud de ayuda al administrador vía AJAX
+         */
+        function sendHelpRequest() {
+            // Obtener email del usuario (de sesión PHP)
+            const email = '<?= $_SESSION['recovery_email'] ?? '' ?>';
+            
+            if (!email) {
+                NotificationService.error('No se pudo identificar tu correo');
+                return;
+            }
+            
+            // Mostrar loading
+            Swal.fire({
+                title: 'Enviando solicitud...',
+                html: 'Por favor espera',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Enviar solicitud vía AJAX
+            fetch('<?= URLROOT ?>/auth/request-help', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({ email: email })
+            })
+            .then(response => response.json())
+            .then(data => {
+                Swal.close();
+                
+                if (data.success) {
+                    NotificationService.success('Solicitud enviada correctamente. Redirigiendo...');
+                    setTimeout(() => {
+                        window.location.href = '<?= URLROOT ?>/auth/login';
+                    }, 2000);
+                } else {
+                    NotificationService.error(data.message || 'Error al enviar solicitud');
+                }
+            })
+            .catch(error => {
+                Swal.close();
+                console.error('Error:', error);
+                NotificationService.error('Error de conexión. Intenta de nuevo.');
+            });
+        }
         
         // ============================================
         // SWEETALERT: RESPUESTAS INCORRECTAS
         // ============================================
         <?php if (!empty($error)): ?>
-            Swal.fire({
-                icon: 'error',
-                title: 'Respuestas Incorrectas',
-                text: '<?= htmlspecialchars($error) ?>',
-                confirmButtonColor: '#162660'
-            });
+            NotificationService.error('<?= htmlspecialchars($error) ?>');
         <?php endif; ?>
     </script>
 </body>

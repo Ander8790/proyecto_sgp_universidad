@@ -15,10 +15,18 @@ if (Session::get('requiere_cambio_clave') == 1) {
     return;
 }
 ?>
+
+<?php
+/**
+ * NOTA: URLROOT ya está definido en main_layout.php
+ * No es necesario redefinirlo aquí para evitar errores de duplicación
+ */
+?>
+
 <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     
     <!-- ZONA IZQUIERDA: Hamburguesa + Logo SGP -->
-    <ul class="navbar-nav align-items-center">
+    <ul class="navbar-nav align-items-center" style="gap: 12px;">
         <!-- Toggle Desktop - Colapsar/Expandir Sidebar (Desktop Only) -->
         <li class="nav-item d-none d-lg-block">
             <button id="sidebarCollapseToggle" class="btn-toggle" aria-label="Colapsar/Expandir sidebar" title="Colapsar sidebar">
@@ -34,7 +42,7 @@ if (Session::get('requiere_cambio_clave') == 1) {
         </li>
         
         <!-- Logo SGP (Siempre visible) -->
-        <li class="nav-item ml-2">
+        <li class="nav-item">
             <?php
             $user_role_id = Session::get('role_id') ?? 0;
             $dashboardUrl = URLROOT . '/dashboard';
@@ -48,24 +56,35 @@ if (Session::get('requiere_cambio_clave') == 1) {
             </a>
         </li>
     </ul>
-
-    <!-- ZONA CENTRAL: Logo Institucional -->
-    <div class="institutional-strip mx-auto d-none d-lg-flex align-items-center justify-content-center">
+    
+    <!-- ZONA CENTRAL: Cintillo Institucional Centrado (Ambos logos juntos) -->
+    <div class="institutional-strip-center">
+        <!-- Logo Instituto de Salud -->
+        <img src="<?= URLROOT ?>/img/cintillo-salud.png" 
+             alt="Instituto de Salud Pública" 
+             class="institutional-logo"
+             style="height: 50px; width: auto; max-width: 350px; object-fit: contain;">
+        
+        <!-- Separador visual -->
+        <div class="institutional-separator"></div>
+        
+        <!-- Logo Gobernación -->
         <img src="<?= URLROOT ?>/img/gobe.png" 
-             alt="Gobernación de Bolívar - Salud" 
-             style="height: 52px; width: auto; max-width: 320px; object-fit: contain;">
+             alt="Gobernación de Bolívar" 
+             class="institutional-logo"
+             style="height: 50px; width: auto; max-width: 350px; object-fit: contain;">
     </div>
 
     <!-- ZONA DERECHA: Notificaciones + Perfil -->
-    <ul class="navbar-nav ml-auto align-items-center" style="gap: 8px;">
+    <ul class="navbar-nav ml-auto align-items-center" style="gap: 12px;">
         
         <!-- Notificaciones -->
         <li class="nav-item dropdown">
-            <a class="nav-link position-relative header-icon-btn" data-toggle="dropdown" href="#" aria-label="Notificaciones">
+            <a class="nav-link position-relative header-icon-btn" id="notificationBtn" data-toggle="dropdown" href="#" aria-label="Notificaciones">
                 <i class="ti ti-bell"></i>
-                <span id="notificationCount" class="badge badge-danger notification-badge" style="display: none;">0</span>
+                <span id="notificationBadge" class="badge badge-danger notification-badge" style="display: none;">0</span>
             </a>
-            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right">
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" id="notificationsDropdown">
                 <span class="dropdown-item dropdown-header">Notificaciones</span>
                 <div class="dropdown-divider"></div>
                 <div id="notificationList">
@@ -73,8 +92,13 @@ if (Session::get('requiere_cambio_clave') == 1) {
                         <p class="text-muted mb-0">Sin notificaciones nuevas</p>
                     </div>
                 </div>
+                <div class="dropdown-divider"></div>
+                <a href="#" id="markAllReadBtn" class="dropdown-item dropdown-footer text-center">
+                    <i class="ti ti-check-all mr-1"></i> Marcar todas como leídas
+                </a>
             </div>
         </li>
+
 
         <!-- Perfil Usuario -->
         <li class="nav-item dropdown">
@@ -85,7 +109,7 @@ if (Session::get('requiere_cambio_clave') == 1) {
                     echo strtoupper(substr($user_name, 0, 1));
                     ?>
                 </div>
-                <div class="d-none d-md-block ml-2 text-left">
+                <div class="d-block ml-2 text-left">
                     <span class="d-block font-weight-bold line-height-1" style="font-size: 0.9rem; color: #1e293b;">
                         <?php echo htmlspecialchars(explode(' ', $user_name)[0]); ?>
                     </span>

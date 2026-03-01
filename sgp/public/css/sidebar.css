@@ -6,6 +6,9 @@
 :root {
     --sidebar-width: 260px;
     --header-height: 70px;
+    /* Topbar del dashboard (logos 50px + padding) */
+    --header-height-mobile: 60px;
+    /* Topbar móvil compacto */
     --z-header: 1000;
     --z-overlay: 1040;
     --z-sidebar-mobile: 1050;
@@ -62,13 +65,17 @@
     transition: none !important;
 }
 
+/* Scrollbar invisible — scroll funciona con rueda/trackpad sin barra visible */
 .main-sidebar::-webkit-scrollbar {
-    width: 4px;
+    display: none;
+    /* Chrome, Safari, Edge */
 }
 
-.main-sidebar::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.25);
-    border-radius: 4px;
+.main-sidebar {
+    -ms-overflow-style: none;
+    /* IE/Edge */
+    scrollbar-width: none;
+    /* Firefox */
 }
 
 /* ========================================
@@ -79,6 +86,14 @@
     flex: 1;
     overflow-y: auto;
     scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge */
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    display: none;
+    /* Chrome, Safari, Edge */
 }
 
 .nav-list {
@@ -127,8 +142,8 @@
     transform: translateX(3px);
 }
 
-/* Deshabilitar transform en collapsed */
-.main-sidebar.collapsed .nav-link:hover:not(.active) {
+/* ✅ FIX: Deshabilitar transform en collapsed */
+body.sidebar-collapsed .nav-link:hover:not(.active) {
     transform: none !important;
 }
 
@@ -143,8 +158,13 @@
     color: var(--text-dark) !important;
     font-weight: 600;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    margin: 4px 12px 4px 8px !important;
+
+    /* ✅ FIX: Margin consistente para evitar "saltos" */
+    margin: 4px 8px !important;
     border-radius: 12px !important;
+
+    /* ✅ FIX: Transición suave */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .nav-link.active i {
@@ -155,42 +175,51 @@
    SIDEBAR COLLAPSED STATE (Desktop Only)
    ======================================== */
 
-.main-sidebar.collapsed {
+/* ✅ FIX: Usar body.sidebar-collapsed para consistencia */
+body.sidebar-collapsed .main-sidebar {
     width: 80px;
     overflow-x: visible !important;
 }
 
-/* Soporte para collapsed desde HTML */
-html.sidebar-collapsed .main-sidebar,
-.sidebar-collapsed .main-sidebar {
-    width: 80px;
+/* ✅ FIX: Asegurar que el foco no expanda el sidebar */
+body.sidebar-collapsed .main-sidebar:focus-within {
+    width: 80px !important;
 }
 
-.main-sidebar.collapsed .nav-link {
+body.sidebar-collapsed .nav-link {
     justify-content: center;
     padding: 16px 12px;
     position: relative;
+
+    /* ✅ FIX: Margin consistente también en collapsed */
+    margin: 4px 8px !important;
 }
 
-.main-sidebar.collapsed .nav-link i {
+body.sidebar-collapsed .nav-link i {
     font-size: 1.5rem;
     margin-right: 0;
 }
 
-.main-sidebar.collapsed .menu-text {
+body.sidebar-collapsed .menu-text {
     display: none;
 }
 
-.main-sidebar.collapsed .btn-logout span {
+/* ✅ NUEVO: Active state en collapsed también centrado */
+body.sidebar-collapsed .nav-link.active {
+    justify-content: center;
+    margin: 4px 8px !important;
+}
+
+body.sidebar-collapsed .btn-logout span {
     display: none;
 }
 
-.main-sidebar.collapsed .btn-logout {
+body.sidebar-collapsed .btn-logout {
     justify-content: center;
     padding: 14px;
 }
 
-.main-sidebar.collapsed .btn-logout i {
+body.sidebar-collapsed .btn-logout i {
     margin: 0;
     font-size: 22px;
 }
@@ -199,7 +228,7 @@ html.sidebar-collapsed .main-sidebar,
    TOOLTIPS (Collapsed State Only)
    ======================================== */
 
-.main-sidebar.collapsed .nav-link::after {
+body.sidebar-collapsed .nav-link::after {
     content: attr(data-tooltip);
     position: absolute;
     left: calc(100% + 12px);
@@ -218,14 +247,16 @@ html.sidebar-collapsed .main-sidebar,
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
+
+    /* ✅ FIX: Transición más rápida */
+    transition: opacity 0.15s ease, visibility 0.15s ease;
     z-index: 2000;
 
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 /* Arrow del tooltip */
-.main-sidebar.collapsed .nav-link::before {
+body.sidebar-collapsed .nav-link::before {
     content: '';
     position: absolute;
     left: calc(100% + 4px);
@@ -241,12 +272,12 @@ html.sidebar-collapsed .main-sidebar,
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 0.2s ease, visibility 0.2s ease;
+    transition: opacity 0.15s ease, visibility 0.15s ease;
     z-index: 2000;
 }
 
-.main-sidebar.collapsed .nav-link:hover::after,
-.main-sidebar.collapsed .nav-link:hover::before {
+body.sidebar-collapsed .nav-link:hover::after,
+body.sidebar-collapsed .nav-link:hover::before {
     opacity: 1;
     visibility: visible;
 }
@@ -361,9 +392,9 @@ html.sidebar-collapsed .main-sidebar,
     .content-wrapper {
         margin-left: 0 !important;
         width: 100%;
-        margin-top: var(--header-height);
+        margin-top: var(--header-height-mobile);
         padding: 20px 15px;
-        min-height: calc(100vh - var(--header-height));
+        min-height: calc(100vh - var(--header-height-mobile));
         background-color: #F8FAFC;
     }
 }

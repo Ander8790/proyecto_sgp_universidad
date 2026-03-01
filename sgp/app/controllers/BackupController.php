@@ -1,6 +1,6 @@
 <?php
 /**
- * BackupController - Database Backup Management
+ * BackupController
  * Admin-only access for creating, downloading, and managing database backups
  */
 class BackupController extends Controller
@@ -16,12 +16,8 @@ class BackupController extends Controller
         
         Session::start();
         
-        // Only Admin can access
-        if (Session::get('role_id') != 1) {
-            Session::setFlash('error', 'Acceso denegado. Solo administradores.');
-            $this->redirect('/dashboard');
-            exit;
-        }
+        // Solo Admin puede acceder (Validador de Rol Transversal)
+        RoleMiddleware::authorize([1]);
         
         $this->backupDir = APPROOT . '/storage/backups';
         
@@ -191,6 +187,88 @@ class BackupController extends Controller
             $this->jsonResponse(true, 'Respaldo eliminado exitosamente');
         } else {
             $this->jsonResponse(false, 'Error al eliminar el respaldo');
+        }
+    }
+
+    /**
+     * Restore database from backup
+     */
+    public function restore($filename = null)
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(false, 'Método no permitido');
+        }
+        
+        if (!$filename) {
+            $this->jsonResponse(false, 'Archivo no especificado');
+        }
+        
+        // Validate filename
+        $filename = basename($filename);
+        if (!preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.sql$/', $filename)) {
+            $this->jsonResponse(false, 'Nombre de archivo inválido');
+        }
+        
+        $filepath = $this->backupDir . '/' . $filename;
+        
+        if (!file_exists($filepath)) {
+            $this->jsonResponse(false, 'Archivo no encontrado');
+        }
+        
+        try {
+            // Get database credentials from config
+            $config = require APPROOT . '/config/config.php';
+            $dbConfig = $config['db'];
+            
+            $host = $dbConfig['host'];
+            $user = $dbConfig['user'];
+            $pass = $dbConfig['pass'];
+            $dbname = $dbConfig['name'];
+            
+            // Build mysql command for Windows (XAMPP)
+            $mysqlPath = 'C:\\xampp\\mysql\\bin\\mysql.exe';
+            
+            // Check if mysql exists
+            if (!file_exists($mysqlPath)) {
+                // Try system PATH
+                $mysqlPath = 'mysql';
+            }
+            
+            // Build command - handle empty password
+            if (empty($pass)) {
+                $command = sprintf(
+                    '%s --user=%s --host=%s %s < %s 2>&1',
+                    $mysqlPath,
+                    escapeshellarg($user),
+                    escapeshellarg($host),
+                    escapeshellarg($dbname),
+                    escapeshellarg($filepath)
+                );
+            } else {
+                $command = sprintf(
+                    '%s --user=%s --password=%s --host=%s %s < %s 2>&1',
+                    $mysqlPath,
+                    escapeshellarg($user),
+                    escapeshellarg($pass),
+                    escapeshellarg($host),
+                    escapeshellarg($dbname),
+                    escapeshellarg($filepath)
+                );
+            }
+            
+            // Execute restore
+            exec($command, $output, $returnVar);
+            
+            // Check if restore was successful
+            if ($returnVar !== 0) {
+                $errorMsg = !empty($output) ? implode("\n", $output) : 'Error al restaurar la base de datos';
+                $this->jsonResponse(false, 'Error al restaurar: ' . $errorMsg);
+            }
+            
+            $this->jsonResponse(true, 'Base de datos restaurada exitosamente desde: ' . $filename);
+            
+        } catch (Exception $e) {
+            $this->jsonResponse(false, 'Error: ' . $e->getMessage());
         }
     }
 

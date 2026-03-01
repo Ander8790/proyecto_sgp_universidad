@@ -161,17 +161,6 @@ if (!isset($user) || empty($user)) {
                         </h5>
                     </div>
                     
-                    <!-- Dirección (Full Width) -->
-                    <div style="grid-column: 1 / -1;">
-                        <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                            <i class="fas fa-map-marker-alt" style="color: var(--color-primary); margin-right: 8px;"></i>
-                            <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Dirección</span>
-                        </div>
-                        <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
-                            <?= htmlspecialchars($user['direccion'] ?? 'No especificado') ?>
-                        </h5>
-                    </div>
-
                     <?php if (Session::get('role_id') == 3 && !empty($user['institucion_procedencia'])): // Pasante ?>
                     <div style="grid-column: 1 / -1;">
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
@@ -218,9 +207,9 @@ if (!isset($user) || empty($user)) {
                                 <p style="margin: 0; font-size: 0.85rem; color: #6B7280;">Para recuperación de cuenta</p>
                             </div>
                         </div>
-                        <a href="<?= URLROOT ?>/perfil/gestionar_preguntas" class="btn-primary" style="width: 100%; margin-top: 12px; display: block; text-align: center; text-decoration: none;">
+                        <button class="btn-primary" style="width: 100%; margin-top: 12px;" onclick="openPreguntasModal()">
                             <i class="ti ti-settings"></i> Gestionar Preguntas
-                        </a>
+                        </button>
                     </div>
                 </div>
             </div>
@@ -232,91 +221,205 @@ if (!isset($user) || empty($user)) {
 <div id="editModal" class="modal">
     <div class="modal-content" style="max-width: 700px;">
         <div class="modal-header">
-            <h2 class="modal-title">Editar Mi Perfil</h2>
+            <div class="modal-header-info">
+                <div class="modal-header-icon">
+                    <i class="ti ti-edit"></i>
+                </div>
+                <div>
+                    <h2 class="modal-title">Editar Mi Perfil</h2>
+                    <p class="modal-subtitle">Actualiza tu información personal de contacto</p>
+                </div>
+            </div>
             <button class="modal-close" onclick="closeEditModal()">
                 <i class="ti ti-x"></i>
             </button>
         </div>
         
-        <form id="editProfileForm" action="<?= URLROOT ?>/perfil/actualizar" method="POST">
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <div class="form-group">
-                    <label>Cédula * <small style="color: #6B7280;">(No editable)</small></label>
-                    <input type="text" name="cedula" id="edit_cedula" readonly
-                           placeholder="V-12234567"
-                           value="<?= htmlspecialchars($user['cedula'] ?? '') ?>" 
-                           class="input-modern" 
-                           style="background-color: #F3F4F6; cursor: not-allowed; color: #6B7280;">
+        <div class="modal-body-scroll">
+            <form id="editProfileForm" action="<?= URLROOT ?>/perfil/actualizar" method="POST">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label>Cédula * <small style="color: #6B7280;">(No editable)</small></label>
+                        <input type="text" name="cedula" id="edit_cedula" readonly
+                            placeholder="V-12234567"
+                            value="<?= htmlspecialchars($user['cedula'] ?? '') ?>" 
+                            class="input-modern" 
+                            style="background-color: #F3F4F6; cursor: not-allowed; color: #6B7280;">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Teléfono *</label>
+                        <input type="text" name="telefono" id="edit_telefono" required 
+                            placeholder="0414-1231234"
+                            maxlength="20"
+                            oninput="validatePhoneInput(event)"
+                            value="<?= htmlspecialchars($user['telefono'] ?? '') ?>" class="input-modern">
+                    </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>Teléfono *</label>
-                    <input type="text" name="telefono" id="edit_telefono" required 
-                           placeholder="0414-1231234"
-                           value="<?= htmlspecialchars($user['telefono'] ?? '') ?>" class="input-modern">
-                </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <div class="form-group">
-                    <label>Nombres *</label>
-                    <input type="text" name="nombres" id="edit_nombres" required 
-                           placeholder="Ingrese sus nombres"
-                           value="<?= htmlspecialchars($user['nombres'] ?? '') ?>" class="input-modern">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label>Nombres *</label>
+                        <input type="text" name="nombres" id="edit_nombres" required 
+                            placeholder="Ingrese sus nombres"
+                            maxlength="100"
+                            oninput="validateNameInput(event)"
+                            value="<?= htmlspecialchars($user['nombres'] ?? '') ?>" class="input-modern">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Apellidos *</label>
+                        <input type="text" name="apellidos" id="edit_apellidos" required 
+                            placeholder="Ingrese sus apellidos"
+                            maxlength="100"
+                            oninput="validateNameInput(event)"
+                            value="<?= htmlspecialchars($user['apellidos'] ?? '') ?>" class="input-modern">
+                    </div>
                 </div>
                 
-                <div class="form-group">
-                    <label>Apellidos *</label>
-                    <input type="text" name="apellidos" id="edit_apellidos" required 
-                           placeholder="Ingrese sus apellidos"
-                           value="<?= htmlspecialchars($user['apellidos'] ?? '') ?>" class="input-modern">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <?php if (Session::get('role_id') != 3): // Solo Admin/Tutor ?>
+                    <div class="form-group">
+                        <label>Cargo *</label>
+                        <input type="text" name="cargo" id="edit_cargo" required 
+                            placeholder="Ej: Analista de Soporte"
+                            value="<?= htmlspecialchars($user['cargo'] ?? '') ?>" class="input-modern">
+                    </div>
+                    <?php endif; ?>
+                    <div class="form-group">
+                        <label>Género *</label>
+                        <select name="genero" id="edit_genero" required class="input-modern">
+                            <option value="">Seleccione...</option>
+                            <option value="M" <?= ($user['genero'] ?? '') == 'M' ? 'selected' : '' ?>>Masculino</option>
+                            <option value="F" <?= ($user['genero'] ?? '') == 'F' ? 'selected' : '' ?>>Femenino</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Fecha de Nacimiento *</label>
+                        <?php
+                        // Calcular fechas límite para validación
+                        $maxDate = date('Y-m-d'); // Hoy
+                        $minDate = date('Y-m-d', strtotime('-100 years')); // Hace 100 años
+                        ?>
+                        <input type="date" name="fecha_nacimiento" id="edit_fecha_nacimiento" required 
+                            min="<?= $minDate ?>"
+                            max="<?= $maxDate ?>"
+                            value="<?= htmlspecialchars($user['fecha_nacimiento'] ?? '') ?>" class="input-modern">
+                    </div>
                 </div>
-            </div>
-            
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                <?php if (Session::get('role_id') != 3): // Solo Admin/Tutor ?>
-                <div class="form-group">
-                    <label>Cargo *</label>
-                    <input type="text" name="cargo" id="edit_cargo" required 
-                           placeholder="Ej: Analista de Soporte"
-                           value="<?= htmlspecialchars($user['cargo'] ?? '') ?>" class="input-modern">
+                
+                
+                <?php if (Session::get('role_id') == 3): // Pasante ?>
+                <div class="form-group" style="margin-bottom: 24px;">
+                    <label>Institución de Procedencia *</label>
+                    <input type="text" name="institucion_procedencia" id="edit_institucion" required 
+                        value="<?= htmlspecialchars($user['institucion_procedencia'] ?? '') ?>" class="input-modern">
                 </div>
                 <?php endif; ?>
-                <div class="form-group">
-                    <label>Género *</label>
-                    <select name="genero" id="edit_genero" required class="input-modern">
-                        <option value="">Seleccione...</option>
-                        <option value="M" <?= ($user['genero'] ?? '') == 'M' ? 'selected' : '' ?>>Masculino</option>
-                        <option value="F" <?= ($user['genero'] ?? '') == 'F' ? 'selected' : '' ?>>Femenino</option>
-                    </select>
-                </div>
                 
-                <div class="form-group">
-                    <label>Fecha de Nacimiento *</label>
-                    <input type="date" name="fecha_nacimiento" id="edit_fecha_nacimiento" required 
-                           value="<?= htmlspecialchars($user['fecha_nacimiento'] ?? '') ?>" class="input-modern">
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    <i class="ti ti-check"></i> Guardar Cambios
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+    </div>
+</div>
+
+<!-- Preguntas de Seguridad Modal -->
+<div id="preguntasModal" class="modal">
+    <div class="modal-content" style="max-width: 700px;">
+        <div class="modal-header">
+            <div class="modal-header-info">
+                <div class="modal-header-icon">
+                    <i class="ti ti-shield-lock"></i>
+                </div>
+                <div>
+                    <h2 class="modal-title">Preguntas de Seguridad</h2>
+                    <p class="modal-subtitle">Actualiza tus métodos de recuperación</p>
                 </div>
             </div>
-            
-            <div class="form-group" style="margin-bottom: 24px;">
-                <label>Dirección *</label>
-                <textarea name="direccion" id="edit_direccion" required class="input-modern" 
-                          placeholder="Ej: Av. Táchira, Casa Nro 5..."
-                          style="min-height: 80px; resize: vertical;"><?= htmlspecialchars($user['direccion'] ?? '') ?></textarea>
-            </div>
-            
-            <?php if (Session::get('role_id') == 3): // Pasante ?>
-            <div class="form-group" style="margin-bottom: 24px;">
-                <label>Institución de Procedencia *</label>
-                <input type="text" name="institucion_procedencia" id="edit_institucion" required 
-                       value="<?= htmlspecialchars($user['institucion_procedencia'] ?? '') ?>" class="input-modern">
-            </div>
-            <?php endif; ?>
-            
-            <button type="submit" class="btn-primary">
-                <i class="ti ti-check"></i> Guardar Cambios
+            <button class="modal-close" onclick="closePreguntasModal()">
+                <i class="ti ti-x"></i>
             </button>
-</form>
+        </div>
+        
+        <div class="modal-body-scroll">
+            <form id="formSecurityQuestions" action="<?= URLROOT ?>/perfil/actualizar_preguntas" method="POST">
+                <div style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                    <p style="color: #1E3A8A; font-size: 0.9rem; margin: 0;">
+                        <i class="ti ti-info-circle" style="margin-right: 6px;"></i>
+                        <strong>Aviso:</strong> Selecciona tres preguntas diferentes y proporciona respuestas que solo tú conozcas.
+                    </p>
+                </div>
+
+                <!-- Pregunta 1 -->
+                <div style="background: #F8FAFC; padding: 20px; border-radius: 16px; border: 1px solid #E2E8F0; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label><i class="ti ti-help" style="margin-right: 6px;"></i> Pregunta 1 *</label>
+                        <select name="pregunta_1" id="pregunta_1" class="input-modern" required>
+                            <option value="">Seleccione...</option>
+                            <?php foreach ($preguntas as $p): ?>
+                                <option value="<?= $p->id ?>" <?= (isset($respuestas[0]) && $respuestas[0]->pregunta_id == $p->id) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($p->pregunta) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group has-toggle" style="margin-bottom: 0;">
+                        <input type="password" name="respuesta_1" id="respuesta_1" class="input-modern" placeholder="Tu respuesta a la pregunta 1" required style="padding-right: 48px;">
+                        <label class="label-floating" style="opacity: 0;">Respuesta 1</label>
+                        <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('respuesta_1', this)"></i>
+                    </div>
+                </div>
+
+                <!-- Pregunta 2 -->
+                <div style="background: #F8FAFC; padding: 20px; border-radius: 16px; border: 1px solid #E2E8F0; margin-bottom: 20px;">
+                    <div class="form-group">
+                        <label><i class="ti ti-help" style="margin-right: 6px;"></i> Pregunta 2 *</label>
+                        <select name="pregunta_2" id="pregunta_2" class="input-modern" required>
+                            <option value="">Seleccione...</option>
+                            <?php foreach ($preguntas as $p): ?>
+                                <option value="<?= $p->id ?>" <?= (isset($respuestas[1]) && $respuestas[1]->pregunta_id == $p->id) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($p->pregunta) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group has-toggle" style="margin-bottom: 0;">
+                        <input type="password" name="respuesta_2" id="respuesta_2" class="input-modern" placeholder="Tu respuesta a la pregunta 2" required style="padding-right: 48px;">
+                        <label class="label-floating" style="opacity: 0;">Respuesta 2</label>
+                        <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('respuesta_2', this)"></i>
+                    </div>
+                </div>
+
+                <!-- Pregunta 3 -->
+                <div style="background: #F8FAFC; padding: 20px; border-radius: 16px; border: 1px solid #E2E8F0; margin-bottom: 24px;">
+                    <div class="form-group">
+                        <label><i class="ti ti-help" style="margin-right: 6px;"></i> Pregunta 3 *</label>
+                        <select name="pregunta_3" id="pregunta_3" class="input-modern" required>
+                            <option value="">Seleccione...</option>
+                            <?php foreach ($preguntas as $p): ?>
+                                <option value="<?= $p->id ?>" <?= (isset($respuestas[2]) && $respuestas[2]->pregunta_id == $p->id) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($p->pregunta) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="form-group has-toggle" style="margin-bottom: 0;">
+                        <input type="password" name="respuesta_3" id="respuesta_3" class="input-modern" placeholder="Tu respuesta a la pregunta 3" required style="padding-right: 48px;">
+                        <label class="label-floating" style="opacity: 0;">Respuesta 3</label>
+                        <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('respuesta_3', this)"></i>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    <i class="ti ti-check"></i> Guardar Preguntas
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -324,107 +427,117 @@ if (!isset($user) || empty($user)) {
 <div id="passwordModal" class="modal">
     <div class="modal-content" style="max-width: 500px;">
         <div class="modal-header">
-            <h2 class="modal-title">Cambiar Contraseña</h2>
+            <div class="modal-header-info">
+                <div class="modal-header-icon">
+                    <i class="ti ti-lock"></i>
+                </div>
+                <div>
+                    <h2 class="modal-title">Seguridad</h2>
+                    <p class="modal-subtitle">Actualiza tu contraseña de acceso</p>
+                </div>
+            </div>
             <button class="modal-close" onclick="closePasswordModal()">
                 <i class="ti ti-x"></i>
             </button>
         </div>
         
-        <form id="changePasswordForm" action="<?= URLROOT ?>/perfil/cambiar_password" method="POST">
-            <!-- Contraseña Actual con Floating Label y Toggle -->
-            <div class="form-group has-toggle" style="margin-bottom: 24px;">
-                <input type="password" 
-                       name="password_actual" 
-                       id="password_actual" 
-                       class="input-modern" 
-                       placeholder=" " 
-                       required 
-                       style="padding-right: 48px;">
-                <label for="password_actual" class="label-floating">
-                    <i class="ti ti-lock" style="margin-right: 8px; font-size: 18px;"></i>Contraseña Actual
-                </label>
-                <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('password_actual', this)"></i>
-                <i class="ti ti-check input-feedback icon-check"></i>
-                <i class="ti ti-x input-feedback icon-error"></i>
-            </div>
+        <div class="modal-body-scroll">
+            <form id="changePasswordForm" action="<?= URLROOT ?>/perfil/cambiar_password" method="POST">
+                <!-- Contraseña Actual con Floating Label y Toggle -->
+                <div class="form-group has-toggle" style="margin-bottom: 24px;">
+                    <input type="password" 
+                        name="password_actual" 
+                        id="password_actual" 
+                        class="input-modern" 
+                        placeholder=" " 
+                        required 
+                        style="padding-right: 48px;">
+                    <label for="password_actual" class="label-floating">
+                        <i class="ti ti-lock" style="margin-right: 8px; font-size: 18px;"></i>Contraseña Actual
+                    </label>
+                    <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('password_actual', this)"></i>
+                    <i class="ti ti-check input-feedback icon-check"></i>
+                    <i class="ti ti-x input-feedback icon-error"></i>
+                </div>
 
-            <!-- Nueva Contraseña con Floating Label, Toggle y Barra de Fortaleza -->
-            <div class="form-group has-toggle" style="margin-bottom: 12px;">
-                <input type="password" 
-                       name="password_nueva" 
-                       id="password_nueva" 
-                       class="input-modern" 
-                       placeholder=" " 
-                       required 
-                       style="padding-right: 48px;"
-                       minlength="8"
-                       oninput="updatePasswordStrengthWithRequirements(this, document.getElementById('strength-bar'), document.getElementById('strength-text'))">
-                <label for="password_nueva" class="label-floating">
-                    <i class="ti ti-key" style="margin-right: 8px; font-size: 18px;"></i>Nueva Contraseña
-                </label>
-                <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('password_nueva', this)"></i>
-                <i class="ti ti-check input-feedback icon-check"></i>
-                <i class="ti ti-x input-feedback icon-error"></i>
-            </div>
-            
-            <!-- Barra de Fortaleza de Contraseña -->
-            <div style="margin-bottom: 20px;">
-                <div class="password-strength-bar" id="strength-bar"></div>
-                <div id="strength-text" class="password-strength-text" style="text-align: right; font-size: 0.85rem; margin-top: 4px; font-weight: 600;"></div>
-            </div>
+                <!-- Nueva Contraseña con Floating Label, Toggle y Barra de Fortaleza -->
+                <div class="form-group has-toggle" style="margin-bottom: 12px;">
+                    <input type="password" 
+                        name="password_nueva" 
+                        id="password_nueva" 
+                        class="input-modern" 
+                        placeholder=" " 
+                        required 
+                        style="padding-right: 48px;"
+                        minlength="8"
+                        oninput="updatePasswordStrengthWithRequirements(this, document.getElementById('strength-bar'), document.getElementById('strength-text'))">
+                    <label for="password_nueva" class="label-floating">
+                        <i class="ti ti-key" style="margin-right: 8px; font-size: 18px;"></i>Nueva Contraseña
+                    </label>
+                    <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('password_nueva', this)"></i>
+                    <i class="ti ti-check input-feedback icon-check"></i>
+                    <i class="ti ti-x input-feedback icon-error"></i>
+                </div>
+                
+                <!-- Barra de Fortaleza de Contraseña -->
+                <div style="margin-bottom: 20px;">
+                    <div class="password-strength-bar" id="strength-bar"></div>
+                    <div id="strength-text" class="password-strength-text" style="text-align: right; font-size: 0.85rem; margin-top: 4px; font-weight: 600;"></div>
+                </div>
 
-            <!-- Confirmar Contraseña con Floating Label y Toggle -->
-            <div class="form-group has-toggle" style="margin-bottom: 24px;">
-                <input type="password" 
-                       name="password_confirmar" 
-                       id="password_confirmar" 
-                       class="input-modern" 
-                       placeholder=" " 
-                       required 
-                       style="padding-right: 48px;"
-                       minlength="8"
-                       oninput="validatePasswordMatch(document.getElementById('password_nueva'), this)">
-                <label for="password_confirmar" class="label-floating">
-                    <i class="ti ti-check" style="margin-right: 8px; font-size: 18px;"></i>Confirmar Nueva Contraseña
-                </label>
-                <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('password_confirmar', this)"></i>
-                <i class="ti ti-check input-feedback icon-check"></i>
-                <i class="ti ti-x input-feedback icon-error"></i>
-            </div>
+                <!-- Confirmar Contraseña con Floating Label y Toggle -->
+                <div class="form-group has-toggle" style="margin-bottom: 24px;">
+                    <input type="password" 
+                        name="password_confirmar" 
+                        id="password_confirmar" 
+                        class="input-modern" 
+                        placeholder=" " 
+                        required 
+                        style="padding-right: 48px;"
+                        minlength="8"
+                        oninput="validatePasswordMatch(document.getElementById('password_nueva'), this)">
+                    <label for="password_confirmar" class="label-floating">
+                        <i class="ti ti-check" style="margin-right: 8px; font-size: 18px;"></i>Confirmar Nueva Contraseña
+                    </label>
+                    <i class="ti ti-eye password-toggle" onclick="togglePasswordVisibility('password_confirmar', this)"></i>
+                    <i class="ti ti-check input-feedback icon-check"></i>
+                    <i class="ti ti-x input-feedback icon-error"></i>
+                </div>
 
-            <!-- Checklist Visual de Requisitos -->
-            <div style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-                <h6 style="color: #1E40AF; margin: 0 0 12px 0; font-size: 0.9rem; font-weight: 600;">
-                    <i class="ti ti-info-circle" style="margin-right: 6px;"></i> Requisitos de Seguridad
-                </h6>
-                <ul style="margin: 0; padding: 0; list-style: none; color: #1E3A8A; font-size: 0.85rem; line-height: 2;">
-                    <li id="req-length" class="password-requirement">
-                        <i class="ti ti-circle-check requirement-icon"></i>
-                        <span>Mínimo 8 caracteres</span>
-                    </li>
-                    <li id="req-uppercase" class="password-requirement">
-                        <i class="ti ti-circle-check requirement-icon"></i>
-                        <span>Al menos una letra mayúscula</span>
-                    </li>
-                    <li id="req-lowercase" class="password-requirement">
-                        <i class="ti ti-circle-check requirement-icon"></i>
-                        <span>Al menos una letra minúscula</span>
-                    </li>
-                    <li id="req-number" class="password-requirement">
-                        <i class="ti ti-circle-check requirement-icon"></i>
-                        <span>Al menos un número</span>
-                    </li>
-                    <li id="req-special" class="password-requirement">
-                        <i class="ti ti-circle-check requirement-icon"></i>
-                        <span>Al menos un carácter especial (!@#$%^&*)</span>
-                    </li>
-                </ul>
-            </div>
+                <!-- Checklist Visual de Requisitos -->
+                <div style="background: linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%); border: 1px solid #BFDBFE; border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+                    <h6 style="color: #1E40AF; margin: 0 0 12px 0; font-size: 0.9rem; font-weight: 600;">
+                        <i class="ti ti-info-circle" style="margin-right: 6px;"></i> Requisitos de Seguridad
+                    </h6>
+                    <ul style="margin: 0; padding: 0; list-style: none; color: #1E3A8A; font-size: 0.85rem; line-height: 2;">
+                        <li id="req-length" class="password-requirement">
+                            <i class="ti ti-circle-check requirement-icon"></i>
+                            <span>Mínimo 8 caracteres</span>
+                        </li>
+                        <li id="req-uppercase" class="password-requirement">
+                            <i class="ti ti-circle-check requirement-icon"></i>
+                            <span>Al menos una letra mayúscula</span>
+                        </li>
+                        <li id="req-lowercase" class="password-requirement">
+                            <i class="ti ti-circle-check requirement-icon"></i>
+                            <span>Al menos una letra minúscula</span>
+                        </li>
+                        <li id="req-number" class="password-requirement">
+                            <i class="ti ti-circle-check requirement-icon"></i>
+                            <span>Al menos un número</span>
+                        </li>
+                        <li id="req-special" class="password-requirement">
+                            <i class="ti ti-circle-check requirement-icon"></i>
+                            <span>Al menos un carácter especial (!@#$%^&*)</span>
+                        </li>
+                    </ul>
+                </div>
 
-            <button type="submit" class="btn-primary" style="width: 100%;">
-                <i class="ti ti-check"></i> Cambiar Contraseña
-            </button>
-        </form>
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    <i class="ti ti-check"></i> Cambiar Contraseña
+                </button>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -432,30 +545,30 @@ if (!isset($user) || empty($user)) {
     .modal {
         display: none;
         position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        z-index: 1100;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+        backdrop-filter: blur(6px);
         animation: fadeIn 0.3s;
-    }
-    
-    .modal.active {
-        display: flex;
         align-items: center;
         justify-content: center;
     }
     
+    .modal.active {
+        display: flex;
+    }
+    
     .modal-content {
         background: white;
-        border-radius: 16px;
-        padding: 32px;
-        max-width: 500px;
+        border-radius: 24px;
+        max-width: 520px;
         width: 90%;
         max-height: 90vh;
-        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
         animation: slideUp 0.3s;
+        box-shadow: 0 32px 80px rgba(15, 23, 42, 0.3);
     }
     
     @keyframes fadeIn {
@@ -464,45 +577,78 @@ if (!isset($user) || empty($user)) {
     }
     
     @keyframes slideUp {
-        from { transform: translateY(20px); opacity: 0; }
+        from { transform: translateY(24px); opacity: 0; }
         to { transform: translateY(0); opacity: 1; }
     }
     
     .modal-header {
+        background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%);
+        padding: 24px 28px;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 24px;
+        flex-shrink: 0;
+        color: white;
+    }
+    
+    .modal-header-info {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+    
+    .modal-header-icon {
+        background: rgba(255,255,255,0.15);
+        border-radius: 12px;
+        width: 44px; height: 44px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.3rem;
+        flex-shrink: 0;
     }
     
     .modal-title {
-        font-size: 1.5rem;
+        font-size: 1.3rem;
         font-weight: 700;
-        color: var(--color-primary);
+        color: white !important;
+        margin: 0;
+    }
+    
+    .modal-subtitle {
+        font-size: 0.82rem;
+        color: rgba(255,255,255,0.75);
+        margin: 3px 0 0;
+    }
+    
+    .modal-body-scroll {
+        padding: 28px;
+        overflow-y: auto;
+        flex: 1;
     }
     
     .modal-close {
-        background: none;
+        background: rgba(255,255,255,0.15);
         border: none;
-        font-size: 24px;
-        cursor: pointer;
-        color: var(--text-body);
-        padding: 0;
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+        color: white;
+        width: 36px; height: 36px;
+        display: flex; align-items: center; justify-content: center;
         border-radius: 50%;
+        cursor: pointer;
+        font-size: 1.1rem;
         transition: background 0.2s;
+        flex-shrink: 0;
     }
     
     .modal-close:hover {
-        background: #F3F4F6;
+        background: rgba(255,255,255,0.3);
+    }
+    
+    .modal-close i {
+        color: white !important;
+        margin-right: 0 !important;
     }
     
     .form-group {
-        margin-bottom: 16px;
+        margin-bottom: 20px;
     }
     
     .form-group label {
@@ -594,28 +740,16 @@ if (!isset($user) || empty($user)) {
 
 </div><!-- .dashboard-container -->
 
-<!-- Notyf Library -->
-<link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
-<script src="<?= URLROOT ?>/js/notyf.min.js"></script>
+<!-- Toast: usando NotificationService global (main_layout.php) -->
 
 <script>
-    // Initialize Notyf
-    const notyf = new Notyf({
-        duration: 4000,
-        position: {
-            x: 'right',
-            y: 'top'
-        },
-        dismissible: true
-    });
-
-    // Show flash messages with Notyf
+    // Flash messages via SGP Toast
     <?php if (Session::hasFlash('success')): ?>
-        notyf.success('<?= addslashes(Session::getFlash('success')) ?>');
+        NotificationService.success('<?= addslashes(Session::getFlash('success')) ?>');
     <?php endif; ?>
 
     <?php if (Session::hasFlash('error')): ?>
-        notyf.error('<?= addslashes(Session::getFlash('error')) ?>');
+        NotificationService.error('<?= addslashes(Session::getFlash('error')) ?>');
     <?php endif; ?>
 
     // Edit Modal Functions
@@ -656,16 +790,29 @@ if (!isset($user) || empty($user)) {
         document.getElementById('changePasswordForm').reset();
     }
     
+    function openPreguntasModal() {
+        document.getElementById('preguntasModal').classList.add('active');
+    }
+    
+    function closePreguntasModal() {
+        document.getElementById('preguntasModal').classList.remove('active');
+        document.getElementById('formSecurityQuestions').reset();
+    }
+    
     // Close modal on outside click
     window.onclick = function(event) {
         const editModal = document.getElementById('editModal');
         const passwordModal = document.getElementById('passwordModal');
+        const preguntasModal = document.getElementById('preguntasModal');
         
         if (event.target === editModal) {
             closeEditModal();
         }
         if (event.target === passwordModal) {
             closePasswordModal();
+        }
+        if (event.target === preguntasModal) {
+            closePreguntasModal();
         }
     }
 
@@ -694,22 +841,22 @@ if (!isset($user) || empty($user)) {
                 const data = JSON.parse(text);
                 
                 if (data.success) {
-                    notyf.success(data.message || 'Perfil actualizado exitosamente');
+                    NotificationService.success(data.message || 'Perfil actualizado exitosamente');
                     closeEditModal();
                     setTimeout(() => location.reload(), 1500);
                 } else {
-                    notyf.error(data.message || 'Error al actualizar el perfil');
+                    NotificationService.error(data.message || 'Error al actualizar el perfil');
                 }
             } catch (e) {
                 // Si no es JSON válido, mostrar el error
                 console.error('Respuesta del servidor:', text);
                 console.error('Error al parsear JSON:', e);
-                notyf.error('Error del servidor. Revisa la consola para más detalles.');
+                NotificationService.error('Error del servidor. Revisa la consola para más detalles.');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notyf.error('Error de conexión. Por favor intenta nuevamente.');
+            NotificationService.error('Error de conexión. Por favor intenta nuevamente.');
         });
     });
 
@@ -723,25 +870,25 @@ if (!isset($user) || empty($user)) {
         
         // Validar que la nueva contraseña no sea igual a la actual
         if (passwordNueva === passwordActual) {
-            notyf.error('La nueva contraseña debe ser diferente a la actual');
+            NotificationService.error('La nueva contraseña debe ser diferente a la actual');
             return;
         }
         
         // Validar que coincidan
         if (passwordNueva !== passwordConfirmar) {
-            notyf.error('Las contraseñas no coinciden');
+            NotificationService.error('Las contraseñas no coinciden');
             return;
         }
         
         // Validar longitud
         if (passwordNueva.length < 8) {
-            notyf.error('La contraseña debe tener al menos 8 caracteres');
+            NotificationService.error('La contraseña debe tener al menos 8 caracteres');
             return;
         }
         
         // Validar requisitos completos
         if (!validatePasswordRequirementsInline(passwordNueva)) {
-            notyf.error('La contraseña debe cumplir todos los requisitos de seguridad');
+            NotificationService.error('La contraseña debe cumplir todos los requisitos de seguridad');
             return;
         }
         
@@ -754,16 +901,16 @@ if (!isset($user) || empty($user)) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                notyf.success(data.message || 'Contraseña cambiada exitosamente');
+                NotificationService.success(data.message || 'Contraseña cambiada exitosamente');
                 closePasswordModal();
                 this.reset();
             } else {
-                notyf.error(data.message || 'Error al cambiar la contraseña');
+                NotificationService.error(data.message || 'Error al cambiar la contraseña');
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            notyf.error('Error de conexión. Por favor intenta nuevamente.');
+            NotificationService.error('Error de conexión. Por favor intenta nuevamente.');
         });
     });
     
@@ -774,7 +921,7 @@ if (!isset($user) || empty($user)) {
             uppercase: /[A-Z]/.test(password),
             lowercase: /[a-z]/.test(password),
             number: /[0-9]/.test(password),
-            special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+            special: /[^a-zA-Z0-9]/.test(password)
         };
         
         // Actualizar UI
@@ -793,6 +940,51 @@ if (!isset($user) || empty($user)) {
         return Object.values(requirements).every(req => req === true);
     }
     
+    // Handle Security Questions Form Submission
+    document.getElementById('formSecurityQuestions').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Validar que no se repitan preguntas
+        const p1 = document.getElementById('pregunta_1').value;
+        const p2 = document.getElementById('pregunta_2').value;
+        const p3 = document.getElementById('pregunta_3').value;
+        
+        if (p1 === p2 || p1 === p3 || p2 === p3) {
+            NotificationService.error('No puedes seleccionar la misma pregunta dos veces');
+            return;
+        }
+        
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="ti ti-loader" style="animation: spin 1s linear infinite;"></i> Guardando...';
+        
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                NotificationService.success(data.message || 'Preguntas actualizadas exitosamente');
+                closePreguntasModal();
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                NotificationService.error(data.message || 'Error al actualizar las preguntas');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            NotificationService.error('Error de conexión. Por favor intenta nuevamente.');
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalText;
+        });
+    });
+
     // Sobrescribir la función updatePasswordStrengthWithRequirements si no existe
     if (typeof updatePasswordStrengthWithRequirements === 'undefined') {
         window.updatePasswordStrengthWithRequirements = function(input, strengthBar, strengthText) {
@@ -823,6 +1015,7 @@ if (!isset($user) || empty($user)) {
             if (/[0-9]/.test(password)) strength++;
             if (/[^a-zA-Z0-9]/.test(password)) strength++;
             
+            // Ajustar niveles para retroalimentación visual
             let strengthLevel = 'weak';
             if (strength <= 2) strengthLevel = 'weak';
             else if (strength <= 4) strengthLevel = 'medium';

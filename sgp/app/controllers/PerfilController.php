@@ -47,6 +47,11 @@ class PerfilController extends Controller
             exit;
         }
         
+        // 🔒 SEGURIDAD: Verificar estado del usuario (Sistema "La Jaula")
+        // Fuerza a usuarios con requiere_cambio_clave=1 a completar el wizard
+        // Previene bypass por manipulación de URL (OWASP Top 10 #1: Broken Access Control)
+        AuthMiddleware::verificarEstado();
+        
         // Cargar dependencias
         $this->userModel = $this->model('User');
         $config = require '../app/config/config.php';
@@ -104,9 +109,9 @@ class PerfilController extends Controller
             SELECT 
                 u.id,
                 u.correo,
+                u.cedula,
                 u.rol_id,
                 u.departamento_id,
-                dp.cedula,
                 dp.nombres,
                 dp.apellidos,
                 d.nombre as departamento_nombre
@@ -245,7 +250,6 @@ class PerfilController extends Controller
             'apellidos' => trim($_POST['apellidos']),
             'cargo' => trim($_POST['cargo'] ?? ''),
             'telefono' => trim($_POST['telefono']),
-            'direccion' => trim($_POST['direccion']),
             'genero' => $_POST['genero'],
             'fecha_nacimiento' => $_POST['fecha_nacimiento']
         ];
@@ -351,30 +355,27 @@ class PerfilController extends Controller
             $exists = $this->db->single();
             
             if ($exists) {
-                // Usuario ya tiene datos personales → Actualizar
                 $this->db->query("
                     UPDATE datos_personales 
-                    SET cedula = :cedula,
-                        nombres = :nombres,
+                    SET nombres = :nombres,
                         apellidos = :apellidos,
                         cargo = :cargo,
                         telefono = :telefono,
-                        direccion = :direccion,
                         genero = :genero,
                         fecha_nacimiento = :fecha_nacimiento
                     WHERE usuario_id = :usuario_id
                 ");
             } else {
-                // Usuario NO tiene datos personales → Insertar
                 $this->db->query("
                     INSERT INTO datos_personales 
-                    (usuario_id, cedula, nombres, apellidos, cargo, telefono, direccion, genero, fecha_nacimiento) 
-                    VALUES (:usuario_id, :cedula, :nombres, :apellidos, :cargo, :telefono, :direccion, :genero, :fecha_nacimiento)
+                    (usuario_id, nombres, apellidos, cargo, telefono, genero, fecha_nacimiento) 
+                    VALUES (:usuario_id, :nombres, :apellidos, :cargo, :telefono, :genero, :fecha_nacimiento)
                 ");
             }
             
             // Vincular parámetros (funciona tanto para UPDATE como INSERT)
-            foreach ($datosPersonales as $key => $value) {
+            $datosPersonalesSinCedula = array_filter($datosPersonales, fn($k) => $k !== 'cedula', ARRAY_FILTER_USE_KEY);
+            foreach ($datosPersonalesSinCedula as $key => $value) {
                 $this->db->bind(':' . $key, $value);
             }
             
@@ -452,23 +453,23 @@ class PerfilController extends Controller
             SELECT 
                 u.id,
                 u.correo,
+                u.cedula,
                 u.rol_id,
                 u.estado,
                 u.created_at,
                 r.nombre as rol_nombre,
-                dp.cedula,
                 dp.nombres,
                 dp.apellidos,
                 dp.cargo,
                 dp.telefono,
-                dp.direccion,
                 dp.genero,
                 dp.fecha_nacimiento";
         
-        // Agregar campo específico para pasantes (SOLO institucion_procedencia)
+        // Agregar campo específico para pasantes (institucion_procedencia e institucion_nombre)
         if ($roleId == 3) { // Pasante
             $query .= ",
-                dpa.institucion_procedencia";
+                dpa.institucion_procedencia,
+                i.nombre as institucion_nombre";
         }
         
         $query .= "
@@ -476,9 +477,10 @@ class PerfilController extends Controller
             LEFT JOIN roles r ON u.rol_id = r.id
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id";
         
-        // Agregar JOIN específico para pasantes
+        // Agregar JOIN específico para pasantes e instituciones
         if ($roleId == 3) { // Pasante
-            $query .= " LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id";
+            $query .= " LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
+                        LEFT JOIN instituciones i ON dpa.institucion_procedencia = i.id";
         }
         
         $query .= " WHERE u.id = :uid";
@@ -491,10 +493,37 @@ class PerfilController extends Controller
             $this->redirect('/dashboard');
             return;
         }
+
+        // Tarea 1: Asegurar que los nombres vienen de datos_personales
+        $dataArray = (array) $userData;
+        
+        // Obtener preguntas de seguridad (para el nuevo modal)
+        $preguntas = $this->userModel->getSecurityQuestions();
+
+        // Obtener todas las instituciones para el modal si es pasante
+        $instituciones = [];
+        if ($roleId == 3) {
+            $this->db->query("SELECT id, nombre FROM instituciones ORDER BY nombre ASC");
+            $instituciones = $this->db->resultSet();
+        }
+        
+        // Obtener respuestas actuales del usuario
+        $this->db->query("
+            SELECT ur.pregunta_id, ps.pregunta
+            FROM usuarios_respuestas ur
+            INNER JOIN preguntas_seguridad ps ON ur.pregunta_id = ps.id
+            WHERE ur.usuario_id = :usuario_id
+            ORDER BY ur.id ASC
+        ");
+        $this->db->bind(':usuario_id', $userId);
+        $respuestas = $this->db->resultSet();
         
         $this->view('perfil/ver', [
             'title' => 'Mi Perfil',
-            'user' => (array) $userData
+            'user' => $dataArray,
+            'preguntas' => $preguntas ?: [],
+            'respuestas' => $respuestas ?: [],
+            'instituciones' => $instituciones
         ]);
     }
     
@@ -533,35 +562,80 @@ class PerfilController extends Controller
                 throw new Exception('Usuario no autenticado');
             }
             
-            // Capturar datos del formulario (NO incluir cédula, es inmutable)
             $data = [
                 'nombres' => trim(Validator::post('nombres')),
                 'apellidos' => trim(Validator::post('apellidos')),
                 'telefono' => trim(Validator::post('telefono')),
-                'direccion' => trim(Validator::post('direccion')),
                 'genero' => Validator::post('genero'),
                 'fecha_nacimiento' => Validator::post('fecha_nacimiento'),
                 'cargo' => trim(Validator::post('cargo'))
             ];
             
             // Validar campos obligatorios
-            if (empty($data['nombres']) || empty($data['apellidos']) || empty($data['telefono'])) {
-                throw new Exception('Los campos Nombres, Apellidos y Teléfono son obligatorios');
+        if (empty($data['nombres']) || empty($data['apellidos']) || empty($data['telefono'])) {
+            throw new Exception('Los campos Nombres, Apellidos y Teléfono son obligatorios');
+        }
+        
+        // ============================================
+        // VALIDACIONES DE TIPO Y FORMATO
+        // ============================================
+        
+        // Validar formato de teléfono (11 dígitos, formato venezolano)
+        // Acepta formatos: 0414-1234567 o 04141234567
+        if (!preg_match('/^0\d{3}-?\d{7}$/', $data['telefono'])) {
+            throw new Exception('El teléfono debe tener formato válido (ej: 0414-1234567)');
+        }
+        
+        // Validar que nombres solo contengan letras, espacios y acentos
+        if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/', $data['nombres'])) {
+            throw new Exception('Los nombres solo pueden contener letras');
+        }
+        
+        // Validar que apellidos solo contengan letras, espacios y acentos
+        if (!preg_match('/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/', $data['apellidos'])) {
+            throw new Exception('Los apellidos solo pueden contener letras');
+        }
+        
+        // Validar fecha de nacimiento (no futuro, no más de 100 años)
+        if (!empty($data['fecha_nacimiento'])) {
+            $fechaNac = strtotime($data['fecha_nacimiento']);
+            $hoy = time();
+            $hace100 = strtotime('-100 years');
+            
+            if ($fechaNac > $hoy) {
+                throw new Exception('La fecha de nacimiento no puede ser futura');
             }
             
-            // Logging para depuración
+            if ($fechaNac < $hace100) {
+                throw new Exception('La fecha de nacimiento no puede ser mayor a 100 años');
+            }
+        }
+        
+        // ============================================
+        // VALIDACIONES DE LONGITUD MÁXIMA
+        // ============================================
+        
+        if (strlen($data['nombres']) > 100) {
+            throw new Exception('Los nombres no pueden exceder 100 caracteres');
+        }
+        
+        if (strlen($data['apellidos']) > 100) {
+            throw new Exception('Los apellidos no pueden exceder 100 caracteres');
+        }
+        
+
+            
+        // Logging para depuración
             error_log("=== ACTUALIZANDO PERFIL ===");
             error_log("User ID: $userId");
             error_log("Datos: " . print_r($data, true));
             
-            // Actualizar en base de datos (SIN cédula)
             $this->db->query("
                 UPDATE datos_personales
                 SET 
                     nombres = :nombres,
                     apellidos = :apellidos,
                     telefono = :telefono,
-                    direccion = :direccion,
                     genero = :genero,
                     fecha_nacimiento = :fecha_nacimiento,
                     cargo = :cargo
@@ -571,7 +645,6 @@ class PerfilController extends Controller
             $this->db->bind(':nombres', $data['nombres']);
             $this->db->bind(':apellidos', $data['apellidos']);
             $this->db->bind(':telefono', $data['telefono']);
-            $this->db->bind(':direccion', $data['direccion'] ?: null);
             $this->db->bind(':genero', $data['genero'] ?: null);
             $this->db->bind(':fecha_nacimiento', $data['fecha_nacimiento'] ?: null);
             $this->db->bind(':cargo', $data['cargo'] ?: null);

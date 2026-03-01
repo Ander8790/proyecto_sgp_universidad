@@ -4,18 +4,37 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGP - Sistema de Gestión de Pasantías</title>
+    <link rel="icon" type="image/png" href="<?= URLROOT ?>/img/favicon.png">
     
     
-    <!-- CSS Assets (Absolute URLs) -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <!-- CSS Assets (Local) -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
+    
+    <!-- CSS Modular (Nuevo Sistema Organizado) -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/variables.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/base.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/animations.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/notifications.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/modal-universal.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/flatpickr/flatpickr.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/flatpickr-sgp.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/choices/choices.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/choices-sgp.css">
+    
     <!-- IMPORTANTE: style.css debe cargar AL FINAL para tener prioridad sobre otros frameworks -->
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sidebar.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/topbar.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/loading.css">
+    
+    <!-- Scripts Core (JQuery debe cargar ANTES del contenido por si las vistas inyectan scripts) -->
+    <script src="<?= URLROOT ?>/js/jquery.min.js"></script>
+    <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
+    <script src="<?= URLROOT ?>/js/notyf.min.js"></script>
+    <script src="<?= URLROOT ?>/js/notification-service.js"></script>
     
     <!-- Global JavaScript Constants -->
     <script>
@@ -49,14 +68,18 @@
     </div>
 
     <!-- JavaScript Assets (Al final del body) -->
-    <script src="<?= URLROOT ?>/js/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
-    <script src="<?= URLROOT ?>/js/notyf.min.js"></script>
+    <script src="<?= URLROOT ?>/js/bootstrap.bundle.min.js"></script>
     <script src="<?= URLROOT ?>/js/apexcharts.min.js"></script>
     <script src="<?= URLROOT ?>/js/modern-charts.js"></script>
-    <script src="<?= URLROOT ?>/js/notifications.js"></script>
+    <script src="<?= URLROOT ?>/js/notifications.js?v=2"></script>
     <script src="<?= URLROOT ?>/js/sidebar.js"></script>
+    <script src="<?= URLROOT ?>/js/validation.js?v=2"></script>
+    <script src="<?= URLROOT ?>/js/modal-universal.js"></script>
+    <script src="<?= URLROOT ?>/assets/libs/flatpickr/flatpickr.min.js"></script>
+    <script src="<?= URLROOT ?>/assets/libs/flatpickr/flatpickr-es.js"></script>
+    <script src="<?= URLROOT ?>/js/flatpickr-init.js"></script>
+    <script src="<?= URLROOT ?>/assets/libs/choices/choices.min.js"></script>
+    <script src="<?= URLROOT ?>/js/choices-init.js"></script>
     
     <!-- FIX PARA APEXCHARTS - Previene error "attribute r: A negative value" -->
     <script>

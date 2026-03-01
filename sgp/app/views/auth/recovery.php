@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGP - Recuperación</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="<?= URLROOT ?>/img/favicon.png">
+    
+    <!-- CSS Assets -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    
+    <!-- ============================================ -->
+    <!-- DEFINIR URLROOT PARA JAVASCRIPT -->
+    <!-- ============================================ -->
+    <script>
+        /**
+         * Definir constante URLROOT para uso en JavaScript
+         * Necesario para notifications.js y otros scripts del sistema
+         */
+        const URLROOT = '<?php echo URLROOT; ?>';
+    </script>
 </head>
 <body class="auth-wrapper">
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
@@ -28,8 +48,7 @@
                 <label for="email" class="label-floating">
                     <i class="ti ti-search" style="margin-right: 8px; font-size: 18px;"></i>Ingrese su correo electrónico
                 </label>
-                <i class="ti ti-check input-feedback icon-check"></i>
-                <i class="ti ti-x input-feedback icon-error"></i>
+                <div class="email-feedback"></div>
                 <span class="input-hint">Ingresa el correo con el que te registraste</span>
             </div>
             
@@ -49,17 +68,14 @@
     <script>
         // Validación de email en tiempo real
         const emailInput = document.getElementById('email');
-        emailInput.addEventListener('input', function() {
-            validateEmail(this);
+        emailInput.addEventListener('blur', function() {
+            validateEmailWithFeedback(this);
         });
 
         <?php if (!empty($error)): ?>
-            Swal.fire({
-                icon: 'warning',
-                title: 'Atención',
-                text: '<?= htmlspecialchars($error) ?>',
-                confirmButtonColor: '#162660'
-            });
+            if (typeof NotificationService !== 'undefined') {
+                NotificationService.error('<?= htmlspecialchars($error) ?>');
+            }
         <?php endif; ?>
     </script>
 </body>
