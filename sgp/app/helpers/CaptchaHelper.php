@@ -30,9 +30,7 @@ class CaptchaHelper {
      * @param string $code Código a almacenar
      */
     public static function storeInSession($code) {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        Session::start();
         $_SESSION['captcha_code'] = strtoupper($code);
         $_SESSION['captcha_time'] = time();
     }
@@ -44,9 +42,7 @@ class CaptchaHelper {
      * @return bool True si es válido, False si no
      */
     public static function validate($userInput) {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        Session::start();
         
         // Verificar que existe código en sesión
         if (!isset($_SESSION['captcha_code'])) {
@@ -72,9 +68,7 @@ class CaptchaHelper {
      * Limpia el código CAPTCHA de la sesión
      */
     public static function clear() {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        Session::start();
         unset($_SESSION['captcha_code']);
         unset($_SESSION['captcha_time']);
     }

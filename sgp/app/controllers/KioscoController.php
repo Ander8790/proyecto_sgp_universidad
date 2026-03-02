@@ -33,30 +33,9 @@ class KioscoController extends Controller
      */
     public function index(): void
     {
-        // ==========================================================
-        // ⚡ QUEMAR LAS NAVES: Destrucción táctica de la sesión
-        // ==========================================================
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start(); // Necesitamos levantarla para poder matarla o validarla
-        }
-        
-        // 🛡️ DESTRUCCIÓN INTELIGENTE: Solo destruimos si hay un usuario autenticado
-        if (Session::get('user_id')) {
-            // 1. Vaciar memoria temporal
-            $_SESSION = [];
-            // 2. Destruir registro en el servidor
-            session_destroy();
-            
-            // 3. Ordenar al navegador que extermine la cookie de sesión
-            if (ini_get("session.use_cookies")) {
-                $params = session_get_cookie_params();
-                setcookie(session_name(), '', time() - 42000,
-                    $params["path"], $params["domain"],
-                    $params["secure"], $params["httponly"]
-                );
-            }
-        }
-        // ==========================================================
+        // ⚔️ ARQUITECTURA STATELESS: El Kiosco no utiliza ni inicia sesiones PHP.
+        header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
+        header("Pragma: no-cache");
 
         $data = ['title' => 'Kiosco de Asistencia — SGP'];
         $this->view('kiosco/index', $data, false);

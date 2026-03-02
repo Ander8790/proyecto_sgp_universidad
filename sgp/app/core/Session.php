@@ -4,15 +4,18 @@ class Session
     public static function start()
     {
         if (session_status() === PHP_SESSION_NONE) {
-            session_start();
+            $urlActual = $_SERVER['REQUEST_URI'] ?? '';
+
+            // Si la ruta NO contiene '/public/kiosco', iniciamos sesión normalmente
+            if (strpos($urlActual, '/public/kiosco') === false) {
+                session_start();
+            }
         }
     }
 
     public static function destroy()
     {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
+        self::start();
         session_destroy();
     }
 

@@ -360,7 +360,7 @@
 
         <!-- ── FOOTER VOLVER AL ACCESO ── -->
         <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px dashed #e2e8f0;">
-            <a href="<?= URLROOT ?>/auth" class="auth-link" style="color: #64748b; font-size: 0.9rem; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: color 0.2s;">
+            <a href="<?= URLROOT ?>/auth/logout" class="auth-link" style="color: #64748b; font-size: 0.9rem; font-weight: 500; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: color 0.2s;">
                 <i class="ti ti-arrow-left"></i> Volver al Acceso Administrativo
             </a>
         </div>
