@@ -220,7 +220,7 @@ class KioscoController extends Controller
         $this->notificationModel = new NotificationModel($this->db);
         $titulo = "Solicitud de reseteo de PIN";
         $mensaje = "El pasante {$pasante->nombres} {$pasante->apellidos} (V-{$cedula}) ha olvidado su PIN y solicita un reseteo.";
-        $url = URLROOT . "/pasantes";
+        $url = URLROOT . "/configuracion#restablecer-pin";
 
         // Admin (se asume ID 1 o rol 1, enviaremos a todos los admins)
         $this->db->query("SELECT id FROM usuarios WHERE rol_id = 1 AND estado = 'activo'");

@@ -241,8 +241,13 @@
         let html = '<ul class="notifications-list">';
 
         notifications.forEach(notification => {
-            const icon = NOTIFICATION_ICONS[notification.tipo] || NOTIFICATION_ICONS.default;
-            const url = sanitizeUrl(notification.url); // ✅ Sanitizar URL para prevenir XSS
+            let icon = NOTIFICATION_ICONS[notification.tipo] || NOTIFICATION_ICONS.default;
+            let url = sanitizeUrl(notification.url); // ✅ Sanitizar URL para prevenir XSS
+
+            // ✨ REDIRECCIÓN INTELIGENTE: Si es solicitud de PIN, forzar ruta a configuración
+            if (notification.tipo === 'solicitud_pin') {
+                url = URLROOT + '/configuracion#restablecer-pin';
+            }
 
             html += `
                 <li class="notification-item ${notification.leido == 0 ? 'unread' : ''}" 

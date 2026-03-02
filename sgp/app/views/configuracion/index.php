@@ -458,7 +458,7 @@ $totalDepto    = count($departamentos);
                     </div>
 
                     <!-- Reset PIN -->
-                    <div style="background:#f8fafc;border-radius:14px;padding:20px;border:1px solid #f1f5f9;">
+                    <div id="restablecer-pin" style="background:#f8fafc;border-radius:14px;padding:20px;border:1px solid #f1f5f9;">
                         <p style="margin:0 0 4px;font-weight:700;color:#1e293b;font-size:0.92rem;">Restablecer PIN de Pasante</p>
                         <p style="margin:0 0 16px;color:#64748b;font-size:0.8rem;">Genera un nuevo PIN de 4 dígitos aleatorio</p>
                         <button onclick="SGPModal.buscar()" style="width:100%;padding:13px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:12px;font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 12px rgba(245,158,11,0.3);font-family:inherit;">
