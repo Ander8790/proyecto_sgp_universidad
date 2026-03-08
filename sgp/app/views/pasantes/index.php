@@ -140,6 +140,33 @@
 .progress-fill  { height:100%; border-radius:100px; background:linear-gradient(90deg,#2563eb,#1d4ed8); transition:width 0.5s ease; }
 .progress-label { font-size:0.78rem; color:#64748b; font-weight:600; }
 .progress-pct   { float:right; font-weight:700; color:#1e3a8a; }
+
+/* AJUSTE MAESTRO: Forzar que el select flote sobre el modal sin estirarlo */
+#modalCambiarEstado .modal-box,
+#modalCambiarEstado .modal-body { 
+    overflow: visible !important; 
+}
+
+/* Recuperar bordes redondos de la cabecera azul */
+#modalCambiarEstado .modal-head {
+    border-top-left-radius: 20px !important;
+    border-top-right-radius: 20px !important;
+}
+
+#modalCambiarEstado .choices {
+    position: relative !important;
+}
+
+#modalCambiarEstado .choices__list--dropdown {
+    position: absolute !important;
+    top: 100% !important;
+    left: 0 !important;
+    width: 100% !important;
+    z-index: 999999 !important;
+    background-color: #ffffff !important;
+    border-radius: 0 0 12px 12px !important;
+    box-shadow: 0px 10px 15px rgba(0,0,0,0.1) !important;
+}
 </style>
 
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
@@ -187,7 +214,7 @@
                 <p style="color:#64748b;font-size:0.82rem;margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"><?= $k['label'] ?></p>
                 <i class="ti <?= $k['icon'] ?>" style="color:<?= $k['color'] ?>;font-size:1.4rem;opacity:0.7;"></i>
             </div>
-            <h2 style="font-size:2.4rem;font-weight:800;color:<?= $k['color'] ?>;margin:0;"><?= $k['val'] ?></h2>
+            <h2 style="font-size:2.4rem;font-weight:800;color:<?= $k['color'] ?>;margin:0;" data-kpi-value="<?= $k['val'] ?>">0</h2>
             <p style="color:#94a3b8;font-size:0.8rem;margin:4px 0 0;"><?= $k['sub'] ?></p>
         </div>
         <?php endforeach; ?>
@@ -211,12 +238,12 @@
             </button>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto;">
-            <table style="width:100%;border-collapse:collapse;">
-                <thead>
-                    <tr style="background:#f8fafc;">
+        <div style="overflow-x:auto; padding: 20px;">
+            <table id="tablaPasantes" class="table table-hover align-middle mb-0" style="width:100%; opacity: 0; transition: opacity 0.4s ease-in-out;">
+                <thead class="bg-light text-uppercase text-muted small fw-bold">
+                    <tr>
                         <?php foreach (['Pasante','Cédula','Institución','Departamento','Progreso (Días)','Estado','Acciones'] as $th): ?>
-                        <th style="padding:14px 20px;text-align:left;font-size:0.78rem;color:#64748b;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;"><?= $th ?></th>
+                        <th class="px-4 py-3 border-0"><?= $th ?></th>
                         <?php endforeach; ?>
                     </tr>
                 </thead>
@@ -243,19 +270,21 @@
                     $cfg = $estadoMap[$estado] ?? ['bg' => '#f1f5f9', 'color' => '#64748b'];
                     $inicial = strtoupper(substr($p->nombres ?? 'P', 0, 1));
                 ?>
-                <tr style="border-bottom:1px solid #f1f5f9;transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                    <td style="padding:16px 20px;">
-                        <div style="display:flex;align-items:center;gap:12px;">
-                            <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#172554,#2563eb);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:0.85rem;flex-shrink:0;">
-                                <?= $inicial ?>
+                <tr>
+                    <td class="px-4 py-3">
+                        <div class="dt-name-cell">
+                            <div class="dt-avatar"><?= $inicial ?></div>
+                            <div>
+                                <span class="dt-cell-primary"><?= $nombres ?></span>
                             </div>
-                            <span style="font-weight:600;color:#1e293b;font-size:0.9rem;"><?= $nombres ?></span>
                         </div>
                     </td>
-                    <td style="padding:16px 20px;color:#64748b;font-size:0.85rem;"><?= $cedula ?></td>
-                    <td style="padding:16px 20px;color:#64748b;font-size:0.85rem;"><?= $inst ?></td>
-                    <td style="padding:16px 20px;color:#64748b;font-size:0.85rem;"><?= $depto ?></td>
-                    <td style="padding:16px 20px;">
+                    <td class="px-4 py-3 text-muted"><?= $cedula ?></td>
+                    <td class="px-4 py-3 text-muted">
+                        <span class="dt-cell-truncate" title="<?= $inst ?>"><?= $inst ?></span>
+                    </td>
+                    <td class="px-4 py-3 text-muted"><?= $depto ?></td>
+                    <td class="px-4 py-3">
                         <div class="progress-wrap">
                             <div class="progress-label">
                                 Día <?= $diasAcum ?> / <?= $diasTotal ?>
@@ -266,21 +295,21 @@
                             </div>
                         </div>
                     </td>
-                    <td style="padding:16px 20px;">
-                        <span style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;padding:5px 14px;border-radius:20px;font-size:0.78rem;font-weight:700;white-space:nowrap;">
+                    <td class="px-4 py-3">
+                        <span class="badge badge-<?= strtolower($estado) ?>" style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;">
                             <?= $estado ?>
                         </span>
                     </td>
-                    <td style="padding:16px 20px;">
-                        <div style="display:flex;gap:6px;">
-                            <button onclick="SGPModal.verUsuario(<?= $p->id ?>)" title="Ver perfil" style="width:32px;height:32px;border:none;border-radius:8px;background:#eff6ff;color:#2563eb;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                                <i class="ti ti-eye" style="font-size:0.9rem;"></i>
+                    <td class="px-4 py-3 text-center">
+                        <div class="d-flex justify-content-center gap-2 flex-nowrap dt-row-actions">
+                            <button onclick="SGPModal.verUsuario(<?= $p->id ?>)" class="btn-action btn-view" title="Ver perfil">
+                                <i class="ti ti-eye"></i>
                             </button>
-                            <button onclick="abrirModalEditar(<?= $p->id ?>)" title="Editar asignación" style="width:32px;height:32px;border:none;border-radius:8px;background:#f0fdf4;color:#16a34a;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'">
-                                <i class="ti ti-pencil" style="font-size:0.9rem;"></i>
+                            <button onclick="abrirModalEditar(<?= $p->id ?>)" class="btn-action btn-edit" title="Editar Pasante">
+                                <i class="ti ti-edit"></i>
                             </button>
-                            <button onclick="cambiarEstado(<?= $p->id ?>, this.dataset.nombre)" data-nombre="<?= htmlspecialchars($p->nombres ?? '', ENT_QUOTES) ?>" title="Cambiar estado" style="width:32px;height:32px;border:none;border-radius:8px;background:#fefce8;color:#ca8a04;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='#fef9c3'" onmouseout="this.style.background='#fefce8'">
-                                <i class="ti ti-switch-horizontal" style="font-size:0.9rem;"></i>
+                            <button onclick="cambiarEstado('<?= UrlSecurity::encrypt($p->id) ?>', '<?= $nombres ?>')" class="btn-action btn-config" title="Cambiar Estado">
+                                <i class="ti ti-settings"></i>
                             </button>
                         </div>
                     </td>
@@ -295,202 +324,133 @@
 </div><!-- /dashboard-container -->
 
 
-<!-- ======= MODAL: NUEVA ASIGNACIÓN INTELIGENTE ======= -->
-<div id="modalAsignacion" class="modal-overlay">
-    <div class="modal-box">
+
+<!-- Modal de Asignación eliminado (VULN-04) — La funcionalidad vive en /asignaciones -->
+
+<!-- ======= MODAL: CAMBIAR ESTADO PREMIUM ======= -->
+<div id="modalCambiarEstado" class="modal-overlay">
+    <div class="modal-box" style="max-width: 460px; min-height: auto;">
         <div class="modal-head">
             <div>
-                <h2><i class="ti ti-user-plus" style="margin-right:8px;"></i>Nueva Asignación</h2>
-                <p>Calculadora de proyección inteligente</p>
+                <h2><i class="ti ti-settings" style="margin-right:8px;"></i>Cambiar Estado</h2>
+                <p id="txt-nombre-pasante">Selecciona el nuevo estado</p>
             </div>
-            <button class="btn-close-modal" onclick="cerrarModal()"><i class="ti ti-x"></i></button>
+            <button class="btn-close-modal" onclick="cerrarModalEstado()"><i class="ti ti-x"></i></button>
         </div>
-        <div class="modal-body">
-
-            <div class="form-group">
-                <label class="form-label"><i class="ti ti-search"></i> Buscar Pasante (por nombre o cédula)</label>
-                <input type="text" class="form-input" id="inp-nombre" placeholder="Ej: García Rodríguez, María o V-28456123">
+        <div class="modal-body" style="padding: 30px 40px 40px;">
+            <input type="hidden" id="inp-pasante-id">
+            
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Nuevo Estado</label>
+                <select class="form-input" id="inp-nuevo-estado">
+                    <option value="Pendiente">⏳ Pendiente</option>
+                    <option value="Activo">✅ Activo</option>
+                    <option value="Finalizado">🏆 Finalizado</option>
+                    <option value="Retirado">❌ Retirado</option>
+                </select>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-                <div class="form-group">
-                    <label class="form-label"><i class="ti ti-building"></i> Departamento</label>
-                    <select class="form-input" id="inp-depto">
-                        <option value="">Seleccionar...</option>
-                        <option>Soporte Técnico</option>
-                        <option>Redes y Telecomunicaciones</option>
-                        <option>Desarrollo de Software</option>
-                        <option>Administración</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label"><i class="ti ti-building-hospital"></i> Institución</label>
-                    <input type="text" class="form-input" id="inp-inst" placeholder="Ej: H. Ruiz Páez">
-                </div>
-            </div>
-
-            <hr class="modal-divider">
-
-            <!-- Horas Meta -->
-            <div class="form-group">
-                <label class="form-label"><i class="ti ti-target"></i> Horas Meta</label>
-                <div class="horas-wrapper">
-                    <input type="number" class="form-input" id="inp-horas" value="1440" min="1" oninput="recalcular()">
-                    <button class="btn-reset-horas" onclick="resetHoras()">
-                        <i class="ti ti-refresh"></i> Estándar (1440h)
-                    </button>
-                </div>
-            </div>
-
-            <!-- Jornada (estática — política institucional: siempre Tiempo Completo) -->
-            <div class="form-group">
-                <label class="form-label"><i class="ti ti-clock"></i> Jornada Diaria</label>
-                <div class="jornada-grid" style="grid-template-columns:1fr;">
-                    <div class="jornada-option selected" style="cursor:default;pointer-events:none;">
-                        <span class="jornada-icon">🕗</span>
-                        <span class="jornada-label">Tiempo Completo</span>
-                        <span class="jornada-sub">8 horas / día</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Fecha inicio -->
-            <div class="form-group">
-                <label class="form-label"><i class="ti ti-calendar"></i> Fecha de Inicio</label>
-                <input type="date" class="form-input" id="inp-fecha" oninput="recalcular()">
-            </div>
-
-            <!-- TARJETA DE PROYECCIÓN -->
-            <div class="proyeccion-card" id="proy-card">
-                <div class="proy-title"><i class="ti ti-sparkles"></i> Proyección Inteligente de Culminación</div>
-                <div class="proy-dato"><span>📋 Meta total</span><strong id="p-horas">—</strong></div>
-                <div class="proy-dato"><span>⏱️ Horas por día</span><strong id="p-hxd">—</strong></div>
-                <div class="proy-dato"><span>📆 Días hábiles</span><strong id="p-dias">—</strong></div>
-                <div class="proy-dato"><span>🗓️ Fecha de inicio</span><strong id="p-inicio">—</strong></div>
-                <div class="proy-highlight">🎓 Culminación estimada: <span id="p-fin">—</span></div>
-            </div>
-
-            <hr class="modal-divider">
-            <button class="btn-submit" onclick="guardar()">
-                <i class="ti ti-check"></i> Confirmar Asignación
+            <button class="btn-submit" onclick="confirmarCambioEstado()" style="padding: 12px 20px; font-size: 0.9rem; width: auto; margin: 0 auto; display: flex; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+                <i class="ti ti-device-floppy"></i> Guardar Estado
             </button>
-
         </div>
     </div>
 </div>
 
+<!-- DataTables Premium Assets (Estandarizado) -->
+<link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
+<script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
+
 <script>
-// Jornada fija por política institucional: siempre 8 h/día
-const HORAS_DIA = 8;
-
-function abrirModal() {
-    document.getElementById('modalAsignacion').classList.add('active');
-    const hoy = new Date().toISOString().split('T')[0];
-    document.getElementById('inp-fecha').value = hoy;
-    recalcular();
-}
-function cerrarModal() {
-    document.getElementById('modalAsignacion').classList.remove('active');
-}
-document.getElementById('modalAsignacion').addEventListener('click', e => {
-    if (e.target === e.currentTarget) cerrarModal();
-});
-
-function resetHoras() { document.getElementById('inp-horas').value = 1440; recalcular(); }
-
-function recalcular() {
-    const horas    = parseInt(document.getElementById('inp-horas').value) || 1440;
-    const fechaStr = document.getElementById('inp-fecha').value;
-    const card     = document.getElementById('proy-card');
-    if (!fechaStr) { card.classList.remove('visible'); return; }
-
-    // Jornada fija: 8 h/día (política institucional)
-    const dias = Math.ceil(horas / HORAS_DIA);
-    const inicio = new Date(fechaStr + 'T12:00:00');
-    let fin = new Date(inicio);
-    let contados = 0;
-    while (contados < dias) {
-        fin.setDate(fin.getDate() + 1);
-        const d = fin.getDay();
-        if (d !== 0 && d !== 6) contados++;
-    }
-
-    const fmt = { day:'2-digit', month:'long', year:'numeric' };
-    document.getElementById('p-horas').textContent  = horas.toLocaleString() + ' horas';
-    document.getElementById('p-hxd').textContent    = HORAS_DIA + ' h / día';
-    document.getElementById('p-dias').textContent   = dias.toLocaleString() + ' días hábiles';
-    document.getElementById('p-inicio').textContent = inicio.toLocaleDateString('es-VE', fmt);
-    document.getElementById('p-fin').textContent    = fin.toLocaleDateString('es-VE', fmt);
-    card.classList.add('visible');
-}
-
-function guardar() {
-    const nombre = document.getElementById('inp-nombre').value.trim();
-    const depto  = document.getElementById('inp-depto').value;
-    const fecha  = document.getElementById('inp-fecha').value;
-    if (!nombre || !depto || !fecha) {
-        Swal.fire({ icon:'warning', title:'Campos incompletos',
-            text:'Completa nombre, departamento y fecha de inicio.', confirmButtonColor:'#2563eb' });
-        return;
-    }
-    Swal.fire({
-        icon:'success', title:'¡Asignación Registrada!',
-        html:`<p style="text-align:left;line-height:1.9">
-                <b>Pasante:</b> ${nombre}<br>
-                <b>Departamento:</b> ${depto}<br>
-                <b>Meta:</b> ${document.getElementById('inp-horas').value}h (${HORAS_DIA}h/día)<br>
-                <b>Culminación estimada:</b> ${document.getElementById('p-fin').textContent}
-              </p>`,
-        confirmButtonColor:'#2563eb', confirmButtonText:'Perfecto'
-    }).then(() => cerrarModal());
-}
 // ── Editar Asignación (redirige al módulo de Asignaciones) ──
 function abrirModalEditar(pasanteId) {
     window.location.href = URLROOT + '/asignaciones?editar=' + pasanteId;
 }
 
-// ── Cambiar Estado del Pasante ──
+// Variable global para Choices.js
+let choicesEstado = null;
+
+// ── Cambiar Estado del Pasante (MODAL PREMIUM) ──
 function cambiarEstado(pasanteId, nombre) {
-    if (typeof Swal === 'undefined') return;
-    Swal.fire({
-        title: 'Cambiar Estado',
-        html: '<p>Pasante: <strong>' + (nombre || 'Seleccionado') + '</strong></p>',
-        input: 'select',
-        inputOptions: {
-            'Pendiente':  '⏳ Pendiente',
-            'Activo':     '✅ Activo',
-            'Finalizado': '🏆 Finalizado',
-            'Retirado':   '❌ Retirado'
-        },
-        inputPlaceholder: 'Selecciona un estado',
-        showCancelButton: true,
-        confirmButtonText: 'Cambiar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#2563eb',
-        inputValidator: function(value) {
-            if (!value) return 'Debes seleccionar un estado';
-        }
-    }).then(async function(result) {
-        if (!result.isConfirmed) return;
-        try {
-            var fd = new FormData();
-            fd.append('pasante_id', pasanteId);
-            fd.append('estado', result.value);
-            var resp = await fetch(URLROOT + '/pasantes/cambiarEstado', {
-                method: 'POST',
-                body: fd,
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            var json = await resp.json();
-            if (json.success) {
-                await Swal.fire({ icon: 'success', title: '¡Estado Actualizado!', text: json.message || 'El estado se cambió correctamente.', confirmButtonColor: '#2563eb' });
-                window.location.reload();
-            } else {
-                Swal.fire({ icon: 'error', title: 'Error', text: json.message || 'No se pudo cambiar el estado.', confirmButtonColor: '#2563eb' });
-            }
-        } catch (err) {
-            Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'Intenta de nuevo.', confirmButtonColor: '#2563eb' });
-        }
-    });
+    document.getElementById('inp-pasante-id').value = pasanteId;
+    document.getElementById('txt-nombre-pasante').textContent = 'Pasante: ' + (nombre || 'Seleccionado');
+    
+    // Abrir modal
+    document.getElementById('modalCambiarEstado').classList.add('active');
+
+    // Inicializar Choices si no existe
+    const select = document.getElementById('inp-nuevo-estado');
+    if (!choicesEstado) {
+        choicesEstado = new Choices(select, {
+            searchEnabled: false,
+            itemSelectText: '',
+            position: 'bottom',
+            shouldSort: false
+        });
+    }
 }
+
+function cerrarModalEstado() {
+    document.getElementById('modalCambiarEstado').classList.remove('active');
+}
+
+async function confirmarCambioEstado() {
+    const pasanteId = document.getElementById('inp-pasante-id').value;
+    const nuevoEstado = document.getElementById('inp-nuevo-estado').value;
+
+    try {
+        var fd = new FormData();
+        fd.append('pasante_id', pasanteId);
+        fd.append('estado', nuevoEstado);
+        
+        // Mostrar cargando con Notyf si existe o SweetAlert
+        const resp = await fetch(URLROOT + '/pasantes/cambiarEstado', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        
+        var json = await resp.json();
+        if (json.success) {
+            cerrarModalEstado();
+            if (typeof NotificationService !== 'undefined') {
+                NotificationService.success('¡Estado Actualizado!', json.message);
+            } else {
+                await Swal.fire({ icon: 'success', title: '¡Estado Actualizado!', text: json.message, confirmButtonColor: '#2563eb' });
+            }
+            window.location.reload();
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: json.message || 'No se pudo cambiar el estado.', confirmButtonColor: '#2563eb' });
+        }
+    } catch (err) {
+        Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'Intenta de nuevo.', confirmButtonColor: '#2563eb' });
+    }
+}
+
+$(document).ready(function() {
+    if ($('#tablaPasantes').length) {
+        $('#tablaPasantes').DataTable({
+            language: {
+                url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json'
+            },
+            pageLength: 10,
+            order: [[0, 'asc']],
+            responsive: true,
+            dom: '<"top"f>rt<"bottom"ip><"clear">',
+            columnDefs: [
+                { responsivePriority: 1, targets: 0 },   // Nombre
+                { responsivePriority: 2, targets: -1 },  // Acciones
+                { responsivePriority: 3, targets: 5 },   // Estado
+                { responsivePriority: 4, targets: 4 },   // Progreso
+                { responsivePriority: 8, targets: 3 },   // Departamento
+                { responsivePriority: 9, targets: 2 },   // Institución
+                { responsivePriority: 10, targets: 1 },  // Cédula
+                { orderable: false, targets: 6 }
+            ],
+            initComplete: function(settings, json) {
+                $(this.api().table().node()).css('opacity', '1');
+            }
+        });
+    }
+});
 </script>

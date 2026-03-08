@@ -270,14 +270,15 @@ class WizardController extends Controller
 
             if ($rolId === 3) {
                 // ── PASANTE ──────────────────────────────────────────────
-                // A. usuarios: solo pin_asistencia y flag
+                // A. usuarios: hashear pin_asistencia y flag
+                $pinHasheado = password_hash($pinAsistencia, PASSWORD_BCRYPT);
                 $this->db->query("
                     UPDATE usuarios
                     SET pin_asistencia        = :pin,
                         requiere_cambio_clave = 0
                     WHERE id = :user_id
                 ");
-                $this->db->bind(':pin',      $pinAsistencia);
+                $this->db->bind(':pin',      $pinHasheado);
                 $this->db->bind(':user_id',  $userId);
 
                 if (!$this->db->execute()) {

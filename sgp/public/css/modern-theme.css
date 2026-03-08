@@ -9,11 +9,13 @@
     --sidebar-width-mini: 80px;
     --header-height: 70px;
 
-    /* Colores Corporativos (Mantenidos) */
+    /* Colores Corporativos — Accent azul eléctrico (coherente con navy) */
     --color-primary: #1e2b58;
     --color-primary-dark: #162044;
-    --color-accent: #F59E0B;
-    --color-accent-dark: #D97706;
+    --color-accent: #3b82f6;
+    /* Azul eléctrico (antes: dorado #F59E0B) */
+    --color-accent-dark: #2563eb;
+    /* Azul saturado (antes: ámbar #D97706) */
 
     /* Backgrounds */
     --bg-body: #F0F5FA;

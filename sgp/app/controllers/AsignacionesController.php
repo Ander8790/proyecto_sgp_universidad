@@ -19,6 +19,7 @@ declare(strict_types=1);
 class AsignacionesController extends Controller
 {
     private Database $db;
+    private $asignacionModel;
 
     public function __construct()
     {
@@ -32,6 +33,8 @@ class AsignacionesController extends Controller
 
         $config    = require APPROOT . '/config/config.php';
         $this->db  = new Database($config['db']);
+        
+        $this->asignacionModel = $this->model('Asignacion');
     }
 
     // ─────────────────────────────────────────────────────────
@@ -39,37 +42,8 @@ class AsignacionesController extends Controller
     // ─────────────────────────────────────────────────────────
     public function index(): void
     {
-        // Todas las asignaciones (desde datos_pasante que es la tabla de asignación)
-        $this->db->query("
-            SELECT
-                u.id                AS pasante_id,
-                u.cedula,
-                dp.nombres,
-                dp.apellidos,
-                dpa.institucion_procedencia,
-                COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
-                COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
-                COALESCE(dpa.horas_meta, 1440)               AS horas_meta,
-                dpa.fecha_inicio_pasantia,
-                dpa.fecha_fin_estimada,
-                d.id               AS departamento_id,
-                d.nombre           AS departamento_nombre,
-                tu.id              AS tutor_id,
-                tup.nombres        AS tutor_nombres,
-                tup.apellidos      AS tutor_apellidos
-            FROM usuarios u
-            LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
-            LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
-            LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
-            LEFT JOIN usuarios         tu  ON tu.id = dpa.tutor_id
-            LEFT JOIN datos_personales tup ON tup.usuario_id = tu.id
-            WHERE u.rol_id = 3 AND u.estado = 'activo'
-            ORDER BY
-                FIELD(COALESCE(dpa.estado_pasantia,'Sin Asignar'),
-                      'Activo','Pendiente','Sin Asignar','Finalizado','Retirado'),
-                IFNULL(dp.apellidos, u.correo) ASC
-        ");
-        $asignaciones = $this->db->resultSet();
+        // Todas las asignaciones obtenidas desde el modelo
+        $asignaciones = $this->asignacionModel->getAll();
 
         // Departamentos para el select del modal
         $this->db->query("SELECT id, nombre FROM departamentos WHERE activo = 1 ORDER BY nombre ASC");
@@ -145,29 +119,50 @@ class AsignacionesController extends Controller
         }
 
         $tutorIdVal = $tutorId > 0 ? $tutorId : null;
+        $autoRellenar = isset($_POST['auto_rellenar']) && $_POST['auto_rellenar'] == '1';
 
-        // UPSERT en datos_pasante
-        $this->db->query("
-            INSERT INTO datos_pasante
-                (usuario_id, departamento_asignado_id, tutor_id, horas_meta,
-                 fecha_inicio_pasantia, fecha_fin_estimada, estado_pasantia)
-            VALUES
-                (:uid, :dept_id, :tutor_id, :horas_meta, :fecha_inicio, :fecha_fin, 'Pendiente')
-            ON DUPLICATE KEY UPDATE
-                departamento_asignado_id = VALUES(departamento_asignado_id),
-                tutor_id                 = VALUES(tutor_id),
-                horas_meta               = VALUES(horas_meta),
-                fecha_inicio_pasantia    = VALUES(fecha_inicio_pasantia),
-                fecha_fin_estimada       = VALUES(fecha_fin_estimada)
-        ");
-        $this->db->bind(':uid',          $pasanteId);
-        $this->db->bind(':dept_id',      $departamentoId);
-        $this->db->bind(':tutor_id',     $tutorIdVal);
-        $this->db->bind(':horas_meta',   $horasMeta);
-        $this->db->bind(':fecha_inicio', $fechaInicio);
-        $this->db->bind(':fecha_fin',    $fechaFin);
-
-        if ($this->db->execute()) {
+        if ($this->asignacionModel->guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin)) {
+            
+            // -------------------------------------------------------------
+            // FASE 1: AUTO-RELLENADO PARA PASANTES TARDÍOS
+            // -------------------------------------------------------------
+            if ($autoRellenar) {
+                // Se usa date() en vez de 'new DateTime(hoy)' o 'date('Y-m-d')' para poder parsear
+                $fechaActual = date('Y-m-d');
+                if ($fechaInicio < $fechaActual) {
+                    try {
+                        $inicioObj = new DateTime($fechaInicio);
+                        $hoyObj    = new DateTime($fechaActual);
+                        
+                        while ($inicioObj < $hoyObj) {
+                            $diaSemana = (int)$inicioObj->format('N');
+                            if ($diaSemana >= 1 && $diaSemana <= 5) { // Lunes a Viernes
+                                $fechaLoop = $inicioObj->format('Y-m-d');
+                                
+                                // Asegurar que no haya registros ese mismo día
+                                $this->db->query("SELECT id FROM asistencias WHERE pasante_id = :pid AND fecha = :fecha LIMIT 1");
+                                $this->db->bind(':pid', $pasanteId);
+                                $this->db->bind(':fecha', $fechaLoop);
+                                
+                                if (!$this->db->single()) {
+                                    // 🚨 CORECCIÓN APLICADA: METODO = 'Manual'
+                                    $this->db->query("
+                                        INSERT INTO asistencias (pasante_id, fecha, hora_registro, estado, metodo, motivo_justificacion)
+                                        VALUES (:pid, :fecha, '08:00:00', 'Justificado', 'Manual', 'Ingreso tardío por trámites administrativos')
+                                    ");
+                                    $this->db->bind(':pid', $pasanteId);
+                                    $this->db->bind(':fecha', $fechaLoop);
+                                    $this->db->execute();
+                                }
+                            }
+                            $inicioObj->modify('+1 day');
+                        }
+                    } catch (Exception $e) {
+                        // Ignorar cualquier fallo del loop y continuar
+                    }
+                }
+            }
+            
             // --- Notificar al Pasante ---
             require_once APPROOT . '/models/NotificationModel.php';
             $notificationModel = new NotificationModel($this->db);
@@ -180,13 +175,13 @@ class AsignacionesController extends Controller
                 $pasanteId,
                 'asignacion_nueva',
                 'Nueva Asignación de Pasantía',
-                "Has sido asignado a {$deptNombre}. Fecha de inicio: {$fechaInicio}.",
+                "Has sido asignado a {$deptNombre}. Fecha de inicio: " . date('d/m/Y', strtotime($fechaInicio)) . ".",
                 URLROOT . '/perfil'
             );
 
             echo json_encode([
                 'success'   => true,
-                'message'   => 'Asignación guardada correctamente.',
+                'message'   => 'Asignación guardada' . ($autoRellenar ? ' y rellenada' : '') . ' correctamente.',
                 'fecha_fin' => $fechaFin,
             ]);
         } else {
@@ -213,12 +208,7 @@ class AsignacionesController extends Controller
             exit;
         }
 
-        $this->db->query("
-            UPDATE datos_pasante SET estado_pasantia = 'Activo' WHERE usuario_id = :uid
-        ");
-        $this->db->bind(':uid', $pasanteId);
-
-        if ($this->db->execute()) {
+        if ($this->asignacionModel->activar($pasanteId)) {
             echo json_encode(['success' => true, 'message' => 'Pasantía activada. El pasante puede registrar asistencia en el Kiosco.']);
         } else {
             echo json_encode(['success' => false, 'message' => 'No se pudo activar la pasantía.']);
@@ -244,12 +234,7 @@ class AsignacionesController extends Controller
             exit;
         }
 
-        $this->db->query("
-            UPDATE datos_pasante SET estado_pasantia = 'Finalizado' WHERE usuario_id = :uid
-        ");
-        $this->db->bind(':uid', $pasanteId);
-
-        if ($this->db->execute()) {
+        if ($this->asignacionModel->finalizar($pasanteId)) {
             echo json_encode(['success' => true, 'message' => 'Pasantía marcada como Finalizada.']);
         } else {
             echo json_encode(['success' => false, 'message' => 'No se pudo finalizar la pasantía.']);
@@ -275,21 +260,72 @@ class AsignacionesController extends Controller
             exit;
         }
 
-        $this->db->query("
-            UPDATE datos_pasante
-            SET departamento_asignado_id = NULL,
-                tutor_id     = NULL,
-                estado_pasantia          = 'Sin Asignar',
-                fecha_inicio_pasantia    = NULL,
-                fecha_fin_estimada       = NULL
-            WHERE usuario_id = :uid
-        ");
-        $this->db->bind(':uid', $pasanteId);
-
-        if ($this->db->execute()) {
+        if ($this->asignacionModel->eliminar($pasanteId)) {
             echo json_encode(['success' => true, 'message' => 'Asignación eliminada. El pasante queda sin asignar.']);
         } else {
             echo json_encode(['success' => false, 'message' => 'No se pudo eliminar la asignación.']);
+        }
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // POST /asignaciones/buscarPasanteAjax  — (Buscador AJAX Modal)
+    // ─────────────────────────────────────────────────────────
+    public function buscarPasanteAjax(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode([]);
+            exit;
+        }
+
+        $query = trim($_POST['query'] ?? '');
+        if (strlen($query) < 2) {
+            echo json_encode([]);
+            exit;
+        }
+
+        $sql = "
+            SELECT u.id AS pasante_id, u.cedula, dp.nombres, dp.apellidos, 
+                   COALESCE(dpa.institucion_procedencia, 'No especificada') AS institucion_procedencia, 
+                   dpa.estado_pasantia
+            FROM usuarios u
+            JOIN datos_personales dp ON u.id = dp.usuario_id
+            LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
+            WHERE u.rol_id = 3
+              AND (dpa.estado_pasantia IN ('Pendiente', 'Sin Asignar') OR dpa.estado_pasantia IS NULL OR dpa.estado_pasantia = '')
+              AND (u.cedula LIKE :q OR dp.nombres LIKE :q OR dp.apellidos LIKE :q)
+            LIMIT 10
+        ";
+        $this->db->query($sql);
+        $this->db->bind(':q', "%{$query}%");
+        
+        echo json_encode($this->db->resultSet());
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // POST /asignaciones/getDetalleAjax  — (Detalle de Modal)
+    // ─────────────────────────────────────────────────────────
+    public function getDetalleAjax(): void
+    {
+        header('Content-Type: application/json');
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['error' => 'Método no permitido']);
+            exit;
+        }
+
+        $pasanteId = (int)($_POST['pasante_id'] ?? 0);
+        if (!$pasanteId) {
+            echo json_encode(['error' => 'ID de pasante inválido']);
+            exit;
+        }
+
+        $detalle = $this->asignacionModel->getById($pasanteId);
+        if ($detalle) {
+            echo json_encode($detalle);
+        } else {
+            echo json_encode(['error' => 'No se encontraron detalles para este pasante']);
         }
         exit;
     }

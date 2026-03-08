@@ -110,10 +110,33 @@ class KioscoController extends Controller
             exit;
         }
 
-        // ── Verificar PIN ──────────────────────────────────────────
-        if ($pasante->pin_asistencia !== $pin) {
+        // ── Verificar PIN (BCRYPT hash) ───────────────────────────
+        if (!password_verify($pin, $pasante->pin_asistencia ?? '')) {
             echo json_encode(['success' => false, 'message' => 'PIN incorrecto. Inténtalo de nuevo.']);
             exit;
+        }
+
+        // ── VULN-02: Validar departamento asignado ────────────────
+        if (empty($pasante->departamento_nombre)) {
+            echo json_encode(['success' => false, 'message' => 'No tienes departamento asignado. Contacta al Administrador.']);
+            exit;
+        }
+
+        // ── VULN-02: Validar rango de fechas de pasantía ──────────
+        $this->db->query("SELECT fecha_inicio_pasantia, fecha_fin_estimada 
+                           FROM datos_pasante WHERE usuario_id = :pid");
+        $this->db->bind(':pid', (int)$pasante->id);
+        $fechas = $this->db->single();
+        if ($fechas) {
+            $hoyCheck = date('Y-m-d');
+            if ($fechas->fecha_inicio_pasantia && $hoyCheck < $fechas->fecha_inicio_pasantia) {
+                echo json_encode(['success' => false, 'message' => 'Tu pasantía aún no ha iniciado. Fecha de inicio: ' . $fechas->fecha_inicio_pasantia]);
+                exit;
+            }
+            if ($fechas->fecha_fin_estimada && $hoyCheck > $fechas->fecha_fin_estimada) {
+                echo json_encode(['success' => false, 'message' => 'Tu pasantía ha expirado. Contacta al Administrador.']);
+                exit;
+            }
         }
 
         $hoy       = date('Y-m-d');
@@ -152,19 +175,12 @@ class KioscoController extends Controller
         $ok = $this->db->execute();
 
         if ($ok) {
-            // 3NF: horas_acumuladas vive en datos_pasante, NO en usuarios
-            $this->db->query("
-                UPDATE datos_pasante
-                SET horas_acumuladas = horas_acumuladas + 8
-                WHERE usuario_id = :pid
-            ");
-            $this->db->bind(':pid', $pasanteId);
-            $this->db->execute();
-
+            // ✅ PRO-RATA: El progreso se calcula dinámicamente desde la tabla 'asistencias'.
+            // NO se suma ni resta a horas_acumuladas — 'asistencias' es la única fuente de verdad.
             echo json_encode([
                 'success' => true,
                 'message' => '¡Asistencia registrada exitosamente!',
-                'hora'    => date('H:i'),
+                'hora'    => date('h:i A'),
                 'pasante' => [
                     'nombres'      => $pasante->nombres,
                     'apellidos'    => $pasante->apellidos,

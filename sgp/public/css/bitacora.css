@@ -500,7 +500,9 @@ table.dataTable tbody td {
     word-wrap: break-word;
 }
 
-/* Skeleton Loading */
+/* =====================================================
+   SKELETON LOADING (preservado)
+   ===================================================== */
 .skeleton {
     background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
     background-size: 200% 100%;
@@ -515,5 +517,462 @@ table.dataTable tbody td {
 
     100% {
         background-position: -200% 0;
+    }
+}
+
+/* =====================================================
+   GRID.JS — PREMIUM SAAS ENTERPRISE 2024 OVERRIDES
+   Vento Box Design System
+   ===================================================== */
+
+/* ── Contenedor principal ── */
+.gridjs-container {
+    font-family: 'Inter', system-ui, sans-serif;
+    font-size: 0.9rem;
+    color: #1e293b;
+    border: none !important;
+}
+
+.gridjs-wrapper {
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    overflow: visible !important;
+}
+
+/* ── Tabla base: sin bordes verticales ── */
+.gridjs-table {
+    width: 100% !important;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+/* ── Cabecera ── */
+.gridjs-thead .gridjs-tr {
+    background: transparent;
+}
+
+.gridjs-thead .gridjs-th {
+    background: #f8fafc;
+    color: #64748b;
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 14px 20px;
+    border-top: none !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-bottom: 2px solid #e2e8f0 !important;
+    white-space: nowrap;
+    position: relative;
+}
+
+/* Línea activa en header al pasar el mouse */
+.gridjs-thead .gridjs-th:hover {
+    background: #f1f5f9;
+    color: #172554;
+}
+
+/* Flecha de ordenamiento */
+.gridjs-th-sort-asc .gridjs-sort-icon,
+.gridjs-th-sort-desc .gridjs-sort-icon {
+    color: #2563eb;
+}
+
+/* ── Filas de cuerpo ── */
+.gridjs-tbody .gridjs-tr {
+    transition: background 0.15s ease;
+    cursor: default;
+}
+
+.gridjs-tbody .gridjs-tr:hover .gridjs-td {
+    background: linear-gradient(90deg,
+            rgba(37, 99, 235, 0.03) 0%,
+            rgba(37, 99, 235, 0.06) 50%,
+            rgba(37, 99, 235, 0.03) 100%) !important;
+}
+
+.gridjs-tbody .gridjs-td {
+    padding: 18px 20px;
+    border-bottom: 1px solid #f1f5f9 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    vertical-align: middle;
+    background: white;
+    transition: background 0.15s ease;
+}
+
+/* Animación de entrada en filas */
+.gridjs-tbody .gridjs-tr {
+    animation: rowFadeIn 0.25s ease both;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(1) {
+    animation-delay: 0.03s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(2) {
+    animation-delay: 0.06s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(3) {
+    animation-delay: 0.09s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(4) {
+    animation-delay: 0.12s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(5) {
+    animation-delay: 0.15s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(6) {
+    animation-delay: 0.18s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(7) {
+    animation-delay: 0.21s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(8) {
+    animation-delay: 0.24s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(9) {
+    animation-delay: 0.27s;
+}
+
+.gridjs-tbody .gridjs-tr:nth-child(10) {
+    animation-delay: 0.30s;
+}
+
+@keyframes rowFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ── Loading state ── */
+.gridjs-loading-bar {
+    background: linear-gradient(90deg, #172554, #2563eb, #172554);
+    background-size: 200% 100%;
+    animation: shimmerBar 1.5s ease-in-out infinite;
+    height: 3px;
+}
+
+@keyframes shimmerBar {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+.gridjs-loading {
+    color: #64748b;
+    font-size: 0.9rem;
+    padding: 40px;
+}
+
+/* ── Empty state ── */
+.gridjs-notfound {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    padding: 48px;
+    text-align: center;
+}
+
+/* ── Error state ── */
+.gridjs-error {
+    color: #dc2626;
+    font-size: 0.9rem;
+    padding: 24px;
+    background: #fef2f2;
+    border-radius: 12px;
+    margin: 16px;
+}
+
+/* ── Paginación Premium ── */
+.gridjs-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 24px;
+    border-top: 1px solid #f1f5f9;
+    background: #fff;
+    border-radius: 0 0 20px 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* Texto "Mostrando X-Y de Z" */
+.gridjs-pagination .gridjs-summary {
+    font-size: 0.82rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+/* Contenedor de páginas */
+.gridjs-pagination-nav {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Botones individuales de página */
+.gridjs-pages button {
+    min-width: 34px;
+    height: 34px;
+    padding: 0 10px;
+    border: 1.5px solid #e2e8f0;
+    background: white;
+    color: #475569;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: 'Inter', sans-serif;
+}
+
+.gridjs-pages button:hover:not(:disabled) {
+    border-color: #2563eb;
+    color: #2563eb;
+    background: rgba(37, 99, 235, 0.05);
+}
+
+/* Página activa */
+.gridjs-pages button.gridjs-currentPage {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Botones Prev / Next */
+.gridjs-pages button[data-page="prev"],
+.gridjs-pages button[data-page="next"] {
+    font-size: 1rem;
+    border-radius: 8px;
+    min-width: 34px;
+    padding: 0 10px;
+}
+
+.gridjs-pages button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+/* ── Badge de Acción dentro de Grid.js ── */
+/* Los badges se generan inline — ver formatters en JS ── */
+
+/* ── Avatar círculo ── */
+.gj-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    color: white;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    box-shadow: 0 2px 8px rgba(30, 58, 138, 0.25);
+}
+
+/* ── Botón de ojo (detalles) ── */
+.gj-eye-btn {
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid #e2e8f0;
+    background: white;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 1rem;
+}
+
+.gj-eye-btn:hover {
+    color: #2563eb;
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.05);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+/* =====================================================
+   FLATPICKR — Fix visibilidad del año + Tema Vento Box
+   ===================================================== */
+
+/* Fix #3: Visibilidad del año (solicitado) */
+.flatpickr-current-month {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    padding: 0 !important;
+}
+
+.flatpickr-current-month .numInputWrapper {
+    display: inline-block !important;
+    width: 65px !important;
+    margin-left: 5px !important;
+}
+
+.flatpickr-current-month input.cur-year {
+    display: inline-block !important;
+    font-weight: 700 !important;
+    background: transparent !important;
+}
+
+/* Tema institucional del calendario */
+.flatpickr-calendar {
+    border-radius: 16px !important;
+    box-shadow: 0 20px 60px rgba(22, 38, 96, 0.18) !important;
+    border: 1px solid #e2e8f0 !important;
+    font-family: 'Inter', sans-serif !important;
+}
+
+.flatpickr-months {
+    background: linear-gradient(135deg, #172554 0%, #2563eb 100%) !important;
+    border-radius: 16px 16px 0 0 !important;
+    padding: 6px 0 !important;
+}
+
+.flatpickr-month {
+    color: white !important;
+    fill: white !important;
+}
+
+.flatpickr-monthDropdown-months {
+    background: transparent !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border: none !important;
+    font-size: 0.9rem !important;
+    cursor: pointer;
+}
+
+.flatpickr-current-month input.cur-year,
+.flatpickr-current-month .numInput {
+    color: white !important;
+    font-size: 0.9rem !important;
+}
+
+.flatpickr-weekdays {
+    background: rgba(22, 38, 96, 0.06) !important;
+}
+
+span.flatpickr-weekday {
+    color: #172554 !important;
+    font-weight: 700 !important;
+    font-size: 0.75rem !important;
+}
+
+.flatpickr-day {
+    border-radius: 8px !important;
+    font-weight: 500;
+    transition: all 0.12s ease;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+    background: linear-gradient(135deg, #1e3a8a, #2563eb) !important;
+    border-color: #2563eb !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35) !important;
+}
+
+.flatpickr-day:hover:not(.selected):not(.startRange):not(.endRange) {
+    background: rgba(37, 99, 235, 0.08) !important;
+    border-color: #2563eb !important;
+    color: #172554 !important;
+}
+
+.flatpickr-day.today {
+    border-color: #2563eb !important;
+    font-weight: 700 !important;
+}
+
+.flatpickr-prev-month svg,
+.flatpickr-next-month svg {
+    fill: white !important;
+}
+
+.flatpickr-prev-month:hover,
+.flatpickr-next-month:hover {
+    background: rgba(255, 255, 255, 0.15) !important;
+}
+
+/* ── Botón PDF (fila de acciones) ── */
+.gj-pdf-btn {
+    width: 34px;
+    height: 34px;
+    border: 1.5px solid #fecaca;
+    background: #fff5f5;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #dc2626;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: 1rem;
+}
+
+.gj-pdf-btn:hover {
+    color: white;
+    border-color: #dc2626;
+    background: linear-gradient(135deg, #dc2626, #b91c1c);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+/* ── @media print: mostrar solo el modal de auditoría ── */
+@media print {
+    body>*:not(#auditModal) {
+        display: none !important;
+    }
+
+    #auditModal {
+        display: block !important;
+        position: static !important;
+        background: none !important;
+        backdrop-filter: none !important;
+    }
+
+    #auditModal .modal-content {
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        max-width: 100% !important;
+        padding: 24px !important;
+    }
+
+    #auditModal .modal-header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Ocultar botones en impresión */
+    #auditModal button {
+        display: none !important;
     }
 }

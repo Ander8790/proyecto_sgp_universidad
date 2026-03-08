@@ -103,162 +103,7 @@
         overflow: hidden;
     }
     
-    /* DataTable Styling */
-    table.dataTable {
-        border-collapse: separate !important;
-        border-spacing: 0;
-    }
-    
-    table.dataTable thead th {
-        background: linear-gradient(180deg, #f8f9fa 0%, #f1f3f5 100%);
-        color: var(--color-primary);
-        font-weight: 700;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        padding: 18px 16px;
-        border-bottom: 2px solid var(--color-primary);
-    }
-    
-    table.dataTable tbody tr {
-        transition: all var(--transition-fast);
-    }
-    
-    table.dataTable tbody tr:hover {
-        background: linear-gradient(90deg, 
-            rgba(22, 38, 96, 0.02) 0%, 
-            rgba(22, 38, 96, 0.05) 50%,
-            rgba(22, 38, 96, 0.02) 100%
-        );
-        transform: scale(1.005);
-    }
-    
-    table.dataTable tbody td {
-        padding: 16px;
-        vertical-align: middle;
-        border-bottom: 1px solid #f1f3f5;
-        color: var(--color-primary);
-        font-weight: 500;
-    }
-    
-    /* Action Buttons - Refined */
-    .btn-action {
-        padding: 8px 12px;
-        border: none;
-        border-radius: 10px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: all var(--transition-fast);
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        margin: 0 3px;
-        min-width: 38px;
-        height: 38px;
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .btn-action::before {
-        content: '';
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        width: 0;
-        height: 0;
-        border-radius: 50%;
-        background: rgba(255, 255, 255, 0.3);
-        transform: translate(-50%, -50%);
-        transition: width 0.3s, height 0.3s;
-    }
-    
-    .btn-action:hover::before {
-        width: 100%;
-        height: 100%;
-    }
-    
-    .btn-action i {
-        position: relative;
-        z-index: 1;
-        font-size: 16px;
-    }
-    
-    .btn-edit {
-        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-        color: white;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-    }
-    
-    .btn-edit:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-    }
-    
-    .btn-reset {
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        color: white;
-        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.3);
-    }
-    
-    .btn-reset:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
-    }
-    
-    .btn-delete {
-        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-        color: white;
-        box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-    }
-    
-    .btn-delete:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
-    }
-    
-    /* Status Badge - Enhanced */
-    .badge {
-        padding: 6px 14px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-    }
-    
-    .badge::before {
-        content: '';
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        display: inline-block;
-    }
-    
-    .badge-activo {
-        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.1) 100%);
-        color: #059669;
-        border: 1px solid rgba(16, 185, 129, 0.2);
-    }
-    
-    .badge-activo::before {
-        background: #10B981;
-        box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
-    }
-    
-    .badge-inactivo {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.1) 100%);
-        color: #DC2626;
-        border: 1px solid rgba(239, 68, 68, 0.2);
-    }
-    
-    .badge-inactivo::before {
-        background: #EF4444;
-        box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
-    }
+    /* Filtros Rápidos (Cápsulas) movidos a la vista principal */
     
     /* =======================================
        Modal Styles (Estandarizado Pasantes)
@@ -502,39 +347,7 @@
         font-size: 0.9rem;
     }
     
-    /* DataTable Search Input */
-    .dataTables_wrapper .dataTables_filter input {
-        border: 2px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 10px 16px;
-        margin-left: 8px;
-        transition: all var(--transition-fast);
-    }
-    
-    .dataTables_wrapper .dataTables_filter input:focus {
-        outline: none;
-        border-color: var(--color-primary);
-        box-shadow: 0 0 0 4px rgba(22, 38, 96, 0.1);
-    }
-    
-    /* DataTable Pagination */
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-        border-radius: 8px !important;
-        margin: 0 2px;
-        transition: all var(--transition-fast) !important;
-    }
-    
-    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
-        background: var(--color-primary) !important;
-        color: white !important;
-        border-color: var(--color-primary) !important;
-    }
-    
-    .dataTables_wrapper .dataTables_paginate .paginate_button:hover {
-        background: var(--color-accent) !important;
-        color: var(--color-primary) !important;
-        border-color: var(--color-accent) !important;
-    }
+    /* Selectors and Wrappers - Core DT Overrides movidos a global */
     
     /* === MICROANIMACIONES === */
     @keyframes pulse {
@@ -646,29 +459,30 @@
     // ==========================================================
     // LÓGICA TEMPORAL PARA KPIs (Basado en el array $users actual)
     // ==========================================================
-    $totalUsers = count($users);
-    $activos = count(array_filter($users, fn($u) => strtolower($u['estado']) === 'activo'));
+    $activos   = count(array_filter($users, fn($u) => strtolower($u['estado']) === 'activo'));
+    $pasantes  = count(array_filter($users, fn($u) => strtolower($u['role_name']) === 'pasante'));
+    $tutores   = count(array_filter($users, fn($u) => strtolower($u['role_name']) === 'tutor'));
     $inactivos = count(array_filter($users, fn($u) => strtolower($u['estado']) === 'inactivo'));
-    $admins = count(array_filter($users, fn($u) => strtolower($u['role_name']) === 'administrador'));
     // ==========================================================
     ?>
 
-    <!-- KPI CARDS ESTANDARIZADAS -->
+    <!-- KPI CARDS ESTANDARIZADAS E INTERACTIVAS -->
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:28px;">
         <?php
         $kpis = [
-            ['label' => 'Total Usuarios', 'val' => $totalUsers, 'color' => '#2563eb', 'boxShadow' => 'rgba(37,99,235,0.15)',  'icon' => 'ti-users',        'sub' => 'registrados'],
-            ['label' => 'Activos',        'val' => $activos,    'color' => '#10b981', 'boxShadow' => 'rgba(16,185,129,0.15)', 'icon' => 'ti-user-check',   'sub' => 'en el sistema'],
-            ['label' => 'Administradores','val' => $admins,     'color' => '#f59e0b', 'boxShadow' => 'rgba(245,158,11,0.15)', 'icon' => 'ti-shield-check', 'sub' => 'acceso total'],
-            ['label' => 'Inactivos',      'val' => $inactivos,  'color' => '#dc2626', 'boxShadow' => 'rgba(220,38,38,0.15)',  'icon' => 'ti-user-off',     'sub' => 'sin acceso'],
+            ['label' => 'Total Activos',      'val' => $activos,   'color' => '#10b981', 'boxShadow' => 'rgba(16,185,129,0.15)', 'icon' => 'ti-user-check',   'sub' => 'operando en sistema', 'filterVal' => 'activo'],
+            ['label' => 'Pasantes',           'val' => $pasantes,  'color' => '#2563eb', 'boxShadow' => 'rgba(37,99,235,0.15)',  'icon' => 'ti-school',       'sub' => 'métrica principal',   'filterVal' => 'Pasante'],
+            ['label' => 'Tutores Disponibles','val' => $tutores,   'color' => '#f59e0b', 'boxShadow' => 'rgba(245,158,11,0.15)', 'icon' => 'ti-briefcase',    'sub' => 'capacitadores',       'filterVal' => 'Tutor'],
+            ['label' => 'Inactivos',          'val' => $inactivos, 'color' => '#dc2626', 'boxShadow' => 'rgba(220,38,38,0.15)',  'icon' => 'ti-user-off',     'sub' => 'requiere atención',   'filterVal' => 'inactivo'],
         ];
-        foreach ($kpis as $k): ?>
+        foreach ($kpis as $k): 
+        ?>
         <div style="background:white;border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid <?= $k['color'] ?>;transition:all 0.3s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 25px <?= $k['boxShadow'] ?>'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                 <p style="color:#64748b;font-size:0.82rem;margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"><?= $k['label'] ?></p>
                 <i class="ti <?= $k['icon'] ?>" style="color:<?= $k['color'] ?>;font-size:1.4rem;opacity:0.7;"></i>
             </div>
-            <h2 style="font-size:2.4rem;font-weight:800;color:<?= $k['color'] ?>;margin:0;"><?= $k['val'] ?></h2>
+            <h2 style="font-size:2.4rem;font-weight:800;color:<?= $k['color'] ?>;margin:0;" data-kpi-value="<?= $k['val'] ?>"><?= $k['val'] ?></h2>
             <p style="color:#94a3b8;font-size:0.8rem;margin:4px 0 0;"><?= $k['sub'] ?></p>
         </div>
         <?php endforeach; ?>
@@ -680,16 +494,16 @@
             <i class="ti ti-filter" style="font-size:1.1rem; color:#2563eb;"></i> Filtrar Rol:
         </p>
         <div style="display: flex; gap: 10px; flex-wrap: wrap;" id="ventoFilterPills">
-            <button class="vento-pill active" data-role="" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
+            <button class="vento-pill active" data-role="" onclick="filtrarPorRol('Todos')" style="background: #2563eb; color: white; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;">
                 Todos
             </button>
-            <button class="vento-pill" data-role="Administrador" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="if(!this.classList.contains('active')) {this.style.background='#e2e8f0'}" onmouseout="if(!this.classList.contains('active')) {this.style.background='#f1f5f9'}">
+            <button class="vento-pill" data-role="Administrador" onclick="filtrarPorRol('Administrador')" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="if(!this.classList.contains('active')) {this.style.background='#e2e8f0'}" onmouseout="if(!this.classList.contains('active')) {this.style.background='#f1f5f9'}">
                 Administradores
             </button>
-            <button class="vento-pill" data-role="Tutor" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="if(!this.classList.contains('active')) {this.style.background='#e2e8f0'}" onmouseout="if(!this.classList.contains('active')) {this.style.background='#f1f5f9'}">
+            <button class="vento-pill" data-role="Tutor" onclick="filtrarPorRol('Tutor')" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="if(!this.classList.contains('active')) {this.style.background='#e2e8f0'}" onmouseout="if(!this.classList.contains('active')) {this.style.background='#f1f5f9'}">
                 Tutores
             </button>
-            <button class="vento-pill" data-role="Pasante" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="if(!this.classList.contains('active')) {this.style.background='#e2e8f0'}" onmouseout="if(!this.classList.contains('active')) {this.style.background='#f1f5f9'}">
+            <button class="vento-pill" data-role="Pasante" onclick="filtrarPorRol('Pasante')" style="background: #f1f5f9; color: #475569; border: none; padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s;" onmouseover="if(!this.classList.contains('active')) {this.style.background='#e2e8f0'}" onmouseout="if(!this.classList.contains('active')) {this.style.background='#f1f5f9'}">
                 Pasantes
             </button>
         </div>
@@ -698,67 +512,98 @@
     <!-- BLOQUE 3: TABLA DE DATOS (Clean Card con Footer) -->
     <div class="card border-0 shadow-soft rounded-xl overflow-hidden">
         <div class="table-responsive">
-            <table id="usersTable" class="table table-hover align-middle mb-0" style="width:100%">
+            <table id="usersTable" class="table table-hover align-middle mb-0" style="width:100%; opacity: 0; transition: opacity 0.4s ease-in-out;">
                 <thead class="bg-light text-uppercase text-muted small fw-bold">
                     <tr>
-                        <th class="px-4 py-3 border-0">ID</th>
                         <th class="px-4 py-3 border-0">Nombre</th>
-                        <th class="px-4 py-3 border-0">Correo</th>
                         <th class="px-4 py-3 border-0">Rol</th>
-                        <th class="px-4 py-3 border-0">Institución</th>
+                        <th class="px-4 py-3 border-0">Adscripción / Institución</th>
                         <th class="px-4 py-3 border-0">Estado</th>
                         <th class="px-4 py-3 border-0 text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody class="border-top-0">
-                    <?php foreach ($users as $user): ?>
-                    <tr style="transition: all 0.2s;">
-                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;"><?= $user['id'] ?></td>
-                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;">
-                            <div class="fw-medium text-dark"><?= htmlspecialchars($user['name']) ?></div>
-                            <div class="small text-muted"><?= htmlspecialchars($user['email']) ?></div>
+                    <?php foreach ($users as $user):
+                        $inicial = strtoupper(mb_substr($user['name'] ?? 'U', 0, 1));
+                    ?>
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="dt-name-cell">
+                                <div class="dt-avatar"><?= $inicial ?></div>
+                                <div>
+                                    <div class="dt-cell-primary"><?= htmlspecialchars($user['name']) ?></div>
+                                    <div class="dt-cell-secondary"><?= htmlspecialchars($user['email']) ?></div>
+                                </div>
+                            </div>
                         </td>
-                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;"><?= htmlspecialchars($user['email']) ?></td>
-                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;">
-                            <span class="badge bg-light text-dark"><?= htmlspecialchars($user['role_name']) ?></span>
+                        <td class="px-4 py-3">
+                            <?php 
+                                $rolColor = 'bg-secondary-subtle text-secondary border border-secondary-subtle';
+                                if ($user['role_name'] == 'Administrador') $rolColor = 'bg-primary-subtle text-primary border border-primary-subtle';
+                                elseif ($user['role_name'] == 'Tutor') $rolColor = 'bg-warning-subtle text-warning border border-warning-subtle';
+                                elseif ($user['role_name'] == 'Pasante') $rolColor = 'bg-info-subtle text-info border border-info-subtle';
+                            ?>
+                            <span class="badge rounded-pill <?= $rolColor ?> px-3 py-2 fw-bold">
+                                <?= htmlspecialchars($user['role_name']) ?>
+                            </span>
                         </td>
-                        <td class="px-4 py-3 border-bottom text-center" style="border-color: #f1f3f5;">
-                            <?php if (!empty($user['institucion_procedencia'])): ?>
-                                <span class="text-muted small"><?= htmlspecialchars($user['institucion_procedencia']) ?></span>
+                        <td class="px-4 py-3">
+                            <?php 
+                                // Lógica Quirúrgica: Depto para Admin/Tutor, Institución para Pasante
+                                $infoContextual = '';
+                                $icon = 'ti-building';
+                                
+                                if (in_array($user['role_id'], [1, 2])) {
+                                    $infoContextual = $user['departamento_nombre'] ?? '';
+                                    $icon = 'ti-hierarchy-2';
+                                } else {
+                                    $infoContextual = $user['institucion_nombre'] ?? '';
+                                    $icon = 'ti-school';
+                                }
+                            ?>
+                            <?php if (!empty($infoContextual)): ?>
+                                <span class="dt-cell-truncate text-dark fw-medium" title="<?= htmlspecialchars($infoContextual) ?>">
+                                    <i class="ti <?= $icon ?> text-muted me-1"></i>
+                                    <?= htmlspecialchars($infoContextual) ?>
+                                </span>
                             <?php else: ?>
-                                <span class="text-muted">-</span>
+                                <span class="text-muted small italic">
+                                    <i class="ti ti-alert-circle me-1"></i> Sin asignar
+                                </span>
                             <?php endif; ?>
                         </td>
-                        <td class="px-4 py-3 border-bottom" style="border-color: #f1f3f5;">
-                            <span class="badge badge-<?= $user['estado'] ?>">
+                        <td class="px-4 py-3">
+                            <?php
+                                $estadoClass = $user['estado'] === 'activo'
+                                    ? 'bg-success-subtle text-success border border-success-subtle'
+                                    : 'bg-danger-subtle text-danger border border-danger-subtle';
+                            ?>
+                            <span class="badge rounded-pill <?= $estadoClass ?> px-3 py-2 fw-bold">
                                 <?= ucfirst($user['estado']) ?>
                             </span>
                         </td>
-                        <td class="px-4 py-3 border-bottom text-center" style="border-color: #f1f3f5;">
-                            <div class="d-flex justify-content-center gap-2 flex-nowrap">
-                                <button onclick="SGPModal.verUsuario(<?= $user['id'] ?>)" class="btn-action" title="Ver perfil" style="background: linear-gradient(135deg, #4b5563 0%, #1f2937 100%); color: white;">
-                                    <i class="ti ti-eye"></i>
+                        <td class="px-4 py-3 text-center align-middle">
+                            <div class="d-flex justify-content-center" style="gap: 12px;">
+                                <button class="btn btn-sm border-0 shadow-sm transition-all" data-bs-toggle="tooltip" title="Ver Perfil" onclick="SGPModal.verUsuario(<?= $user['id'] ?>)" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #2563eb; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-eye fs-5 text-white"></i>
                                 </button>
-                                <button onclick="editUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-edit" title="Editar usuario">
-                                    <i class="ti ti-edit"></i>
+                                
+                                <button class="btn btn-sm border-0 shadow-sm transition-all" data-bs-toggle="tooltip" title="Editar Usuario" onclick="editUser('<?= UrlSecurity::encrypt($user['id']) ?>')" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #f59e0b; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-pencil fs-5 text-white"></i>
                                 </button>
-                                <button onclick="resetUser('<?= UrlSecurity::encrypt($user['id']) ?>')" class="btn-action btn-reset" title="Resetear contraseña">
-                                    <i class="ti ti-key"></i>
+                                
+                                <button class="btn btn-sm border-0 shadow-sm transition-all" data-bs-toggle="tooltip" title="Cambiar Clave" onclick="resetUser('<?= UrlSecurity::encrypt($user['id']) ?>')" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #64748b; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-key fs-5 text-white"></i>
                                 </button>
-                                <?php if ($user['estado'] === 'activo'): ?>
-                                <button onclick="toggleUser('<?= UrlSecurity::encrypt($user['id']) ?>', 'desactivar')"
-                                    class="btn-action btn-delete"
-                                    title="Desactivar usuario"
-                                    style="background:#ef4444;color:white;border-color:#dc2626;">
-                                    <i class="ti ti-user-off"></i>
-                                </button>
+                                
+                                <?php if($user['estado'] == 'activo'): ?>
+                                    <button class="btn btn-sm border-0 shadow-sm transition-all" data-bs-toggle="tooltip" title="Desactivar" onclick="toggleUser('<?= UrlSecurity::encrypt($user['id']) ?>', 'desactivar')" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #dc2626; color: #ffffff; border-radius: 6px !important;">
+                                        <i class="ti ti-user-off fs-5 text-white"></i>
+                                    </button>
                                 <?php else: ?>
-                                <button onclick="toggleUser('<?= UrlSecurity::encrypt($user['id']) ?>', 'activar')"
-                                    class="btn-action"
-                                    title="Activar usuario"
-                                    style="background:#f0fdf4;color:#16a34a;border:1px solid #bbf7d0;border-radius:10px;width:36px;height:36px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;">
-                                    <i class="ti ti-user-check"></i>
-                                </button>
+                                    <button class="btn btn-sm border-0 shadow-sm transition-all" data-bs-toggle="tooltip" title="Activar" onclick="toggleUser('<?= UrlSecurity::encrypt($user['id']) ?>', 'activar')" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #16a34a; color: #ffffff; border-radius: 6px !important;">
+                                        <i class="ti ti-user-check fs-5 text-white"></i>
+                                    </button>
                                 <?php endif; ?>
                             </div>
                         </td>
@@ -793,11 +638,12 @@
         
         <div class="modal-body-scroll">
         <form id="createUserForm" method="POST">
+            <input type="hidden" name="csrf_token" value="<?= Session::generateCsrfToken() ?>">
             <div class="form-group" style="margin-bottom: 16px;">
                 <label style="display: block; font-weight: 600; color: var(--color-primary); margin-bottom: 8px;">
                     Nombre *
                 </label>
-                <input type="text" name="nombre" required class="input-modern" 
+                <input type="text" name="nombre" id="nombreCreate" required class="input-modern" 
                        placeholder="Juan" 
                        pattern="[A-Za-záéíóúÁÉÍÓÚñÑ\s]+" 
                        maxlength="100"
@@ -808,7 +654,7 @@
                 <label style="display: block; font-weight: 600; color: var(--color-primary); margin-bottom: 8px;">
                     Apellido *
                 </label>
-                <input type="text" name="apellido" required class="input-modern" 
+                <input type="text" name="apellido" id="apellidoCreate" required class="input-modern" 
                        placeholder="Pérez" 
                        pattern="[A-Za-záéíóúÁÉÍÓÚñÑ\s]+" 
                        maxlength="100"
@@ -819,7 +665,7 @@
                 <label style="display: block; font-weight: 600; color: var(--color-primary); margin-bottom: 8px;">
                     Cédula * <small>(Base para contraseña temporal)</small>
                 </label>
-                <input type="text" name="cedula" required 
+                <input type="text" name="cedula" id="cedulaCreate" required 
                        pattern="[0-9]{7,8}" 
                        class="input-modern" 
                        placeholder="12345678"
@@ -830,7 +676,7 @@
                 <label style="display: block; font-weight: 600; color: var(--color-primary); margin-bottom: 8px;">
                     Correo *
                 </label>
-                <input type="email" name="correo" required class="input-modern validate-email" placeholder="usuario@ejemplo.com" autocomplete="off">
+                <input type="email" name="correo" id="correoCreate" required class="input-modern validate-email" placeholder="usuario@ejemplo.com" autocomplete="off">
                 <div class="email-feedback" style="min-height: 20px; font-size: 0.85rem; margin-top: 4px; font-weight: 600;"></div>
             </div>
             
@@ -888,6 +734,7 @@
         
         <div class="modal-body-scroll">
             <form id="editUserForm">
+                <input type="hidden" name="csrf_token" value="<?= Session::generateCsrfToken() ?>">
                 <input type="hidden" name="id" id="edit_id">
                 
                 <div class="form-group" style="margin-bottom: 16px;">
@@ -939,78 +786,45 @@
     </div>
 </div>
 
-<!-- View User Modal -->
-<div id="modalVerUsuario" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <div class="modal-header-info">
-                <div class="modal-header-icon">
-                    <i class="ti ti-history"></i>
-                </div>
-                <div>
-                    <h2 class="modal-title">Detalles del Usuario</h2>
-                    <p class="modal-subtitle">Información completa de la cuenta</p>
-                </div>
-            </div>
-            <button class="modal-close" onclick="closeViewModal()">
-                <i class="ti ti-x"></i>
-            </button>
-        </div>
-        
-        <div class="modal-body-scroll">
-            <div id="viewDetailsContent" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                <!-- Se llena vía JS -->
-            </div>
-            
-            <button type="button" class="btn-primary" onclick="closeViewModal()" style="width:100%;justify-content:center;background:linear-gradient(135deg,#172554 0%,#1e3a8a 100%);color:white;padding:14px;font-size:1rem;margin-top:24px;border:none;border-radius:12px;font-weight:600;cursor:pointer;">
-                <i class="ti ti-check"></i> Cerrar Vista
-            </button>
-        </div>
-    </div>
-</div>
 
-<!-- DataTables CSS -->
-<link rel="stylesheet" href="<?= URLROOT ?>/css/dataTables.dataTables.min.css">
 
-<!-- DataTables JS (jQuery y Notyf ya están cargados en main_layout.php) -->
-<script src="<?= URLROOT ?>/js/dataTables.min.js"></script>
+<!-- DataTables Premium Assets (Estandarizado) -->
+<link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
+<script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
 
 <script>
     // Toast: usando NotificationService global (main_layout.php)
     
     // Initialize DataTable
     $(document).ready(function() {
-        var table = $('#usersTable').DataTable({
+        window.table = $('#usersTable').DataTable({
             language: {
-                "decimal": "",
-                "emptyTable": "No hay datos disponibles en la tabla",
-                "info": "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                "infoEmpty": "Mostrando 0 a 0 de 0 registros",
-                "infoFiltered": "(filtrado de _MAX_ registros totales)",
-                "infoPostFix": "",
-                "thousands": ",",
-                "lengthMenu": "Mostrar _MENU_ registros",
-                "loadingRecords": "Cargando...",
-                "processing": "Procesando...",
-                "search": "Buscar:",
-                "zeroRecords": "No se encontraron registros coincidentes",
-                "paginate": {
-                    "first": "Primero",
-                    "last": "Último",
-                    "next": "Siguiente",
-                    "previous": "Anterior"
-                },
-                "aria": {
-                    "sortAscending": ": activar para ordenar la columna ascendente",
-                    "sortDescending": ": activar para ordenar la columna descendente"
-                }
+                url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json'
             },
-            dom: 'rtip', // Hide default search box
-            order: [[0, 'desc']],
+            dom: '<"top"f>rt<"bottom"ip><"clear">',
+            order: [[0, 'asc']], // Ordenar por Nombre por defecto
+            responsive: true,
+            pageLength: 10,
+            columnDefs: [
+                { responsivePriority: 1, targets: 1 },   // Nombre — siempre visible
+                { responsivePriority: 2, targets: -1 },  // Acciones — siempre visible
+                { responsivePriority: 3, targets: 4 },   // Estado
+                { responsivePriority: 4, targets: 2 },   // Rol
+                { responsivePriority: 8, targets: 3 },   // Institución
+                { orderable: false, targets: -1 }
+            ],
             drawCallback: function() {
-                // Actualizar contador de resultados
                 var count = this.api().rows({filter: 'applied'}).count();
                 $('#resultCount').text(count);
+                
+                // Initialize Bootstrap Tooltips for the newly drawn rows
+                var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            },
+            initComplete: function(settings, json) {
+                $(this.api().table().node()).css('opacity', '1');
             }
         });
         
@@ -1043,17 +857,17 @@
             updateChips();
         });
 
-        // 2. Role Filter (Column 3)
+        // 2. Role Filter (Column 2)
         $('#filterRole').on('change', function() {
             var val = $.fn.dataTable.util.escapeRegex($(this).val());
-            table.column(3).search(val ? val : '', true, false).draw();
+            table.column(2).search(val ? val : '', true, false).draw();
             updateChips();
         });
 
-        // 3. Status Filter (Column 5)
+        // 3. Status Filter (Column 4)
         $('#filterStatus').on('change', function() {
             var val = $.fn.dataTable.util.escapeRegex($(this).val());
-            table.column(5).search(val ? val : '', true, false).draw();
+            table.column(4).search(val ? val : '', true, false).draw();
             updateChips();
         });
 
@@ -1182,58 +996,7 @@
             });
     }
 
-    // View User Functions
-    function viewUser(encryptedId) {
-        fetch('<?= URLROOT ?>/users/obtenerDetalles/' + encryptedId)
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const user = data.data;
-                    const content = `
-                        <div class="view-item">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Nombre Completo</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.nombre_completo || 'No registrado'}</span>
-                        </div>
-                        <div class="view-item">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Rol</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.rol_nombre}</span>
-                        </div>
-                        <div class="view-item">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Cédula</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.cedula}</span>
-                        </div>
-                        <div class="view-item">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Correo</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.correo}</span>
-                        </div>
-                        <div class="view-item">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Teléfono</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.telefono || 'No registrado'}</span>
-                        </div>
-                        <div class="view-item">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Género</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.genero_texto}</span>
-                        </div>
-                        <div class="view-item">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Fecha de Nacimiento</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.fecha_nacimiento_formateada}</span>
-                        </div>
-                        <div class="view-item" style="grid-column: 1 / -1;">
-                            <strong style="display:block;color:#64748b;font-size:0.75rem;text-transform:uppercase;margin-bottom:4px;">Institución de Procedencia</strong>
-                            <span style="color:#1e293b;font-weight:600;">${user.nombre_institucion || (user.rol_id == 3 ? 'No registrada' : 'N/A')}</span>
-                        </div>
-                    `;
-                    document.getElementById('viewDetailsContent').innerHTML = content;
-                    document.getElementById('modalVerUsuario').classList.add('active');
-                } else {
-                    NotificationService.error(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                NotificationService.error('Error al cargar detalles del usuario');
-            });
-    }
+
 
     function closeViewModal() {
         document.getElementById('modalVerUsuario').classList.remove('active');
@@ -1243,6 +1006,64 @@
         document.getElementById('editModal').classList.remove('active');
     }
     
+    // Create User Form Submit
+    document.getElementById('createUserForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // 1. Basic Frontend Validation
+        const cedula = this.querySelector('[name="cedula"]').value.trim();
+        const correo = this.querySelector('[name="correo"]').value.trim();
+        
+        if (!/^[0-9]{7,8}$/.test(cedula)) {
+            NotificationService.error('La cédula debe contener entre 7 y 8 dígitos numéricos.');
+            return;
+        }
+        
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(correo)) {
+            NotificationService.error('Por favor, ingresa un correo electrónico válido.');
+            return;
+        }
+
+        // 2. Loading UI State
+        const formData = new FormData(this);
+        const btn = this.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Guardando...';
+        btn.disabled = true;
+        
+        // 3. AJAX / Fetch call
+        fetch('<?= URLROOT ?>/users/create', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // 4. Promise Resolution (Success/Error)
+            if (data.success) {
+                NotificationService.success(data.message);
+                this.reset(); // Clear form
+                closeCreateModal();
+                // Silent / Fast reload (or DT refresh if configured)
+                setTimeout(() => location.reload(), 1500); 
+            } else {
+                NotificationService.error(data.message || 'Error al crear usurio.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            NotificationService.error('Fallo en la conexión al servidor.');
+        })
+        .finally(() => {
+            // Restore button
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        });
+    });
+
     // Edit User Form Submit
     document.getElementById('editUserForm').addEventListener('submit', function(e) {
         e.preventDefault();
@@ -1415,7 +1236,54 @@
     </div>
 </div>
 
+<!-- DataTables Buttons Assets -->
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+
 <script>
+// 1. Helper para obtener la tabla
+function getSGPDataTable() {
+    return typeof table !== 'undefined' ? table : (typeof miTabla !== 'undefined' ? miTabla : null);
+}
+
+function obtenerIndiceColumna(dt, nombreColumna) {
+    let indice = -1;
+    dt.columns().every(function() {
+        let titulo = this.header().textContent.trim().toUpperCase();
+        if (titulo === nombreColumna.toUpperCase()) {
+            indice = this.index();
+        }
+    });
+    return indice;
+}
+
+window.filtrarPorRol = function(rolSeleccionado) {
+    let dt = getSGPDataTable();
+    if (!dt) return;
+
+    let colIndex = obtenerIndiceColumna(dt, 'ROL');
+    if (colIndex === -1) {
+        console.error('No se encontró la columna ROL');
+        return;
+    }
+
+    if (!rolSeleccionado || rolSeleccionado === 'Todos') {
+        dt.column(colIndex).search('').draw(); 
+        return;
+    } 
+    
+    let rolStr = String(rolSeleccionado).toLowerCase();
+    let rolBuscar = 'Pasante'; 
+    if (rolStr.includes('admin')) rolBuscar = 'Administrador';
+    if (rolStr.includes('tutor')) rolBuscar = 'Tutor';
+
+    dt.column(colIndex).search('^\\s*' + rolBuscar + '\\s*$', true, false, true).draw();
+};
+
     function openSearchModal() {
         document.getElementById('searchModal').classList.add('active');
         setTimeout(() => {
@@ -1444,7 +1312,7 @@
             const ventoResults = document.getElementById('ventoSearchResults');
             const ventoPills = document.querySelectorAll('.vento-pill');
             
-            // Accedemos directamente a la instancia de DataTables usando el ID de la tabla
+            // Usamos la instancia existente de la tabla (inicializada arriba)
             const dtInstance = $('#usersTable').DataTable();
             
             // 1. Lógica de Consulta Rápida (Modal Independiente)
@@ -1485,9 +1353,10 @@
                         const inicial = uNombre.charAt(0).toUpperCase();
 
                         const card = document.createElement('div');
-                        card.style = "display:flex; align-items:center; justify-content:space-between; padding:12px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; transition: all 0.2s; margin-bottom: 8px;";
-                        card.onmouseover = function() {this.style.background='#f1f5f9';this.style.borderColor='#cbd5e1'};
+                        card.style = "display:flex; align-items:center; justify-content:space-between; padding:12px; border:1px solid #e2e8f0; border-radius:12px; background:#f8fafc; transition: all 0.2s; margin-bottom: 8px; cursor:pointer;";
+                        card.onmouseover = function() {this.style.background='#eff6ff';this.style.borderColor='#bfdbfe'};
                         card.onmouseout = function() {this.style.background='#f8fafc';this.style.borderColor='#e2e8f0'};
+                        card.onclick = function() { closeSearchModal(); SGPModal.verUsuario(u.id); };
                         
                         card.innerHTML = `
                             <div style="display:flex; align-items:center; gap:12px;">
@@ -1503,9 +1372,6 @@
                             </div>
                             <div style="display:flex; align-items:center; gap:12px;">
                                 <span style="font-size:0.75rem; background:#e2e8f0; color:#475569; padding:4px 10px; border-radius:20px; font-weight:700; text-transform:uppercase;">${uRol}</span>
-                                <button onclick="closeSearchModal(); SGPModal.verUsuario(${u.id})" style="background:white; border:1px solid #e2e8f0; color:#3b82f6; width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.2s;" onmouseover="this.style.background='#eff6ff';this.style.borderColor='#bfdbfe'" onmouseout="this.style.background='white';this.style.borderColor='#e2e8f0'" title="Ver perfil">
-                                    <i class="ti ti-eye"></i>
-                                </button>
                             </div>
                         `;
                         ventoResults.appendChild(card);
@@ -1528,15 +1394,8 @@
                         this.style.background = '#2563eb';
                         this.style.color = 'white';
                         
-                        // B. Filtro DataTables Columna 3
-                        const roleToFilter = this.getAttribute('data-role');
-                        if (roleToFilter === "") {
-                            // Limpiar filtro en columna 3
-                            dtInstance.column(3).search('').draw();
-                        } else {
-                            // Búsqueda exacta con Regex anclado
-                            dtInstance.column(3).search('^' + roleToFilter + '$', true, false).draw();
-                        }
+                        // La llamada a filtrarPorRol ya se hace mediante el onclick en el HTML.
+                        // Aquí solo mantenemos la lógica visual si es necesario.
                     });
                 });
             }

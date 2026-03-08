@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGP - Preguntas de Seguridad</title>
+    <!-- 🛡️ No-Caché: Impide restaurar esta página con el botón Atrás -->
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, max-age=0">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     
     <!-- CSS Assets -->
     <link rel="stylesheet" href="<?= URLROOT ?>/css/bootstrap.min.css">
@@ -108,7 +112,7 @@
          */
         function sendHelpRequest() {
             // Obtener email del usuario (de sesión PHP)
-            const email = '<?= $_SESSION['recovery_email'] ?? '' ?>';
+            const email = '<?= htmlspecialchars($_SESSION['rec_email'] ?? '', ENT_QUOTES) ?>';
             
             if (!email) {
                 NotificationService.error('No se pudo identificar tu correo');

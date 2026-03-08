@@ -129,10 +129,10 @@ $catColors = [
 }
 </style>
 
-<div class="dashboard-container">
+<div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
 
     <!-- ===== BANNER ===== -->
-    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #3b82f6 100%); border-radius: 20px; padding: 32px 40px; margin-bottom: 28px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;">
+    <div style="background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%); border-radius: 20px; padding: 32px 40px; margin-bottom: 28px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;">
         <div style="position: absolute; top: -40px; right: -40px; width: 220px; height: 220px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
         <div style="position: absolute; bottom: -60px; left: 30%; width: 160px; height: 160px; background: rgba(255,255,255,0.03); border-radius: 50%;"></div>
         <div>
@@ -163,7 +163,7 @@ $catColors = [
         </div>
     </div>
 
-    <!-- ===== KPIs ===== -->
+    <!-- ===== KPIs (Interactivos) ===== -->
     <div class="eval-stats-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px;">
         <?php
             $promedioGlobal = 0;
@@ -173,22 +173,21 @@ $catColors = [
             }
         ?>
         <?php foreach ([
-            ['label' => 'Total Evaluaciones', 'value' => $total,           'sub' => 'realizadas',         'color' => '#162660', 'icon' => 'ti-file-analytics'],
-            ['label' => 'Promedio Global',     'value' => $promedioGlobal . '/5', 'sub' => 'rendimiento general', 'color' => '#f59e0b', 'icon' => 'ti-star'],
-            ['label' => 'Pasantes Evaluados',  'value' => count(array_unique(array_map(fn($e) => $e->pasante_id, $evaluaciones))), 'sub' => 'con evaluación', 'color' => '#10b981', 'icon' => 'ti-users'],
+            ['label' => 'Total Evaluaciones', 'id' => 'kpi-total', 'value' => $total,           'sub' => 'realizadas',         'color' => '#1e3a8a', 'icon' => 'ti-file-analytics', 'filter' => ''],
+            ['label' => 'Promedio Global',     'id' => 'kpi-prom',  'value' => $promedioGlobal . '/5', 'sub' => 'rendimiento general', 'color' => '#f59e0b', 'icon' => 'ti-star', 'filter' => ''],
+            ['label' => 'Pasantes Evaluados',  'id' => 'kpi-users', 'value' => count(array_unique(array_map(fn($e) => $e->pasante_id, $evaluaciones))), 'sub' => 'con evaluación', 'color' => '#16a34a', 'icon' => 'ti-users', 'filter' => ''],
         ] as $s): ?>
-        <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 4px solid <?= $s['color'] ?>; transition: all 0.3s;"
-             onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.1)'"
-             onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <p style="color: #64748b; font-size: 0.85rem; margin: 0 0 8px; font-weight: 500;"><?= $s['label'] ?></p>
-                    <h2 style="font-size: 2.2rem; font-weight: 800; color: <?= $s['color'] ?>; margin: 0;"><?= $s['value'] ?></h2>
-                    <p style="color: #64748b; font-size: 0.8rem; margin: 4px 0 0;"><?= $s['sub'] ?></p>
-                </div>
-                <div style="background: <?= $s['color'] ?>18; border-radius: 12px; padding: 12px;">
-                    <i class="ti <?= $s['icon'] ?>" style="font-size: 24px; color: <?= $s['color'] ?>;"></i>
-                </div>
+        <div class="kpi-card" 
+             style="border-left: 4px solid <?= $s['color'] ?>; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 10px 20px rgba(0,0,0,0.1)'"
+             onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+            <div class="kpi-info">
+                <p class="kpi-label"><?= $s['label'] ?></p>
+                <h2 class="kpi-value" style="color: <?= $s['color'] ?>;"><?= $s['value'] ?></h2>
+                <p class="kpi-sub"><?= $s['sub'] ?></p>
+            </div>
+            <div class="kpi-icon-box" style="background: <?= $s['color'] ?>18;">
+                <i class="ti <?= $s['icon'] ?>" style="color: <?= $s['color'] ?>;"></i>
             </div>
         </div>
         <?php endforeach; ?>
@@ -249,14 +248,23 @@ $catColors = [
                                 <?= number_format($prom, 1) ?>/5
                             </span>
                         </td>
-                        <td style="padding: 16px 20px;">
-                            <button onclick="verEvaluacion(<?= (int)$ev->id ?>)"
-                                style="background: #f1f5f9; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; color: #475569; font-size: 0.85rem; transition: all 0.2s;"
-                                onmouseover="this.style.transform='translateY(-2px)'"
-                                onmouseout="this.style.transform='none'"
-                                title="Ver detalle">
-                                <i class="ti ti-eye"></i>
-                            </button>
+                        <td class="px-4 py-3">
+                            <div class="d-flex justify-content-center" style="gap: 12px;">
+                                <button onclick="verEvaluacion(<?= (int)$ev->id ?>)"
+                                        class="btn btn-sm border-0 shadow-sm transition-all" 
+                                        data-bs-toggle="tooltip" title="Ver detalle" 
+                                        style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #2563eb; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-eye fs-5 text-white"></i>
+                                </button>
+                                
+                                <a href="<?= URLROOT ?>/reportes/evaluacion_pdf/<?= $ev->id ?>" 
+                                   target="_blank"
+                                   class="btn btn-sm border-0 shadow-sm transition-all" 
+                                   data-bs-toggle="tooltip" title="Exportar PDF" 
+                                   style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #dc2626; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-file-type-pdf fs-5 text-white"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -606,5 +614,24 @@ async function verEvaluacion(id) {
     } catch (e) {
         body.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc2626;">Error de conexión al obtener detalles.</div>';
     }
+    }
 }
+
+// Inicializar DataTables y Tooltips
+$(document).ready(function() {
+    // Si tienes un ID en la tabla, úsalo. Si no, usa la clase .table
+    const tableInstance = $('table').DataTable({
+        language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
+        pageLength: 10,
+        responsive: true,
+        dom: '<"top"f>rt<"bottom"ip><"clear">',
+        columnDefs: [{ orderable: false, targets: 5 }]
+    });
+
+    // Tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
 </script>

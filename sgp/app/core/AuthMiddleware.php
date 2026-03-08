@@ -123,7 +123,9 @@ class AuthMiddleware
      */
     public static function require()
     {
-        self::verificarSesion(self::isAjaxRequest());
+        // Detectar si es una petición fetch() con nuestros headers personalizados de Grid.js
+        $isAjax = self::isAjaxRequest();
+        self::verificarSesion($isAjax);
     }
     
     /**
@@ -184,6 +186,8 @@ class AuthMiddleware
                  * 
                  * CAMBIO v3.0: /perfil/completar → /wizard/index
                  * Ahora redirige al WizardController dedicado
+                 * 
+                 * Si es AJAX/JSON (Grid.js, fetch, etc.) devolver JSON en vez de HTML
                  */
                 if (self::isAjaxRequest()) {
                     header('Content-Type: application/json');

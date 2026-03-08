@@ -107,15 +107,15 @@ class ConfiguracionController extends Controller {
                     $this->db->bind(':id', $id);
                     $row = $this->db->single();
                     if ($row->total > 0) {
-                        Session::setFlash('error', '⚠️ No se puede desactivar: hay ' . $row->total . ' usuario(s) en este departamento.');
+                        Session::setFlash('error', '⚠️ No se puede eliminar: hay ' . $row->total . ' usuario(s) asignados a este departamento.');
                     } else {
-                        $this->db->query("UPDATE departamentos SET activo = 0 WHERE id = :id");
+                        $this->db->query("DELETE FROM departamentos WHERE id = :id");
                         $this->db->bind(':id', $id);
                         $this->db->execute();
-                        Session::setFlash('success', '✅ Departamento desactivado correctamente.');
+                        Session::setFlash('success', '✅ Departamento eliminado correctamente.');
                     }
                 } catch (Exception $e) {
-                    Session::setFlash('error', '❌ Error al desactivar departamento.');
+                    Session::setFlash('error', '❌ Error al eliminar departamento.');
                 }
             }
             header('Location: ' . URLROOT . '/configuracion');
@@ -132,17 +132,15 @@ class ConfiguracionController extends Controller {
         } catch (Exception $e) { /* tabla vacía o no existe */ }
 
         try {
-            $this->db->query("SELECT * FROM departamentos WHERE activo = 1 ORDER BY nombre ASC");
+            $this->db->query("SELECT * FROM departamentos ORDER BY nombre ASC");
             $departamentos = array_map(fn($d) => (array) $d, $this->db->resultSet());
         } catch (Exception $e) { /* tabla vacía o no existe */ }
 
         $data = [
             'title'         => 'Configuración del Sistema',
-            'instituciones' => $instituciones,
-            'departamentos' => $departamentos,
         ];
 
-        $this->view('configuracion/index', $data, false);
+        $this->view('configuracion/index', $data);
     }
 
     /**
@@ -204,12 +202,14 @@ class ConfiguracionController extends Controller {
             exit;
         }
 
-        // Generar un nuevo PIN aleatorio de 4 dígitos (Mismo estilo que PasantesController)
+        // Generar un nuevo PIN aleatorio de 4 dígitos
         $nuevoPin = str_pad((string)mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
 
+        // SEGURIDAD: Hashear el PIN antes de almacenarlo (nunca guardar en texto plano)
+        $pinHasheado = password_hash($nuevoPin, PASSWORD_BCRYPT);
         try {
             $this->db->query("UPDATE usuarios SET pin_asistencia = :pin WHERE id = :id AND rol_id = 3");
-            $this->db->bind(':pin', $nuevoPin);
+            $this->db->bind(':pin', $pinHasheado);
             $this->db->bind(':id', $id);
             
             if ($this->db->execute()) {

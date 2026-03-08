@@ -31,6 +31,8 @@ class Database
 
         try {
             $this->dbh = new PDO($dsn, $this->user, $this->pass, $options);
+            // Sincronizar timezone de la conexión MySQL con Venezuela (-04:00 / America/Caracas)
+            $this->dbh->exec("SET time_zone = '-04:00'");
         } catch (PDOException $e) {
             $this->error = $e->getMessage();
             echo $this->error;

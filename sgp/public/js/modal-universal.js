@@ -253,6 +253,11 @@
                 <i class="ti ti-refresh"></i> Restablecer PIN
             </button>`;
         }
+        if (d.es_pasante) {
+            actionsHtml += `<a href="${URLROOT}/users/exportPdf/${d.id}" target="_blank" class="sgp-btn-action btn btn-outline-danger fw-bold d-flex align-items-center justify-content-center gap-2" style="text-decoration:none; border: 1.5px solid currentColor !important;">
+                <i class="ti ti-file-type-pdf fs-5"></i> Descargar PDF
+            </a>`;
+        }
         actionsHtml += `<button class="sgp-btn-action sgp-btn-close-action" onclick="SGPModal.cerrar('ver')">
             <i class="ti ti-x"></i> Cerrar
         </button>`;

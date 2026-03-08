@@ -30,7 +30,7 @@ if (!isset($user) || empty($user)) {
                 
                 <!-- Status -->
                 <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-bottom: 24px;">
-                    <i class="fas fa-check-circle" style="color: #10B981; font-size: 16px;"></i>
+                    <i class="ti ti-circle-check" style="color: #10B981; font-size: 16px;"></i>
                     <span style="color: #059669; font-size: 0.9rem; font-weight: 600;">
                         <?= ucfirst($user['estado'] ?? 'activo') ?>
                     </span>
@@ -41,7 +41,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Email -->
                     <div style="margin-bottom: 16px;">
                         <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                            <i class="fas fa-envelope" style="color: var(--color-primary); font-size: 14px; margin-right: 8px;"></i>
+                            <i class="ti ti-mail" style="color: var(--color-primary); font-size: 14px; margin-right: 8px;"></i>
                             <span style="font-size: 0.7rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Correo</span>
                         </div>
                         <div style="color: var(--color-primary); font-weight: 500; font-size: 0.9rem; word-break: break-word;">
@@ -53,7 +53,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Department -->
                     <div style="margin-bottom: 16px;">
                         <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                            <i class="fas fa-building" style="color: var(--color-primary); font-size: 14px; margin-right: 8px;"></i>
+                            <i class="ti ti-building" style="color: var(--color-primary); font-size: 14px; margin-right: 8px;"></i>
                             <span style="font-size: 0.7rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Departamento</span>
                         </div>
                         <div style="color: var(--color-primary); font-weight: 500; font-size: 0.9rem;">
@@ -65,7 +65,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Member Since -->
                     <div>
                         <div style="display: flex; align-items: center; margin-bottom: 4px;">
-                            <i class="fas fa-calendar-alt" style="color: var(--color-primary); font-size: 14px; margin-right: 8px;"></i>
+                            <i class="ti ti-calendar" style="color: var(--color-primary); font-size: 14px; margin-right: 8px;"></i>
                             <span style="font-size: 0.7rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px;">Miembro desde</span>
                         </div>
                         <div style="color: var(--color-primary); font-weight: 500; font-size: 0.9rem;">
@@ -96,7 +96,7 @@ if (!isset($user) || empty($user)) {
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-top: 1px solid #E5E7EB;">
                     <h3 style="font-size: 1.2rem; color: var(--color-primary); font-weight: 700; margin: 0;">
-                        <i class="fas fa-user mr-1" style="margin-right: 8px;"></i> Datos Personales
+                        <i class="ti ti-user" style="margin-right: 8px;"></i> Datos Personales
                     </h3>
                     <button class="btn-primary" style="width: auto; padding: 8px 16px; font-size: 0.9rem;" onclick="openEditModal()">
                         <i class="ti ti-edit"></i> Editar
@@ -107,7 +107,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Cédula -->
                     <div>
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                            <i class="fas fa-id-card" style="color: var(--color-primary); margin-right: 8px;"></i>
+                            <i class="ti ti-id-badge" style="color: var(--color-primary); margin-right: 8px;"></i>
                             <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Cédula de Identidad</span>
                         </div>
                         <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
@@ -118,7 +118,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Teléfono -->
                     <div>
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                            <i class="fas fa-phone-alt" style="color: var(--color-primary); margin-right: 8px;"></i>
+                            <i class="ti ti-phone" style="color: var(--color-primary); margin-right: 8px;"></i>
                             <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Teléfono</span>
                         </div>
                         <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
@@ -130,7 +130,7 @@ if (!isset($user) || empty($user)) {
                     <?php if (Session::get('role_id') != 3): ?>
                     <div>
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                            <i class="fas fa-briefcase" style="color: var(--color-primary); margin-right: 8px;"></i>
+                            <i class="ti ti-briefcase" style="color: var(--color-primary); margin-right: 8px;"></i>
                             <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Cargo</span>
                         </div>
                         <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
@@ -142,7 +142,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Teléfono -->
                     <div>
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                            <i class="fas fa-venus-mars" style="color: var(--color-primary); margin-right: 8px;"></i>
+                            <i class="ti ti-gender-bigender" style="color: var(--color-primary); margin-right: 8px;"></i>
                             <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Género</span>
                         </div>
                         <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
@@ -153,7 +153,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Fecha de Nacimiento -->
                     <div>
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                            <i class="fas fa-birthday-cake" style="color: var(--color-primary); margin-right: 8px;"></i>
+                            <i class="ti ti-cake" style="color: var(--color-primary); margin-right: 8px;"></i>
                             <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Fecha de Nacimiento</span>
                         </div>
                         <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
@@ -164,7 +164,7 @@ if (!isset($user) || empty($user)) {
                     <?php if (Session::get('role_id') == 3 && !empty($user['institucion_procedencia'])): // Pasante ?>
                     <div style="grid-column: 1 / -1;">
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
-                            <i class="fas fa-university" style="color: var(--color-primary); margin-right: 8px;"></i>
+                            <i class="ti ti-building-bank" style="color: var(--color-primary); margin-right: 8px;"></i>
                             <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Institución de Procedencia</span>
                         </div>
                         <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
@@ -179,7 +179,7 @@ if (!isset($user) || empty($user)) {
             <div class="smart-card" style="margin-top: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #E5E7EB;">
                     <h3 style="font-size: 1.2rem; color: var(--color-primary); font-weight: 700; margin: 0;">
-                        <i class="fas fa-shield-alt mr-1" style="margin-right: 8px;"></i> Seguridad
+                        <i class="ti ti-shield" style="margin-right: 8px;"></i> Seguridad
                     </h3>
                 </div>
 
@@ -187,7 +187,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Cambiar Contraseña -->
                     <div style="background: #F9FAFB; padding: 20px; border-radius: 12px; border: 1px solid #E5E7EB;">
                         <div style="display: flex; align-items: center; margin-bottom: 12px;">
-                            <i class="fas fa-key" style="color: var(--color-primary); font-size: 24px; margin-right: 12px;"></i>
+                            <i class="ti ti-key" style="color: var(--color-primary); font-size: 24px; margin-right: 12px;"></i>
                             <div>
                                 <h5 style="margin: 0; font-weight: 600; color: var(--color-primary);">Contraseña</h5>
                                 <p style="margin: 0; font-size: 0.85rem; color: #6B7280;">Actualiza tu contraseña periódicamente</p>
@@ -201,7 +201,7 @@ if (!isset($user) || empty($user)) {
                     <!-- Preguntas de Seguridad -->
                     <div style="background: #F9FAFB; padding: 20px; border-radius: 12px; border: 1px solid #E5E7EB;">
                         <div style="display: flex; align-items: center; margin-bottom: 12px;">
-                            <i class="fas fa-question-circle" style="color: var(--color-primary); font-size: 24px; margin-right: 12px;"></i>
+                            <i class="ti ti-help-circle" style="color: var(--color-primary); font-size: 24px; margin-right: 12px;"></i>
                             <div>
                                 <h5 style="margin: 0; font-weight: 600; color: var(--color-primary);">Preguntas de Seguridad</h5>
                                 <p style="margin: 0; font-size: 0.85rem; color: #6B7280;">Para recuperación de cuenta</p>

@@ -1,18 +1,19 @@
 <?php
 /**
- * PasanteController — Gestión de Pasantes
+ * PasanteController — Vistas del rol Pasante + Vistas Admin Legacy
  *
- * ARQUITECTURA POST-SANEAMIENTO (Fase 1):
- * Todo centralizado en la tabla `usuarios`. Sin JOINs con datos_personales
- * ni datos_pasante (tablas eliminadas).
+ * Arquitectura basada en 3NF (usuarios -> datos_personales -> datos_pasante)
  *
  * RUTAS:
- *   GET  /pasantes           → index()      Lista admin con modal
- *   GET  /pasantes/show/ID   → show()       Kardex individual
- *   POST /pasantes/asignar   → asignar()    JSON — asignar departamento + fechas
- *   POST /pasantes/finalizar_pasantia → finalizarPasantia() JSON — marcar como finalizado
+ *   GET  /pasante/index       → index()      Lista admin (legacy)
+ *   GET  /pasante/show/{id}   → show()       Kardex individual (admin)
+ *   GET  /pasante/dashboard   → dashboard()  Panel personal del pasante
+ *   GET  /pasante/asistencia  → asistencia() Historial personal
  *
- * @version 3.0 — Tabla Única
+ * NOTA: asignar() y finalizar_pasantia() eliminados (VULN-08).
+ *       Esa lógica es responsabilidad exclusiva de AsignacionesController.
+ *
+ * @version 4.0 — Limpieza DRY
  */
 
 declare(strict_types=1);
@@ -87,7 +88,7 @@ class PasanteController extends Controller
         }
 
         $this->view('admin/pasantes/show', [
-            'title'   => 'Kardex — ' . ($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? ''),
+            'title'   => 'Reporte de Pasantía — ' . ($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? ''),
             'pasante' => $pasante,
         ]);
     }
@@ -103,8 +104,19 @@ class PasanteController extends Controller
             return;
         }
 
-        $userId = (int)Session::get('user_id');
+        $userId  = (int)Session::get('user_id');
         $pasante = $this->pasanteModel->getByUsuarioId($userId);
+
+        // ✅ PRO-RATA: Calcular horas dinámicamente desde asistencias
+        $asistenciaModel = new AsistenciaModel();
+        $horasMeta = (int)(($pasante->horas_meta ?? 0) > 0 ? $pasante->horas_meta : 1440);
+        $proRata   = $asistenciaModel->calcularProgresoProRata($userId, $horasMeta);
+
+        // Sobreescribir horas_acumuladas con el valor Pro-Rata real
+        if ($pasante) {
+            $pasante->horas_acumuladas = $proRata->horas_mostradas;
+            $pasante->horas_meta       = $proRata->horas_meta;
+        }
 
         // Fetch recent activities for the dashboard feed
         $this->db->query("
@@ -120,10 +132,10 @@ class PasanteController extends Controller
         $actividades = $this->db->resultSet();
 
         $this->view('pasante/dashboard', [
-            'title'   => 'Mi Panel',
-            'pasante' => $pasante,
-            'actividades' => $actividades,
-            'user_name' => Session::get('user_name') ?? 'Pasante'
+            'title'      => 'Mi Panel',
+            'pasante'    => $pasante,
+            'actividades'=> $actividades,
+            'user_name'  => Session::get('user_name') ?? 'Pasante',
         ]);
     }
 
@@ -156,137 +168,4 @@ class PasanteController extends Controller
         ]);
     }
 
-    // ────────────────────────────────────────────────────────────────
-    // ENDPOINTS JSON — MODAL DE ASIGNACIÓN (FASE 5)
-    // ────────────────────────────────────────────────────────────────
-
-    /**
-     * Asignar Pasante — El Modal Definitivo.
-     *
-     * Recibe por POST:
-     *   - pasante_id    int
-     *   - departamento_id int
-     *   - fecha_inicio  string Y-m-d  (por defecto: hoy)
-     *
-     * Calcula fecha_fin_estimada usando 180 días hábiles (lun-vie).
-     * Hace un único UPDATE atómico en usuarios.
-     * Devuelve JSON { success, message, fecha_fin_estimada }.
-     */
-    public function asignar(): void
-    {
-        header('Content-Type: application/json');
-
-        // Solo el Admin puede asignar
-        if (Session::get('role_id') != 1) {
-            echo json_encode(['success' => false, 'message' => 'No autorizado.']);
-            exit;
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método no permitido.']);
-            exit;
-        }
-
-        // Captura y saneamiento de datos
-        $pasanteId      = (int)($_POST['pasante_id']     ?? 0);
-        $departamentoId = (int)($_POST['departamento_id'] ?? 0);
-        $fechaInicio    = trim($_POST['fecha_inicio']     ?? '');
-
-        // Fecha por defecto: hoy
-        if (!$fechaInicio) {
-            $fechaInicio = date('Y-m-d');
-        }
-
-        // Validaciones básicas
-        if ($pasanteId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID de pasante inválido.']);
-            exit;
-        }
-
-        if ($departamentoId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'Debes seleccionar un departamento.']);
-            exit;
-        }
-
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaInicio)) {
-            echo json_encode(['success' => false, 'message' => 'Formato de fecha inválido. Use AAAA-MM-DD.']);
-            exit;
-        }
-
-        // Calcular fecha fin (180 días hábiles)
-        $fechaFin = $this->pasanteModel->calcularFechaFin($fechaInicio, 180);
-
-        // Ejecutar asignación
-        $ok = $this->pasanteModel->asignar($pasanteId, $departamentoId, $fechaInicio);
-
-        if ($ok) {
-            // Bitácora
-            try {
-                require_once '../app/models/AuditModel.php';
-                AuditModel::log('ASIGNAR_PASANTE', 'usuarios', $pasanteId, [
-                    'departamento_id' => $departamentoId,
-                    'fecha_inicio'    => $fechaInicio,
-                    'fecha_fin'       => $fechaFin,
-                    'admin_id'        => Session::get('user_id'),
-                ]);
-            } catch (Throwable $e) {
-                // Bitácora falla silenciosamente — la asignación ya se guardó
-                error_log('⚠️ AuditModel::log falló: ' . $e->getMessage());
-            }
-
-            // Formatear fecha fin para mostrar en el modal
-            $fechaFinFormato = (new DateTime($fechaFin))->format('d/m/Y');
-
-            echo json_encode([
-                'success'             => true,
-                'message'             => '✅ Pasante asignado exitosamente.',
-                'fecha_fin_estimada'  => $fechaFin,
-                'fecha_fin_formato'   => $fechaFinFormato,
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al guardar la asignación. Verifica que el pasante exista.',
-            ]);
-        }
-
-        exit;
-    }
-
-    /**
-     * Finalizar Pasantía — marcar como Finalizado.
-     *
-     * Recibe por POST: pasante_id
-     * Devuelve JSON { success, message }
-     */
-    public function finalizar_pasantia(): void
-    {
-        header('Content-Type: application/json');
-
-        if (Session::get('role_id') != 1) {
-            echo json_encode(['success' => false, 'message' => 'No autorizado.']);
-            exit;
-        }
-
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            echo json_encode(['success' => false, 'message' => 'Método no permitido.']);
-            exit;
-        }
-
-        $pasanteId = (int)($_POST['pasante_id'] ?? 0);
-
-        if ($pasanteId <= 0) {
-            echo json_encode(['success' => false, 'message' => 'ID de pasante inválido.']);
-            exit;
-        }
-
-        $ok = $this->pasanteModel->finalizar($pasanteId);
-
-        echo json_encode([
-            'success' => $ok,
-            'message' => $ok ? '✅ Pasantía marcada como Finalizada.' : 'Error al actualizar el estado.',
-        ]);
-
-        exit;
-    }
 }

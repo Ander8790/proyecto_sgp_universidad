@@ -26,6 +26,9 @@
         locale: 'es',               // español
         animate: true,
         monthSelectorType: 'dropdown', // Permitir seleccionar el mes con un dropdown
+        showMonths: 1,
+        static: false,
+        appendTo: document.body,
         // Callback para mantener las clases CSS del input original
         onReady: function (selectedDates, dateStr, instance) {
             if (instance.altInput) {

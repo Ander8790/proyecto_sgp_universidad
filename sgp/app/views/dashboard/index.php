@@ -28,9 +28,9 @@ switch ($rol_id) {
                 <i class="ti ti-users"></i>
             </div>
         </div>
-        <div class="kpi-value">45</div>
+        <div class="kpi-value" data-kpi-value="<?= $totalActivos ?? 0 ?>">0</div>
         <div class="kpi-badge success">
-            <i class="ti ti-trending-up"></i> +5 este mes
+            <i class="ti ti-users"></i> pasantes activos
         </div>
     </div>
 
@@ -41,7 +41,7 @@ switch ($rol_id) {
                 <i class="ti ti-school"></i>
             </div>
         </div>
-        <div class="kpi-value">12</div>
+        <div class="kpi-value" data-kpi-value="<?= $totalTutores ?? 0 ?>">0</div>
     </div>
 
     <div class="card kpi-card slide-up" style="animation-delay: 0.3s;">
@@ -51,7 +51,7 @@ switch ($rol_id) {
                 <i class="ti ti-building-hospital"></i>
             </div>
         </div>
-        <div class="kpi-value">4</div>
+        <div class="kpi-value" data-kpi-value="<?= $asistenciasHoy ?? 0 ?>">0</div>
     </div>
 
     <div class="card kpi-card slide-up" style="animation-delay: 0.4s;">
@@ -61,10 +61,12 @@ switch ($rol_id) {
                 <i class="ti ti-clipboard-check"></i>
             </div>
         </div>
-        <div class="kpi-value">23</div>
+        <div class="kpi-value" data-kpi-value="<?= $totalInstituciones ?? 0 ?>">0</div>
+        <?php if (($totalInstituciones ?? 0) == 0): ?>
         <div class="kpi-badge warning">
-            <i class="ti ti-alert-circle"></i> en espera
+            <i class="ti ti-alert-circle"></i> sin asignar
         </div>
+        <?php endif; ?>
     </div>
 
     <!-- Fila 2: Gráfico Principal + Activity Feed -->
@@ -79,45 +81,31 @@ switch ($rol_id) {
     <div class="card span-1 row-span-2 slide-up" style="animation-delay: 0.6s;">
         <h3 style="color: var(--deep-azure); font-size: 1.125rem; font-weight: 600; margin-bottom: 16px;">Actividad Reciente</h3>
         <div class="activity-list">
-            <div class="activity-item">
-                <div class="avatar-circle">JP</div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;">Juan Pérez</div>
-                    <div style="color: var(--text-muted); font-size: 0.75rem;">Entregó informe final</div>
-                    <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">Hace 2 horas</div>
+            <?php if (!empty($actividadReciente)): ?>
+                <?php foreach ($actividadReciente as $act):
+                    $nombres = trim(($act->nombres ?? '') . ' ' . ($act->apellidos ?? ''));
+                    if (empty(trim($nombres))) $nombres = $act->cedula ?? 'Pasante';
+                    $iniciales = strtoupper(mb_substr($act->nombres ?? 'P', 0, 1) . mb_substr($act->apellidos ?? '', 0, 1));
+                    $hora = !empty($act->hora_registro) ? date('H:i', strtotime($act->hora_registro)) : date('H:i');
+                    $badgeClass = ($act->estado ?? '') === 'Presente' ? 'success' : (($act->estado ?? '') === 'Justificado' ? 'warning' : 'info');
+                    $badgeText  = $act->estado ?? 'Check';
+                ?>
+                <div class="activity-item">
+                    <div class="avatar-circle"><?= htmlspecialchars($iniciales) ?></div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;"><?= htmlspecialchars($nombres) ?></div>
+                        <div style="color: var(--text-muted); font-size: 0.75rem;">Registró asistencia — <?= htmlspecialchars($act->fecha ?? '') ?></div>
+                        <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;"><?= $hora ?></div>
+                    </div>
+                    <span class="badge <?= $badgeClass ?>"><?= htmlspecialchars($badgeText) ?></span>
                 </div>
-                <span class="badge success">Docs</span>
-            </div>
-
-            <div class="activity-item">
-                <div class="avatar-circle" style="background: linear-gradient(135deg, #DBEAFE, #93C5FD);">MG</div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;">María González</div>
-                    <div style="color: var(--text-muted); font-size: 0.75rem;">Registró asistencia</div>
-                    <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">Hace 3 horas</div>
+                <?php endforeach; ?>
+            <?php else: ?>
+                <div style="text-align:center; padding:24px; color:#94a3b8;">
+                    <i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px;"></i>
+                    Sin actividad reciente
                 </div>
-                <span class="badge info">Check</span>
-            </div>
-
-            <div class="activity-item">
-                <div class="avatar-circle" style="background: linear-gradient(135deg, #FEF3C7, #FCD34D);">CR</div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;">Carlos Rodríguez</div>
-                    <div style="color: var(--text-muted); font-size: 0.75rem;">Actualizó bitácora</div>
-                    <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">Hace 5 horas</div>
-                </div>
-                <span class="badge warning">Edit</span>
-            </div>
-
-            <div class="activity-item">
-                <div class="avatar-circle" style="background: linear-gradient(135deg, #D1FAE5, #6EE7B7);">AS</div>
-                <div style="flex: 1;">
-                    <div style="font-weight: 600; color: var(--text-primary); font-size: 0.875rem;">Ana Silva</div>
-                    <div style="color: var(--text-muted); font-size: 0.75rem;">Completó evaluación</div>
-                    <div style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">Hace 1 día</div>
-                </div>
-                <span class="badge success">Eval</span>
-            </div>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -133,51 +121,34 @@ switch ($rol_id) {
             <thead>
                 <tr>
                     <th>Pasante</th>
-                    <th>Institución</th>
+                    <th>Cédula</th>
                     <th>Estado</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.75rem;">MG</div>
-                            <span>María González</span>
-                        </div>
-                    </td>
-                    <td style="color: var(--text-muted);">H. Ruiz Páez</td>
-                    <td><span class="badge success">Activo</span></td>
-                </tr>
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.75rem; background: linear-gradient(135deg, #DBEAFE, #93C5FD);">JP</div>
-                            <span>Juan Pérez</span>
-                        </div>
-                    </td>
-                    <td style="color: var(--text-muted);">CDI Los Próceres</td>
-                    <td><span class="badge success">Activo</span></td>
-                </tr>
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.75rem; background: linear-gradient(135deg, #FEF3C7, #FCD34D);">CR</div>
-                            <span>Carlos Rodríguez</span>
-                        </div>
-                    </td>
-                    <td style="color: var(--text-muted);">IVSS</td>
-                    <td><span class="badge warning">Pendiente</span></td>
-                </tr>
-                <tr>
-                    <td>
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.75rem; background: linear-gradient(135deg, #D1FAE5, #6EE7B7);">AS</div>
-                            <span>Ana Silva</span>
-                        </div>
-                    </td>
-                    <td style="color: var(--text-muted);">Ambulatorio A</td>
-                    <td><span class="badge success">Activo</span></td>
-                </tr>
+                <?php if (!empty($actividadReciente)): ?>
+                    <?php foreach ($actividadReciente as $act):
+                        $nombres = trim(($act->nombres ?? '') . ' ' . ($act->apellidos ?? ''));
+                        if (empty(trim($nombres))) $nombres = 'Pasante';
+                        $iniciales = strtoupper(mb_substr($act->nombres ?? 'P', 0, 1) . mb_substr($act->apellidos ?? '', 0, 1));
+                        $estadoBadge = ($act->estado ?? '') === 'Presente' ? 'success' : (($act->estado ?? '') === 'Justificado' ? 'warning' : 'info');
+                    ?>
+                    <tr>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div class="avatar-circle" style="width: 32px; height: 32px; font-size: 0.75rem;"><?= htmlspecialchars($iniciales) ?></div>
+                                <span><?= htmlspecialchars($nombres) ?></span>
+                            </div>
+                        </td>
+                        <td style="color: var(--text-muted);"><?= htmlspecialchars($act->cedula ?? '—') ?></td>
+                        <td><span class="badge <?= $estadoBadge ?>"><?= htmlspecialchars($act->estado ?? 'N/A') ?></span></td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="3" style="text-align:center;padding:24px;color:#94a3b8;">Sin registros recientes</td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
@@ -190,11 +161,12 @@ switch ($rol_id) {
 // Configuración de gráficos con paleta institucional
 document.addEventListener('DOMContentLoaded', function() {
     
-    // Gráfico de Barras - Pasantes por Mes
+    // Gráfico de Barras - Nuevos pasantes por Mes (datos reales de la DB)
+    const datosMensualesDB = <?= isset($datosMensuales) ? json_encode(array_values($datosMensuales)) : '[0,0,0,0,0,0,0,0,0,0,0,0]' ?>;
     const barChartOptions = {
         series: [{
             name: 'Pasantes',
-            data: [10, 15, 8, 12, 20, 32, 18, 25, 22, 28, 24, 30]
+            data: datosMensualesDB
         }],
         chart: {
             type: 'bar',

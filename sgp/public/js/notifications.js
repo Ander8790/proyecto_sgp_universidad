@@ -238,10 +238,9 @@
             return;
         }
 
-        let html = '<ul class="notifications-list">';
+        let html = '';
 
         notifications.forEach(notification => {
-            let icon = NOTIFICATION_ICONS[notification.tipo] || NOTIFICATION_ICONS.default;
             let url = sanitizeUrl(notification.url); // ✅ Sanitizar URL para prevenir XSS
 
             // ✨ REDIRECCIÓN INTELIGENTE: Si es solicitud de PIN, forzar ruta a configuración
@@ -249,27 +248,41 @@
                 url = URLROOT + '/configuracion#restablecer-pin';
             }
 
+            let tipoAlerta = notification.tipo || 'info';
+            let tema = 'primary';
+            let icono = 'bi-info-circle-fill';
+
+            if (tipoAlerta === 'solicitud_pin' || tipoAlerta === 'warning') {
+                tema = 'warning';
+                icono = 'bi-shield-lock-fill';
+            } else if ((notification.titulo && notification.titulo.toLowerCase().includes('sin asignar')) || tipoAlerta === 'danger' || tipoAlerta === 'error') {
+                tema = 'danger';
+                icono = 'bi-exclamation-octagon-fill';
+            } else if (tipoAlerta === 'success' || tipoAlerta === 'asignacion_nueva') {
+                tema = 'success';
+                icono = 'bi-check-circle-fill';
+            } else {
+                tema = 'primary';
+                icono = 'bi-bell-fill';
+            }
+
             html += `
-                <li class="notification-item ${notification.leido == 0 ? 'unread' : ''}" 
-                    data-id="${notification.id}">
-                    <a href="${url}" class="notification-link">
-                        <div class="notification-icon">
-                            <i class="ti ${icon}"></i>
-                        </div>
-                        <div class="notification-content">
-                            <div class="notification-title">${escapeHtml(notification.titulo)}</div>
-                            <div class="notification-message">${escapeHtml(notification.mensaje)}</div>
-                            <div class="notification-time">
-                                <i class="ti ti-clock"></i> ${notification.time_ago}
-                            </div>
-                        </div>
-                        ${notification.leido == 0 ? '<span class="unread-indicator"></span>' : ''}
-                    </a>
-                </li>
+                <a href="${url}" class="dropdown-item d-flex align-items-start gap-3 notif-item notif-${tema} notification-item notification-link" data-id="${notification.id}">
+                    <i class="bi ${icono} text-${tema} fs-5 mt-1"></i>
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1 fw-bold text-dark" style="font-size: 0.9rem; line-height: 1.2;">
+                            ${escapeHtml(notification.titulo || 'Notificación')}
+                        </h6>
+                        <p class="mb-1 text-secondary" style="font-size: 0.8rem; line-height: 1.3; white-space: normal;">
+                            ${escapeHtml(notification.mensaje || '')}
+                        </p>
+                        <small class="text-${tema} fw-semibold" style="font-size: 0.75rem;">
+                            <i class="bi bi-clock me-1"></i>${notification.time_ago}
+                        </small>
+                    </div>
+                </a>
             `;
         });
-
-        html += '</ul>';
         elements.list.innerHTML = html;
     }
 
@@ -318,7 +331,6 @@
                     // ✅ Optimistic update: actualizar UI inmediatamente
                     const item = document.querySelector(`[data-id="${id}"]`);
                     if (item) {
-                        item.classList.remove('unread');
                         const indicator = item.querySelector('.unread-indicator');
                         if (indicator) indicator.remove();
                     }

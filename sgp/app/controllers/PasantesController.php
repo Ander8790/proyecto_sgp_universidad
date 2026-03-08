@@ -136,9 +136,10 @@ class PasantesController extends Controller
         // Generar un nuevo PIN aleatorio de 4 dígitos
         $nuevoPin = str_pad((string)mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
 
-        // Guardar el PIN en texto plano en la tabla usuarios (así lo maneja KioscoController)
+        // SEGURIDAD: Hashear el PIN antes de almacenarlo (nunca guardar en texto plano)
+        $pinHasheado = password_hash($nuevoPin, PASSWORD_BCRYPT);
         $this->db->query("UPDATE usuarios SET pin_asistencia = :pin WHERE id = :id AND rol_id = 3");
-        $this->db->bind(':pin', $nuevoPin);
+        $this->db->bind(':pin', $pinHasheado);
         $this->db->bind(':id', $pasanteId);
         
         if ($this->db->execute()) {
@@ -170,8 +171,11 @@ class PasantesController extends Controller
             exit;
         }
 
-        $pasanteId = (int)($_POST['pasante_id'] ?? 0);
-        $estado    = trim($_POST['estado'] ?? '');
+        $encryptedId = trim($_POST['pasante_id'] ?? '');
+        $estado      = trim($_POST['estado'] ?? '');
+
+        // VULN-03: Desencriptar ID (llega encriptado desde el frontend)
+        $pasanteId = (int)UrlSecurity::decrypt($encryptedId);
 
         if (!$pasanteId) {
             echo json_encode(['success' => false, 'message' => 'ID de pasante inválido.']);
@@ -182,6 +186,22 @@ class PasantesController extends Controller
         if (!in_array($estado, $estadosPermitidos)) {
             echo json_encode(['success' => false, 'message' => 'Estado no válido.']);
             exit;
+        }
+
+        // VULN-01: Validar prerequisitos antes de activar
+        if ($estado === 'Activo') {
+            $this->db->query("SELECT departamento_asignado_id, fecha_inicio_pasantia 
+                              FROM datos_pasante WHERE usuario_id = :id");
+            $this->db->bind(':id', $pasanteId);
+            $asignacion = $this->db->single();
+
+            if (!$asignacion || !$asignacion->departamento_asignado_id || !$asignacion->fecha_inicio_pasantia) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'No se puede activar: el pasante no tiene asignación completa (departamento y fecha de inicio).'
+                ]);
+                exit;
+            }
         }
 
         $this->db->query("UPDATE datos_pasante SET estado_pasantia = :estado WHERE usuario_id = :id");

@@ -34,6 +34,18 @@ class RoleMiddleware
         $allowed_roles = array_map('intval', $allowed_roles);
 
         if (!in_array((int)$currentRoleId, $allowed_roles, true)) {
+            // Si es petición AJAX (Grid.js, fetch, etc.) → responder JSON con 403
+            if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest') {
+                http_response_code(403);
+                header('Content-Type: application/json');
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Acceso Denegado: No tienes permisos para ver este módulo'
+                ]);
+                exit;
+            }
+            
             // Guardamos el mensaje flash de error intercepción
             Session::setFlash('error', 'Acceso Denegado: No tienes permisos para ver este módulo');
             

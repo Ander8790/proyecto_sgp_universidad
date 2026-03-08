@@ -23,6 +23,61 @@ if (Session::get('requiere_cambio_clave') == 1) {
  */
 ?>
 
+<style>
+/* ========================================================
+   NOTIFICACIONES DROPDOWN - CSS PREMIUM
+   ======================================================== */
+.dropdown-menu-notifications {
+    width: 360px !important;
+    max-height: 400px;
+    overflow-y: auto;
+    overflow-x: hidden !important;
+    padding: 0;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
+}
+/* Solución nuclear Webkit para scroll horizontal */
+.dropdown-menu-notifications::-webkit-scrollbar {
+    width: 8px; /* Hace la barra vertical delgada y elegante */
+    height: 0px !important; /* Destruye la barra horizontal */
+}
+.dropdown-menu-notifications::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1; 
+    border-radius: 10px;
+}
+/* Estilo base de cada alerta */
+.notif-item {
+    position: relative;
+    padding: 14px 16px 14px 20px;
+    border-left: 4px solid transparent; /* El borde mágico */
+    border-bottom: 1px solid #f1f5f9;
+    white-space: normal !important;
+    transition: all 0.2s ease;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important; /* Elimina márgenes fantasma de Bootstrap */
+    overflow: hidden !important;
+}
+/* Freno de expansión (Evita scroll horizontal) */
+.notif-item .flex-grow-1 {
+    min-width: 0 !important;
+    word-wrap: break-word !important;
+}
+/* Semántica de Colores (Borde Izquierdo + Fondo muy claro) */
+.notif-warning { border-left-color: #f59e0b !important; background-color: #fffbeb !important; }
+.notif-warning:hover { background-color: #fef3c7 !important; }
+
+.notif-danger { border-left-color: #ef4444 !important; background-color: #fef2f2 !important; }
+.notif-danger:hover { background-color: #fee2e2 !important; }
+
+.notif-success { border-left-color: #10b981 !important; background-color: #ecfdf5 !important; }
+.notif-success:hover { background-color: #d1fae5 !important; }
+
+.notif-primary { border-left-color: #3b82f6 !important; background-color: #eff6ff !important; }
+.notif-primary:hover { background-color: #dbeafe !important; }
+</style>
+
 <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     
     <!-- ZONA IZQUIERDA: Hamburguesa + Logo SGP -->
@@ -84,7 +139,7 @@ if (Session::get('requiere_cambio_clave') == 1) {
                 <i class="ti ti-bell"></i>
                 <span id="notificationBadge" class="badge badge-danger notification-badge" style="display: none;">0</span>
             </a>
-            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right" id="notificationsDropdown">
+            <div class="dropdown-menu dropdown-menu-lg dropdown-menu-right dropdown-menu-notifications" id="notificationsDropdown">
                 <span class="dropdown-item dropdown-header">Notificaciones</span>
                 <div class="dropdown-divider"></div>
                 <div id="notificationList">

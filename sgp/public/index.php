@@ -1,5 +1,9 @@
 <?php
-header('Content-Type: text/html; charset=UTF-8');
+// Configuración global de Zona Horaria para Venezuela (-04:00)
+date_default_timezone_set('America/Caracas');
+
+// NOTE: Content-Type is NOT set globally here — each controller/endpoint sets its own headers.
+//       Previously, the `header('Content-Type: text/html')` here was overriding application/json endpoints.
 require_once '../app/config/config.php';
 
 // Define App Root
@@ -37,6 +41,13 @@ if (!isset($_GET['url']) || empty($_GET['url'])) {
         exit;
     }
     // Si no tiene sesión → Mostrar Login (se cargará por defecto en App.php)
+}
+
+// ── Composer Autoload (DomPDF, TCPDF, etc.) ──────────────────────────────────
+// Cargado condicionalmente: el sistema funciona sin él salvo en endpoints PDF.
+$vendorAutoload = dirname(__DIR__) . '/vendor/autoload.php';
+if (file_exists($vendorAutoload)) {
+    require_once $vendorAutoload;
 }
 
 $app = new App();

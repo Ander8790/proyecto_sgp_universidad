@@ -574,6 +574,7 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                             <i class="ti ti-calendar" style="margin-right:6px;"></i>Fecha de Nacimiento *
                         </label>
                         <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="input-modern" required
+                            min="1950-01-01"
                             max="<?= date('Y-m-d', strtotime('-14 years')) ?>"
                             style="padding:14px 16px;">
                     </div>

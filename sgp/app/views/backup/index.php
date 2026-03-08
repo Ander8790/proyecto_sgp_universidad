@@ -313,7 +313,7 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
     }
 </style>
 
-<div class="dashboard-container">
+<div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
     <!-- BANNER MODERNO (Estilo Usuario) -->
     <div class="welcome-banner welcome-banner-compact mb-4">
         <div class="welcome-icon">

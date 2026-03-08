@@ -16,11 +16,10 @@ $estadoConfig = [
     'Finalizado'  => ['bg' => '#ede9fe', 'color' => '#7c3aed', 'label' => 'Finalizado'],
 ];
 ?>
-
-<div class="main-content">
+<div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
 
     <!-- ===== BANNER ===== -->
-    <div style="background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 60%, #3b82f6 100%); border-radius: 20px; padding: 32px 40px; margin-bottom: 28px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;">
+    <div style="background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%); border-radius: 20px; padding: 32px 40px; margin-bottom: 28px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;">
         <div style="position: absolute; top: -40px; right: -40px; width: 220px; height: 220px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
         <div>
             <div style="display: flex; align-items: center; gap: 12px;">
@@ -40,24 +39,26 @@ $estadoConfig = [
         </div>
     </div>
 
-    <!-- ===== ESTADÍSTICAS DINÁMICAS ===== -->
+    <!-- ===== ESTADÍSTICAS DINÁMICAS (KPIs Interactivos) ===== -->
     <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; margin-bottom: 28px;">
         <?php foreach ([
-            ['label' => 'Total Pasantes',  'value' => $totalPasantes, 'sub' => 'registrados', 'color' => '#162660', 'icon' => 'ti-users'],
-            ['label' => 'Activos',          'value' => $activos,       'sub' => 'en pasantía',  'color' => '#10b981', 'icon' => 'ti-user-check'],
-            ['label' => 'Sin Asignar',      'value' => $sinAsignar,    'sub' => 'por asignar',  'color' => '#f59e0b', 'icon' => 'ti-clock'],
-            ['label' => 'Finalizados',      'value' => $finalizados,   'sub' => 'completados',  'color' => '#8b5cf6', 'icon' => 'ti-award'],
+            ['label' => 'Total Pasantes',  'id' => 'kpi-total',  'value' => $totalPasantes, 'sub' => 'registrados', 'color' => '#1e3a8a', 'icon' => 'ti-users', 'filter' => ''],
+            ['label' => 'Activos',          'id' => 'kpi-activo', 'value' => $activos,       'sub' => 'en pasantía',  'color' => '#16a34a', 'icon' => 'ti-user-check', 'filter' => 'Activo'],
+            ['label' => 'Sin Asignar',      'id' => 'kpi-sin',    'value' => $sinAsignar,    'sub' => 'por asignar',  'color' => '#f59e0b', 'icon' => 'ti-clock', 'filter' => 'Sin Asignar'],
+            ['label' => 'Finalizados',      'id' => 'kpi-fin',    'value' => $finalizados,   'sub' => 'completados',  'color' => '#7c3aed', 'icon' => 'ti-award', 'filter' => 'Finalizado'],
         ] as $s): ?>
-        <div style="background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); border-left: 4px solid <?= $s['color'] ?>;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                <div>
-                    <p style="color: #64748b; font-size: 0.85rem; margin: 0 0 8px; font-weight: 500;"><?= $s['label'] ?></p>
-                    <h2 style="font-size: 2.2rem; font-weight: 800; color: <?= $s['color'] ?>; margin: 0;"><?= $s['value'] ?></h2>
-                    <p style="color: #64748b; font-size: 0.8rem; margin: 4px 0 0;"><?= $s['sub'] ?></p>
-                </div>
-                <div style="background: <?= $s['color'] ?>18; border-radius: 12px; padding: 12px;">
-                    <i class="ti <?= $s['icon'] ?>" style="font-size: 24px; color: <?= $s['color'] ?>;"></i>
-                </div>
+        <div class="kpi-card" 
+             onclick="filtrarPorEstado('<?= $s['filter'] ?>')"
+             style="border-left: 4px solid <?= $s['color'] ?>; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
+             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 10px 20px rgba(0,0,0,0.1)'"
+             onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+            <div class="kpi-info">
+                <p class="kpi-label"><?= $s['label'] ?></p>
+                <h2 class="kpi-value" style="color: <?= $s['color'] ?>;"><?= $s['value'] ?></h2>
+                <p class="kpi-sub"><?= $s['sub'] ?></p>
+            </div>
+            <div class="kpi-icon-box" style="background: <?= $s['color'] ?>18;">
+                <i class="ti <?= $s['icon'] ?>" style="color: <?= $s['color'] ?>;"></i>
             </div>
         </div>
         <?php endforeach; ?>
@@ -69,20 +70,20 @@ $estadoConfig = [
             <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0;"><i class="ti ti-list" style="color: #162660;"></i> Lista de Pasantes</h3>
             <span style="background: #eff6ff; color: #162660; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;"><?= $totalPasantes ?> pasantes</span>
         </div>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8fafc;">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" style="width:100%">
+                <thead class="bg-light text-uppercase text-muted small fw-bold">
+                    <tr>
                         <?php foreach (['Pasante', 'Cédula', 'Institución', 'Departamento', 'Progreso', 'Estado', 'Acciones'] as $h): ?>
-                        <th style="padding: 14px 20px; text-align: left; font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"><?= $h ?></th>
+                        <th class="px-4 py-3 border-0"><?= $h ?></th>
                         <?php endforeach; ?>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="border-top-0">
                     <?php if (empty($data['pasantes'])): ?>
                     <tr>
-                        <td colspan="7" style="text-align:center; padding: 48px 20px; color: #94a3b8;">
-                            <i class="ti ti-users-off" style="font-size: 48px; display:block; margin-bottom: 12px;"></i>
+                        <td colspan="7" class="text-center py-5 text-muted">
+                            <i class="ti ti-users-off" style="font-size: 3rem; display:block; margin-bottom: 12px;"></i>
                             No hay pasantes registrados aún.
                         </td>
                     </tr>
@@ -95,19 +96,23 @@ $estadoConfig = [
                         $iniciales = strtoupper(substr($p->nombres ?? '?', 0, 1) . substr($p->apellidos ?? '', 0, 1));
                         $nombre    = htmlspecialchars(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''));
                     ?>
-                    <tr style="border-bottom: 1px solid #f1f5f9;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                        <td style="padding: 16px 20px;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #162660, #3b82f6); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">
-                                    <?= $iniciales ?>
+                    <tr>
+                        <td class="px-4 py-3">
+                            <div class="dt-name-cell">
+                                <div class="dt-avatar"><?= $iniciales ?></div>
+                                <div>
+                                    <span class="dt-cell-primary"><?= $nombre ?></span>
                                 </div>
-                                <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;"><?= $nombre ?></span>
                             </div>
                         </td>
-                        <td style="padding: 16px 20px; color: #64748b; font-size: 0.85rem;"><?= htmlspecialchars($p->cedula ?? '—') ?></td>
-                        <td style="padding: 16px 20px; color: #64748b; font-size: 0.85rem;"><?= htmlspecialchars($p->institucion_nombre ?? '—') ?></td>
-                        <td style="padding: 16px 20px; color: #64748b; font-size: 0.85rem;"><?= htmlspecialchars($p->departamento_nombre ?? '—') ?></td>
-                        <td style="padding: 16px 20px; min-width: 140px;">
+                        <td class="px-4 py-3 text-muted"><?= htmlspecialchars($p->cedula ?? '—') ?></td>
+                        <td class="px-4 py-3 text-muted">
+                            <span class="dt-cell-truncate" title="<?= htmlspecialchars($p->institucion_nombre ?? '—') ?>">
+                                <?= htmlspecialchars($p->institucion_nombre ?? '—') ?>
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-muted"><?= htmlspecialchars($p->departamento_nombre ?? '—') ?></td>
+                        <td class="px-4 py-3" style="min-width: 140px;">
                             <div style="display: flex; align-items: center; gap: 10px;">
                                 <div style="flex: 1; height: 8px; background: #f1f5f9; border-radius: 4px; overflow: hidden;">
                                     <div style="width: <?= $progreso ?>%; height: 100%; background: <?= $pColor ?>; border-radius: 4px; transition: width 0.5s;"></div>
@@ -115,30 +120,36 @@ $estadoConfig = [
                                 <span style="font-size: 0.8rem; font-weight: 700; color: <?= $pColor ?>; min-width: 35px;"><?= $progreso ?>%</span>
                             </div>
                         </td>
-                        <td style="padding: 16px 20px;">
-                            <span style="background: <?= $cfg['bg'] ?>; color: <?= $cfg['color'] ?>; padding: 5px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                        <td class="px-4 py-3">
+                            <span class="badge badge-<?= strtolower(str_replace(' ', '', $estado)) ?>" style="background: <?= $cfg['bg'] ?>; color: <?= $cfg['color'] ?>;">
                                 <?= $cfg['label'] ?>
                             </span>
                         </td>
-                        <td style="padding: 16px 20px; white-space: nowrap;">
-                            <a href="<?= URLROOT ?>/pasantes/show/<?= (int)$p->id ?>" style="background: #eff6ff; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; color: #162660; font-size: 0.8rem; text-decoration: none; margin-right: 4px;" title="Ver Kardex">
-                                <i class="ti ti-id-badge"></i>
-                            </a>
-                            <?php if ($estado === 'Sin Asignar'): ?>
-                            <button
-                                onclick="abrirModalAsignacion(<?= (int)$p->id ?>, '<?= addslashes($nombre) ?>')"
-                                style="background: #dcfce7; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; color: #16a34a; font-size: 0.8rem;"
-                                title="Asignar Pasante">
-                                <i class="ti ti-check"></i> Asignar
-                            </button>
-                            <?php elseif ($estado === 'Activo'): ?>
-                            <button
-                                onclick="confirmarFinalizar(<?= (int)$p->id ?>, '<?= addslashes($nombre) ?>')"
-                                style="background: #fef3c7; border: none; padding: 7px 12px; border-radius: 8px; cursor: pointer; color: #d97706; font-size: 0.8rem;"
-                                title="Finalizar Pasantía">
-                                <i class="ti ti-flag"></i> Finalizar
-                            </button>
-                            <?php endif; ?>
+                        <td class="px-4 py-3">
+                            <div class="d-flex justify-content-center" style="gap: 12px;">
+                                <a href="<?= URLROOT ?>/pasantes/show/<?= (int)$p->id ?>" 
+                                   class="btn btn-sm border-0 shadow-sm transition-all" 
+                                   data-bs-toggle="tooltip" title="Ver Perfil / Reporte de Pasantía" 
+                                   style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #2563eb; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-id-badge fs-5 text-white"></i>
+                                </a>
+
+                                <?php if ($estado === 'Sin Asignar'): ?>
+                                <button onclick="abrirModalAsignacion(<?= (int)$p->id ?>, '<?= addslashes($nombre) ?>')" 
+                                        class="btn btn-sm border-0 shadow-sm transition-all" 
+                                        data-bs-toggle="tooltip" title="Asignar Pasante" 
+                                        style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #16a34a; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-check fs-5 text-white"></i>
+                                </button>
+                                <?php elseif ($estado === 'Activo'): ?>
+                                <button onclick="confirmarFinalizar(<?= (int)$p->id ?>, '<?= addslashes($nombre) ?>')" 
+                                        class="btn btn-sm border-0 shadow-sm transition-all" 
+                                        data-bs-toggle="tooltip" title="Finalizar Pasantía" 
+                                        style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #f59e0b; color: #ffffff; border-radius: 6px !important;">
+                                    <i class="ti ti-flag fs-5 text-white"></i>
+                                </button>
+                                <?php endif; ?>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
@@ -148,7 +159,7 @@ $estadoConfig = [
         </div>
     </div>
 
-</div><!-- /main-content -->
+</div><!-- /dashboard-container -->
 
 <!-- ===== MODAL DE ASIGNACIÓN ===== -->
 <div id="modalAsignacion" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; align-items:center; justify-content:center;">
@@ -351,4 +362,46 @@ function confirmarFinalizar(pasanteId, nombre) {
 function simularNuevoPasante() {
     window.location.href = '<?= URLROOT ?>/users';
 }
+// ── Filtros interactivos de KPIs ───────────────────────────────────
+function filtrarPorEstado(estado) {
+    if (window.jQuery && $.fn.DataTable) {
+        var table = $('.table').DataTable();
+        if (estado === '') {
+            table.column(5).search('').draw();
+        } else {
+            // Búsqueda exacta en la columna del Estado (columna 5)
+            table.column(5).search('^' + estado + '$', true, false).draw();
+        }
+        
+        // Efecto visual de feedback
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'info',
+            title: estado ? `Filtrando por: ${estado}` : 'Mostrando todos',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+    }
+}
+
+// Inicializar Tooltips y DataTables si no están
+$(document).ready(function() {
+    if (!$.fn.DataTable.isDataTable('.table')) {
+        $('.table').DataTable({
+            language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
+            pageLength: 10,
+            responsive: true,
+            dom: '<"top"f>rt<"bottom"ip><"clear">',
+            columnDefs: [{ orderable: false, targets: 6 }]
+        });
+    }
+    
+    // Forzar inicialización de tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+});
 </script>

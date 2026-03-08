@@ -387,37 +387,80 @@ class AuthController extends Controller
     public function recovery(): void
     {
         Session::start();
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-             $this->view('auth/recovery', [], false); // Start
-             return;
+
+        // ============================================================
+        // 🛡️ CAPA 1 — GUARDIA: No mezclar recovery con sesión activa
+        // Si el usuario ya tiene sesión iniciada en otra pestaña,
+        // redirigirlo a su dashboard en lugar de continuar el flujo.
+        // ============================================================
+        if (Session::get('user_id')) {
+            $this->redirectByRole(Session::get('role_id'));
+            return;
         }
-        
+
+        // ============================================================
+        // 🛡️ CAPA 2 — HEADERS NO-CACHÉ
+        // Impide que el navegador restaure estas páginas desde caché
+        // al presionar el botón "Atrás", evitando estados obsoletos.
+        // ============================================================
+        CacheControl::noCache();
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            // Limpiar cualquier sesión de recovery previa al iniciar
+            $this->clearRecoverySession();
+            $this->view('auth/recovery', [], false);
+            return;
+        }
+
         $step = $_POST['step'] ?? '1';
-        
+
+        // ============================================================
+        // PASO 1: Validar correo y mostrar preguntas de seguridad
+        // ============================================================
         if ($step == '1') {
             $email = Validator::email('email');
             $user = $this->model('User')->findByEmail($email);
+
             if (!$user) {
                 $this->view('auth/recovery', ['error' => 'Correo no encontrado'], false);
                 return;
             }
-            
+
             $questions = $this->model('User')->getUserAnswers($user['id']);
             if (empty($questions)) {
                 $this->view('auth/recovery', ['error' => 'Sin preguntas de seguridad configuradas'], false);
                 return;
             }
-            
-            Session::set('rec_uid', $user['id']);
+
+            // 🛡️ CAPA 3 — TOKEN DE FLUJO CON EXPIRACIÓN (15 minutos)
+            // Cada Recovery genera un token único. Si el usuario retrocede
+            // más allá del tiempo límite, el flujo se invalida automáticamente.
+            Session::set('rec_uid',            $user['id']);
+            Session::set('rec_email',          $email);  // Requerido por solicitud de ayuda
+            Session::set('rec_token',          bin2hex(random_bytes(16)));
+            Session::set('rec_token_expires',  time() + 900); // 15 minutos
+            Session::set('rec_verified',       false);
+
             $this->view('auth/recovery_questions', ['questions' => $questions], false);
         }
+
+        // ============================================================
+        // PASO 2: Verificar respuestas de seguridad
+        // ============================================================
         elseif ($step == '2') {
-            $uid = Session::get('rec_uid');
-            if (!$uid) { $this->redirect('/auth/recovery'); return; }
-            
+            $uid     = Session::get('rec_uid');
+            $expires = Session::get('rec_token_expires');
+
+            // Validar que el flujo sea vigente (sesión + token no expirado)
+            if (!$uid || !$expires || time() > $expires) {
+                $this->clearRecoverySession();
+                $this->redirect('/auth/recovery');
+                return;
+            }
+
             $inputAnswers = $_POST['answers'] ?? [];
-            $userAnswers = $this->model('User')->getUserAnswers($uid);
-            
+            $userAnswers  = $this->model('User')->getUserAnswers($uid);
+
             $allCorrect = true;
             foreach ($userAnswers as $ua) {
                 $qid = $ua['question_id'];
@@ -426,23 +469,53 @@ class AuthController extends Controller
                     break;
                 }
             }
-            
+
             if ($allCorrect) {
-                Session::set('rec_verified', true);
+                // Marcar verificación exitosa y renovar expiración
+                Session::set('rec_verified',      true);
+                Session::set('rec_token_expires', time() + 900); // 15 min para cambiar contraseña
                 $this->view('auth/reset_password', [], false);
             } else {
                 $this->view('auth/recovery_questions', ['questions' => $userAnswers, 'error' => 'Respuestas incorrectas'], false);
             }
         }
+
+        // ============================================================
+        // PASO 3: Actualizar contraseña
+        // ============================================================
         elseif ($step == '3') {
-            if (!Session::get('rec_verified')) { $this->redirect('/auth/recovery'); return; }
-            
+            $uid     = Session::get('rec_uid');
+            $expires = Session::get('rec_token_expires');
+
+            // Doble verificación: token vigente + respuestas validadas
+            if (!Session::get('rec_verified') || !$uid || !$expires || time() > $expires) {
+                $this->clearRecoverySession();
+                $this->redirect('/auth/recovery');
+                return;
+            }
+
             $pass = Validator::post('password');
-            $uid = Session::get('rec_uid');
             $this->model('User')->updatePassword($uid, $pass);
-            
-            Session::destroy();
-            $this->view('auth/login', ['success' => 'Contraseña actualizada'], false);
+
+            // Limpiar SOLO las variables de recovery, no destruir sesión entera
+            $this->clearRecoverySession();
+
+            Session::setFlash('success', 'Contraseña actualizada correctamente. Por favor inicia sesión.');
+            $this->redirect('/auth/login');
+        }
+    }
+
+    /**
+     * Limpia todas las variables de sesión del flujo de recovery.
+     * Se llama al completar el flujo, al cancelar, o al detectar token expirado.
+     */
+    private function clearRecoverySession(): void
+    {
+        $keys = ['rec_uid', 'rec_email', 'rec_token', 'rec_token_expires', 'rec_verified', 'recovery_email'];
+        foreach ($keys as $key) {
+            if (isset($_SESSION[$key])) {
+                unset($_SESSION[$key]);
+            }
         }
     }
 

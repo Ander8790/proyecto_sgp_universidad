@@ -223,6 +223,118 @@ class AsistenciasController extends Controller
             ];
         }
 
+        // ==========================================
+        // PROCESADOR DE DATOS: VISTA MENSUAL
+        // ==========================================
+        $bentoMensual = [];
+        $pasantesFaltas = [];
+        $healthIndex = 100;
+        $totalEventos = 0;
+        $chartSemanasJson = "[]";
+        $chartPctsJson = "[]";
+        
+        if ($vista === 'mensual') {
+            $totalAsistencias = 0;
+            $totalFaltasGlobal = 0;
+            $totalJustificadosGlobal = 0;
+
+            foreach($registrosLista as $reg) {
+                $depto = $reg->departamento_nombre ?? 'Sin Asignar';
+                $pid = $reg->pasante_id ?? 'P'.$reg->id;
+                
+                if(!isset($bentoMensual[$depto])) {
+                    $bentoMensual[$depto] = [];
+                }
+                if(!isset($bentoMensual[$depto][$pid])) {
+                    $rawApellidos = trim($reg->apellidos ?? '');
+                    $rawNombres   = trim($reg->nombres ?? '');
+                    $apellido1    = trim(explode(' ', $rawApellidos)[0] ?? 'A');
+                    $nombre1      = trim(explode(' ', $rawNombres)[0]   ?? 'A');
+                    $iniciales    = strtoupper(substr($nombre1, 0, 1) . substr($apellido1, 0, 1));
+                    if(strlen(trim($iniciales)) < 2) $iniciales = strtoupper(substr($rawApellidos, 0, 2));
+                    $nombreDisplay = ucwords(strtolower($rawNombres . ' ' . $rawApellidos));
+
+                    $bentoMensual[$depto][$pid] = [
+                        'nombre'   => $nombreDisplay,
+                        'cedula'   => $reg->cedula ?? '',
+                        'iniciales'=> $iniciales,
+                        'presentes'   => 0,
+                        'ausentes'    => 0,
+                        'justificados'=> 0,
+                        'history'     => []
+                    ];
+                }
+                $estado = strtolower($reg->estado);
+                if(strpos($estado, 'presente') !== false) {
+                    $bentoMensual[$depto][$pid]['presentes']++;
+                    array_unshift($bentoMensual[$depto][$pid]['history'], 'presente');
+                } elseif(strpos($estado, 'ausente') !== false) {
+                    $bentoMensual[$depto][$pid]['ausentes']++;
+                    array_unshift($bentoMensual[$depto][$pid]['history'], 'ausente');
+                } else {
+                    $bentoMensual[$depto][$pid]['justificados']++;
+                    array_unshift($bentoMensual[$depto][$pid]['history'], 'justificado');
+                }
+                if(count($bentoMensual[$depto][$pid]['history']) > 5) {
+                    array_pop($bentoMensual[$depto][$pid]['history']);
+                }
+            }
+
+            foreach($bentoMensual as $depto => &$pasantesObj) {
+                foreach($pasantesObj as $pid => &$rm) {
+                    $totalAsistencias += $rm['presentes'];
+                    $totalFaltasGlobal += $rm['ausentes'];
+                    $totalJustificadosGlobal += $rm['justificados'];
+                    if($rm['ausentes'] > 0) {
+                        $pasantesFaltas[] = [
+                            'nombre' => $rm['nombre'], 
+                            'depto' => $depto, 
+                            'faltas' => $rm['ausentes'], 
+                            'iniciales' => $rm['iniciales']
+                        ];
+                    }
+                }
+            }
+            usort($pasantesFaltas, function($a, $b) { return $b['faltas'] <=> $a['faltas']; });
+            
+            $pasantesFaltas = array_slice($pasantesFaltas, 0, 3);
+            $totalEventos = $totalAsistencias + $totalFaltasGlobal + $totalJustificadosGlobal;
+            $healthIndex = $totalEventos > 0 ? round(($totalAsistencias / $totalEventos) * 100) : 100;
+
+            // ===== ÁREA CHART: Datos por semana del mes =====
+            $semanaData  = []; 
+            if(!empty($registrosLista)) {
+                foreach($registrosLista as $reg) {
+                    $fechaReg = $reg->fecha ?? null;
+                    if($fechaReg) {
+                        $dia = (int)date('j', strtotime($fechaReg));
+                        $semana = (int)ceil($dia / 7);
+                        if(!isset($semanaData[$semana])) $semanaData[$semana] = ['pres'=>0,'total'=>0];
+                        $semanaData[$semana]['total']++;
+                        if(strpos(strtolower($reg->estado ?? ''), 'presente') !== false) {
+                            $semanaData[$semana]['pres']++;
+                        }
+                    }
+                }
+            }
+            $chartSemanas = []; $chartPcts = [];
+            for($sw = 1; $sw <= 5; $sw++) {
+                $chartSemanas[] = 'Sem ' . $sw;
+                $d = $semanaData[$sw] ?? null;
+                $chartPcts[] = ($d && $d['total'] > 0) ? round(($d['pres'] / $d['total']) * 100) : null;
+            }
+            while(!empty($chartPcts) && end($chartPcts) === null) {
+                array_pop($chartPcts); array_pop($chartSemanas);
+            }
+            if(empty($chartPcts) || count(array_filter($chartPcts, fn($v) => $v !== null)) === 0) {
+                $chartSemanas = ['Sem 1','Sem 2','Sem 3','Sem 4'];
+                $chartPcts    = [$healthIndex, $healthIndex, $healthIndex, $healthIndex];
+            }
+            // Use JSON_HEX tags to prevent XSS issues
+            $chartSemanasJson = json_encode($chartSemanas, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+            $chartPctsJson    = json_encode($chartPcts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        }
+
         $this->view('asistencias/index', [
             'title'         => 'Asistencias — ' . ucfirst($vista),
             'vista'         => $vista,
@@ -241,7 +353,13 @@ class AsistenciasController extends Controller
             'pasantesActivos' => $todosActivos, // para modals y listados
             'porcAsistencia'=> $porcentajeAsistencia,
             'datosSemanales'=> $datosSemanales,
-            'navSemana'     => $navSemana
+            'navSemana'     => $navSemana,
+            'bentoMensual'  => $bentoMensual,
+            'pasantesFaltas'=> $pasantesFaltas,
+            'healthIndex'   => $healthIndex,
+            'totalEventosMensual'=> $totalEventos,
+            'chartSemanasJson' => $chartSemanasJson,
+            'chartPctsJson' => $chartPctsJson
         ]);
     }
 
@@ -387,34 +505,8 @@ class AsistenciasController extends Controller
 
         $ok = $this->db->execute();
 
-        // 3NF: horas_acumuladas vive en datos_pasante, NO en usuarios
-        // Restar horas si venía de un estado con horas, y agregar si va a un estado con horas
-        if ($ok) {
-            $diffHoras = 0;
-            // Estado anterior si existe
-            $estadoAnterior = $existente ? $existente->estado : null;
-            
-            // Si antes ganaba horas y ahora no (Ej. Presente -> Ausente)
-            if (in_array($estadoAnterior, ['Presente', 'Justificado']) && !in_array($estado, ['Presente', 'Justificado'])) {
-                $diffHoras = -8;
-            }
-            // Si antes no ganaba y ahora sí (Ej. Ausente -> Presente/Justificado)
-            elseif (!in_array($estadoAnterior, ['Presente', 'Justificado']) && in_array($estado, ['Presente', 'Justificado'])) {
-                $diffHoras = 8;
-            }
-
-            if ($diffHoras !== 0) {
-                // GREATEST para evitar horas negativas por cualquier desajuste lógico previo
-                $this->db->query("
-                    UPDATE datos_pasante
-                    SET horas_acumuladas = GREATEST(0, horas_acumuladas + (:diff))
-                    WHERE usuario_id = :pid
-                ");
-                $this->db->bind(':diff', $diffHoras);
-                $this->db->bind(':pid', $pasanteId);
-                $this->db->execute();
-            }
-        }
+        // ✅ PRO-RATA: El progreso se calcula dinámicamente desde la tabla 'asistencias'.
+        // NO se modifica horas_acumuladas en datos_pasante — eliminamos el anti-patrón de suma/resta.
 
         echo json_encode([
             'success' => $ok,
@@ -590,21 +682,7 @@ class AsistenciasController extends Controller
             exit;
         }
 
-        // Restar las 8 horas acumuladas si el estado anterior las proveía
-        $this->db->query("SELECT pasante_id, estado FROM asistencias WHERE id = :id");
-        $this->db->bind(':id', $id);
-        $registro = $this->db->single();
-
-        if ($registro && in_array($registro->estado, ['Presente', 'Justificado'])) {
-            $this->db->query("
-                UPDATE datos_pasante
-                SET horas_acumuladas = GREATEST(0, horas_acumuladas - 8)
-                WHERE usuario_id = :pid
-            ");
-            $this->db->bind(':pid', $registro->pasante_id);
-            $this->db->execute();
-        }
-
+        // ✅ PRO-RATA: No se restan horas al anular. El conteo Pro-Rata excluye estado 'Anulado' automáticamente.
         // Convertir a 'Anulado'
         $this->db->query("UPDATE asistencias SET estado = 'Anulado' WHERE id = :id");
         $this->db->bind(':id', $id);
@@ -612,7 +690,7 @@ class AsistenciasController extends Controller
 
         echo json_encode([
             'success' => $ok,
-            'message' => $ok ? 'Asistencia anulada (Se restaron las horas acumuladas si correspondía).' : 'Error al anular.'
+            'message' => $ok ? '✅ Asistencia anulada correctamente.' : 'Error al anular.'
         ]);
         exit;
     }
@@ -651,12 +729,34 @@ class AsistenciasController extends Controller
                 
                 // B. Obtener el historial completo de marcajes
                 $historial = $this->asistenciaModel->obtenerHistorialCompletoPasante($idPasante);
+
+                // C. ✅ PRO-RATA: Calcular progreso dinámicamente desde la tabla asistencias
+                //    horasMostradas = COUNT(Presente|Justificado) * 8
+                //    porcentaje     = horasMostradas / 1440 * 100
+                $horasMeta = (int)(($perfil->horas_meta ?? 0) > 0 ? $perfil->horas_meta : 1440);
+                $proRata   = $this->asistenciaModel->calcularProgresoProRata($idPasante, $horasMeta);
+                
+                // D. ✅ CALENDARIO: Calcular progreso estrictamente por calendario (L-V)
+                $fechaInicio = $perfil->fecha_inicio ?? date('Y-m-d');
+                $calendario  = $this->asistenciaModel->calcularProgresoPorCalendario($fechaInicio, $horasMeta);
                 
                 header('Content-Type: application/json');
                 echo json_encode([
-                    'status' => 'success',
-                    'perfil' => $perfil,
-                    'historial' => $historial
+                    'status'   => 'success',
+                    'perfil'   => $perfil,
+                    'historial'=> $historial,
+                    'pro_rata' => [
+                        'dias_presentes'  => $proRata->dias_presentes,
+                        'horas_mostradas' => $proRata->horas_mostradas,
+                        'horas_meta'      => $proRata->horas_meta,
+                        'porcentaje'      => $proRata->porcentaje,
+                    ],
+                    'calendario' => [
+                        'dias_habiles_transcurridos' => $calendario->dias_habiles_transcurridos,
+                        'horas_calendario'           => $calendario->horas_calendario,
+                        'porcentaje_calendario'      => $calendario->porcentaje_calendario,
+                        'dias_habiles_restantes'     => $calendario->dias_habiles_restantes
+                    ]
                 ]);
             } else {
                 header('Content-Type: application/json');
@@ -664,5 +764,50 @@ class AsistenciasController extends Controller
             }
             exit;
         }
+    }
+
+    /**
+     * Endpoint 3: obtenerResumenMensual() — Almanaque Inteligente (Heatmap)
+     * Devuelve el historial de asistencias de un pasante en un mes específico.
+     */
+    public function obtenerResumenMensual(): void
+    {
+        header('Content-Type: application/json');
+        
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido.']);
+            exit;
+        }
+
+        $pasanteId = (int)($_POST['pasante_id'] ?? 0);
+        $mesAnio = trim($_POST['mes_anio'] ?? ''); // Formato YYYY-MM
+        
+        if ($pasanteId <= 0 || !preg_match('/^\d{4}-\d{2}$/', $mesAnio)) {
+            echo json_encode(['success' => false, 'message' => 'Parámetros inválidos.']);
+            exit;
+        }
+
+        $fechaInicio = $mesAnio . '-01';
+        $fechaFin = date('Y-m-t', strtotime($fechaInicio));
+
+        $this->db->query("
+            SELECT fecha, estado 
+            FROM asistencias 
+            WHERE pasante_id = :pid 
+              AND fecha >= :inicio AND fecha <= :fin
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $this->db->bind(':inicio', $fechaInicio);
+        $this->db->bind(':fin', $fechaFin);
+        
+        $registros = $this->db->resultSet();
+        
+        $datosGrid = [];
+        foreach ($registros as $reg) {
+            $datosGrid[$reg->fecha] = $reg->estado;
+        }
+
+        echo json_encode(['success' => true, 'datos' => $datosGrid]);
+        exit;
     }
 }

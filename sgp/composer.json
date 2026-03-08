@@ -1,0 +1,19 @@
+{
+    "name": "sgp/sistema-gestion-pasantes",
+    "description": "Sistema de Gestión de Pasantes UPT Bolívar",
+    "type": "project",
+    "require": {
+        "php": ">=7.4",
+        "dompdf/dompdf": "^2.0",
+        "tecnickcom/tcpdf": "^6.7"
+    },
+    "autoload": {
+        "psr-4": {
+            "SGP\\": "app/"
+        }
+    },
+    "config": {
+        "vendor-dir": "vendor",
+        "optimize-autoloader": true
+    }
+}

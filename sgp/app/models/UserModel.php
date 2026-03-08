@@ -397,13 +397,14 @@ class UserModel
                 u.created_at,
                 u.estado,
                 d.nombre as departamento_nombre,
-                dpa.institucion_procedencia,
+                inst.nombre as institucion_nombre,
                 CASE WHEN dp.id IS NOT NULL THEN 1 ELSE 0 END as perfil_completado
             FROM usuarios u 
             JOIN roles r ON u.rol_id = r.id 
             LEFT JOIN departamentos d ON u.departamento_id = d.id
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
             LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
+            LEFT JOIN instituciones inst ON dpa.institucion_procedencia = inst.id
             ORDER BY u.created_at DESC
         ");
         $results = $this->db->resultSet();
@@ -817,5 +818,75 @@ class UserModel
     public function rollBack(): bool
     {
         return $this->db->rollBack();
+    }
+
+    /**
+     * Obtener Datos Completos de Usuario (Universal View)
+     * Extraído del UsersController para seguir Principio "Fat Model, Thin Controller"
+     * 
+     * @param int $id
+     * @return object|null
+     */
+    public function getDatosCompletos(int $id): ?object
+    {
+        $this->db->query("
+            SELECT 
+                u.id, u.cedula, u.correo, u.rol_id, u.estado,
+                u.departamento_id,
+                COALESCE(dpas.horas_acumuladas, 0) AS horas_acumuladas,
+                dp.nombres, dp.apellidos, dp.telefono, dp.genero, dp.fecha_nacimiento,
+                dp.cargo,
+                r.nombre AS rol_nombre,
+                d.nombre AS departamento,
+                dpas.institucion_procedencia AS institucion,
+                COALESCE(dpas.horas_meta, 240) AS horas_requeridas,
+                dpas.fecha_inicio_pasantia AS fecha_inicio,
+                dpas.fecha_fin_estimada AS fecha_fin,
+                dpas.estado_pasantia,
+                COALESCE(
+                    CONCAT(tutor_asig_dp.nombres, ' ', tutor_asig_dp.apellidos),
+                    CONCAT(tutor_dp.nombres, ' ', tutor_dp.apellidos)
+                ) AS tutor_nombre
+            FROM usuarios u
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+            LEFT JOIN roles r ON u.rol_id = r.id
+            LEFT JOIN departamentos d ON u.departamento_id = d.id
+            LEFT JOIN datos_pasante dpas ON u.id = dpas.usuario_id
+            LEFT JOIN datos_personales tutor_dp ON dpas.tutor_id = tutor_dp.usuario_id
+            LEFT JOIN asignaciones asig ON u.id = asig.pasante_id AND asig.estado = 'activo'
+            LEFT JOIN datos_personales tutor_asig_dp ON asig.tutor_id = tutor_asig_dp.usuario_id
+            WHERE u.id = :id
+            LIMIT 1
+        ");
+        $this->db->bind(':id', $id);
+        return $this->db->single() ?: null;
+    }
+
+    /**
+     * Buscar Pasante por Cédula (Kardex)
+     * Extraído del UsersController
+     * 
+     * @param string $cedula
+     * @return object|null
+     */
+    public function findPasanteByCedula(string $cedula): ?object
+    {
+        $this->db->query("
+            SELECT
+                u.id, u.cedula, u.correo,
+                dp.nombres, dp.apellidos,
+                dpa.estado_pasantia,
+                dpa.horas_acumuladas,
+                dpa.horas_meta,
+                d.nombre AS departamento
+            FROM usuarios u
+            LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
+            LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
+            WHERE u.cedula = :cedula AND u.rol_id = 3
+            LIMIT 1
+        ");
+        $this->db->bind(':cedula', $cedula);
+        return $this->db->single() ?: null;
     }
 }

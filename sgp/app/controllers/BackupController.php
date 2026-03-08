@@ -192,6 +192,7 @@ class BackupController extends Controller
 
     /**
      * Restore database from backup
+     * VULN-07: Protección con backup previo + confirmación obligatoria
      */
     public function restore($filename = null)
     {
@@ -213,6 +214,38 @@ class BackupController extends Controller
         
         if (!file_exists($filepath)) {
             $this->jsonResponse(false, 'Archivo no encontrado');
+        }
+
+        // VULN-07: Confirmación obligatoria — el frontend debe enviar el nombre exacto del archivo
+        $confirmacion = trim($_POST['confirmacion_texto'] ?? '');
+        if ($confirmacion !== $filename) {
+            $this->jsonResponse(false, 'Confirmación incorrecta. Escribe el nombre exacto del archivo para restaurar.');
+        }
+
+        // VULN-07: Backup de seguridad automático antes de restaurar
+        $safetyBackup = 'backup_' . date('Y-m-d_H-i-s') . '_pre_restore.sql';
+        $safetyPath   = $this->backupDir . '/' . $safetyBackup;
+        try {
+            $config   = require APPROOT . '/config/config.php';
+            $dbConfig = $config['db'];
+            $mysqldumpPath = file_exists('C:\\xampp\\mysql\\bin\\mysqldump.exe') 
+                ? 'C:\\xampp\\mysql\\bin\\mysqldump.exe' : 'mysqldump';
+
+            $dumpCmd = empty($dbConfig['pass'])
+                ? sprintf('%s --user=%s --host=%s %s > %s 2>&1',
+                    $mysqldumpPath, escapeshellarg($dbConfig['user']),
+                    escapeshellarg($dbConfig['host']), escapeshellarg($dbConfig['name']),
+                    escapeshellarg($safetyPath))
+                : sprintf('%s --user=%s --password=%s --host=%s %s > %s 2>&1',
+                    $mysqldumpPath, escapeshellarg($dbConfig['user']),
+                    escapeshellarg($dbConfig['pass']), escapeshellarg($dbConfig['host']),
+                    escapeshellarg($dbConfig['name']), escapeshellarg($safetyPath));
+            exec($dumpCmd, $dumpOut, $dumpRet);
+            if ($dumpRet !== 0 || !file_exists($safetyPath) || filesize($safetyPath) === 0) {
+                $this->jsonResponse(false, 'No se pudo crear el backup de seguridad previo. Restauración cancelada.');
+            }
+        } catch (Exception $e) {
+            $this->jsonResponse(false, 'Error creando backup de seguridad: ' . $e->getMessage());
         }
         
         try {

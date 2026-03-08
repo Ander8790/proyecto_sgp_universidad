@@ -1,43 +1,17 @@
 <?php
-// Vista Monolítica de Configuración — SGP
-if (!defined('APPROOT')) require_once '../app/config/config.php';
-
+// Vista Configuración del Sistema — SGP
 // Leer mensajes flash
 $flashSuccess = Session::getFlash('success');
 $flashError   = Session::getFlash('error');
 
-// Datos del controlador (ya saneados como arrays)
+// Datos del controlador
 $instituciones = $data['instituciones'] ?? [];
 $departamentos = $data['departamentos'] ?? [];
 $totalInst     = count($instituciones);
 $totalDepto    = count($departamentos);
 ?>
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGP — Configuración del Sistema</title>
 
-    <!-- CSS Assets -->
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/variables.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/base.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/animations.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/notifications.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/sidebar.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/topbar.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/loading.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/modal-universal.css">
 
-    <script>const URLROOT = '<?= URLROOT ?>';</script>
-    <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
-    <script src="<?= URLROOT ?>/js/notyf.min.js"></script>
-    <script src="<?= URLROOT ?>/js/notification-service.js"></script>
-    <script src="<?= URLROOT ?>/js/modal-universal.js"></script>
 
     <style>
     /* === Cards de sección === */
@@ -201,15 +175,11 @@ $totalDepto    = count($departamentos);
     @media (max-width: 900px) {
         .cfg-two-col, .cfg-main-col { grid-template-columns: 1fr; }
     }
-    </style>
-</head>
-<body>
-<div class="wrapper">
-    <?php require_once '../app/views/inc/header.php'; ?>
-    <?php require_once '../app/views/inc/sidebar.php'; ?>
 
-    <div class="content-wrapper">
-        <div class="dashboard-container">
+</style>
+
+<div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
+
 
             <!-- ===== BANNER ===== -->
             <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;">
@@ -473,14 +443,7 @@ $totalDepto    = count($departamentos);
             </div><!-- /kiosco card -->
 
         </div><!-- /dashboard-container -->
-    </div><!-- /content-wrapper -->
 
-    <div id="sidebarOverlay" class="sidebar-overlay"></div>
-</div><!-- /wrapper -->
-
-<!-- Scripts -->
-<script src="<?= URLROOT ?>/js/sidebar.js"></script>
-<script src="<?= URLROOT ?>/js/notifications.js?v=2"></script>
 
 <script>
     // ── Mostrar flash messages ──────────────────────────────
@@ -515,17 +478,5 @@ $totalDepto    = count($departamentos);
             }
         });
     }
-
-    // ── Fix resize para sidebar ────────────────────────────
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 300);
-        var toggleBtn = document.getElementById('sidebarToggle');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', function() {
-                setTimeout(function() { window.dispatchEvent(new Event('resize')); }, 300);
-            });
-        }
-    });
 </script>
-</body>
-</html>
+

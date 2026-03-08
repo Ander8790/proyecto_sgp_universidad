@@ -44,9 +44,13 @@ $role = $data['role'] ?? 'Pasante';
                 <i class="ti ti-clock"></i>
             </div>
         </div>
-        <div class="kpi-value">85</div>
+        <?php
+            $hCumpl = (int)($pasante->horas_acumuladas ?? 0);
+            $hMeta  = (int)($pasante->horas_meta ?? 480);
+        ?>
+        <div class="kpi-value" data-kpi-value="<?= $hCumpl ?>">0</div>
         <div class="kpi-badge success">
-            <i class="ti ti-trending-up"></i> de 240 horas
+            <i class="ti ti-trending-up"></i> de <?= $hMeta ?> horas
         </div>
     </div>
 
@@ -57,7 +61,20 @@ $role = $data['role'] ?? 'Pasante';
                 <i class="ti ti-calendar-check"></i>
             </div>
         </div>
-        <div class="kpi-value">18</div>
+        <?php
+            $asistenciasEsteMes = 0;
+            if (!empty($actividades)) {
+                $mesActual = date('m');
+                $anioActual = date('Y');
+                foreach ($actividades as $act) {
+                    $fechaAct = $act->fecha ?? '';
+                    if (!empty($fechaAct) && date('m', strtotime($fechaAct)) == $mesActual && date('Y', strtotime($fechaAct)) == $anioActual) {
+                        $asistenciasEsteMes++;
+                    }
+                }
+            }
+        ?>
+        <div class="kpi-value" data-kpi-value="<?= $asistenciasEsteMes ?>">0</div>
     </div>
 
     <div class="card kpi-card slide-up" style="animation-delay: 0.3s;">
@@ -67,7 +84,7 @@ $role = $data['role'] ?? 'Pasante';
                 <i class="ti ti-file-text"></i>
             </div>
         </div>
-        <div class="kpi-value">24</div>
+        <div class="kpi-value" data-kpi-value="<?= count($actividades ?? []) ?>">0</div>
     </div>
 
     <div class="card kpi-card slide-up" style="animation-delay: 0.4s;">
@@ -77,43 +94,48 @@ $role = $data['role'] ?? 'Pasante';
                 <i class="ti ti-chart-pie"></i>
             </div>
         </div>
-        <div class="kpi-value">35%</div>
+        <?php
+            $progreso = ($hMeta > 0) ? min(100, round(($hCumpl / $hMeta) * 100)) : 0;
+            $estadoPasantia = $pasante->estado_pasantia ?? 'Pendiente';
+        ?>
+        <div class="kpi-value" data-kpi-value="<?= $progreso ?>">0</div>
         <div class="kpi-badge info">
-            <i class="ti ti-clock"></i> En tiempo
+            <i class="ti ti-clock"></i> <?= htmlspecialchars($estadoPasantia) ?>
         </div>
     </div>
 
     <!-- Fila 2: Tabla de Actividades Recientes -->
     <div class="card span-4 slide-up" style="animation-delay: 0.5s;">
-        <h3 style="color: var(--deep-azure); font-size: 1.125rem; font-weight: 600; margin-bottom: 16px;">Mis Actividades Recientes</h3>
+        <h3 style="color: var(--deep-azure); font-size: 1.125rem; font-weight: 600; margin-bottom: 16px;">Mis Últimas Asistencias</h3>
         <table class="modern-table">
             <thead>
                 <tr>
-                    <th>Actividad</th>
                     <th>Fecha</th>
-                    <th>Horas</th>
+                    <th>Hora</th>
                     <th>Estado</th>
                 </tr>
             </thead>
             <tbody>
-                <tr>
-                    <td>Asistencia - Turno Mañana</td>
-                    <td style="color: var(--text-muted);">15 Enero 2026</td>
-                    <td style="color: var(--text-muted);">4 horas</td>
-                    <td><span class="badge success">Aprobado</span></td>
-                </tr>
-                <tr>
-                    <td>Bitácora - Actividades del día</td>
-                    <td style="color: var(--text-muted);">15 Enero 2026</td>
-                    <td style="color: var(--text-muted);">-</td>
-                    <td><span class="badge info">Registrado</span></td>
-                </tr>
-                <tr>
-                    <td>Asistencia - Turno Tarde</td>
-                    <td style="color: var(--text-muted);">14 Enero 2026</td>
-                    <td style="color: var(--text-muted);">4 horas</td>
-                    <td><span class="badge success">Aprobado</span></td>
-                </tr>
+                <?php if (!empty($actividades)): ?>
+                    <?php foreach ($actividades as $act):
+                        $fecha   = !empty($act->fecha) ? date('d/m/Y', strtotime($act->fecha)) : '—';
+                        $hora    = !empty($act->hora_registro) ? date('h:i A', strtotime($act->hora_registro)) : '—';
+                        $estadoBadge = ($act->estado ?? '') === 'Presente' ? 'success' : (($act->estado ?? '') === 'Justificado' ? 'warning' : 'info');
+                    ?>
+                    <tr>
+                        <td><?= htmlspecialchars($fecha) ?></td>
+                        <td style="color: var(--text-muted);"><?= htmlspecialchars($hora) ?></td>
+                        <td><span class="badge <?= $estadoBadge ?>"><?= htmlspecialchars($act->estado ?? 'N/A') ?></span></td>
+                    </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="3" style="text-align:center;padding:32px;color:#94a3b8;">
+                            <i class="ti ti-calendar-off" style="font-size:32px;display:block;margin-bottom:8px;"></i>
+                            Aún no tienes asistencias registradas.
+                        </td>
+                    </tr>
+                <?php endif; ?>
             </tbody>
         </table>
     </div>
