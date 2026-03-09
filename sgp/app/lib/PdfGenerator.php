@@ -66,13 +66,15 @@ class PdfGenerator
      * @param array   $filas    [['dato1','dato2'], ['dato3','dato4'], ...]
      * @param string  $filename Nombre del archivo
      * @param string  $subtitulo Subtítulo/descripción del reporte
+     * @param bool    $download true = forzar descarga | false = inline
      */
     public function renderTcpdf(
         string $titulo,
         array  $columnas,
         array  $filas,
         string $filename    = 'reporte.pdf',
-        string $subtitulo   = ''
+        string $subtitulo   = '',
+        bool   $download    = true
     ): void {
         $autoload = $this->vendorPath . '/autoload.php';
         if (!file_exists($autoload)) {
@@ -140,8 +142,9 @@ class PdfGenerator
             $altRow = !$altRow;
         }
 
-        // Descarga
-        $pdf->Output($filename, 'D');
+        // Descarga o Previsualización
+        $mode = $download ? 'D' : 'I';
+        $pdf->Output($filename, $mode);
     }
 
     // ─────────────────────────────────────────────────────────────────

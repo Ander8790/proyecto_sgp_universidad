@@ -96,11 +96,12 @@ class ReportesController extends Controller {
         }
     }
 
-    // ─── DomPDF: Kardex individual ───────────────────────────────────
-
-    public function pdfKardex(int $pasanteId = 0): void {
+    // ─── DomPDF: Reporte Individual (PDF) ───────────────────────────
+    public function pdfIndividual(int $pasanteId = 0): void {
         $pasanteId = $pasanteId ?: (int)($_GET['id'] ?? 0);
         if (!$pasanteId) { http_response_code(400); echo 'ID requerido'; return; }
+
+        $download = ($_GET['download'] ?? '1') === '1';
 
         require_once APPROOT . '/lib/PdfGenerator.php';
 
@@ -302,7 +303,126 @@ class ReportesController extends Controller {
         </html>
         ";
 
-        (new PdfGenerator())->renderDomPdf($html, 'REPORTE_' . htmlspecialchars($p->cedula ?? $pasanteId) . '_' . date('Ymd_Hi') . '.pdf');
+        (new PdfGenerator())->renderDomPdf($html, 'REPORTE_' . htmlspecialchars($p->cedula ?? $pasanteId) . '_' . date('Ymd_Hi') . '.pdf', $download);
+    }
+
+    // ─── PhpSpreadsheet: Reporte Individual (Excel) ───────────────────
+    public function exportarExcel(int $pasanteId = 0): void {
+        $pasanteId = $pasanteId ?: (int)($_GET['id'] ?? 0);
+        if (!$pasanteId) { http_response_code(400); echo 'ID requerido'; return; }
+
+        require_once APPROOT . '/../vendor/autoload.php';
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Reporte de Pasantía');
+
+        $this->db->query("
+            SELECT dp.nombres, dp.apellidos, u.cedula, u.correo, dpa.horas_acumuladas, dpa.horas_meta, 
+                   d.nombre AS departamento, dpa.estado_pasantia
+            FROM usuarios u
+            JOIN datos_personales dp ON dp.usuario_id = u.id
+            LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos d ON d.id = dpa.departamento_asignado_id
+            WHERE u.id = :id
+        ");
+        $this->db->bind(':id', $pasanteId);
+        $p = $this->db->single();
+        if (!$p) { http_response_code(404); echo 'Usuario no encontrado'; return; }
+
+        // Estilos básicos
+        $sheet->setCellValue('A1', 'SGP - REPORTE DE PASANTÍAS');
+        $sheet->mergeCells('A1:D1');
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+
+        $sheet->setCellValue('A3', 'Pasante:');
+        $sheet->setCellValue('B3', ($p->nombres ?? '') . ' ' . ($p->apellidos ?? ''));
+        $sheet->setCellValue('A4', 'Cédula:');
+        $sheet->setCellValue('B4', $p->cedula ?? '—');
+        $sheet->setCellValue('A5', 'Departamento:');
+        $sheet->setCellValue('B5', $p->departamento ?? 'Sin Asignar');
+        
+        $sheet->setCellValue('A7', 'Horas Acumuladas');
+        $sheet->setCellValue('B7', 'Horas Meta');
+        $sheet->setCellValue('C7', '% Progreso');
+        $sheet->setCellValue('D7', 'Estado');
+
+        $hrsAcum = (int)($p->horas_acumuladas ?? 0);
+        $hrsMeta = (int)($p->horas_meta ?? 1440);
+        $pct = $hrsMeta > 0 ? min(100, round(($hrsAcum / $hrsMeta) * 100)) : 0;
+
+        $sheet->setCellValue('A8', $hrsAcum);
+        $sheet->setCellValue('B8', $hrsMeta);
+        $sheet->setCellValue('C8', $pct . '%');
+        $sheet->setCellValue('D8', strtoupper($p->estado_pasantia ?? 'ACTIVO'));
+
+        if (ob_get_length()) ob_end_clean();
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="REPORTE_PASANTE_' . ($p->cedula ?? $pasanteId) . '.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    public function excelAnual(): void {
+        require_once APPROOT . '/../vendor/autoload.php';
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Nómina de Pasantes');
+
+        $this->db->query("
+            SELECT u.cedula, CONCAT(dp.nombres,' ',dp.apellidos) AS nombre,
+                dpa.estado_pasantia, dpa.horas_acumuladas, dpa.horas_meta, 
+                dept.nombre AS departamento
+            FROM usuarios u
+            JOIN datos_personales dp ON u.id = dp.usuario_id
+            LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
+            LEFT JOIN departamentos dept ON dept.id = dpa.departamento_asignado_id
+            WHERE u.rol_id = 3
+            ORDER BY dp.apellidos
+        ");
+        $data = $this->db->resultSet();
+
+        // Encabezados
+        $headers = ['Cédula', 'Nombre Completo', 'Departamento', 'Estado', 'Horas Acum.', 'Meta', '%'];
+        $column = 'A';
+        foreach ($headers as $h) {
+            $sheet->setCellValue($column . '1', $h);
+            $sheet->getStyle($column . '1')->getFont()->setBold(true);
+            $column++;
+        }
+
+        // Datos
+        $row = 2;
+        foreach ($data as $r) {
+            $hrsAcum = (int)($r->horas_acumuladas ?? 0);
+            $hrsMeta = (int)($r->horas_meta ?? 1440);
+            $pct = $hrsMeta > 0 ? min(100, round(($hrsAcum / $hrsMeta) * 100)) : 0;
+
+            $sheet->setCellValue('A' . $row, $r->cedula);
+            $sheet->setCellValue('B' . $row, $r->nombre);
+            $sheet->setCellValue('C' . $row, $r->departamento ?? 'Sin Asignar');
+            $sheet->setCellValue('D' . $row, strtoupper($r->estado_pasantia ?? 'ACTIVO'));
+            $sheet->setCellValue('E' . $row, $hrsAcum);
+            $sheet->setCellValue('F' . $row, $hrsMeta);
+            $sheet->setCellValue('G' . $row, $pct . '%');
+            $row++;
+        }
+
+        // Auto-size columnas
+        foreach (range('A', 'G') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        if (ob_get_length()) ob_end_clean();
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="nomina_anual_pasantes_' . date('Ymd') . '.xlsx"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
     }
 
     /**
@@ -420,6 +540,7 @@ class ReportesController extends Controller {
         $inicio = $_GET['inicio'] ?? date('Y-m-01');
         $fin    = $_GET['fin']    ?? date('Y-m-d');
         $depto  = $_GET['depto']  ?? 'todos';
+        $download = ($_GET['download'] ?? '1') === '1';
 
         $sql = "
             SELECT a.fecha, CONCAT(dp.nombres,' ',dp.apellidos) AS pasante,
@@ -450,7 +571,8 @@ class ReportesController extends Controller {
             ['Fecha','Pasante','Cédula','Estado','Horas','Departamento'],
             $filas,
             'asistencias_' . $inicio . '_' . $fin . '.pdf',
-            "Período: {$inicio} al {$fin}"
+            "Período: {$inicio} al {$fin}",
+            $download
         );
     }
 
@@ -458,6 +580,7 @@ class ReportesController extends Controller {
 
     public function pdfNomina(): void {
         require_once APPROOT . '/lib/PdfGenerator.php';
+        $download = ($_GET['download'] ?? '1') === '1';
 
         $this->db->query("
             SELECT u.cedula, CONCAT(dp.nombres,' ',dp.apellidos) AS nombre,
@@ -486,7 +609,8 @@ class ReportesController extends Controller {
             ['Cédula','Nombre','Departamento','Estado','Horas','Teléfono'],
             $filas,
             'nomina_pasantes_' . date('Ymd') . '.pdf',
-            'Registrados al ' . date('d/m/Y')
+            'Registrados al ' . date('d/m/Y'),
+            $download
         );
     }
 }

@@ -59,6 +59,18 @@ class AsistenciasController extends Controller
             'anio'   => $_GET['anio'] ?? date('Y')
         ];
 
+        // Inicializar variables para las vistas (evitar Undefined Warnings)
+        $meses = ['01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril','05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto','09'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'];
+        $nombreMes  = $meses[$paramsUrl['mes']] ?? '';
+        $anioActual = $paramsUrl['anio'];
+        $urlAnt     = URLROOT . "/asistencias?vista=mensual&mes=" . str_pad(($paramsUrl['mes']==1?12:$paramsUrl['mes']-1),2,'0',STR_PAD_LEFT) . "&anio=" . ($paramsUrl['mes']==1?$paramsUrl['anio']-1:$paramsUrl['anio']);
+        $urlSig     = URLROOT . "/asistencias?vista=mensual&mes=" . str_pad(($paramsUrl['mes']==12?1:$paramsUrl['mes']+1),2,'0',STR_PAD_LEFT) . "&anio=" . ($paramsUrl['mes']==12?$paramsUrl['anio']+1:$paramsUrl['anio']);
+
+        // KPIs Anuales (Inicialización)
+        $historicoAnual   = 0;
+        $finalizadosAnual = 0;
+        $enCursoAnual     = 0;
+
         if ($vista === 'diaria') {
             $fechaInicio = $paramsUrl['fecha'];
             $fechaFin    = $paramsUrl['fecha'];
@@ -73,8 +85,7 @@ class AsistenciasController extends Controller
         } elseif ($vista === 'mensual') {
             $fechaInicio = $paramsUrl['anio'] . '-' . $paramsUrl['mes'] . '-01';
             $fechaFin    = date('Y-m-t', strtotime($fechaInicio));
-            $meses = ['01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril','05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto','09'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'];
-            $tituloRango = "de " . ($meses[$paramsUrl['mes']] ?? '') . " " . $paramsUrl['anio'];
+            $tituloRango = "de " . ($nombreMes) . " " . $anioActual;
         } elseif ($vista === 'anual') {
             $fechaInicio = $paramsUrl['anio'] . '-01-01';
             $fechaFin    = $paramsUrl['anio'] . '-12-31';
@@ -224,14 +235,43 @@ class AsistenciasController extends Controller
         }
 
         // ==========================================
+        // PROCESADOR DE DATOS: VISTA ANUAL (Kpis)
+        // ==========================================
+        if ($vista === 'anual') {
+            $pasantesVistos = [];
+            foreach ($registrosLista as $reg) {
+                $pid = $reg->pasante_id;
+                if (!isset($pasantesVistos[$pid])) {
+                    $pasantesVistos[$pid] = ['presentes' => 0];
+                }
+                if (strtolower($reg->estado) === 'presente' || strtolower($reg->estado) === 'justificado') {
+                    $pasantesVistos[$pid]['presentes']++;
+                }
+            }
+            $historicoAnual = count($pasantesVistos);
+            foreach ($pasantesVistos as $pData) {
+                $hrs = $pData['presentes'] * 8;
+                if ($hrs >= 1440) {
+                    $finalizadosAnual++;
+                } else {
+                    $enCursoAnual++;
+                }
+            }
+        }
+
+        // ==========================================
         // PROCESADOR DE DATOS: VISTA MENSUAL
         // ==========================================
-        $bentoMensual = [];
-        $pasantesFaltas = [];
-        $healthIndex = 100;
-        $totalEventos = 0;
+        $bentoMensual     = [];
+        $pasantesFaltas   = [];
+        $healthIndex      = 100;
+        $totalEventos     = 0;
         $chartSemanasJson = "[]";
-        $chartPctsJson = "[]";
+        $chartPctsJson    = "[]";
+        $pasantesParaJS   = [];
+        $resumenDeptosJS  = [];
+        $calendarioJS     = [];
+        $daysJS           = [];
         
         if ($vista === 'mensual') {
             $totalAsistencias = 0;
@@ -318,13 +358,14 @@ class AsistenciasController extends Controller
                 }
             }
             $chartSemanas = []; $chartPcts = [];
-            for($sw = 1; $sw <= 5; $sw++) {
+            // Forzar 4 o 5 semanas según el mes
+            $ultimoDiaMes = (int)date('t', strtotime($fechaInicio));
+            $numSemanas = (int)ceil($ultimoDiaMes / 7);
+
+            for($sw = 1; $sw <= $numSemanas; $sw++) {
                 $chartSemanas[] = 'Sem ' . $sw;
                 $d = $semanaData[$sw] ?? null;
-                $chartPcts[] = ($d && $d['total'] > 0) ? round(($d['pres'] / $d['total']) * 100) : null;
-            }
-            while(!empty($chartPcts) && end($chartPcts) === null) {
-                array_pop($chartPcts); array_pop($chartSemanas);
+                $chartPcts[] = ($d && $d['total'] > 0) ? round(($d['pres'] / $d['total']) * 100) : 0;
             }
             if(empty($chartPcts) || count(array_filter($chartPcts, fn($v) => $v !== null)) === 0) {
                 $chartSemanas = ['Sem 1','Sem 2','Sem 3','Sem 4'];
@@ -333,6 +374,55 @@ class AsistenciasController extends Controller
             // Use JSON_HEX tags to prevent XSS issues
             $chartSemanasJson = json_encode($chartSemanas, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
             $chartPctsJson    = json_encode($chartPcts, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
+            // ===== JS DATA: Pasantes para la Tabla Maestra y Top List =====
+            $pasantesParaJS = [];
+            foreach($bentoMensual as $depto => $pasantes) {
+                foreach($pasantes as $pid => $rm) {
+                    $pasantesParaJS[] = [
+                        'n'  => $rm['nombre'],
+                        'ci' => $rm['cedula'],
+                        'd'  => $depto,
+                        'p'  => $rm['presentes'],
+                        'f'  => $rm['ausentes'],
+                        'j'  => $rm['justificados'],
+                        'av' => $rm['iniciales'],
+                        'c'  => 'linear-gradient(135deg, #3b82f6, #2563eb)' // Color base
+                    ];
+                }
+            }
+
+            // ===== JS DATA: Resumen por Departamento =====
+            $resumenDeptosJS = [];
+            foreach($bentoMensual as $depto => $pasantes) {
+                $dp = 0; $df = 0; $dj = 0;
+                foreach($pasantes as $rm) {
+                    $dp += $rm['presentes']; $df += $rm['ausentes']; $dj += $rm['justificados'];
+                }
+                $resumenDeptosJS[$depto] = [
+                    'p' => $dp, 'f' => $df, 'j' => $dj, 't' => ($dp + $df + $dj)
+                ];
+            }
+
+            // ===== JS DATA: Calendario =====
+            $calendarioJS = [];
+            $daysJS = [];
+            $numDays = (int)date('t', strtotime($fechaInicio));
+            for($i=1; $i<=$numDays; $i++) { $daysJS[] = $i; }
+
+            foreach($registrosLista as $reg) {
+                $d = (int)date('j', strtotime($reg->fecha));
+                $est = strtolower($reg->estado);
+                $code = 'em';
+                if(strpos($est, 'presente') !== false) $code = 'p';
+                elseif(strpos($est, 'ausente') !== false) $code = 'a';
+                elseif(strpos($est, 'justificado') !== false) $code = 'j';
+                
+                // Si ya hay un registro (p.ej. presente), no lo sobreescribimos con 'em'
+                if(!isset($calendarioJS[$d]) || $code !== 'em') {
+                    $calendarioJS[$d] = $code;
+                }
+            }
         }
 
         $this->view('asistencias/index', [
@@ -346,6 +436,7 @@ class AsistenciasController extends Controller
             'hoy'           => $hoy,
             'registrosLista'=> $registrosLista,
             'sinMarcar'     => array_values($sinMarcar),
+            'sinMarcarMes'  => array_values($sinMarcar), // Reutilizamos si no hay lógica específica
             'presentes'     => $presentes,
             'justificados'  => $justificados,
             'ausentes'      => $ausentes,
@@ -359,7 +450,18 @@ class AsistenciasController extends Controller
             'healthIndex'   => $healthIndex,
             'totalEventosMensual'=> $totalEventos,
             'chartSemanasJson' => $chartSemanasJson,
-            'chartPctsJson' => $chartPctsJson
+            'chartPctsJson' => $chartPctsJson,
+            'pasantesParaJS' => $pasantesParaJS,
+            'resumenDeptosJS' => $resumenDeptosJS,
+            'calendarioJS' => (object)$calendarioJS,
+            'daysJS' => $daysJS,
+            'nombreMes' => $nombreMes,
+            'anioActual' => $anioActual,
+            'urlAnt' => $urlAnt,
+            'urlSig' => $urlSig,
+            'historicoAnual' => $historicoAnual,
+            'finalizadosAnual' => $finalizadosAnual,
+            'enCursoAnual' => $enCursoAnual
         ]);
     }
 

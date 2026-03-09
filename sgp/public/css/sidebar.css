@@ -65,17 +65,24 @@
     transition: none !important;
 }
 
-/* Scrollbar invisible — scroll funciona con rueda/trackpad sin barra visible */
+/* Scrollbar VISIBLE — Estilo Sutil */
 .main-sidebar::-webkit-scrollbar {
-    display: none;
-    /* Chrome, Safari, Edge */
+    width: 6px;
+}
+
+.main-sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.main-sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
 }
 
 .main-sidebar {
-    -ms-overflow-style: none;
-    /* IE/Edge */
-    scrollbar-width: none;
-    /* Firefox */
+    -ms-overflow-style: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 }
 
 /* ========================================
@@ -92,8 +99,12 @@
 }
 
 .sidebar-nav::-webkit-scrollbar {
-    display: none;
-    /* Chrome, Safari, Edge */
+    width: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
 }
 
 .nav-list {
@@ -103,72 +114,169 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+
+    /* SCROLL INTELIGENTE PARA EL MENÚ LATERAL */
+    flex-grow: 1;
+    /* Ocupa el espacio disponible */
+    overflow-y: auto;
+    /* Activa el scroll vertical */
+    overflow-x: hidden;
+    /* Oculta cualquier desbordamiento horizontal */
+    padding-bottom: 20px;
+    /* Evita que el último ítem pegue con el botón cerrar sesión */
 }
 
-/* ========================================
-   NAV LINK - SOLID BORDERS
-   ======================================== */
+/* Diseño de la barra de scroll (Sutil y elegante) */
+.main-sidebar ul::-webkit-scrollbar {
+    width: 6px;
+    /* Muy delgadita */
+}
 
-.nav-link {
-    display: flex;
-    align-items: center;
-    margin: 4px 12px 4px 8px;
-    padding: 12px 16px;
-    border-radius: 12px;
-
+.main-sidebar ul::-webkit-scrollbar-track {
     background: transparent;
-    border: 1px solid var(--border-light);
-    color: var(--text-light);
-
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 0.9rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
+    /* Pista invisible */
 }
 
-.nav-link i {
-    font-size: 1.2rem;
-    width: 26px;
-    text-align: center;
-    margin-right: 12px;
-    transition: transform 0.3s;
+.main-sidebar ul::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.15);
+    /* Blanco semi-transparente */
+    border-radius: 10px;
 }
 
-.nav-link:hover:not(.active):not(.logout-link) {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.4);
-    color: var(--text-white);
-    transform: translateX(3px);
+.main-sidebar ul::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+    /* Brilla un poco al pasar el mouse */
 }
 
-/* ✅ FIX: Deshabilitar transform en collapsed */
-body.sidebar-collapsed .nav-link:hover:not(.active) {
+/* Las Flechitas en las puntas del scroll */
+.main-sidebar ul::-webkit-scrollbar-button:single-button {
+    background-color: transparent;
+    display: block;
+    height: 16px;
+    /* Espacio para la flecha */
+}
+
+/* Flecha Arriba */
+.main-sidebar ul::-webkit-scrollbar-button:single-button:vertical:decrement {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' fill='%23ffffff'><polygon points='5,2 2,8 8,8'/></svg>");
+    background-size: 8px;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.5;
+}
+
+/* Flecha Abajo */
+.main-sidebar ul::-webkit-scrollbar-button:single-button:vertical:increment {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10' fill='%23ffffff'><polygon points='2,2 8,2 5,8'/></svg>");
+    background-size: 8px;
+    background-position: center;
+    background-repeat: no-repeat;
+    opacity: 0.5;
+}
+
+/* ========================================================
+   NAVEGACIÓN LATERAL MODERNIZADA (SGP) - CONTRASTE PERFECTO
+======================================================== */
+
+/* 1. Ajuste de Ancho: Botón más corto para mostrar el borde derecho */
+.main-sidebar .nav-item>a,
+.main-sidebar .nav-link {
+    font-family: 'Inter', sans-serif !important;
+    /* Recupera tu fuente Vanilla original */
+    border-radius: 8px !important;
+    font-size: 0.85rem !important;
+    /* Más minimalista */
+
+    /* LA MAGIA PARA QUE NO SE CORTE EL LADO DERECHO: */
+    margin: 2px 16px !important;
+    /* Reducido el margen vertical */
+    width: auto !important;
+    /* Evita que el 100% rompa el contenedor */
+    display: block;
+    /* Mantiene la estructura del botón */
+
+    padding: 8px 14px;
+    /* Un poco más compacto */
+    position: relative;
+    transition: all 0.2s cubic-bezier(0.25, 0.8, 0.25, 1);
+    background-color: transparent !important;
+    color: rgba(255, 255, 255, 0.7);
+    overflow: hidden;
+}
+
+/* 2. La Barrita Indicadora (Color Cian/Celeste para máximo contraste) */
+.main-sidebar .nav-item>a::before,
+.main-sidebar .nav-link::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 15%;
+    height: 70%;
+    width: 5px;
+    background-color: #0ea5e9;
+    /* Tu idea original: Estilo Cian vibrante */
+    border-radius: 0 4px 4px 0;
+    transform: scaleY(0);
+    transform-origin: center;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+    opacity: 0;
+    z-index: 2;
+}
+
+/* 3. El Efecto Hover (Glassmorphism visible) */
+.main-sidebar .nav-item>a:hover,
+.main-sidebar .nav-link:hover {
+    background-color: rgba(255, 255, 255, 0.18) !important;
+    color: #ffffff !important;
+}
+
+.main-sidebar .nav-item>a:hover::before,
+.main-sidebar .nav-link:hover::before {
+    transform: scaleY(1);
+    opacity: 0.9;
+    /* El cian brilla sobre el fondo oscuro */
+}
+
+/* 4. Ítem Activo (Fondo blanco con barrita Cian) */
+.main-sidebar .nav-item>a.active,
+.main-sidebar .nav-link.active,
+.main-sidebar .nav-item.active>a {
+    background-color: #ffffff !important;
+    color: #1e293b !important;
+    font-weight: 500 !important;
+    /* Un negrita más suave para no distorsionar tu fuente */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.main-sidebar .nav-item>a.active::before,
+.main-sidebar .nav-link.active::before,
+.main-sidebar .nav-item.active>a::before {
+    transform: scaleY(1);
+    opacity: 1;
+    background-color: #0ea5e9;
+    /* El Cian también resalta hermoso sobre el blanco */
+}
+
+/* Animación del ícono al pasar el cursor */
+.main-sidebar .nav-item>a i,
+.main-sidebar .nav-link i {
+    transition: transform 0.3s ease;
+}
+
+.main-sidebar .nav-item>a.active i,
+.main-sidebar .nav-link.active i,
+.main-sidebar .nav-item.active>a i {
+    color: #1e293b !important;
+}
+
+.main-sidebar .nav-item>a:hover i,
+.main-sidebar .nav-link:hover i {
+    transform: scale(1.15);
+}
+
+/* Deshabilitar transform en collapsed */
+body.sidebar-collapsed .main-sidebar .nav-link:hover:not(.active) i {
     transform: none !important;
-}
-
-.nav-link:hover:not(.active):not(.logout-link) i {
-    transform: scale(1.1);
-}
-
-/* ACTIVE - Professional Design (Complete Border) */
-.nav-link.active {
-    background: rgba(255, 255, 255, 0.96) !important;
-    border: 1px solid rgba(255, 255, 255, 1) !important;
-    color: var(--text-dark) !important;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-
-    /* ✅ FIX: Margin consistente para evitar "saltos" */
-    margin: 4px 8px !important;
-    border-radius: 12px !important;
-
-    /* ✅ FIX: Transición suave */
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.nav-link.active i {
-    color: var(--text-dark) !important;
 }
 
 /* ========================================
@@ -191,8 +299,9 @@ body.sidebar-collapsed .nav-link {
     padding: 16px 12px;
     position: relative;
 
-    /* ✅ FIX: Margin consistente también en collapsed */
-    margin: 4px 8px !important;
+    /* Margin flotante consistente en collapsed */
+    margin: 4px 12px !important;
+    border-radius: 99px !important;
 }
 
 body.sidebar-collapsed .nav-link i {
@@ -204,10 +313,16 @@ body.sidebar-collapsed .menu-text {
     display: none;
 }
 
-/* ✅ NUEVO: Active state en collapsed también centrado */
+/* ✅ NUEVO: Active state en collapsed asegurando la barrita */
 body.sidebar-collapsed .nav-link.active {
     justify-content: center;
-    margin: 4px 8px !important;
+    margin: 4px 12px !important;
+}
+
+/* Ajuste de barrita en collapsed para que no se vea cortada y se pegue a la izquierda */
+body.sidebar-collapsed .nav-link:hover::before,
+body.sidebar-collapsed .nav-link.active::before {
+    left: -12px;
 }
 
 body.sidebar-collapsed .btn-logout span {

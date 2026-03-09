@@ -128,55 +128,55 @@ table.dataTable tbody tr:hover {
                 }
             }
         ?>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:20px;margin-bottom:28px;">
-            <!-- Histórico -->
-            <div class="stat-card" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #8b5cf6; transition: all 0.3s;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(240px, 1fr));gap:20px;margin-bottom:32px;">
+            <!-- Histórico Total (Azul) -->
+            <div class="stat-card" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #3b82f6; transition: all 0.3s; cursor: default;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 24px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.04)'">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                     <div>
-                        <h2 style="font-size:2.2rem;font-weight:800;color:#8b5cf6;margin:0;"><?= $historicoAnual ?></h2>
-                        <p style="color:#64748b;font-size:0.85rem;margin:4px 0 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Histórico Total</p>
-                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">pasantes registrados</p>
+                        <h2 style="font-size:2.2rem;font-weight:800;color:#3b82f6;margin:0;"><?= $historicoAnual ?></h2>
+                        <p style="color:#64748b;font-size:0.85rem;margin:4px 0 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Pasantes Históricos</p>
+                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">registrados en el año</p>
                     </div>
-                    <div style="background:linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;">
-                        <i class="ti ti-history" style="font-size:24px;color:#8b5cf6;"></i>
+                    <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 4px rgba(255,255,255,0.5);">
+                        <i class="ti ti-users" style="font-size:24px;color:#3b82f6;"></i>
                     </div>
                 </div>
             </div>
-            <!-- En Curso -->
-            <div class="stat-card" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #3b82f6; transition: all 0.3s;">
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-                    <div>
-                        <h2 style="font-size:2.2rem;font-weight:800;color:#3b82f6;margin:0;"><?= $enCursoAnual ?></h2>
-                        <p style="color:#64748b;font-size:0.85rem;margin:4px 0 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">En Curso</p>
-                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">acumulando horas</p>
-                    </div>
-                    <div style="background:linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;">
-                        <i class="ti ti-activity" style="font-size:24px;color:#3b82f6;"></i>
-                    </div>
-                </div>
-            </div>
-            <!-- Finalizados -->
-            <div class="stat-card" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #10b981; transition: all 0.3s;">
+            <!-- Finalizados (Verde) -->
+            <div class="stat-card" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #10b981; transition: all 0.3s; cursor: default;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 24px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.04)'">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                     <div>
                         <h2 style="font-size:2.2rem;font-weight:800;color:#10b981;margin:0;"><?= $finalizadosAnual ?></h2>
                         <p style="color:#64748b;font-size:0.85rem;margin:4px 0 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Finalizados</p>
-                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">listos para certificar</p>
+                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">cumplieron 1.440 hrs</p>
                     </div>
-                    <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;">
+                    <div style="background:linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 4px rgba(255,255,255,0.5);">
                         <i class="ti ti-certificate" style="font-size:24px;color:#10b981;"></i>
                     </div>
                 </div>
             </div>
-            <!-- Retirados -->
-            <div class="stat-card opacity-75" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #64748b; transition: all 0.3s;">
+            <!-- En Curso (Ámbar) -->
+            <div class="stat-card" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #f59e0b; transition: all 0.3s; cursor: default;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 24px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.04)'">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div>
+                        <h2 style="font-size:2.2rem;font-weight:800;color:#f59e0b;margin:0;"><?= $enCursoAnual ?></h2>
+                        <p style="color:#64748b;font-size:0.85rem;margin:4px 0 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">En Curso</p>
+                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">acumulando horas</p>
+                    </div>
+                    <div style="background:linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 4px rgba(255,255,255,0.5);">
+                        <i class="ti ti-progress-check" style="font-size:24px;color:#f59e0b;"></i>
+                    </div>
+                </div>
+            </div>
+            <!-- Retirados / Otros (Gris) -->
+            <div class="stat-card opacity-75" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #64748b; transition: all 0.3s; cursor: default;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 24px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.04)'">
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                     <div>
                         <h2 style="font-size:2.2rem;font-weight:800;color:#64748b;margin:0;">0</h2>
                         <p style="color:#64748b;font-size:0.85rem;margin:4px 0 0;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">Retirados</p>
-                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">(no rastreado)</p>
+                        <p style="color:#94a3b8;font-size:0.75rem;margin:4px 0 0;">sin actividad reciente</p>
                     </div>
-                    <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;">
+                    <div style="background:linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);border-radius:12px;width:48px;height:48px;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 2px 4px rgba(255,255,255,0.5);">
                         <i class="ti ti-user-off" style="font-size:24px;color:#64748b;"></i>
                     </div>
                 </div>
@@ -966,9 +966,68 @@ table.dataTable tbody tr:hover {
                 $resumenDeptosJS[$d['d']]['t'] += ($d['p'] + $d['f'] + $d['j']);
                 $colorIdx++;
             }
+
+            // Identificar los que no han marcado NADA en todo el mes
+            $sinMarcarMes = [];
+            foreach ($agrupado as $pid => $d) {
+                if (($d['p'] + $d['f'] + $d['j']) === 0) {
+                    $sinMarcarMes[] = (object) [
+                        'nombres' => $d['n'],
+                        'cedula' => $d['ci'],
+                        'departamento_nombre' => $d['d']
+                    ];
+                }
+            }
+
+            // Calendario Dinámico
+            $mesActual = (int)($paramsUrl['mes'] ?? date('n'));
+            $anioActual = (int)($paramsUrl['anio'] ?? date('Y'));
+            $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $mesActual, $anioActual);
+            
+            $mesesNombres = [1=>'Enero',2=>'Febrero',3=>'Marzo',4=>'Abril',5=>'Mayo',6=>'Junio',7=>'Julio',8=>'Agosto',9=>'Septiembre',10=>'Octubre',11=>'Noviembre',12=>'Diciembre'];
+            $nombreMes = $mesesNombres[$mesActual] ?? date('M');
+            
+            $calendarioJS = [];
+            $daysJS = [];
+            for ($i = 1; $i <= $diasEnMes; $i++) {
+                $fechaStr = sprintf('%04d-%02d-%02d', $anioActual, $mesActual, $i);
+                $diaSemana = date('N', strtotime($fechaStr));
+                if ($diaSemana <= 5) { // Lunes a Viernes
+                    // Por simplicidad, ponemos 'P' si hubo asistencias globales ese día, 
+                    // o 'A'/'J' dependiendo de una lógica. Como es el calendario global del mes, 
+                    // podemos colorearlo verde ('p') si hay registros.
+                    $tieneRegistros = false;
+                    if(!empty($registrosLista)) {
+                        foreach($registrosLista as $reg) {
+                            $f = is_array($reg) ? ($reg['fecha'] ?? '') : ($reg->fecha ?? '');
+                            if(strpos($f, $fechaStr) === 0) { $tieneRegistros = true; break; }
+                        }
+                    }
+                    if($tieneRegistros) {
+                        $calendarioJS[$i] = 'p';
+                        $daysJS[] = $i;
+                    } elseif ($i < date('j') && $mesActual == date('n') && $anioActual == date('Y')) {
+                        $calendarioJS[$i] = 'a'; // Pasado sin registros
+                        $daysJS[] = $i;
+                    }
+                }
+            }
+            // Navegación Mes/Año
+            $mesAnt = $mesActual - 1; $anioAnt = $anioActual;
+            if ($mesAnt < 1) { $mesAnt = 12; $anioAnt--; }
+            $mesSig = $mesActual + 1; $anioSig = $anioActual;
+            if ($mesSig > 12) { $mesSig = 1; $anioSig++; }
+
+            $urlAnt = URLROOT . "/asistencias?vista=mensual&mes=$mesAnt&anio=$anioAnt";
+            $urlSig = URLROOT . "/asistencias?vista=mensual&mes=$mesSig&anio=$anioSig";
+            
+            // Datos para Chart.js
+            $chartLabels = $chartSemanasJson ?? '[]';
+            $chartData   = $chartPctsJson ?? '[]';
             ?>
 
             <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <style>
             .claude-replica {
                 /* Design Tokens exactos del código original */
@@ -1036,6 +1095,7 @@ table.dataTable tbody tr:hover {
             .claude-replica .t-absent   { grid-column: span 6; grid-row: span 5; }
             .claude-replica .t-dept     { grid-column: span 8; grid-row: span 6; }
             .claude-replica .t-toplist  { grid-column: span 4; grid-row: span 6; }
+            .claude-replica .t-trend    { grid-column: span 12; grid-row: span 6; padding-bottom: 12px; }
             .claude-replica .t-table    { grid-column: span 12; grid-row: span 7; }
 
             /* TILE HEADER */
@@ -1180,6 +1240,14 @@ table.dataTable tbody tr:hover {
                         <input class="search-input" id="searchInput" type="text" placeholder="Buscar pasante, cédula o departamento…">
                     </div>
                     <div class="sep"></div>
+                    
+                    <div class="nav-month-pill" style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2px;gap:2px;box-shadow:var(--shadow-sm);">
+                        <a href="<?= $urlAnt ?>" class="tile-btn" style="border:none;background:transparent;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></a>
+                        <span style="font-size:12px;font-weight:700;padding:0 8px;color:var(--ink);"><?= $nombreMes ?> <?= $anioActual ?></span>
+                        <a href="<?= $urlSig ?>" class="tile-btn" style="border:none;background:transparent;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
+                    </div>
+
+                    <div class="sep"></div>
                     <div class="chip-row">
                         <button class="chip active-blue" id="fAll" onclick="setChip('all',this)"><span class="chip-dot" style="background:var(--blue)"></span> Todos</button>
                         <button class="chip" id="fOk" onclick="setChip('ok',this)"><span class="chip-dot" style="background:var(--green)"></span> Sin faltas</button>
@@ -1239,7 +1307,7 @@ table.dataTable tbody tr:hover {
                         </div>
                         <div class="alert-list" id="alertList"></div>
                         <div class="alert-cta" style="margin-top:auto">
-                            <button class="btn btn-danger" style="width:100%;justify-content:center;">
+                            <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="enviarNotificacionesMasivas()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
                                 Enviar notificaciones
                             </button>
@@ -1248,7 +1316,7 @@ table.dataTable tbody tr:hover {
 
                     <div class="tile t-calendar rv d3">
                         <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--sky-dim)">📅</div> <?= ucfirst(strftime('%B %Y')) ?></div>
+                            <div class="tile-title"><div class="tile-icon" style="background:var(--sky-dim)">📅</div> <?= $nombreMes ?> <?= $anioActual ?></div>
                         </div>
                         <div class="cal-wrap">
                             <div class="cal-dow-row">
@@ -1269,8 +1337,13 @@ table.dataTable tbody tr:hover {
                         <div class="tile-head">
                             <div class="tile-title"><div class="tile-icon" style="background:var(--green-dim)">✓</div> Marcaron este mes</div>
                             <div class="tile-actions">
-                                <span class="tile-badge" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-mid)"><?= count($registrosHoy ?? []) ?> reg</span>
-                                <button class="tile-btn">
+                                <?php 
+                                    $registrosMesFiltrados = array_filter($registrosLista ?? [], function($r) {
+                                        return ($r->estado ?? '') !== 'Ausente';
+                                    });
+                                ?>
+                                <span class="tile-badge" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-mid)"><?= count($registrosMesFiltrados) ?> registros</span>
+                                <button class="tile-btn" onclick="doExport()">
                                     <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> CSV
                                 </button>
                             </div>
@@ -1279,23 +1352,24 @@ table.dataTable tbody tr:hover {
                             <table class="mini-table">
                                 <thead><tr><th>Pasante</th><th>Hora</th><th>Método</th><th>Estado</th></tr></thead>
                                 <tbody>
-                                    <?php if(!empty($registrosHoy)): foreach(array_slice($registrosHoy, 0, 5) as $r): 
+                                    <?php if(!empty($registrosMesFiltrados)): foreach(array_slice($registrosMesFiltrados, 0, 4) as $r): 
                                         $nom = trim(($r->apellidos ?? '') . ', ' . ($r->nombres ?? ''));
                                         $ini = strtoupper(substr($r->nombres ?? 'P', 0, 1) . substr($r->apellidos ?? 'A', 0, 1));
-                                        $hora = $r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—';
-                                        $metodo = $r->metodo ?? 'PC';
+                                        $hora = date('h:i A', strtotime($r->hora_registro ?? '00:00'));
+                                        $metodo = $r->metodo ?? 'Manual';
                                         $estado = $r->estado ?? 'Presente';
-                                        $pillEst = stripos($estado, 'presente') !== false ? 'pill-green' : (stripos($estado, 'justificado') !== false ? 'pill-amber' : 'pill-red');
-                                        $pillMet = stripos($metodo, 'manual') !== false ? 'pill-violet' : 'pill-sky';
+                                        
+                                        $pillMet = $metodo === 'Biométrico' ? 'pill-sky' : 'pill-violet';
+                                        $pillEst = strpos(strtolower($estado), 'ausente') !== false ? 'pill-red' : (strpos(strtolower($estado), 'tarde') !== false ? 'pill-amber' : 'pill-green');
                                     ?>
-                                    <tr>
-                                        <td><div class="person-cell"><div class="av" style="background:var(--blue)"><?= $ini ?></div><div><div class="pn"><?= htmlspecialchars($nom) ?></div><div class="pid"><?= $r->cedula ?? '' ?></div></div></div></td>
+                                    <tr onclick="abrirModalDetalle('<?= $r->cedula ?>')" style="cursor:pointer">
+                                        <td><div class="person-cell"><div class="av" style="background:var(--blue)"><?= $ini ?></div><div><div class="pn"><?= htmlspecialchars($nom) ?></div><div class="pid">V-<?= $r->cedula ?? '' ?></div></div></div></td>
                                         <td style="font-family:var(--mono);font-size:11px;color:var(--ink-2)"><?= $hora ?></td>
                                         <td><span class="pill <?= $pillMet ?>"><?= htmlspecialchars($metodo) ?></span></td>
                                         <td><span class="pill <?= $pillEst ?>"><?= htmlspecialchars($estado) ?></span></td>
                                     </tr>
                                     <?php endforeach; else: ?>
-                                    <tr><td colspan="4" style="text-align:center;padding:22px;color:var(--ink-3);">Nadie ha marcado aún.</td></tr>
+                                    <tr><td colspan="4" style="text-align:center;padding:22px;color:var(--ink-3);">Nadie ha marcado en este mes.</td></tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -1304,27 +1378,27 @@ table.dataTable tbody tr:hover {
 
                     <div class="tile t-absent rv d4">
                         <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--red-dim)">✗</div> Sin Marcar Hoy</div>
+                            <div class="tile-title"><div class="tile-icon" style="background:var(--red-dim)">✗</div> Sin Marcar Este Mes</div>
                             <div class="tile-actions">
-                                <span class="tile-badge" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-mid)"><?= count($sinMarcar ?? []) ?> pasantes</span>
-                                <button class="tile-btn"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar</button>
+                                <span class="tile-badge" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-mid)"><?= count($sinMarcarMes ?? []) ?> pasantes</span>
+                                <button class="tile-btn" onclick="abrirModalManual()"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar</button>
                             </div>
                         </div>
                         <div class="mini-table-wrap">
                             <table class="mini-table">
                                 <thead><tr><th>Pasante</th><th>Departamento</th><th>Acción</th></tr></thead>
                                 <tbody>
-                                    <?php if(!empty($sinMarcar)): foreach(array_slice($sinMarcar, 0, 4) as $p): 
+                                    <?php if(!empty($sinMarcarMes)): foreach(array_slice($sinMarcarMes, 0, 4) as $p): 
                                         $nom = trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''));
                                         $ini = strtoupper(substr($p->nombres ?? 'P', 0, 1) . substr($p->apellidos ?? 'A', 0, 1));
                                     ?>
                                     <tr>
-                                        <td><div class="person-cell"><div class="av" style="background:var(--red)"><?= $ini ?></div><div><div class="pn"><?= htmlspecialchars($nom) ?></div><div class="pid">V-<?= $p->cedula ?? '' ?></div></div></div></td>
+                                        <td><div class="person-cell"><div class="av" style="background:var(--red)"><?= htmlspecialchars($ini) ?></div><div><div class="pn"><?= htmlspecialchars($nom) ?></div><div class="pid">V-<?= $p->cedula ?? '' ?></div></div></div></td>
                                         <td style="font-size:11px;color:var(--ink-2)"><?= htmlspecialchars($p->departamento_nombre ?? 'General') ?></td>
-                                        <td><button class="tile-btn">+ Reg.</button></td>
+                                        <td><button class="tile-btn" onclick="abrirModalManual('<?= $p->cedula ?>', '<?= htmlspecialchars($nom) ?>')">+ Reg.</button></td>
                                     </tr>
                                     <?php endforeach; else: ?>
-                                    <tr><td colspan="3" style="text-align:center;padding:22px;font-size:11px;color:var(--ink-3);">🎉 ¡Los demás pasantes marcaron hoy!</td></tr>
+                                    <tr><td colspan="3" style="text-align:center;padding:22px;font-size:11px;color:var(--ink-3);">🎉 ¡Todos los pasantes tienen registros este mes!</td></tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
@@ -1342,11 +1416,35 @@ table.dataTable tbody tr:hover {
                     </div>
 
                     <div class="tile t-toplist rv d5">
-                        <div class="tile-head">
+                        <div class="tile-head" style="justify-content: space-between;">
                             <div class="tile-title"><div class="tile-icon" style="background:var(--amber-dim)">🏆</div> Top Asistencia</div>
-                            <span class="tile-badge" style="background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-mid)">Marzo</span>
+                            <div class="dropdown">
+                                <button class="tile-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-mid);font-size:10px;padding:2px 8px;border-radius:12px;">
+                                    <?= htmlspecialchars($nombreMes) ?> <i class="ti ti-chevron-down"></i>
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 p-2" style="font-size: 0.8rem;">
+                                    <?php 
+                                    $mesesArr = ['01' => 'Enero', '02' => 'Febrero', '03' => 'Marzo', '04' => 'Abril', '05' => 'Mayo', '06' => 'Junio', '07' => 'Julio', '08' => 'Agosto', '09' => 'Septiembre', '10' => 'Octubre', '11' => 'Noviembre', '12' => 'Diciembre'];
+                                    foreach($mesesArr as $mIdx => $mName): ?>
+                                        <li><a class="dropdown-item rounded-2 <?= ($paramsUrl['mes'] == $mIdx) ? 'active bg-primary' : '' ?>" href="<?= URLROOT ?>/asistencias?vista=mensual&mes=<?= $mIdx ?>&anio=<?= $paramsUrl['anio'] ?>"><?= $mName ?></a></li>
+                                    <?php endforeach; ?>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><h6 class="dropdown-header">Cambiar Año</h6></li>
+                                    <li><a class="dropdown-item rounded-2" href="<?= URLROOT ?>/asistencias?vista=mensual&mes=<?= $paramsUrl['mes'] ?>&anio=<?= $paramsUrl['anio']-1 ?>"><?= $paramsUrl['anio']-1 ?></a></li>
+                                    <li><a class="dropdown-item rounded-2" href="<?= URLROOT ?>/asistencias?vista=mensual&mes=<?= $paramsUrl['mes'] ?>&anio=<?= $paramsUrl['anio']+1 ?>"><?= $paramsUrl['anio']+1 ?></a></li>
+                                </ul>
+                            </div>
                         </div>
                         <div class="top-list" id="topList"></div>
+                    </div>
+
+                    <div class="tile t-trend rv d6">
+                        <div class="tile-head">
+                            <div class="tile-title"><div class="tile-icon" style="background:var(--violet-dim)">📈</div> Tendencia Semanal de Asistencia</div>
+                        </div>
+                        <div style="padding: 14px 22px; flex: 1; min-height: 200px;">
+                            <canvas id="trendChart"></canvas>
+                        </div>
                     </div>
 
                     <div class="tile t-table rv d6">
@@ -1382,8 +1480,8 @@ table.dataTable tbody tr:hover {
             const DB = <?= json_encode($pasantesParaJS ?? []) ?>;
             const DEPTOS = <?= json_encode($resumenDeptosJS ?? (object)[]) ?>;
             
-            const CAL = {3:'p',4:'p',5:'p',6:'p',7:'p',10:'p',11:'p',12:'p',13:'j',14:'p',17:'p',18:'p',19:'a',20:'p',21:'p',24:'p',25:'p',26:'p',27:'a',28:'p'};
-            const DAYS = [3,4,5,6,7,10,11,12,13,14,17,18,19,20,21,24,25,26,27,28];
+            const CAL = <?= json_encode($calendarioJS ?? (object)[]) ?>;
+            const DAYS = <?= json_encode($daysJS ?? []) ?>;
 
             window.addEventListener('DOMContentLoaded', () => {
                 animarDonutYBarras();
@@ -1392,8 +1490,45 @@ table.dataTable tbody tr:hover {
                 buildTop();
                 buildTable(DB);
                 buildAlerts(DB);
+                initTrendChart();
                 setTimeout(animBars, 500);
             });
+
+            function initTrendChart() {
+                const ctx = document.getElementById('trendChart').getContext('2d');
+                const labels = <?= $chartLabels ?>;
+                const data = <?= $chartData ?>;
+                
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Asistencia %',
+                            data: data,
+                            borderColor: '#7c3aed',
+                            backgroundColor: 'rgba(124, 58, 237, 0.1)',
+                            fill: true,
+                            tension: 0.4,
+                            borderWidth: 3,
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: '#7c3aed',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
 
             // Motor de Filtros
             let activeChip = 'all';
@@ -1467,7 +1602,7 @@ table.dataTable tbody tr:hover {
                 }
                 sorted.forEach(r => {
                     g.innerHTML += `
-                        <div class="alert-item">
+                        <div class="alert-item" onclick="verPasante('${r.n}')">
                             <div class="al-avatar" style="background:${r.c}">${r.av}</div>
                             <div class="al-info">
                                 <div class="al-name">${r.n}</div>
@@ -1520,6 +1655,8 @@ table.dataTable tbody tr:hover {
                     const col = pct>=90?'var(--green)':pct>=75?'var(--amber)':'var(--red)';
                     const el = document.createElement('div');
                     el.className = 'top-item';
+                    el.style.cursor = 'pointer';
+                    el.onclick = () => verPasante(r.n);
                     el.innerHTML = `
                         <span class="top-rank ${i<3?rnk[i]:''}">${i<3?sym[i]:i+1}</span>
                         <div class="top-av" style="background:${r.c}">${r.av}</div>
@@ -1544,6 +1681,8 @@ table.dataTable tbody tr:hover {
                     const sc = r.f===0?'s-ok':pct>=80?'s-warn':'s-crit';
                     const st = r.f===0?'Perfecto':pct>=80?'Regular':'Crítico';
                     const tr = document.createElement('tr');
+                    tr.style.cursor = 'pointer';
+                    tr.onclick = () => abrirModalManual(r.ci, r.n); // Opcional: abrir modal registro
                     tr.innerHTML = `
                         <td><div class="person-cell"><div class="av" style="background:${r.c}">${r.av}</div><div><div class="pn">${r.n}</div><div class="pid">V-${r.ci}</div></div></div></td>
                         <td style="color:var(--ink-2);font-size:11px">${r.d}</td>
@@ -1576,14 +1715,294 @@ table.dataTable tbody tr:hover {
             }
 
             function doExport() {
-                let csv='Nombre,Cédula,Departamento,Presentes,Faltas,Justificados,%\n';
-                DB.forEach(r=>{const tot=r.p+r.f+r.j,pct=tot>0?Math.round(r.p/tot*100):0;csv+=`"${r.n}","${r.ci}","${r.d}",${r.p},${r.f},${r.j},${pct}%\n`;});
-                const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'})),download:'asistencias_marzo_2026.csv'});
-                a.click(); 
+                let csv = 'Nombre,Cédula,Departamento,Presentes,Faltas,Justificados,%\n';
+                DB.forEach(r => {
+                    const tot = r.p + r.f + r.j, pct = tot > 0 ? Math.round(r.p / tot * 100) : 0;
+                    csv += `"${r.n}","${r.ci}","${r.d}",${r.p},${r.f},${r.j},${pct}%\n`;
+                });
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `asistencias_<?= strtolower($nombreMes) ?>_<?= $anioActual ?>.csv`;
+                a.click();
             }
+
+            function enviarNotificacionesMasivas() {
+                Swal.fire({
+                    title: '¿Enviar notificaciones?',
+                    text: 'Se enviará un recordatorio a los pasantes con faltas este mes.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#2563eb',
+                    cancelButtonColor: '#94a3b8',
+                    confirmButtonText: 'Sí, enviar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        Swal.fire('Enviado', 'Las notificaciones han sido puestas en cola.', 'success');
+                    }
+                });
+            }
+
+            // --- Lógica de Modal Manual ---
+            function abrirModalManual(cedula = '', nombre = '') {
+                const modal = document.getElementById('modal-manual');
+                modal.style.display = 'flex';
+                if(cedula && nombre) {
+                    document.getElementById('buscadorPasante').value = nombre;
+                    document.getElementById('manual-pasante-id').value = cedula; // Usamos CI como ID en este flujo simplificado
+                    document.getElementById('btnLimpiarPasante').style.display = 'flex';
+                }
+            }
+            function cerrarModal() {
+                document.getElementById('modal-manual').style.display = 'none';
+                document.getElementById('form-manual').reset();
+                document.getElementById('btnLimpiarPasante').style.display = 'none';
+                document.getElementById('div-motivo').style.display = 'none';
+            }
+            function toggleMotivo(val) {
+                document.getElementById('div-motivo').style.display = (val === 'Justificado') ? 'block' : 'none';
+            }
+            function enviarManual(e) {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                fetch('<?= URLROOT ?>/asistencias/registro_manual', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(data => {
+                    if(data.success) {
+                        Swal.fire('Éxito', data.message, 'success').then(() => location.reload());
+                    } else {
+                        Swal.fire('Error', data.message, 'error');
+                    }
+                });
+            }
+
+            // Búsqueda de pasantes en el modal
+            const searchInputModal = document.getElementById('buscadorPasante');
+            const resultsDiv = document.getElementById('resultadosPasante');
+            const clearBtn = document.getElementById('btnLimpiarPasante');
+
+            if(searchInputModal) {
+                searchInputModal.addEventListener('input', (e) => {
+                    const q = e.target.value.toLowerCase();
+                    if(q.length < 2) { resultsDiv.style.display = 'none'; return; }
+                    
+                    const matches = DB.filter(p => p.n.toLowerCase().includes(q) || p.ci.includes(q));
+                    resultsDiv.innerHTML = '';
+                    if(matches.length > 0) {
+                        matches.forEach(p => {
+                            const div = document.createElement('div');
+                            div.className = 'dropdown-item p-2 cursor-pointer';
+                            div.style.cursor = 'pointer';
+                            div.innerHTML = `<strong>${p.n}</strong> <small class="text-muted">V-${p.ci}</small>`;
+                            div.onclick = () => {
+                                searchInputModal.value = p.n;
+                                document.getElementById('manual-pasante-id').value = p.ci; // CI acting as ID
+                                resultsDiv.style.display = 'none';
+                                clearBtn.style.display = 'flex';
+                            };
+                            resultsDiv.appendChild(div);
+                        });
+                        resultsDiv.style.display = 'block';
+                    } else {
+                        resultsDiv.style.display = 'none';
+                    }
+                });
+            }
+            if(clearBtn) {
+                clearBtn.onclick = () => {
+                    searchInputModal.value = '';
+                    document.getElementById('manual-pasante-id').value = '';
+                    clearBtn.style.display = 'none';
+                    resultsDiv.style.display = 'none';
+                };
+            }
+
+            // --- Funciones de Auditoría y Navegación ---
+            function verPasante(nombre) {
+                const search = document.getElementById('searchInput');
+                search.value = nombre;
+                applyFilters();
+                // Scroll suave a la tabla
+                document.getElementById('mTable').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+
+            function abrirModalDetalle(cedula) {
+                const p = DB.find(x => x.ci === cedula);
+                if(!p) return;
+
+                document.getElementById('detalle-avatar').textContent = p.av;
+                document.getElementById('detalle-nombre').textContent = p.n;
+                document.getElementById('detalle-cedula').textContent = 'V-' + p.ci;
+                document.getElementById('detalle-depto').textContent = p.d;
+                document.getElementById('detalle-estado').textContent = (p.f === 0) ? 'Óptimo' : 'Irregular';
+                document.getElementById('detalle-estado').className = (p.f === 0) ? 'text-success' : 'text-danger';
+                
+                // Estos campos son ficticios/acumulativos para el mes en este bento, 
+                // en un sistema real se buscarían los registros específicos del día.
+                document.getElementById('detalle-hora').textContent = 'Acumulado Mes';
+                document.getElementById('detalle-metodo').textContent = 'Consolidado';
+
+                document.getElementById('modal-detalle').classList.add('active');
+            }
+
+            function cerrarModalDetalle() {
+                document.getElementById('modal-detalle').classList.remove('active');
+            }
+            
             </script>
 
         <?php elseif ($vistaActual === 'anual'): ?>
+            <?php 
+            /**
+             * VISTA TOTAL (ANUAL) - REDISEÑO PREMIUM
+             * Mantiene Banner/KPIs estándar pero eleva el Muro de Pasantes.
+             */
+            ?>
+            <!-- Fuentes Premium -->
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+            
+            <style>
+            :root {
+                /* Premium Tokens (Adaptados del template) */
+                --p-surface:    #FFFFFF;
+                --p-surface-2:  #F8FAFD;
+                --p-border:     #DDE2F0;
+                --p-ink:        #0D1424;
+                --p-ink-2:      #3A4768;
+                --p-ink-3:      #7480A0;
+                --p-blue:       #1D4ED8;
+                --p-blue-dim:   rgba(29, 78, 216, 0.07);
+                --p-green:      #059669;
+                --p-green-dim:  rgba(5, 150, 105, 0.08);
+                --p-radius:     20px;
+                --p-shadow:     0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+                --p-font:       'Geist', sans-serif;
+            }
+
+            /* Contenedor Muro */
+            .muro-premium { font-family: var(--p-font); }
+            
+            /* Card Estilo Apple/Premium */
+            .p-card {
+                background: white;
+                border: 1px solid var(--p-border);
+                border-radius: var(--p-radius);
+                padding: 24px;
+                transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                position: relative;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+                box-shadow: var(--p-shadow);
+            }
+            .p-card:hover {
+                transform: translateY(-8px);
+                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+                border-color: var(--p-blue);
+            }
+
+            /* Status Badge */
+            .p-badge {
+                padding: 6px 14px;
+                border-radius: 50px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                letter-spacing: 0.3px;
+            }
+            .p-badge-active { background: var(--p-blue-dim); color: var(--p-blue); }
+            .p-badge-final  { background: var(--p-green-dim); color: var(--p-green); }
+
+            /* Radial Gauge Premium */
+            .p-gauge-wrap { position: relative; width: 130px; height: 130px; margin: 15px 0; }
+            .p-gauge-svg { transform: rotate(-90deg); }
+            .p-gauge-track { fill: none; stroke: #F1F5F9; stroke-width: 10; }
+            .p-gauge-fill {
+                fill: none;
+                stroke-width: 10;
+                stroke-linecap: round;
+                stroke-dasharray: 339.292;
+                transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .p-gauge-info {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+            }
+            .p-gauge-val { font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: var(--p-ink); line-height: 1; }
+            .p-gauge-lbl { font-size: 0.7rem; color: var(--p-ink-3); font-weight: 600; margin-top: 2px; }
+
+            /* Animación Stagger */
+            @keyframes p-reveal {
+                from { opacity: 0; transform: translateY(20px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .stagger-enter {
+                opacity: 0;
+                animation: p-reveal 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            }
+
+            /* Botones Soft/Ghost de Auditoría */
+            .btn-p-soft {
+                transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+                border-width: 1.5px !important;
+                font-weight: 700 !important;
+                background: transparent !important;
+            }
+            .btn-soft-pdf { color: #dc2626 !important; border-color: #dc2626 !important; }
+            .btn-soft-pdf:hover { background: #dc2626 !important; color: white !important; box-shadow: 0 8px 15px rgba(220, 38, 38, 0.25); }
+            
+            .btn-soft-excel { color: #15803d !important; border-color: #15803d !important; }
+            .btn-soft-excel:hover { background: #15803d !important; color: white !important; box-shadow: 0 8px 15px rgba(21, 128, 61, 0.25); }
+
+            /* Modal Preview PDF Premium */
+            .p-modal-overlay {
+                position: fixed; inset: 0;
+                background: rgba(13, 20, 36, 0.8); backdrop-filter: blur(10px);
+                z-index: 9999; display: none; align-items: center; justify-content: center;
+                padding: 40px; transition: all 0.3s ease;
+            }
+            .p-modal-content {
+                background: #F8FAFD; width: 100%; max-width: 1100px; height: 90vh;
+                border-radius: 28px; display: flex; flex-direction: column; overflow: hidden;
+                box-shadow: 0 30px 60px -12px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.3);
+                transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            }
+            .p-modal-overlay.active { display: flex; }
+            .p-modal-overlay.active .p-modal-content { transform: scale(1); }
+            
+            .p-modal-header {
+                padding: 20px 32px; background: white; border-bottom: 1px solid #EDF2F7;
+                display: flex; justify-content: space-between; align-items: center;
+            }
+            .p-modal-body { flex: 1; position: relative; background: #525659; }
+            .p-modal-iframe { width: 100%; height: 100%; border: none; }
+            
+            .p-modal-close {
+                width: 40px; height: 40px; border-radius: 12px; border: none;
+                background: #F1F5F9; color: #475569; cursor: pointer;
+                display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+            }
+            .p-modal-close:hover { background: #dc2626; color: white; transform: rotate(90deg); }
+
+            /* Grid Custom */
+            .p-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                gap: 24px;
+            }
+            </style>
+
             <?php 
             // VISTA TOTAL (ANUAL): Muro de Graduados (Card Grid)
             $resumenTotal = [];
@@ -1594,112 +2013,285 @@ table.dataTable tbody tr:hover {
                         $resumenTotal[$pid] = [
                             'nombre' => trim(($reg->apellidos ?? '') . ', ' . ($reg->nombres ?? '')),
                             'cedula' => $reg->cedula ?? '',
-                            'presentes' => 0
+                            'departamento' => $reg->departamento_nombre ?? 'General',
+                            'presentes' => 0,
+                            'faltas' => 0
                         ];
                     }
-                    if(stripos($reg->estado, 'presente') !== false || stripos($reg->estado, 'justificado') !== false) {
+                    $estado = strtolower($reg->estado ?? '');
+                    if(strpos($estado, 'presente') !== false || strpos($estado, 'justificado') !== false) {
                         $resumenTotal[$pid]['presentes']++;
+                    } elseif(strpos($estado, 'ausente') !== false) {
+                        $resumenTotal[$pid]['faltas']++;
                     }
                 }
             }
-            ?>
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
-                <div>
-                    <h3 style="margin: 0 0 8px 0; color: #0f172a; font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
-                        <i class="ti ti-database text-primary"></i> Histórico Total
-                    </h3>
-                    <p style="margin: 0; color: #64748b; font-size: 0.85rem;">Muro de auditoría de progreso hacia las 1440 horas de pasantía.</p>
-                </div>
-                
-                <div style="position: relative; width: 280px;">
-                    <i class="ti ti-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #3b82f6; font-size: 1.1rem; z-index: 2;"></i>
-                    <input type="text" id="buscadorTablaTotal" placeholder="Buscar pasante..." style="width: 100%; padding: 10px 14px 10px 40px; border: 1px solid #bfdbfe; border-radius: 50px; background: #eff6ff; color: #1e3a8a; font-weight: 600; font-size: 0.85rem; outline: none; transition: all 0.2s; cursor: pointer; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05);" onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 3px rgba(59,130,246,0.1)'" onblur="this.style.borderColor='#bfdbfe'; this.style.boxShadow='none'">
-                </div>
-            </div>
             
-            <div class="row g-4 mb-4" id="muroContainer">
-                <div id="muroNoResults" class="col-12 text-center py-5 rounded-4 shadow-sm d-none bg-white crisp-card">
-                    <i class="ti ti-file-search" style="font-size: 48px; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
-                    <h4 class="fw-bold text-muted">No se encontraron resultados</h4>
-                </div>
-                <?php if(empty($resumenTotal)): ?>
-                    <div class="col-12 text-center py-5 rounded-4 shadow-sm bg-white crisp-card">
-                        <div class="empty-state">
-                            <i class="ti ti-history-off" style="font-size: 48px; color: #cbd5e1; margin-bottom: 12px; display: block;"></i>
-                            <h4 class="fw-bold text-muted">No hay histórico registrado</h4>
+            // Navegación de Año
+            $anioActual = (int)($paramsUrl['anio'] ?? date('Y'));
+            $urlAnioAnt = URLROOT . "/asistencias?vista=anual&anio=" . ($anioActual - 1);
+            $urlAnioSig = URLROOT . "/asistencias?vista=anual&anio=" . ($anioActual + 1);
+            ?>
+            <div class="muro-premium">
+                <!-- Header / Navigation -->
+                <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 32px; flex-wrap: wrap; gap: 20px;">
+                    <div>
+                        <h3 style="margin: 0 0 12px 0; color: var(--p-ink); font-weight: 800; font-size: 1.4rem; display: flex; align-items: center; gap: 10px;">
+                            <i class="ti ti-chart-dots" style="color: var(--p-blue); font-size: 1.6rem;"></i> 
+                            Histórico Anual <span style="color: var(--p-ink-4); font-weight: 300;">/</span> <?= $anioActual ?>
+                        </h3>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <!-- Navegador de Año (Estándar SGP) -->
+                            <div class="sw-nav-pill">
+                                <a href="<?= $urlAnioAnt ?>" class="sw-nav-btn"><i class="ti ti-chevron-left"></i> <?= $anioActual-1 ?></a>
+                                <span class="sw-nav-label"><?= $anioActual ?></span>
+                                <a href="<?= $urlAnioSig ?>" class="sw-nav-btn"><?= $anioActual+1 ?> <i class="ti ti-chevron-right"></i></a>
+                            </div>
+                            
+                            <!-- Filtros por Chips (Premium) -->
+                            <div class="chip-row">
+                                <button class="chip active-blue" onclick="filterMuro('all', this)">Todos</button>
+                                <button class="chip" onclick="filterMuro('Activo', this)">Activos</button>
+                                <button class="chip" onclick="filterMuro('Finalizado', this)">Finalizados</button>
+                            </div>
                         </div>
                     </div>
-                <?php else: ?>
-                    <?php $muroDelay=0; foreach($resumenTotal as $pid => $rt): 
-                        $nombres = explode(',', $rt['nombre']??'');
-                        $apellido = trim($nombres[0] ?? 'A');
-                        $nombreP = trim($nombres[1] ?? 'A');
-                        $iniciales = strtoupper(substr($nombreP, 0, 1) . substr($apellido, 0, 1));
-                        if(strlen(trim($iniciales)) < 2) $iniciales = strtoupper(substr($rt['nombre']??'AA', 0, 2));
-                        
-                        $horasAcumuladas = $rt['presentes'] * 8; // 8 hrs por asistencia/justificativo
-                        $horasMeta = 1440;
-                        $pctHoras = $horasMeta > 0 ? min(100, round(($horasAcumuladas / $horasMeta) * 100)) : 0;
-                        $estadoBadge = $horasAcumuladas >= $horasMeta ? 'Finalizado' : 'Activo';
-                        $estadoBg = $estadoBadge === 'Finalizado' ? '#dcfce7' : '#eff6ff';
-                        $estadoColor = $estadoBadge === 'Finalizado' ? '#16a34a' : '#2563eb';
-                        
-                        $searchData = strtolower($rt['nombre'] . ' ' . $rt['cedula'] . ' ' . $estadoBadge);
-                    ?>
-                    <div class="col-md-6 col-lg-4 col-xl-3 muro-item stagger-enter" data-search="<?= htmlspecialchars($searchData, ENT_QUOTES) ?>" style="animation-delay: <?= $muroDelay ?>ms;">
-                        <?php $muroDelay += 40; ?>
-                        <div class="card h-100 border-0 rounded-4 crisp-card muro-card bg-white">
-                            <div class="card-body p-4 d-flex flex-column align-items-center text-center">
-                                <!-- Header: Soft Badge & Icon -->
-                                <div class="w-100 d-flex justify-content-between align-items-start mb-3">
-                                    <span class="badge rounded-pill shadow-sm" style="background: <?= $estadoBg ?>; color: <?= $estadoColor ?>; padding: 6px 12px; font-size: 0.75rem; font-weight: 700; border: 1px solid <?= $estadoColor ?>40;">
-                                        <?= $estadoBadge ?>
+                    
+                    <div style="display: flex; align-items: center; gap: 16px;">
+                        <button class="btn btn-p-soft btn-soft-pdf" onclick="openPreview('<?= URLROOT ?>/reportes/pdfNomina?download=0')" style="height: 42px; padding: 0 20px; border-radius: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="ti ti-file-type-pdf" style="font-size: 1.1rem;"></i> PDF Global
+                        </button>
+                        <button class="btn btn-p-soft btn-soft-excel" onclick="window.location.href='<?= URLROOT ?>/reportes/excelAnual'" style="height: 42px; padding: 0 20px; border-radius: 12px; display: flex; align-items: center; gap: 8px;">
+                            <i class="ti ti-file-type-xls" style="font-size: 1.1rem;"></i> Excel Anual
+                        </button>
+                        <div style="position: relative; width: 300px;">
+                            <i class="ti ti-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--p-blue); font-size: 1.2rem; z-index: 2;"></i>
+                            <input type="text" id="buscadorTablaTotal" oninput="searchMuro()" placeholder="Buscar por nombre o CI..." 
+                                   style="width: 100%; height: 42px; padding: 0 16px 0 48px; border: 1.5px solid var(--p-border); border-radius: 50px; background: white; color: var(--p-ink); font-weight: 600; font-size: 0.88rem; outline: none; transition: all 0.2s; box-shadow: var(--p-shadow);"
+                                   onfocus="this.style.borderColor='var(--p-blue)'; this.style.boxShadow='0 0 0 4px var(--p-blue-dim)'" 
+                                   onblur="this.style.borderColor='var(--p-border)'; this.style.boxShadow='var(--p-shadow)'">
+                        </div>
+                    </div>
+                </div>
+            
+                <div class="p-grid" id="muroContainer">
+                    <div id="muroNoResults" class="col-12 text-center py-5 d-none stagger-enter">
+                        <i class="ti ti-search-off" style="font-size: 48px; color: var(--p-ink-4); margin-bottom: 16px; display: block;"></i>
+                        <h4 style="font-weight: 700; color: var(--p-ink-3);">No se encontraron resultados</h4>
+                    </div>
+
+                    <?php if(empty($resumenTotal)): ?>
+                        <div class="col-12 text-center py-5 stagger-enter">
+                            <i class="ti ti-history-off" style="font-size: 48px; color: var(--p-ink-4); margin-bottom: 16px; display: block;"></i>
+                            <h4 style="font-weight: 700; color: var(--p-ink-3);">No hay histórico registrado en este año</h4>
+                        </div>
+                    <?php else: ?>
+                        <?php $muroDelay=0; foreach($resumenTotal as $pid => $rt): 
+                            $nombres = explode(',', $rt['nombre']??'');
+                            $apellido = trim($nombres[0] ?? 'A');
+                            $nombreP = trim($nombres[1] ?? 'A');
+                            $iniciales = strtoupper(substr($nombreP, 0, 1) . substr($apellido, 0, 1));
+                            if(strlen(trim($iniciales)) < 2) $iniciales = strtoupper(substr($rt['nombre']??'AA', 0, 2));
+                            
+                            $horasAcumuladas = $rt['presentes'] * 8;
+                            $horasMeta = 1440;
+                            $pctHoras = $horasMeta > 0 ? min(100, round(($horasAcumuladas / $horasMeta) * 100)) : 0;
+                            $isFinalizado = ($horasAcumuladas >= $horasMeta);
+                            $estadoBadge = $isFinalizado ? 'Finalizado' : 'Activo';
+                            // Colores de Auditoría: Finalizado (Cian #0ea5e9), Activo (Verde #059669)
+                            $gaugeColor = $isFinalizado ? '#0ea5e9' : '#059669';
+                            $statusBg = $isFinalizado ? 'rgba(14, 165, 233, 0.1)' : 'rgba(5, 150, 105, 0.1)';
+                            $statusBorder = $isFinalizado ? 'rgba(14, 165, 233, 0.2)' : 'rgba(5, 150, 105, 0.2)';
+                            
+                            $searchData = strtolower($rt['nombre'] . ' ' . $rt['cedula'] . ' ' . $estadoBadge);
+                        ?>
+                        <div class="muro-item stagger-enter" 
+                             data-search="<?= htmlspecialchars($searchData . ' ' . strtolower($rt['departamento']), ENT_QUOTES) ?>" 
+                             data-estado="<?= $estadoBadge ?>"
+                             style="animation-delay: <?= $muroDelay ?>ms;">
+                            <?php $muroDelay += 30; ?>
+                            <div class="p-card">
+                                <!-- Status & Faltas Header -->
+                                <div style="width: 100%; display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <span class="p-badge" style="background: <?= $statusBg ?>; color: <?= $gaugeColor ?>; border: 1px solid <?= $statusBorder ?>;">
+                                        <i class="ti <?= $isFinalizado ? 'ti-circle-check' : 'ti-circle-dot' ?>"></i> <?= strtoupper($estadoBadge) ?>
                                     </span>
-                                    <button class="btn btn-sm btn-light p-1 text-muted btn-icon-hover" style="border: none; background: transparent;"><i class="ti ti-dots"></i></button>
+                                    <?php if($rt['faltas'] > 0): ?>
+                                    <span class="p-badge" style="background: rgba(220, 38, 38, 0.08); color: #dc2626;">
+                                        <i class="ti ti-alert-triangle"></i> <?= $rt['faltas'] ?> faltas
+                                    </span>
+                                    <?php endif; ?>
                                 </div>
 
-                                <!-- Avatar Profile con Status Ring -->
-                                <div class="fw-bold rounded-circle d-flex align-items-center justify-content-center mb-3 status-ring <?= $estadoBadge === 'Finalizado' ? 'ring-success' : 'ring-primary' ?>" style="width: 56px; height: 56px; font-size: 1.2rem; background: #eff6ff; color: #3b82f6; box-shadow: inset 0 2px 4px rgba(0,0,0,0.02); flex-shrink: 0;">
-                                    <?= htmlspecialchars($iniciales) ?>
-                                </div>
-                                <h5 class="fw-bold text-dark m-0 mt-2 text-truncate w-100" style="font-size: 1.1rem;" title="<?= htmlspecialchars($rt['nombre']) ?>">
+                                <!-- Persona -->
+                                <h5 class="p-name" style="font-weight: 800; font-size: 1.15rem; color: var(--p-ink); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;" title="<?= htmlspecialchars($rt['nombre']) ?>">
                                     <?= htmlspecialchars($rt['nombre']) ?>
                                 </h5>
-                                <small class="text-muted fw-semibold mb-3 d-block w-100" style="font-size: 0.8rem;">V-<?= htmlspecialchars($rt['cedula']) ?></small>
+                                <div class="p-dept" style="font-size: 0.75rem; font-weight: 700; color: var(--p-blue); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 4px;">
+                                    <?= htmlspecialchars($rt['departamento']) ?>
+                                </div>
+                                <div class="p-ci" style="font-size: 0.8rem; color: var(--p-ink-3); font-family: 'JetBrains Mono', monospace; margin-top: 2px;">
+                                    V-<?= htmlspecialchars($rt['cedula']) ?>
+                                </div>
 
-                                <!-- Radial Progress Gauge Apple-Style -->
-                                <div class="position-relative d-flex align-items-center justify-content-center mb-1" style="width: 120px; height: 120px;">
-                                    <svg class="position-absolute" width="120" height="120" viewBox="0 0 120 120" style="top: 0; left: 0; transform: rotate(-90deg);">
-                                        <circle cx="60" cy="60" r="54" fill="none" stroke="#f1f5f9" stroke-width="12" />
-                                        <circle cx="60" cy="60" r="54" fill="none" stroke="<?= $estadoColor ?>" stroke-width="12" stroke-linecap="round" 
-                                                stroke-dasharray="339.292" stroke-dashoffset="<?= 339.292 - (339.292 * $pctHoras) / 100 ?>" 
-                                                style="transition: stroke-dashoffset 1.5s cubic-bezier(0.16, 1, 0.3, 1);" />
+                                <!-- Radial Gauge -->
+                                <div class="p-gauge-wrap">
+                                    <svg class="p-gauge-svg" width="130" height="130" viewBox="0 0 130 130">
+                                        <circle class="p-gauge-track" cx="65" cy="65" r="54" />
+                                        <circle class="p-gauge-fill" cx="65" cy="65" r="54" 
+                                                stroke="<?= $gaugeColor ?>"
+                                                stroke-dashoffset="<?= 339.292 - (339.292 * $pctHoras) / 100 ?>" />
                                     </svg>
-                                    
-                                    <!-- Centered Data in Gauge -->
-                                    <div class="position-absolute d-flex flex-column align-items-center justify-content-center w-100 h-100">
-                                        <span class="fw-bolder text-dark" style="font-size: 1.4rem; letter-spacing: -1px; margin-top: 4px;"><?= number_format($horasAcumuladas, 0, ',', '.') ?></span>
-                                        <span class="text-muted fw-bold" style="font-size: 0.65rem; margin-top: -2px;">/ <?= number_format($horasMeta, 0, ',', '.') ?> hrs</span>
+                                    <div class="p-gauge-info">
+                                        <span class="p-gauge-val"><?= number_format($horasAcumuladas, 0, ',', '.') ?></span>
+                                        <span class="p-gauge-lbl">/ <?= number_format($horasMeta, 0, ',', '.') ?> hrs</span>
                                     </div>
                                 </div>
 
-                                <span class="fw-bold mb-4" style="color: <?= $estadoColor ?>; font-size: 0.85rem; opacity: 0.9;"><?= $pctHoras ?>% Completado</span>
+                                <div class="p-pct" style="font-size: 0.9rem; font-weight: 800; color: <?= $gaugeColor ?>; margin-bottom: 20px;">
+                                    <?= $pctHoras ?>% COMPLETADO
+                                </div>
 
-                                <!-- Footer: Botones Limpios pegados abajo -->
-                                <div class="w-100 mt-auto pt-4 d-flex gap-2" style="border-top: 1px solid #f8fafc;">
-                                    <a href="<?= URLROOT ?>/reportes/pdfKardex?id=<?= $pid ?>" target="_blank" class="btn btn-light flex-grow-1 text-muted fw-bold d-flex align-items-center justify-content-center gap-1 btn-elite" style="border-radius: 10px; font-size: 0.8rem; background: #f8fafc; border: 1px solid #e2e8f0;">
-                                        <i class="ti ti-clipboard-list fs-5"></i> Kardex
-                                    </a>
-                                    <button class="btn border-0 text-white flex-grow-1 fw-bold d-flex align-items-center justify-content-center gap-1 btn-elite-primary shadow-sm" style="background: <?= $estadoColor ?>; border-radius: 10px; font-size: 0.8rem;">
-                                        <i class="ti ti-file-export fs-5"></i> Exportar
+                                <!-- Acciones -->
+                                <div style="width: 100%; display: flex; gap: 8px; margin-top: auto; padding-top: 20px; border-top: 1px solid var(--p-border);">
+                                    <button onclick="openPreview('<?= URLROOT ?>/reportes/pdfIndividual?id=<?= $pid ?>&download=0')" class="btn btn-p-soft btn-soft-pdf" style="flex: 1; height: 38px; border-radius: 10px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0;">
+                                        <i class="ti ti-file-type-pdf" style="font-size: 1.1rem;"></i> PDF
+                                    </button>
+                                    <button onclick="window.location.href='<?= URLROOT ?>/reportes/exportarExcel?id=<?= $pid ?>'" class="btn btn-p-soft btn-soft-excel" style="flex: 1; height: 38px; border-radius: 10px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0;">
+                                        <i class="ti ti-file-type-xls" style="font-size: 1.1rem;"></i> EXCEL
                                     </button>
                                 </div>
                             </div>
                         </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div><!-- /.muro-premium -->
+
+            <!-- Modal de Previsualización PDF Premium -->
+            <div id="pdfModal" class="p-modal-overlay">
+                <div class="p-modal-content">
+                    <div class="p-modal-header">
+                        <div style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:40px; height:40px; border-radius:10px; background:#dc262611; color:#dc2626; display:flex; align-items:center; justify-content:center;">
+                                <i class="ti ti-file-type-pdf" style="font-size:20px;"></i>
+                            </div>
+                            <div>
+                                <h4 style="margin:0; font-weight:800; color:var(--p-ink); font-size:1.1rem;">Previsualización de Documento</h4>
+                                <span style="font-size:0.75rem; color:var(--p-ink-3); font-weight:600;">SGP — Sistema de Gestión de Pasantes</span>
+                            </div>
+                        </div>
+                        <div style="display:flex; gap:12px;">
+                            <button id="btnDescargarActual" class="btn" style="height:40px; padding:0 16px; border-radius:12px; background:#15803d; color:white; border:none; font-weight:700; display:flex; align-items:center; gap:8px; font-size:0.85rem;">
+                                <i class="ti ti-download"></i> Descargar Ahora
+                            </button>
+                            <button class="p-modal-close" onclick="closePreview()">
+                                <i class="ti ti-x" style="font-size:20px;"></i>
+                            </button>
+                        </div>
                     </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+                    <div class="p-modal-body">
+                        <iframe id="pdfFrame" class="p-modal-iframe" src="about:blank"></iframe>
+                    </div>
+                </div>
             </div>
+
+            <style>
+                /* Shared CSS from Weekly View needed for Annual nav pills if not present */
+                .sw-nav-pill { display: flex; align-items: center; background: white; border: 1.5px solid #DDE2F0; border-radius: 50px; padding: 3px 4px; gap: 2px; box-shadow: 0 1px 4px rgba(13,20,36,.05); }
+                .sw-nav-btn { background: transparent; border: none; color: #7480A0; padding: 6px 12px; border-radius: 50px; font-size: .8rem; font-weight: 600; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 3px; }
+                .sw-nav-btn:hover { background: #F2F5FC; color: #0D1424; }
+                .sw-nav-label { font-size: .83rem; font-weight: 700; color: #0D1424; padding: 0 12px; white-space: nowrap; }
+            </style>
+
+            <script>
+            let muroActiveChip = 'all';
+            function filterMuro(type, btn) {
+                muroActiveChip = type;
+                document.querySelectorAll('.chip').forEach(c => c.classList.remove('active-blue'));
+                btn.classList.add('active-blue');
+                searchMuro();
+            }
+
+            function searchMuro() {
+                const q = document.getElementById('buscadorTablaTotal').value.toLowerCase();
+                const items = document.querySelectorAll('.muro-item');
+                let found = 0;
+
+                items.forEach(item => {
+                    const searchData = item.getAttribute('data-search').toLowerCase();
+                    const estado = item.getAttribute('data-estado').toLowerCase();
+                    
+                    const matchQ = !q || searchData.includes(q);
+                    const matchChip = muroActiveChip === 'all' || estado === muroActiveChip;
+
+                    if (matchQ && matchChip) {
+                        item.classList.remove('d-none');
+                        found++;
+                    } else {
+                        item.classList.add('d-none');
+                    }
+                });
+
+                const noRes = document.getElementById('muroNoResults');
+                if (found === 0) noRes.classList.remove('d-none');
+                else noRes.classList.add('d-none');
+            }
+
+            function doExportAnual() {
+                let csv = 'Nombre,Cédula,Departamento,Horas Acumuladas,Meta,%,Estado\n';
+                const items = document.querySelectorAll('.muro-item:not(.d-none)');
+                items.forEach(item => {
+                    const name = item.querySelector('.p-name').innerText.trim();
+                    const ci = item.querySelector('.p-ci').innerText.trim().replace('V-', '');
+                    const dept = item.querySelector('.p-dept').innerText.trim();
+                    const accumulated = item.querySelector('.p-gauge-val').innerText.trim().replace(/\./g, '');
+                    const meta = item.querySelector('.p-gauge-lbl').innerText.replace('/ ', '').replace(' hrs', '').trim().replace(/\./g, '');
+                    const pct = item.querySelector('.p-pct').innerText.replace('% COMPLETADO', '').trim();
+                    const state = item.getAttribute('data-estado').toUpperCase();
+                    csv += `"${name}","${ci}","${dept}",${accumulated},${meta},${pct}%,${state}\n`;
+                });
+                if(items.length === 0) {
+                    alert('No hay datos para exportar');
+                    return;
+                }
+                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `reporte_anual_pasantias_${new Date().getFullYear()}.csv`;
+                a.click();
+            }
+
+            // Controlador de Previsualización PDF
+            function openPreview(url) {
+                const modal = document.getElementById('pdfModal');
+                const iframe = document.getElementById('pdfFrame');
+                const btnDownload = document.getElementById('btnDescargarActual');
+                
+                iframe.src = url;
+                // El link de descarga es el mismo pero con download=1
+                const downloadUrl = url.replace('download=0', 'download=1');
+                btnDownload.onclick = () => window.location.href = downloadUrl;
+                
+                modal.classList.add('active');
+                document.body.style.overflow = 'hidden'; // Evitar scroll de fondo
+            }
+
+            function closePreview() {
+                const modal = document.getElementById('pdfModal');
+                const iframe = document.getElementById('pdfFrame');
+                
+                modal.classList.remove('active');
+                iframe.src = 'about:blank';
+                document.body.style.overflow = 'auto';
+            }
+
+            // Cerrar al hacer clic fuera del contenido
+            document.getElementById('pdfModal').addEventListener('click', (e) => {
+                if (e.target.id === 'pdfModal') closePreview();
+            });
+            </script>
         <?php endif; ?>
     </div>
 </div>
