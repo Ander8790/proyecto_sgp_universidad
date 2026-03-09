@@ -399,173 +399,373 @@ table.dataTable tbody tr:hover {
 
             </div>
         <?php elseif ($vistaActual === 'semanal'): ?>
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
-                <div>
-                    <h3 style="margin: 0 0 8px 0; color: #0f172a; font-weight: 700; font-size: 1.2rem; display: flex; align-items: center; gap: 8px;">
-                        <i class="ti ti-calendar-week text-primary"></i> Asistencia Semanal
-                    </h3>
-                    <div style="display: flex; gap: 12px; font-size: 0.8rem; color: #64748b; align-items: center; font-weight: 600;">
-                        <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:3px; background:#10b981;"></span> Presente (P)</span>
-                        <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:3px; background:#ef4444;"></span> Ausente (A)</span>
-                        <span style="display:flex; align-items:center; gap:6px;"><span style="width:10px; height:10px; border-radius:3px; background:#f59e0b;"></span> Justificado (J)</span>
+            <?php
+            // ── Calcular métricas por departamento para barras de progreso ──
+            $deptStats = [];
+            foreach ($datosSemanales as $dep => $pArr) {
+                $tp = 0; $ta = 0; $tj = 0;
+                foreach ($pArr as $pid => $pd) {
+                    foreach ($pd['dias'] as $d) {
+                        if ($d === 'P') $tp++;
+                        elseif ($d === 'A') $ta++;
+                        elseif ($d === 'J') $tj++;
+                    }
+                }
+                $tot = $tp + $ta + $tj;
+                $pct = $tot > 0 ? round(($tp + $tj) / $tot * 100) : 0;
+                $deptStats[$dep] = ['p'=>$tp,'a'=>$ta,'j'=>$tj,'pct'=>$pct,'total'=>count($pArr)];
+            }
+            ?>
+
+            <!-- ══ CSS PREMIUM SEMANAL ══ -->
+            <style>
+            .sw-wrap { font-family: 'Plus Jakarta Sans', sans-serif; }
+            .sw-wrap *, .sw-wrap *::before, .sw-wrap *::after { box-sizing: border-box; }
+
+            /* ── TOOLBAR ── */
+            .sw-toolbar {
+                display: flex; align-items: center; justify-content: space-between;
+                gap: 12px; flex-wrap: wrap; margin-bottom: 20px;
+            }
+            .sw-toolbar-left  { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+            .sw-toolbar-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+            .sw-search { position: relative; display: flex; align-items: center; }
+            .sw-search .ti { position: absolute; left: 12px; color: #94a3b8; font-size: 1rem; pointer-events: none; }
+            .sw-search input {
+                padding: 9px 14px 9px 36px;
+                border: 1.5px solid #DDE2F0; border-radius: 50px;
+                font-size: .83rem; font-family: 'Plus Jakarta Sans', sans-serif;
+                color: #0D1424; background: white; outline: none; width: 220px;
+                transition: border-color .18s, box-shadow .18s;
+            }
+            .sw-search input:focus {
+                border-color: #2563EB;
+                box-shadow: 0 0 0 3px rgba(37,99,235,.08);
+            }
+
+            /* ── CHIPS ── */
+            .sw-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+            .sw-chip {
+                padding: 7px 14px; border-radius: 50px;
+                font-size: .76rem; font-weight: 600;
+                border: 1.5px solid #DDE2F0; background: white;
+                color: #7480A0; cursor: pointer;
+                transition: all .18s; display: flex; align-items: center; gap: 5px;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+            }
+            .sw-chip:hover { border-color: #C3CCDF; color: #0D1424; }
+            .sw-chip.sc-all.active  { background: #0D1424;  color: white;    border-color: #0D1424; }
+            .sw-chip.sc-ok.active   { background: #ECFDF5;  color: #059669;  border-color: #059669; }
+            .sw-chip.sc-falta.active{ background: #FEF2F2;  color: #DC2626;  border-color: #DC2626; }
+            .sw-chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+            /* ── LEYENDA ── */
+            .sw-legend {
+                display: flex; gap: 14px; align-items: center;
+                font-size: .72rem; font-weight: 600; color: #7480A0; flex-wrap: wrap;
+            }
+            .sw-legend-item { display: flex; align-items: center; gap: 5px; }
+            .sw-legend-dot  { width: 11px; height: 11px; border-radius: 3px; }
+
+            /* ── NAV SEMANA ── */
+            .sw-nav-pill {
+                display: flex; align-items: center;
+                background: white; border: 1.5px solid #DDE2F0;
+                border-radius: 50px; padding: 3px 4px; gap: 2px;
+                box-shadow: 0 1px 4px rgba(13,20,36,.05);
+            }
+            .sw-nav-btn {
+                background: transparent; border: none; color: #7480A0;
+                padding: 6px 12px; border-radius: 50px;
+                font-size: .8rem; font-weight: 600;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                cursor: pointer; transition: background .15s;
+                display: flex; align-items: center; gap: 3px;
+            }
+            .sw-nav-btn:hover { background: #F2F5FC; color: #0D1424; }
+            .sw-nav-label {
+                font-size: .83rem; font-weight: 700;
+                color: #0D1424; padding: 0 12px; white-space: nowrap;
+            }
+
+            /* ── FLATPICKR WRAP ── */
+            .sw-fp-wrap {
+                display: flex; align-items: center;
+                background: white; border: 1.5px solid #DDE2F0;
+                border-radius: 50px; padding: 2px 14px;
+                box-shadow: 0 1px 4px rgba(13,20,36,.04);
+            }
+            .sw-fp-wrap label {
+                font-size: .8rem; font-weight: 700; color: #7480A0;
+                padding-right: 10px; border-right: 1.5px solid #DDE2F0;
+                margin: 0; display: flex; align-items: center; gap: 5px;
+            }
+            .sw-fp-wrap input {
+                border: none; outline: none; padding: 6px 8px;
+                color: #1D4ED8; font-weight: 700; font-size: .82rem;
+                background: transparent; cursor: pointer; width: 130px;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+            }
+
+            /* ── DEPT CARD ── */
+            .sw-dept-card {
+                background: white; border: 1px solid #DDE2F0;
+                border-radius: 20px;
+                box-shadow: 0 2px 8px rgba(13,20,36,.05);
+                overflow: hidden; margin-bottom: 16px;
+                transition: box-shadow .22s cubic-bezier(.16,1,.3,1);
+            }
+            .sw-dept-card:hover { box-shadow: 0 8px 24px rgba(13,20,36,.09); }
+            .sw-dept-head {
+                padding: 14px 22px; border-bottom: 1px solid #EDF0F8;
+                background: #F8FAFD;
+                display: flex; align-items: center; justify-content: space-between; gap: 14px;
+            }
+            .sw-dept-title {
+                font-size: .9rem; font-weight: 700; color: #0D1424;
+                display: flex; align-items: center; gap: 10px;
+            }
+            .sw-dept-icon {
+                width: 32px; height: 32px; border-radius: 9px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: 1rem; flex-shrink: 0;
+            }
+            .sw-dept-meta { display: flex; align-items: center; gap: 12px; }
+            .sw-pbar-wrap { display: flex; align-items: center; gap: 8px; }
+            .sw-pbar-track { width: 80px; height: 5px; background: #EDF0F8; border-radius: 99px; overflow: hidden; }
+            .sw-pbar-fill  { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(.16,1,.3,1); }
+            .sw-pbar-lbl   { font-family: 'JetBrains Mono', monospace; font-size: .72rem; font-weight: 700; color: #7480A0; }
+            .sw-badge      { font-size: .69rem; font-weight: 700; font-family: 'JetBrains Mono', monospace; padding: 4px 11px; border-radius: 50px; background: #EDF0F8; color: #7480A0; }
+
+            /* ── TABLE ── */
+            .sw-table-wrap { overflow-x: auto; }
+            .sw-table { width: 100%; border-collapse: collapse; min-width: 580px; }
+            .sw-table thead th {
+                padding: 10px 16px; font-size: .67rem; font-weight: 700;
+                text-transform: uppercase; letter-spacing: .7px;
+                color: #7480A0; text-align: left; background: #F8FAFD;
+                border-bottom: 1px solid #DDE2F0; white-space: nowrap;
+            }
+            .sw-table thead th.sw-th-day { text-align: center; width: 68px; }
+            .sw-table thead th.sw-th-act { text-align: right; width: 110px; }
+            .sw-table tbody td {
+                padding: 0 16px; height: 58px;
+                border-bottom: 1px solid #EDF0F8; vertical-align: middle;
+            }
+            .sw-table tbody tr { transition: background .14s; }
+            .sw-table tbody tr:hover td { background: #F2F5FC; }
+            .sw-table tbody tr:last-child td { border-bottom: none; }
+
+            /* ── PERSONA ── */
+            .sw-person { display: flex; align-items: center; gap: 10px; }
+            .sw-av {
+                width: 36px; height: 36px; border-radius: 10px;
+                display: flex; align-items: center; justify-content: center;
+                font-size: .74rem; font-weight: 700; color: white;
+                flex-shrink: 0; letter-spacing: .3px;
+            }
+            .sw-pname { font-size: .85rem; font-weight: 600; color: #0D1424; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px; }
+            .sw-pdept { font-size: .7rem; color: #7480A0; }
+
+            /* ── HEATMAP ── */
+            .sw-day-td { text-align: center; }
+            .sw-heat {
+                display: inline-flex; align-items: center; justify-content: center;
+                width: 38px; height: 38px; border-radius: 9px;
+                font-size: .74rem; font-weight: 700;
+                font-family: 'JetBrains Mono', monospace;
+                transition: transform .18s cubic-bezier(.16,1,.3,1), box-shadow .18s;
+                cursor: default; position: relative; z-index: 1;
+            }
+            .sw-heat:hover { transform: scale(1.2); z-index: 5; }
+            .sw-h-P { background:#D1FAE5; color:#065F46; box-shadow: 0 0 0 1.5px rgba(5,150,105,.2); }
+            .sw-h-P:hover { box-shadow: 0 5px 14px rgba(5,150,105,.3); }
+            .sw-h-A { background:#FEE2E2; color:#991B1B; box-shadow: 0 0 0 1.5px rgba(220,38,38,.18); }
+            .sw-h-A:hover { box-shadow: 0 5px 14px rgba(220,38,38,.28); }
+            .sw-h-J { background:#FEF3C7; color:#92400E; box-shadow: 0 0 0 1.5px rgba(217,119,6,.18); }
+            .sw-h-J:hover { box-shadow: 0 5px 14px rgba(217,119,6,.28); }
+            .sw-h-N { background: #EDF0F8; color: #B4BDD4; }
+
+            /* ── BOTÓN VER ── */
+            .sw-btn-ver {
+                background: #EDF0F8; border: 1.5px solid #DDE2F0;
+                color: #2563EB; padding: 7px 15px; border-radius: 9px;
+                font-size: .76rem; font-weight: 600;
+                font-family: 'Plus Jakarta Sans', sans-serif;
+                cursor: pointer; display: inline-flex; align-items: center; gap: 5px;
+                transition: all .18s cubic-bezier(.16,1,.3,1);
+            }
+            .sw-btn-ver:hover {
+                background: #DBEAFE; border-color: #2563EB;
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(37,99,235,.15);
+            }
+
+            /* ── EMPTY STATE ── */
+            .sw-empty {
+                text-align: center; padding: 48px 24px;
+                background: white; border-radius: 20px; border: 1px solid #DDE2F0;
+            }
+
+            /* ── ANIMATIONS ── */
+            @keyframes sw-reveal {
+                from { opacity:0; transform: translateY(12px); }
+                to   { opacity:1; transform: translateY(0); }
+            }
+            .sw-rv { opacity:0; animation: sw-reveal .4s cubic-bezier(.16,1,.3,1) forwards; }
+            .sw-d1{animation-delay:.04s}.sw-d2{animation-delay:.08s}.sw-d3{animation-delay:.12s}
+            .sw-d4{animation-delay:.16s}.sw-d5{animation-delay:.20s}.sw-d6{animation-delay:.24s}
+            .sw-d7{animation-delay:.28s}.sw-d8{animation-delay:.32s}
+
+            /* ── Flatpickr fixes ── */
+            .flatpickr-monthDropdown-months {
+                display: inline-block !important; visibility: visible !important;
+                width: auto !important; appearance: menulist !important;
+                -moz-appearance: menulist !important; -webkit-appearance: menulist !important;
+                background: transparent !important; border: none !important;
+                color: inherit !important; height: auto !important;
+                padding: 0 !important; margin: 0 !important; font-weight: bold;
+            }
+            .flatpickr-current-month { display: flex !important; justify-content: center !important; align-items: center !important; }
+            .flatpickr-calendar { z-index: 1055 !important; }
+            .flatpickr-day.inRange,.flatpickr-day.prevMonthDay.inRange,.flatpickr-day.nextMonthDay.inRange,
+            .flatpickr-day.today.inRange,.flatpickr-day:hover,.flatpickr-day.prevMonthDay:hover,
+            .flatpickr-day.nextMonthDay:hover,.flatpickr-day:focus,.flatpickr-day.prevMonthDay:focus,
+            .flatpickr-day.nextMonthDay:focus { background:#DBEAFE !important; border-color:#DBEAFE !important; }
+            .flatpickr-day.selected,.flatpickr-day.startRange,.flatpickr-day.endRange,
+            .flatpickr-day.selected.inRange,.flatpickr-day.startRange.inRange,.flatpickr-day.endRange.inRange,
+            .flatpickr-day.selected:focus,.flatpickr-day.startRange:focus,.flatpickr-day.endRange:focus,
+            .flatpickr-day.selected:hover,.flatpickr-day.startRange:hover,.flatpickr-day.endRange:hover,
+            .flatpickr-day.selected.prevMonthDay,.flatpickr-day.startRange.prevMonthDay,
+            .flatpickr-day.endRange.prevMonthDay,.flatpickr-day.selected.nextMonthDay,
+            .flatpickr-day.startRange.nextMonthDay,.flatpickr-day.endRange.nextMonthDay
+            { background:#1D4ED8 !important; color:#fff !important; border-color:#1D4ED8 !important; }
+            </style>
+
+            <div class="sw-wrap">
+
+            <!-- ── TOOLBAR ── -->
+            <div class="sw-toolbar sw-rv sw-d1">
+                <div class="sw-toolbar-left">
+                    <div class="sw-search">
+                        <i class="ti ti-search"></i>
+                        <input type="text" id="buscadorSemanal" placeholder="Buscar pasante…" autocomplete="off">
+                    </div>
+                    <div class="sw-chips">
+                        <button class="sw-chip sc-all active" onclick="swSetChip('all',this)">Todos</button>
+                        <button class="sw-chip sc-ok"         onclick="swSetChip('ok',this)">
+                            <span class="sw-chip-dot" style="background:#059669"></span>Sin faltas
+                        </button>
+                        <button class="sw-chip sc-falta"      onclick="swSetChip('falta',this)">
+                            <span class="sw-chip-dot" style="background:#DC2626"></span>Con faltas
+                        </button>
+                    </div>
+                    <div class="sw-legend">
+                        <div class="sw-legend-item">
+                            <div class="sw-legend-dot" style="background:#D1FAE5;border:1.5px solid rgba(5,150,105,.3);"></div>P · Presente
+                        </div>
+                        <div class="sw-legend-item">
+                            <div class="sw-legend-dot" style="background:#FEE2E2;border:1.5px solid rgba(220,38,38,.2);"></div>A · Ausente
+                        </div>
+                        <div class="sw-legend-item">
+                            <div class="sw-legend-dot" style="background:#FEF3C7;border:1.5px solid rgba(217,119,6,.2);"></div>J · Justificado
+                        </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 16px; align-items: center;">
-                    <div style="position: relative;">
-                        <i class="ti ti-search" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 1rem;"></i>
-                        <input type="text" id="buscadorSemanal" placeholder="Buscar pasante..." style="padding: 10px 14px 10px 36px; border: 1px solid #e2e8f0; border-radius: 50px; outline: none; font-size: 0.85rem; width: 220px; transition: border-color 0.2s;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#e2e8f0'">
+                <div class="sw-toolbar-right">
+                    <div class="sw-fp-wrap">
+                        <label for="filtro_semana"><i class="ti ti-calendar-time"></i> Semana</label>
+                        <input type="text" id="filtro_semana" class="form-control" placeholder="Seleccionar…">
                     </div>
-                    
-                    <!-- FILTRO POR SEMANA ISO 8601 (Premium Flatpickr) -->
-                    <div style="position: relative; display: flex; align-items: center; background: white; border: 1px solid #e2e8f0; border-radius: 50px; padding: 2px 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                        <label for="filtro_semana" style="margin: 0; padding-right: 8px; font-size: 0.85rem; font-weight: 700; color: #64748b; border-right: 1px solid #e2e8f0;"><i class="ti ti-calendar-time"></i> Semana</label>
-                        <input type="text" id="filtro_semana" class="form-control" style="border: none; outline: none; padding: 6px 8px; color: #1e3a8a; font-weight: 600; font-size: 0.85rem; background: transparent; cursor: pointer; width: 130px;" placeholder="Seleccionar...">
-                    </div>
-
-                    <div style="background: white; border: 1px solid #e2e8f0; border-radius: 50px; padding: 4px; display: flex; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.02);">
-                        <button class="nav-semana-btn" data-url="<?= $navSemana['ant_url'] ?>" style="background: transparent; border: none; color: #64748b; padding: 6px 12px; border-radius: 50px; transition: all 0.2s; font-weight: 600; font-size: 0.85rem; cursor: pointer;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'"><i class="ti ti-chevron-left"></i> Ant</button>
-                        <span id="label-semana-nav" style="font-size: 0.85rem; font-weight: 700; color: #334155; padding: 0 12px;"><?= $navSemana['texto'] ?></span>
-                        <button class="nav-semana-btn" data-url="<?= $navSemana['sig_url'] ?>" style="background: transparent; border: none; color: #64748b; padding: 6px 12px; border-radius: 50px; transition: all 0.2s; font-weight: 600; font-size: 0.85rem; cursor: pointer;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='transparent'">Sig <i class="ti ti-chevron-right"></i></button>
+                    <div class="sw-nav-pill">
+                        <button class="sw-nav-btn nav-semana-btn" data-url="<?= $navSemana['ant_url'] ?>">
+                            <i class="ti ti-chevron-left"></i> Ant.
+                        </button>
+                        <span id="label-semana-nav" class="sw-nav-label"><?= $navSemana['texto'] ?></span>
+                        <button class="sw-nav-btn nav-semana-btn" data-url="<?= $navSemana['sig_url'] ?>">
+                            Sig. <i class="ti ti-chevron-right"></i>
+                        </button>
                     </div>
                 </div>
             </div>
-            <style>
-                /* Parche anti-Bootstrap para el mes */
-                .flatpickr-monthDropdown-months {
-                    display: inline-block !important;
-                    visibility: visible !important;
-                    width: auto !important;
-                    appearance: menulist !important;
-                    -moz-appearance: menulist !important;
-                    -webkit-appearance: menulist !important;
-                    background: transparent !important;
-                    border: none !important;
-                    color: inherit !important;
-                    height: auto !important;
-                    padding: 0 !important;
-                    margin: 0 !important;
-                    font-weight: bold;
-                }
-                .flatpickr-current-month {
-                    display: flex !important;
-                    justify-content: center !important;
-                    align-items: center !important;
-                }
-                .flatpickr-calendar {
-                    z-index: 1055 !important;
-                }
-                /* Resaltado de la Semana Seleccionada (Plugin weekSelect) */
-                .flatpickr-day.inRange, 
-                .flatpickr-day.prevMonthDay.inRange, 
-                .flatpickr-day.nextMonthDay.inRange, 
-                .flatpickr-day.today.inRange, 
-                .flatpickr-day.prevMonthDay.today.inRange, 
-                .flatpickr-day.nextMonthDay.today.inRange, 
-                .flatpickr-day:hover, 
-                .flatpickr-day.prevMonthDay:hover, 
-                .flatpickr-day.nextMonthDay:hover, 
-                .flatpickr-day:focus, 
-                .flatpickr-day.prevMonthDay:focus, 
-                .flatpickr-day.nextMonthDay:focus {
-                    background: #e6f0ff !important;
-                    border-color: #e6f0ff !important;
-                }
-                .flatpickr-day.selected, 
-                .flatpickr-day.startRange, 
-                .flatpickr-day.endRange, 
-                .flatpickr-day.selected.inRange, 
-                .flatpickr-day.startRange.inRange, 
-                .flatpickr-day.endRange.inRange, 
-                .flatpickr-day.selected:focus, 
-                .flatpickr-day.startRange:focus, 
-                .flatpickr-day.endRange:focus, 
-                .flatpickr-day.selected:hover, 
-                .flatpickr-day.startRange:hover, 
-                .flatpickr-day.endRange:hover, 
-                .flatpickr-day.selected.prevMonthDay, 
-                .flatpickr-day.startRange.prevMonthDay, 
-                .flatpickr-day.endRange.prevMonthDay, 
-                .flatpickr-day.selected.nextMonthDay, 
-                .flatpickr-day.startRange.nextMonthDay, 
-                .flatpickr-day.endRange.nextMonthDay {
-                    background: #0d6efd !important;
-                    color: #fff !important;
-                    border-color: #0d6efd !important;
-                }
-            </style>
 
+            <!-- ── FLATPICKR + AJAX PJAX ── -->
             <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/weekSelect/weekSelect.js"></script>
             <script>
                 function cargarSemanaAjax(url) {
                     const contenedor = document.getElementById('contenedor-tarjetas-semanales');
                     if(contenedor) contenedor.style.opacity = '0.4';
-                    
                     fetch(url)
                         .then(res => res.text())
                         .then(html => {
                             const parser = new DOMParser();
                             const doc = parser.parseFromString(html, 'text/html');
-                            
-                            // 1. Reemplazar tarjetas
                             const nuevoCont = doc.getElementById('contenedor-tarjetas-semanales');
                             if (nuevoCont && contenedor) {
                                 contenedor.innerHTML = nuevoCont.innerHTML;
                                 contenedor.style.opacity = '1';
+                                swIniciarFiltros();
                             }
-                            
-                            // 2. Reemplazar texto del navegador central
                             const nuevoLabel = doc.getElementById('label-semana-nav');
                             const actualLabel = document.getElementById('label-semana-nav');
-                            if (nuevoLabel && actualLabel) {
-                                actualLabel.innerText = nuevoLabel.innerText;
-                            }
-                            
-                            // 3. Reemplazar urls de los botones laterales
+                            if (nuevoLabel && actualLabel) actualLabel.innerText = nuevoLabel.innerText;
                             const nuevosBtn = doc.querySelectorAll('.nav-semana-btn');
                             const actualesBtn = document.querySelectorAll('.nav-semana-btn');
                             if (nuevosBtn.length === 2 && actualesBtn.length === 2) {
                                 actualesBtn[0].dataset.url = nuevosBtn[0].dataset.url;
                                 actualesBtn[1].dataset.url = nuevosBtn[1].dataset.url;
                             }
-                            
-                            // 4. Actualizar History API (URL) invisiblemente
                             window.history.pushState({ path: url }, '', url);
                         })
-                        .catch(err => {
-                            console.error('Error AJAX PJAX: ', err);
-                            window.location.href = url; // Fallback
-                        });
+                        .catch(err => { console.error('Error AJAX PJAX:', err); window.location.href = url; });
+                }
+
+                let swActiveChip = 'all';
+                function swSetChip(tipo, btn) {
+                    swActiveChip = tipo;
+                    document.querySelectorAll('.sw-chip').forEach(c => c.classList.remove('active'));
+                    btn.classList.add('active');
+                    swFiltrar();
+                }
+                function swFiltrar() {
+                    const q = (document.getElementById('buscadorSemanal')?.value || '').toLowerCase().trim();
+                    document.querySelectorAll('.sw-prow').forEach(row => {
+                        const nombre = row.dataset.nombre || '';
+                        const faltas = row.dataset.faltas === '1';
+                        const mQ = !q || nombre.includes(q);
+                        const mC = swActiveChip === 'all'
+                            || (swActiveChip === 'ok'    && !faltas)
+                            || (swActiveChip === 'falta' &&  faltas);
+                        row.style.display = (mQ && mC) ? '' : 'none';
+                    });
+                }
+                function swIniciarFiltros() {
+                    const inp = document.getElementById('buscadorSemanal');
+                    if (inp) { inp.removeEventListener('input', swFiltrar); inp.addEventListener('input', swFiltrar); }
                 }
 
                 document.addEventListener('DOMContentLoaded', function() {
-                    const defaultAnio = <?= $paramsUrl['anio'] ?? date('Y') ?>;
+                    swIniciarFiltros();
+                    const defaultAnio   = <?= $paramsUrl['anio']   ?? date('Y') ?>;
                     const defaultSemana = <?= $paramsUrl['semana'] ?? date('W') ?>;
-                    
                     if (typeof flatpickr !== 'undefined' && typeof weekSelect !== 'undefined') {
                         flatpickr('#filtro_semana', {
-                            locale: 'es',
-                            weekNumbers: true,
+                            locale: 'es', weekNumbers: true,
                             plugins: [new weekSelect({})],
                             onReady: function(selectedDates, dateStr, instance) {
                                 instance.input.value = "Semana " + defaultSemana + ", " + defaultAnio;
-                                
-                                // Escudo Anti-ChoicesJS / Select2
                                 setTimeout(() => {
                                     const monthSelect = instance.monthElements[0];
                                     if (monthSelect) {
-                                        if (window.jQuery && $(monthSelect).data('select2')) {
-                                            $(monthSelect).select2('destroy');
-                                        }
-                                        
-                                        // Restauración Visual Forzada
+                                        if (window.jQuery && $(monthSelect).data('select2')) $(monthSelect).select2('destroy');
                                         if (window.jQuery) {
-                                            $(monthSelect).css({'display': 'inline-block', 'visibility': 'visible'}).removeClass('select2-hidden-accessible');
+                                            $(monthSelect).css({'display':'inline-block','visibility':'visible'}).removeClass('select2-hidden-accessible');
                                         } else {
                                             monthSelect.style.display = 'inline-block';
                                             monthSelect.style.visibility = 'visible';
                                             monthSelect.classList.remove('select2-hidden-accessible');
                                         }
-                                        
                                         const choicesContainer = monthSelect.closest('.choices');
                                         if (choicesContainer) {
                                             choicesContainer.parentNode.insertBefore(monthSelect, choicesContainer);
@@ -584,110 +784,137 @@ table.dataTable tbody tr:hover {
                                     dt.setDate(dt.getDate() - dayNr + 3);
                                     const firstThursday = dt.valueOf();
                                     dt.setMonth(0, 1);
-                                    if (dt.getDay() !== 4) {
-                                        dt.setMonth(0, 1 + ((4 - dt.getDay()) + 7) % 7);
-                                    }
+                                    if (dt.getDay() !== 4) dt.setMonth(0, 1 + ((4 - dt.getDay()) + 7) % 7);
                                     const targetYear = new Date(firstThursday).getFullYear();
                                     const targetWeek = 1 + Math.ceil((firstThursday - dt) / 604800000);
-                                    
                                     instance.input.value = "Semana " + targetWeek + ", " + targetYear;
-                                    const url = "<?= URLROOT ?>/asistencias?vista=semanal&semana=" + targetWeek + "&anio=" + targetYear;
-                                    cargarSemanaAjax(url);
+                                    cargarSemanaAjax("<?= URLROOT ?>/asistencias?vista=semanal&semana=" + targetWeek + "&anio=" + targetYear);
                                 }
                             }
                         });
                     }
-
-                    // Event Listener para Navegación Asíncrona (Botones Ant / Sig)
                     document.addEventListener('click', function(e) {
                         const btn = e.target.closest('.nav-semana-btn');
                         if (btn) {
                             e.preventDefault();
                             const targetUrl = btn.dataset.url;
-                            
-                            // Actualizar feedback visual del input Flatpickr a partir de los query params
                             try {
                                 const urlObj = new URL(targetUrl, window.location.origin);
-                                const targetSemana = urlObj.searchParams.get('semana');
-                                const targetAnio = urlObj.searchParams.get('anio');
+                                const s = urlObj.searchParams.get('semana');
+                                const a = urlObj.searchParams.get('anio');
                                 const fpInput = document.getElementById('filtro_semana');
-                                if (fpInput && targetSemana && targetAnio) {
-                                    fpInput.value = "Semana " + targetSemana + ", " + targetAnio;
-                                }
+                                if (fpInput && s && a) fpInput.value = "Semana " + s + ", " + a;
                             } catch(e) {}
-                            
                             cargarSemanaAjax(targetUrl);
                         }
                     });
                 });
             </script>
-            
+
+            <!-- ── CONTENEDOR PJAX (actualizado por AJAX) ── -->
             <div id="contenedor-tarjetas-semanales" style="transition: opacity 0.3s ease;">
                 <?php if(empty($datosSemanales)): ?>
-                    <div style="text-align:center; padding: 40px; background: white; border-radius: 16px; border: 1px solid #e2e8f0;">
-                        <i class="ti ti-calendar-x" style="font-size: 3rem; color: #cbd5e1; margin-bottom: 12px;"></i>
-                        <p style="color: #64748b; font-weight: 600;">No hay pasantes activos para mostrar en esta semana.</p>
+                    <div class="sw-empty">
+                        <i class="ti ti-calendar-x" style="font-size:3rem;color:#B4BDD4;display:block;margin-bottom:12px;"></i>
+                        <p style="color:#7480A0;font-weight:600;margin:0;">No hay pasantes activos para mostrar en esta semana.</p>
                     </div>
                 <?php else: ?>
-                    <?php foreach ($datosSemanales as $depto => $pasantes): ?>
-                        <div class="depto-card" style="background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; overflow: hidden; margin-bottom: 24px;">
-                            
-                            <div style="background: #f8fafc; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center;">
-                                <h4 style="margin: 0; color: #1e293b; font-weight: 700; font-size: 1rem; display: flex; align-items: center;">
-                                    <i class="ti ti-building-community text-primary" style="margin-right: 8px;"></i> <?= htmlspecialchars($depto) ?>
-                                </h4>
-                                <span style="font-size: 0.75rem; background: #e2e8f0; color: #475569; padding: 4px 10px; border-radius: 20px; font-weight: 700;"><?= count($pasantes) ?> Pasantes</span>
+                    <?php
+                    $coloresDep  = ['#1D4ED8','#7C3AED','#059669','#0891B2','#D97706','#BE185D','#DC2626'];
+                    $swDiIdx     = 0;
+                    $swDelay     = 3;
+                    foreach ($datosSemanales as $depto => $pasantes):
+                        $st       = $deptStats[$depto] ?? ['pct'=>0];
+                        $pct      = $st['pct'];
+                        $barClr   = $pct >= 80 ? '#059669' : ($pct >= 60 ? '#D97706' : '#DC2626');
+                        $dClr     = $coloresDep[$swDiIdx % count($coloresDep)];
+                        $swDiIdx++; $swDelay++;
+                    ?>
+                    <div class="sw-dept-card sw-rv sw-d<?= min($swDelay, 8) ?>">
+                        <div class="sw-dept-head">
+                            <div class="sw-dept-title">
+                                <div class="sw-dept-icon" style="background:<?= $dClr ?>18;">
+                                    <i class="ti ti-building-community" style="color:<?= $dClr ?>;font-size:1rem;"></i>
+                                </div>
+                                <?= htmlspecialchars($depto) ?>
                             </div>
-                            
-                            <div style="overflow-x: auto;">
-                                <table style="width: 100%; border-collapse: collapse; min-width: 700px;">
-                                    <thead>
-                                        <tr>
-                                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 12px 24px; text-align: left; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Pasante</th>
-                                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 12px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Lun</th>
-                                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 12px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Mar</th>
-                                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 12px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Mié</th>
-                                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 12px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Jue</th>
-                                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 12px 16px; text-align: center; border-bottom: 1px solid #e2e8f0; background: #f8fafc;">Vie</th>
-                                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 800; color: #3b82f6; padding: 12px 24px; text-align: right; border-bottom: 1px solid #e2e8f0; background: #eff6ff;">Resumen</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($pasantes as $id => $data): ?>
-                                            <tr class="pasante-row" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='transparent'" style="transition: background 0.2s;">
-                                                <td class="pasante-nombre" style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; font-weight: 600;">
-                                                    <?= htmlspecialchars($data['nombre']) ?>
-                                                </td>
-                                                
-                                                <?php 
-                                                for ($i = 1; $i <= 5; $i++): 
-                                                    $letra = $data['dias'][$i];
-                                                    $bg = '#e2e8f0'; $color = '#64748b'; // Gris (Por Defecto)
-                                                    if ($letra === 'P') { $bg = '#d1fae5'; $color = '#059669'; } // Verde
-                                                    elseif ($letra === 'A') { $bg = '#fee2e2'; $color = '#dc2626'; } // Rojo
-                                                    elseif ($letra === 'J') { $bg = '#fef3c7'; $color = '#d97706'; } // Amarillo
-                                                ?>
-                                                    <td style="padding: 16px; border-bottom: 1px solid #f1f5f9; text-align: center;">
-                                                        <span style="background: <?= $bg ?>; color: <?= $color ?>; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.75rem;">
-                                                            <?= $letra ?>
-                                                        </span>
-                                                    </td>
-                                                <?php endfor; ?>
-
-                                                <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; text-align: right;">
-                                                    <button type="button" class="btn btn-sm btn-outline-primary btn-resumen" data-id="<?= htmlspecialchars($id) ?>" data-nombre="<?= htmlspecialchars($data['nombre']) ?>" style="border-radius: 50px; font-weight: 600; padding: 6px 14px; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.1);" onclick="abrirAlmanaque(this)">
-                                                        <i class="ti ti-calendar-stats"></i> Resumen
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
+                            <div class="sw-dept-meta">
+                                <div class="sw-pbar-wrap">
+                                    <div class="sw-pbar-track">
+                                        <div class="sw-pbar-fill" style="width:<?= $pct ?>%;background:<?= $barClr ?>;"></div>
+                                    </div>
+                                    <span class="sw-pbar-lbl"><?= $pct ?>%</span>
+                                </div>
+                                <span class="sw-badge"><?= count($pasantes) ?> pasantes</span>
                             </div>
                         </div>
+                        <div class="sw-table-wrap">
+                            <table class="sw-table">
+                                <thead>
+                                    <tr>
+                                        <th>Pasante</th>
+                                        <th class="sw-th-day">Lun</th>
+                                        <th class="sw-th-day">Mar</th>
+                                        <th class="sw-th-day">Mié</th>
+                                        <th class="sw-th-day">Jue</th>
+                                        <th class="sw-th-day">Vie</th>
+                                        <th class="sw-th-act">Resumen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                <?php foreach ($pasantes as $id => $pData):
+                                    $nombre   = htmlspecialchars($pData['nombre']);
+                                    $nomLow   = strtolower($pData['nombre']);
+                                    $partes   = explode(',', $pData['nombre']);
+                                    $ap1      = trim(explode(' ', $partes[0] ?? 'A')[0]);
+                                    $nom1     = trim(explode(' ', $partes[1] ?? 'A')[0]);
+                                    $initials = strtoupper(substr($nom1,0,1) . substr($ap1,0,1));
+                                    if (strlen(trim($initials)) < 2) $initials = strtoupper(substr($pData['nombre'],0,2));
+                                    $tFaltas  = 0;
+                                    foreach ($pData['dias'] as $dl) { if ($dl === 'A') $tFaltas++; }
+                                ?>
+                                <tr class="sw-prow"
+                                    data-nombre="<?= $nomLow ?>"
+                                    data-faltas="<?= $tFaltas > 0 ? '1' : '0' ?>">
+                                    <td style="min-width:180px;max-width:240px;padding:0 16px;">
+                                        <div class="sw-person">
+                                            <div class="sw-av" style="background:<?= $dClr ?>"><?= $initials ?></div>
+                                            <div>
+                                                <div class="sw-pname"><?= $nombre ?></div>
+                                                <div class="sw-pdept"><?= htmlspecialchars($depto) ?></div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <?php for ($i = 1; $i <= 5; $i++):
+                                        $letra  = $pData['dias'][$i] ?? '-';
+                                        $hCls   = in_array($letra, ['P','A','J']) ? "sw-h-{$letra}" : 'sw-h-N';
+                                        $hTxt   = in_array($letra, ['P','A','J']) ? $letra : '·';
+                                        $hTitle = ['P'=>'Presente','A'=>'Ausente','J'=>'Justificado'][$letra] ?? 'Sin datos';
+                                    ?>
+                                    <td class="sw-day-td">
+                                        <span class="sw-heat <?= $hCls ?>" title="<?= $hTitle ?>"><?= $hTxt ?></span>
+                                    </td>
+                                    <?php endfor; ?>
+                                    <td style="padding:0 16px;text-align:right;">
+                                        <button type="button"
+                                            class="sw-btn-ver btn-resumen"
+                                            data-id="<?= htmlspecialchars($id) ?>"
+                                            data-nombre="<?= htmlspecialchars($pData['nombre']) ?>"
+                                            onclick="abrirAlmanaque(this)">
+                                            <i class="ti ti-calendar-stats"></i> Ver
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
             </div>
+
+            </div><!-- /.sw-wrap -->
 
         <?php elseif ($vistaActual === 'mensual'): ?>
             <?php
