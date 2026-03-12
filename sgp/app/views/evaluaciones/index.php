@@ -210,15 +210,6 @@ $catColors = [
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($evaluaciones)): ?>
-                    <tr>
-                        <td colspan="6" style="text-align: center; padding: 48px 20px; color: #94a3b8;">
-                            <i class="ti ti-clipboard-off" style="font-size: 48px; display: block; margin-bottom: 12px;"></i>
-                            No hay evaluaciones registradas aún.<br>
-                            <span style="font-size: 0.85rem;">Presiona "Nueva Evaluación" para comenzar.</span>
-                        </td>
-                    </tr>
-                    <?php else: ?>
                     <?php foreach ($evaluaciones as $ev):
                         $pNom = htmlspecialchars(($ev->pasante_nombres ?? '') . ' ' . ($ev->pasante_apellidos ?? ''));
                         $tNom = htmlspecialchars(($ev->tutor_nombres ?? '') . ' ' . ($ev->tutor_apellidos ?? ''));
@@ -268,7 +259,6 @@ $catColors = [
                         </td>
                     </tr>
                     <?php endforeach; ?>
-                    <?php endif; ?>
                 </tbody>
             </table>
         </div>
@@ -614,19 +604,28 @@ async function verEvaluacion(id) {
     } catch (e) {
         body.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc2626;">Error de conexión al obtener detalles.</div>';
     }
-    }
 }
 
 // Inicializar DataTables y Tooltips
 $(document).ready(function() {
     // Si tienes un ID en la tabla, úsalo. Si no, usa la clase .table
-    const tableInstance = $('table').DataTable({
-        language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
-        pageLength: 10,
-        responsive: true,
-        dom: '<"top"f>rt<"bottom"ip><"clear">',
-        columnDefs: [{ orderable: false, targets: 5 }]
-    });
+    var $tablaEval = $('table');
+    var tableInstance;
+    if ($tablaEval.length && !$.fn.DataTable.isDataTable($tablaEval)) {
+        tableInstance = $tablaEval.DataTable({
+            language: { 
+                url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json',
+                emptyTable: '<div style="text-align: center; padding: 48px 20px; color: #94a3b8;"><i class="ti ti-clipboard-off" style="font-size: 48px; display: block; margin-bottom: 12px;"></i>No hay evaluaciones registradas aún.<br><span style="font-size: 0.85rem;">Presiona "Nueva Evaluación" para comenzar.</span></div>'
+            },
+            pageLength: 10,
+            responsive: true,
+            dom: '<"top"f>rt<"bottom"ip><"clear">',
+            columnDefs: [{ orderable: false, targets: 5 }]
+        });
+    } else if ($tablaEval.length && $.fn.DataTable.isDataTable($tablaEval)) {
+        tableInstance = $tablaEval.DataTable();
+        tableInstance.draw(false);
+    }
 
     // Tooltips
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))

@@ -34,18 +34,23 @@ class AdminController extends Controller
      */
     public function index(): void
     {
+        // Traer métricas base en una sola consulta
+        $kpis = $this->dashboardModel->getKpiTotales();
+
         // Traer y estructurar la data cruzada para la vista y el Data Bridge JSON
         $data = [
             'user_name'          => Session::get('user_name') ?? 'Administrador',
             'role'               => 'Administrador',
-            'totalActivos'       => $this->dashboardModel->getTotalActivos(),
-            'pendientesAsignar'  => $this->dashboardModel->getPendientesAsignar(),
-            'asistenciasHoy'     => $this->dashboardModel->getAsistenciasHoy(),
-            'faltasHoy'          => $this->dashboardModel->getFaltasHoy(),
-            'totalTutores'       => $this->dashboardModel->getTotalTutores(),
-            'totalInstituciones' => $this->dashboardModel->getTotalInstituciones(),
+            'totalActivos'       => $kpis->totalActivos,
+            'pendientesAsignar'  => $kpis->pendientesAsignar,
+            'asistenciasHoy'     => $kpis->asistenciasHoy,
+            'faltasHoy'          => $kpis->faltasHoy,
+            'totalTutores'       => $kpis->totalTutores,
+            'totalInstituciones' => $kpis->totalInstituciones,
             'actividadReciente'  => $this->dashboardModel->getActividadReciente(8),
             'alertas_pendientes' => $this->dashboardModel->getAlertasPendientes(6),
+            'departamentos'      => $this->dashboardModel->getDepartamentosParaAsignacion(),
+            'tutores'            => $this->dashboardModel->getTutoresParaAsignacion(),
             
             // ── NUEVO: DATA BRIDGE (Gráficas Dinámicas) ──
             'metricas_graficos' => [

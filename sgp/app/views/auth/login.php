@@ -253,8 +253,25 @@
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
+            .then(function(response) {
+                var contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    return response.json();
+                }
+                // El servidor devolvió HTML — probablemente un redirect exitoso
+                // Verificar si fue un redirect a dashboard
+                if (response.redirected || response.url.includes('dashboard')) {
+                    window.location.href = response.url;
+                    return null;
+                }
+                // Respuesta inesperada — leer como texto para debuggear
+                return response.text().then(function(text) {
+                    console.error('[SGP-LOGIN] Respuesta no-JSON del servidor:', text.substring(0, 200));
+                    throw new Error('Respuesta inesperada del servidor');
+                });
+            })
             .then(data => {
+                if (!data) return; // fue un redirect manejado arriba
                 // loader.style.display = 'none';
                 
                 if (data.success) {
@@ -277,7 +294,7 @@
                 }
             })
             .catch(error => {
-                loader.style.display = 'none';
+                if (loader) loader.style.display = 'none';
                 console.error('Error:', error);
                 NotificationService.error('Ocurrió un error inesperado');
                 

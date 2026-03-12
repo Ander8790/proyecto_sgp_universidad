@@ -419,6 +419,19 @@
     .search-input-wrapper input::placeholder {
         color: #9ca3af;
     }
+
+    /* Ajuste del contenedor de DataTables */
+    .top {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 16px;
+        margin-bottom: 20px;
+    }
+    
+    .dataTables_filter {
+        margin: 0 !important;
+    }
 </style>
 
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
@@ -457,12 +470,12 @@
 
     <?php
     // ==========================================================
-    // LÓGICA TEMPORAL PARA KPIs (Basado en el array $users actual)
+    // OPTIMIZACIÓN: KPIs precalculados en SQL (UserModel->getUsersKPIs)
     // ==========================================================
-    $activos   = count(array_filter($users, fn($u) => strtolower($u['estado']) === 'activo'));
-    $pasantes  = count(array_filter($users, fn($u) => strtolower($u['role_name']) === 'pasante'));
+    $activos   = $kpis['activos'] ?? 0;
+    $pasantes  = $kpis['pasantes'] ?? 0;
     $tutores   = count(array_filter($users, fn($u) => strtolower($u['role_name']) === 'tutor'));
-    $inactivos = count(array_filter($users, fn($u) => strtolower($u['estado']) === 'inactivo'));
+    $inactivos = $kpis['inactivos'] ?? 0;
     // ==========================================================
     ?>
 
@@ -786,18 +799,12 @@
     </div>
 </div>
 
-
-
-<!-- DataTables Premium Assets (Estandarizado) -->
-<link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
-<script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
-
 <script>
     // Toast: usando NotificationService global (main_layout.php)
     
     // Initialize DataTable
     $(document).ready(function() {
-        window.table = $('#usersTable').DataTable({
+        var dtOptions = {
             language: {
                 url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json'
             },
@@ -814,8 +821,11 @@
                 { orderable: false, targets: -1 }
             ],
             drawCallback: function() {
-                var count = this.api().rows({filter: 'applied'}).count();
-                $('#resultCount').text(count);
+                var api = this.api();
+                if(api.rows({filter: 'applied'}).count) {
+                    var count = api.rows({filter: 'applied'}).count();
+                    $('#resultCount').text(count);
+                }
                 
                 // Initialize Bootstrap Tooltips for the newly drawn rows
                 var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
@@ -826,7 +836,19 @@
             initComplete: function(settings, json) {
                 $(this.api().table().node()).css('opacity', '1');
             }
-        });
+        };
+
+        // Se inyecta solo la 'f' (filtro) en la parte superior
+        dtOptions.dom = '<"top"f>rt<"bottom"ip><"clear">';
+
+        // SGP-FIX DATATABLES CELLINDEX
+        var $tablaUsers = $('#usersTable');
+        if ($tablaUsers.length && !$.fn.DataTable.isDataTable($tablaUsers)) {
+            window.table = $tablaUsers.DataTable(dtOptions);
+        } else if ($tablaUsers.length && $.fn.DataTable.isDataTable($tablaUsers)) {
+            window.table = $tablaUsers.DataTable();
+            window.table.draw(false);
+        }
         
         // Función para actualizar chips de filtros activos
         function updateChips() {
@@ -1243,6 +1265,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
 <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.print.min.js"></script>
 
 <script>
 // 1. Helper para obtener la tabla

@@ -27,7 +27,7 @@ class PasantesController extends Controller
         $this->pasanteModel = new PasanteModel();
 
         $config   = require APPROOT . '/config/config.php';
-        $this->db = new Database($config['db']);
+        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
     }
 
     /**

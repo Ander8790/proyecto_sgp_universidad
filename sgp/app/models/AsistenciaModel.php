@@ -93,16 +93,18 @@ class AsistenciaModel
      * @param int $id ID del usuario/pasante
      * @return array Lista completa de registros de asistencia
      */
-    public function obtenerHistorialCompletoPasante(int $id): array
+    public function obtenerHistorialCompletoPasante(int $id, int $limit = 90): array
     {
         $this->db->query("
             SELECT id, fecha, hora_registro, estado, metodo, motivo_justificacion
             FROM   asistencias
             WHERE  pasante_id = :id
             ORDER  BY fecha DESC, hora_registro DESC
+            LIMIT  :limit
         ");
 
         $this->db->bind(':id', $id);
+        $this->db->bind(':limit', $limit, PDO::PARAM_INT);
         return $this->db->resultSet();
     }
 

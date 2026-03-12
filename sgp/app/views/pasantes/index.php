@@ -428,8 +428,9 @@ async function confirmarCambioEstado() {
 }
 
 $(document).ready(function() {
-    if ($('#tablaPasantes').length) {
-        $('#tablaPasantes').DataTable({
+    var $tablaPasantes = $('#tablaPasantes');
+    if ($tablaPasantes.length && !$.fn.DataTable.isDataTable($tablaPasantes)) {
+        $tablaPasantes.DataTable({
             language: {
                 url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json'
             },
@@ -451,6 +452,8 @@ $(document).ready(function() {
                 $(this.api().table().node()).css('opacity', '1');
             }
         });
+    } else if ($tablaPasantes.length && $.fn.DataTable.isDataTable($tablaPasantes)) {
+        $tablaPasantes.DataTable().draw(false);
     }
 });
 </script>

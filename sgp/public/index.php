@@ -18,6 +18,7 @@ define('URLROOT', $protocol . $host . $scriptDir);
 
 require_once '../app/core/Database.php';
 require_once '../app/core/Session.php';
+require_once '../app/helpers/CsrfHelper.php'; // SGP-FIX-v2 [4] aplicado
 require_once '../app/core/Validator.php';
 require_once '../app/core/Controller.php';
 require_once '../app/core/AuthMiddleware.php';

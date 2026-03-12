@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- SGP-FIX-v2 [sesión_inactividad / 1.1] CSRF meta tag para fetch() JS -->
+    <?php echo CsrfHelper::meta(); ?>
     <title>SGP - Sistema de Gestión de Pasantías</title>
     <link rel="icon" type="image/png" href="<?= URLROOT ?>/img/favicon.png">
     
@@ -25,6 +27,10 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/flatpickr-sgp.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/choices/choices.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/choices-sgp.css">
+    <!-- DataTables Global (usado en Usuarios, Asistencias, Reportes) -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
+    <!-- Modal Asignación CSS (componente reutilizable) -->
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/modal-asignacion.css">
     
     <!-- IMPORTANTE: style.css debe cargar AL FINAL para tener prioridad sobre otros frameworks -->
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
@@ -37,6 +43,9 @@
     <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
     <script src="<?= URLROOT ?>/js/notyf.min.js"></script>
     <script src="<?= URLROOT ?>/js/notification-service.js"></script>
+    
+    <!-- DataTables Global JS (Debe ir en el head ANTES del contenido porque las vistas inyectan plugins de botones) -->
+    <script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
     
     <!-- Global JavaScript Constants -->
     <script>
@@ -54,7 +63,8 @@
 
         <!-- Content Wrapper -->
         <div class="content-wrapper">
-            <!-- Vista Específica (contenido dinámico) -->
+            <!-- PJAX: Este contenedor es el target de la navegación fluida -->
+            <div id="sgp-content" style="transition: opacity 0.18s ease;">
             <?php 
             // La variable $content contiene la ruta al archivo de vista específica
             if (isset($content) && file_exists($content)) {
@@ -63,6 +73,7 @@
                 echo '<div class="smart-card"><h3>Error: Vista no encontrada</h3></div>';
             }
             ?>
+            </div>
         </div>
 
         <!-- Sidebar Overlay (para móvil) -->
@@ -82,16 +93,12 @@
     <script src="<?= URLROOT ?>/js/flatpickr-init.js"></script>
     <script src="<?= URLROOT ?>/assets/libs/choices/choices.min.js"></script>
     <script src="<?= URLROOT ?>/js/choices-init.js"></script>
+    <!-- SGP-PJAX: Navegación fluida sin recarga de página -->
+    <script src="<?= URLROOT ?>/js/sgp-pjax.js"></script>
     
     <!-- FIX PARA APEXCHARTS - Previene error "attribute r: A negative value" -->
     <script>
-        // Espera a que el layout cargue y fuerza redimensionamiento
-        document.addEventListener("DOMContentLoaded", function() {
-            setTimeout(function() {
-                window.dispatchEvent(new Event('resize'));
-            }, 300);
-        });
-        
+
         // Redimensionar gráficas al colapsar sidebar
         const toggleBtn = document.getElementById('sidebarToggle');
         if (toggleBtn) {
@@ -233,6 +240,79 @@
         window.hideLoading = hideLoading;
         window.setButtonLoading = setButtonLoading;
         window.resetButton = resetButton;
+    </script>
+
+    <!-- SGP-FIX-v2 [sesión_inactividad] Aviso de inactividad + interceptor fetch 401 -->
+    <script>
+    (function () {
+        // Guard: no ejecutar en páginas sin el layout autenticado (login, registro, etc.)
+        if (!document.getElementById('sgp-content') && !document.querySelector('.sidebar')) return;
+        var TIMEOUT_MS     = 600000;
+        var WARN_BEFORE_MS = 120000;
+        var warnTimer, logoutTimer;
+
+        function resetTimers() {
+            clearTimeout(warnTimer);
+            clearTimeout(logoutTimer);
+            warnTimer   = setTimeout(mostrarAviso,  TIMEOUT_MS - WARN_BEFORE_MS);
+            logoutTimer = setTimeout(cerrarSesion,  TIMEOUT_MS);
+        }
+
+        function mostrarAviso() {
+            if (typeof Swal === 'undefined') return;
+            Swal.fire({
+                icon: 'warning',
+                title: 'Sesión por vencer',
+                text:  'Tu sesión cerrará en 2 minutos por inactividad. ¿Deseas continuar?',
+                confirmButtonText: 'Sí, continuar',
+                showCancelButton:  true,
+                cancelButtonText:  'Cerrar sesión',
+                timer:             120000,
+                timerProgressBar:  true
+            }).then(function (result) {
+                if (result.isConfirmed) { keepAlive(); } else { cerrarSesion(); }
+            });
+        }
+
+        function keepAlive() {
+            var token = document.querySelector('meta[name=csrf-token]');
+            fetch(URLROOT + '/auth/keepalive', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN':     token ? token.getAttribute('content') : '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(function (r) { if (r.ok) resetTimers(); })
+            .catch(function ()  { resetTimers(); });
+        }
+
+        function cerrarSesion() {
+            window.location.href = URLROOT + '/auth/logout?razon=inactividad';
+        }
+
+        // Interceptar respuestas 401 en fetch para manejar sesión expirada en PJAX
+        var _fetch = window.fetch;
+        window.fetch = function () {
+            return _fetch.apply(this, arguments).then(function (response) {
+                if (response.status === 401) {
+                    response.clone().json().then(function (data) {
+                        if (data && data.reason === 'session_expired') {
+                            window.location.href = data.redirect || (URLROOT + '/auth/login');
+                        }
+                    }).catch(function () {});
+                }
+                return response;
+            });
+        };
+
+        // Reiniciar timers en cualquier interacción del usuario
+        ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(function (evt) {
+            document.addEventListener(evt, resetTimers, { passive: true });
+        });
+
+        resetTimers();
+    }());
     </script>
 </body>
 </html>

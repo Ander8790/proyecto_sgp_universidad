@@ -1,0 +1,12 @@
+<br />
+<b>Warning</b>:  Constant SESSION_TIMEOUT_SECONDS already defined in <b>C:\xampp\htdocs\proyecto_sgp\sgp\app\config\config.php</b> on line <b>3</b><br />
+<br />
+<b>Fatal error</b>:  Uncaught PDOException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'ip_address' in 'where clause' in C:\xampp\htdocs\proyecto_sgp\sgp\app\core\Database.php:109
+Stack trace:
+#0 C:\xampp\htdocs\proyecto_sgp\sgp\app\core\Database.php(109): PDOStatement-&gt;execute()
+#1 C:\xampp\htdocs\proyecto_sgp\sgp\app\core\Database.php(122): Database-&gt;execute()
+#2 C:\xampp\htdocs\proyecto_sgp\sgp\app\controllers\AuthController.php(48): Database-&gt;single()
+#3 C:\xampp\htdocs\proyecto_sgp\sgp\app\core\App.php(37): AuthController-&gt;login()
+#4 C:\xampp\htdocs\proyecto_sgp\sgp\public\index.php(54): App-&gt;__construct()
+#5 {main}
+  thrown in <b>C:\xampp\htdocs\proyecto_sgp\sgp\app\core\Database.php</b> on line <b>109</b><br />

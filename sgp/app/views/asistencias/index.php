@@ -3172,22 +3172,26 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
-<!-- ===== DEPENDENCIAS DATATABLES Y ESTILO PREMIUM VENTO BOX ===== -->
-<link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
-<script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
 <!-- Estilos DataTables Premium (Globalizados en datatables-sgp.css) -->
 
 <script>
     $(document).ready(function() {
-        if ($('#tablaHistorial').length) {
-            // Inicializar la tabla
-            var table = $('#tablaHistorial').DataTable({
-                language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
-                pageLength: 10,
-                order: [[0, 'desc']],
-                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
-                responsive: true
-            });
+        var $tablaHistorial = $('#tablaHistorial');
+        if ($tablaHistorial.length) {
+            var table;
+            if (!$.fn.DataTable.isDataTable($tablaHistorial)) {
+                // Inicializar la tabla
+                table = $tablaHistorial.DataTable({
+                    language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
+                    pageLength: 10,
+                    order: [[0, 'desc']],
+                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+                    responsive: true
+                });
+            } else {
+                table = $tablaHistorial.DataTable();
+                table.draw(false);
+            }
             
             // Inicializar Flatpickr en español y en modo rango
             if (typeof flatpickr !== 'undefined') {
@@ -3253,9 +3257,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 </script>
-
-<!-- ===== APEXCHARTS PARA GRÁFICO RADIAL (Local) ===== -->
-<script src="<?= URLROOT ?>/assets/libs/apexcharts/apexcharts.min.js"></script>
 
 <script>
 // ==========================================

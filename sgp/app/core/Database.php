@@ -1,51 +1,87 @@
 <?php
 declare(strict_types=1);
 
+/**
+ * Database — Clase de acceso a datos con patrón Singleton
+ *
+ * Una sola conexión PDO por request HTTP.
+ * Todos los métodos públicos originales se mantienen sin cambios.
+ *
+ * SGP-FIX-v2 [6] aplicado — Singleton + silenciar PDOException
+ */
 class Database
 {
-    private $host;
-    private $db_name;
-    private $user;
-    private $pass;
-    private $charset;
+    // ── Singleton ────────────────────────────────────────────────────────────
+    private static ?Database $instance = null;
+
+    public static function getInstance(): self
+    {
+        if (self::$instance === null) {
+            // La clave del nombre de BD en config.php es 'name' (NO 'dbname')
+            $config = require dirname(__DIR__) . '/config/config.php';
+            self::$instance = new self($config['db']);
+        }
+        return self::$instance;
+    }
+
+    /** Previene clonación del Singleton */
+    private function __clone() {}
+
+    /** Previene deserialización del Singleton */
+    public function __wakeup(): void
+    {
+        throw new RuntimeException('Cannot unserialize singleton.');
+    }
+
+    // ── Propiedades ──────────────────────────────────────────────────────────
+    private string $host;
+    private string $db_name;
+    private string $user;
+    private string $pass;
+    private string $charset;
 
     private $dbh;
     private $stmt;
-    private $error;
+    public string $error = '';
 
+    // ── Constructor (private — usar getInstance()) ───────────────────────────
     public function __construct(array $config)
     {
-        $this->host = $config['host'];
-        $this->db_name = $config['name'];
-        $this->user = $config['user'];
-        $this->pass = $config['pass'];
+        $this->host    = $config['host'];
+        $this->db_name = $config['name'];    // 'name' — clave real del config.php SGP
+        $this->user    = $config['user'];
+        $this->pass    = $config['pass'];
         $this->charset = $config['charset'];
 
-        $dsn = 'mysql:host=' . $this->host . ';dbname=' . $this->db_name . ';charset=' . $this->charset;
-        $options = array(
-            PDO::ATTR_PERSISTENT => true,
-            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        $dsn     = 'mysql:host=' . $this->host . ';dbname=' . $this->db_name . ';charset=' . $this->charset;
+        $options = [
+            PDO::ATTR_PERSISTENT         => true,
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_general_ci"
-        );
+        ];
 
         try {
             $this->dbh = new PDO($dsn, $this->user, $this->pass, $options);
             // Sincronizar timezone de la conexión MySQL con Venezuela (-04:00 / America/Caracas)
             $this->dbh->exec("SET time_zone = '-04:00'");
         } catch (PDOException $e) {
-            $this->error = $e->getMessage();
-            echo $this->error;
+            // SGP-FIX-v2 [1.2] — Nunca exponer detalles de BD al usuario
+            error_log('[SGP-DB-ERROR] ' . date('Y-m-d H:i:s') . ' | ' . $e->getMessage());
+            $this->error = 'Error de conexión a la base de datos';
+            throw new RuntimeException('Error de conexión a la base de datos', 0, $e);
         }
     }
 
-    // Prepare statement with query
+    // ── API pública (todos los métodos originales preservados) ───────────────
+
+    /** Prepara una sentencia SQL */
     public function query($sql)
     {
         $this->stmt = $this->dbh->prepare($sql);
     }
 
-    // Bind values
+    /** Enlaza un parámetro a la sentencia preparada */
     public function bind($param, $value, $type = null)
     {
         if (is_null($type)) {
@@ -67,51 +103,51 @@ class Database
         $this->stmt->bindValue($param, $value, $type);
     }
 
-    // Execute the prepared statement
+    /** Ejecuta la sentencia preparada */
     public function execute()
     {
         return $this->stmt->execute();
     }
 
-    // Get result set as array of objects
+    /** Devuelve todos los resultados como array de objetos */
     public function resultSet()
     {
         $this->execute();
         return $this->stmt->fetchAll(PDO::FETCH_OBJ);
     }
 
-    // Get single record as object
+    /** Devuelve un único resultado como objeto */
     public function single()
     {
         $this->execute();
         return $this->stmt->fetch(PDO::FETCH_OBJ);
     }
 
-    // Get row count
+    /** Número de filas afectadas */
     public function rowCount()
     {
         return $this->stmt->rowCount();
     }
-    
-    // Get last insert ID
+
+    /** Último ID insertado */
     public function lastInsertId()
     {
         return $this->dbh->lastInsertId();
     }
-    
-    // Begin transaction
+
+    /** Inicia una transacción */
     public function beginTransaction()
     {
         return $this->dbh->beginTransaction();
     }
-    
-    // Commit transaction
+
+    /** Confirma la transacción */
     public function commit()
     {
         return $this->dbh->commit();
     }
-    
-    // Rollback transaction
+
+    /** Revierte la transacción */
     public function rollback()
     {
         return $this->dbh->rollBack();

@@ -11,8 +11,28 @@ class DashboardAdminModel
 
     public function __construct()
     {
-        $config = require '../app/config/config.php';
-        $this->db = new Database($config['db']);
+        // SGP-FIX-v2 [6/2.1] aplicado — Singleton
+        $this->db = Database::getInstance();
+    }
+
+    /**
+     * Obtener métricas principales en una sola consulta (KPIs)
+     * Optimizada para reducir latencia y carga en BD.
+     */
+    public function getKpiTotales(): object
+    {
+        $this->db->query("
+            SELECT
+                (SELECT COUNT(*) FROM datos_pasante WHERE estado_pasantia = 'Activo') AS totalActivos,
+                (SELECT COUNT(*) FROM usuarios u 
+                 LEFT JOIN datos_pasante dp ON u.id = dp.usuario_id 
+                 WHERE u.rol_id = 3 AND (dp.estado_pasantia = 'Sin Asignar' OR dp.estado_pasantia IS NULL OR dp.estado_pasantia = '')) AS pendientesAsignar,
+                (SELECT COUNT(*) FROM usuarios WHERE rol_id = 2 AND estado = 'activo') AS totalTutores,
+                (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND estado = 'Presente') AS asistenciasHoy,
+                (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND estado IN ('Ausente', 'Falta')) AS faltasHoy,
+                (SELECT COUNT(DISTINCT institucion_procedencia) FROM datos_pasante WHERE institucion_procedencia IS NOT NULL AND institucion_procedencia != '') AS totalInstituciones
+        ");
+        return $this->db->single();
     }
 
     public function getTotalActivos(): int
@@ -31,7 +51,7 @@ class DashboardAdminModel
             SELECT COUNT(*) AS total
             FROM usuarios u
             LEFT JOIN datos_pasante dp ON u.id = dp.usuario_id
-            WHERE u.rol_id = 3 AND (dp.estado_pasantia = 'Sin Asignar' OR dp.estado_pasantia IS NULL)
+            WHERE u.rol_id = 3 AND (dp.estado_pasantia = 'Sin Asignar' OR dp.estado_pasantia IS NULL OR dp.estado_pasantia = '')
         ");
         return (int)($this->db->single()->total ?? 0);
     }
@@ -102,9 +122,9 @@ class DashboardAdminModel
     public function getEstadosPasantes(): array
     {
         $this->db->query("
-            SELECT COALESCE(estado_pasantia, 'Sin Asignar') AS estado_pasantia, COUNT(*) AS cantidad
+            SELECT COALESCE(NULLIF(estado_pasantia, ''), 'Sin Asignar') AS estado_pasantia, COUNT(*) AS cantidad
             FROM datos_pasante
-            GROUP BY COALESCE(estado_pasantia, 'Sin Asignar')
+            GROUP BY COALESCE(NULLIF(estado_pasantia, ''), 'Sin Asignar')
         ");
         return $this->db->resultSet();
     }
@@ -274,26 +294,50 @@ class DashboardAdminModel
         $this->db->query("
             SELECT 
                 u.id AS usuario_id,
+                u.cedula,
                 dp.nombres,
                 dp.apellidos,
-                COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado,
-                dpa.fecha_fin_estimada
+                COALESCE(NULLIF(dpa.estado_pasantia, ''), 'Sin Asignar') AS estado,
+                dpa.fecha_fin_estimada,
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_procedencia
             FROM usuarios u
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
             LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
+            LEFT JOIN instituciones inst ON dpa.institucion_procedencia = inst.id
             WHERE u.rol_id = 3 
               AND u.estado = 'activo'
               AND (
                   dpa.estado_pasantia = 'Sin Asignar' 
                   OR dpa.estado_pasantia IS NULL
+                  OR dpa.estado_pasantia = ''
                   OR (dpa.estado_pasantia = 'Activo' AND dpa.fecha_fin_estimada <= DATE_ADD(CURDATE(), INTERVAL 7 DAY))
               )
             ORDER BY 
-                CASE WHEN dpa.estado_pasantia = 'Sin Asignar' OR dpa.estado_pasantia IS NULL THEN 1 ELSE 2 END ASC,
-                dpa.fecha_fin_estimada ASC
+                CASE WHEN dpa.estado_pasantia = 'Sin Asignar' OR dpa.estado_pasantia IS NULL OR dpa.estado_pasantia = '' THEN 1 ELSE 2 END ASC,
+                dpa.fecha_fin_estimada ASC,
+                u.created_at DESC
             LIMIT :limit
         ");
         $this->db->bind(':limit', $limit, PDO::PARAM_INT);
+        return $this->db->resultSet();
+    }
+
+    public function getDepartamentosParaAsignacion(): array
+    {
+        $this->db->query("SELECT id, nombre FROM departamentos WHERE activo = 1 ORDER BY nombre ASC");
+        return $this->db->resultSet();
+    }
+
+    public function getTutoresParaAsignacion(): array
+    {
+        $this->db->query("
+            SELECT u.id, dp.nombres, dp.apellidos, d.nombre AS departamento_nombre
+            FROM usuarios u
+            LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
+            LEFT JOIN departamentos    d  ON d.id = u.departamento_id
+            WHERE u.rol_id = 2 AND u.estado = 'activo'
+            ORDER BY IFNULL(dp.apellidos, u.correo) ASC
+        ");
         return $this->db->resultSet();
     }
 }

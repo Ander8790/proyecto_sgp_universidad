@@ -15,13 +15,21 @@ abstract class Controller
         } else {
             die("Model {$model} does not exist");
         }
-        
-        // Instantiate Database
-        $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
-        
+
+        // SGP-FIX-v2 [5/2.1] aplicado — Singleton en lugar de new Database()
+        $db = Database::getInstance();
+
         // Instantiate model with DB connection
         return new $className($db);
+    }
+
+    /**
+     * Verifica el token CSRF. Termina con HTTP 403 si es inválido.
+     * SGP-FIX-v2 [5] aplicado
+     */
+    protected function verifyCsrf(): void
+    {
+        CsrfHelper::verify();
     }
 
     // Load view with optional layout support
@@ -29,26 +37,35 @@ abstract class Controller
     {
         // Check for view file
         $viewPath = '../app/views/' . $view . '.php';
-        
-        if (file_exists($viewPath)) {
-            // Extract data for the view
-            extract($data);
-            
-            if ($useMasterLayout) {
-                // Set content path for layout to include
-                $content = $viewPath;
-                
-                // Load main layout — usar require (no require_once) para garantizar
-                // que el layout se renderice siempre, incluso si PHP ya registró
-                // el archivo en una solicitud previa.
-                require '../app/views/layouts/main_layout.php';
-            } else {
-                // Load standalone view (Login, Register, Landing, etc.)
-                require $viewPath;
-            }
-        } else {
-            // View does not exist
+
+        if (!file_exists($viewPath)) {
             die("View {$view} does not exist");
+        }
+
+        // Extract data for the view
+        extract($data);
+
+        // ── PJAX: Detectar si la petición viene del módulo sgp-pjax.js ──
+        // Si sí, renderizar solo el contenido (sin layout completo).
+        // Esto evita re-descargar CSS/JS/sidebar/topbar en cada navegación.
+        $isPjax = isset($_SERVER['HTTP_X_PJAX']) && $_SERVER['HTTP_X_PJAX'] === '1';
+
+        if ($isPjax && $useMasterLayout) {
+            // Inyectar el title codificado para que el JS lo use
+            $pageTitle = $title ?? 'SGP';
+            echo '<span data-pjax-title="' . urlencode($pageTitle) . '" style="display:none;"></span>';
+            // Renderizar solo el contenido de la vista
+            require $viewPath;
+            return;
+        }
+
+        if ($useMasterLayout) {
+            // Petición normal → layout completo
+            $content = $viewPath;
+            require '../app/views/layouts/main_layout.php';
+        } else {
+            // Vista standalone (Login, Wizard, etc.)
+            require $viewPath;
         }
     }
 

@@ -39,7 +39,7 @@ switch ($rol_id) {
 $dashboardUrl = URLROOT . '/dashboard';
 if ($rol_id == 1) $dashboardUrl = URLROOT . '/admin';
 if ($rol_id == 2) $dashboardUrl = URLROOT . '/tutor';
-if ($rol_id == 3) $dashboardUrl = URLROOT . '/pasante';
+if ($rol_id == 3) $dashboardUrl = URLROOT . '/pasante/dashboard';
 
 /**
  * Helper: Determinar si un link está activo
@@ -59,7 +59,7 @@ function isActive($url) {
             <!-- Dashboard -->
             <li>
                 <a href="<?= $dashboardUrl ?>" 
-                   class="nav-link <?= isActive($rol_id == 1 ? '/admin' : ($rol_id == 2 ? '/tutor' : '/pasante')) ?>"
+                   class="nav-link <?= isActive($rol_id == 1 ? '/admin' : ($rol_id == 2 ? '/tutor' : '/pasante/dashboard')) ?>"
                    data-tooltip="Inicio">
                     <i class="ti ti-home"></i>
                     <span class="menu-text">Inicio</span>

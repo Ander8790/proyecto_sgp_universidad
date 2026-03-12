@@ -57,39 +57,44 @@
 }
 
 .flatpickr-current-month .flatpickr-monthDropdown-months {
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: transparent !important;
     color: white !important;
     font-weight: 700 !important;
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
     border-radius: 6px !important;
-    padding: 2px 8px !important;
+    padding: 2px 4px !important;
     margin-right: 6px !important;
     cursor: pointer !important;
     outline: none !important;
+    appearance: none !important;
+    /* Quitar flecha nativa si es posible */
 }
 
 .flatpickr-current-month .flatpickr-monthDropdown-months:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
 }
 
+/* Opciones del dropdown de meses (forzando fondo oscuro y texto blanco para evitar choque) */
 .flatpickr-current-month .flatpickr-monthDropdown-months option {
     background: #1e293b !important;
-    color: white !important;
+    color: #ffffff !important;
     font-weight: 500 !important;
+    padding: 4px !important;
 }
 
 .flatpickr-current-month input.cur-year {
     color: white !important;
     font-weight: 700 !important;
-    background: rgba(255, 255, 255, 0.2) !important;
+    background: transparent !important;
     border: 1px solid rgba(255, 255, 255, 0.3) !important;
     border-radius: 6px !important;
     padding: 2px 4px !important;
     outline: none !important;
+    box-shadow: none !important;
 }
 
 .flatpickr-current-month input.cur-year:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
+    background: rgba(255, 255, 255, 0.1) !important;
 }
 
 .flatpickr-current-month input.cur-year[disabled],

@@ -19,7 +19,7 @@ class EvaluacionesController extends Controller {
         AuthMiddleware::verificarEstado();
 
         $config    = require APPROOT . '/config/config.php';
-        $this->db  = new Database($config['db']);
+        $this->db  = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         
         $this->evaluacionModel = $this->model('Evaluacion');
     }

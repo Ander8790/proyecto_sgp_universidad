@@ -32,22 +32,32 @@ class AuthController extends Controller
 
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 
-        // ============================================
-        // LÍMITE DE INTENTOS DE LOGIN (5 MAX)
-        // ============================================
-        if (!isset($_SESSION['login_attempts'])) {
-            $_SESSION['login_attempts'] = 0;
-            $_SESSION['login_blocked_until'] = null;
-        }
+        // SGP-FIX-v2 [T8] Rate limiting por IP + email en BD
+        $ip    = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+        $email = trim($_POST['email'] ?? '');
+        $db    = Database::getInstance();
 
-        // Verificar si está bloqueado
-        if ($_SESSION['login_blocked_until'] && time() < $_SESSION['login_blocked_until']) {
-            $remaining = ceil(($_SESSION['login_blocked_until'] - time()) / 60);
-            $errorMsg = "Demasiados intentos fallidos. Intenta de nuevo en {$remaining} minutos.";
+        // 1. Verificar si la IP+email está actualmente bloqueada
+        $db->query(
+            'SELECT blocked_until FROM login_attempts
+             WHERE ip_address = :ip AND email = :email
+             LIMIT 1'
+        );
+        $db->bind(':ip',    $ip);
+        $db->bind(':email', $email);
+        $intento = $db->single();
+
+        if ($intento && !empty($intento->blocked_until) && strtotime($intento->blocked_until) > time()) {
+            $segundos = strtotime($intento->blocked_until) - time();
+            $minutos  = (int) ceil($segundos / 60);
+            $errorMsg = "Demasiados intentos fallidos. Cuenta bloqueada por {$minutos} minuto(s).";
             
             if ($isAjax) {
                 header('Content-Type: application/json');
-                echo json_encode(['success' => false, 'message' => $errorMsg]);
+                echo json_encode([
+                    'success' => false,
+                    'message' => $errorMsg
+                ]);
                 exit;
             }
             $this->view('auth/login', ['error' => $errorMsg], false);
@@ -80,18 +90,40 @@ class AuthController extends Controller
         
         // 1. Verificar si el correo existe
         if (!$user) {
-            // Incrementar contador de intentos fallidos
-            $_SESSION['login_attempts']++;
-            
-            // Calcular intentos restantes y mensaje
-            $remaining_attempts = 5 - $_SESSION['login_attempts'];
-            $errorMsg = 'El correo electrónico no se encuentra registrado.';
-            
-            if ($_SESSION['login_attempts'] >= 3 && $_SESSION['login_attempts'] < 5) {
-                $errorMsg .= " Te quedan {$remaining_attempts} intentos.";
-            } elseif ($_SESSION['login_attempts'] >= 5) {
-                $_SESSION['login_blocked_until'] = time() + (15 * 60); // 15 minutos
-                $errorMsg = 'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.';
+            // SGP-FIX-v2 [1.4] — Mensaje genérico para evitar enumeración de usuarios (OWASP)
+            $errorMsg = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
+
+            // SGP-FIX-v2 [T8] Registrar intento fallido
+            $db->query(
+                'INSERT INTO login_attempts (ip_address, email, attempts, last_attempt)
+                 VALUES (:ip, :email, 1, NOW())
+                 ON DUPLICATE KEY UPDATE
+                     attempts     = attempts + 1,
+                     last_attempt = NOW()'
+            );
+            $db->bind(':ip',    $ip);
+            $db->bind(':email', $email);
+            $db->execute();
+
+            // Bloquear si alcanza 5 intentos consecutivos
+            $db->query(
+                'SELECT attempts FROM login_attempts
+                 WHERE ip_address = :ip AND email = :email
+                 LIMIT 1'
+            );
+            $db->bind(':ip',    $ip);
+            $db->bind(':email', $email);
+            $fila = $db->single();
+
+            if ($fila && (int)$fila->attempts >= 5) {
+                $db->query(
+                    'UPDATE login_attempts
+                     SET blocked_until = DATE_ADD(NOW(), INTERVAL 15 MINUTE)
+                     WHERE ip_address = :ip AND email = :email'
+                );
+                $db->bind(':ip',    $ip);
+                $db->bind(':email', $email);
+                $db->execute();
             }
             
             if ($isAjax) {
@@ -106,18 +138,40 @@ class AuthController extends Controller
         
         // 2. Verificar si la contraseña es correcta
         if (!password_verify($password, $user['password'])) {
-            // Incrementar contador de intentos fallidos
-            $_SESSION['login_attempts']++;
-            
-            // Calcular intentos restantes y mensaje
-            $remaining_attempts = 5 - $_SESSION['login_attempts'];
-            $errorMsg = 'La contraseña ingresada es incorrecta.';
-            
-            if ($_SESSION['login_attempts'] >= 3 && $_SESSION['login_attempts'] < 5) {
-                $errorMsg .= " Te quedan {$remaining_attempts} intentos.";
-            } elseif ($_SESSION['login_attempts'] >= 5) {
-                $_SESSION['login_blocked_until'] = time() + (15 * 60); // 15 minutos
-                $errorMsg = 'Demasiados intentos fallidos. Cuenta bloqueada por 15 minutos.';
+            // SGP-FIX-v2 [1.4] — Mismo mensaje genérico (no revelar si correo existe)
+            $errorMsg = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
+
+            // SGP-FIX-v2 [T8] Registrar intento fallido
+            $db->query(
+                'INSERT INTO login_attempts (ip_address, email, attempts, last_attempt)
+                 VALUES (:ip, :email, 1, NOW())
+                 ON DUPLICATE KEY UPDATE
+                     attempts     = attempts + 1,
+                     last_attempt = NOW()'
+            );
+            $db->bind(':ip',    $ip);
+            $db->bind(':email', $email);
+            $db->execute();
+
+            // Bloquear si alcanza 5 intentos consecutivos
+            $db->query(
+                'SELECT attempts FROM login_attempts
+                 WHERE ip_address = :ip AND email = :email
+                 LIMIT 1'
+            );
+            $db->bind(':ip',    $ip);
+            $db->bind(':email', $email);
+            $fila = $db->single();
+
+            if ($fila && (int)$fila->attempts >= 5) {
+                $db->query(
+                    'UPDATE login_attempts
+                     SET blocked_until = DATE_ADD(NOW(), INTERVAL 15 MINUTE)
+                     WHERE ip_address = :ip AND email = :email'
+                );
+                $db->bind(':ip',    $ip);
+                $db->bind(':email', $email);
+                $db->execute();
             }
             
             if ($isAjax) {
@@ -146,8 +200,14 @@ class AuthController extends Controller
         }
 
         // ✨ LOGIN EXITOSO: Reset contador de intentos
-        $_SESSION['login_attempts'] = 0;
-        $_SESSION['login_blocked_until'] = null;
+        // SGP-FIX-v2 [T8] Limpiar intentos fallidos tras login exitoso
+        $db->query(
+            'DELETE FROM login_attempts
+             WHERE ip_address = :ip AND email = :email'
+        );
+        $db->bind(':ip',    $ip);
+        $db->bind(':email', $email);
+        $db->execute();
 
         Session::regenerate();
         Session::set('user_id', $user['id']);
@@ -683,6 +743,8 @@ class AuthController extends Controller
      */
     public function solicitarDesbloqueo()
     {
+        $this->verifyCsrf(); // SGP-FIX-v2 [1.1] aplicado
+
         // 1. Verificar sesión de recuperación
         if (!isset($_SESSION['recovery_user_id'])) {
             Session::setFlash('error', 'Sesión expirada. Inicia el proceso de recuperación nuevamente.');
@@ -776,8 +838,7 @@ class AuthController extends Controller
                 return;
             }
             
-            $config = require APPROOT . '/config/config.php';
-            $db = new Database($config['db']);
+            $db = Database::getInstance(); // SGP-FIX-v2 [6] aplicado
 
             // Buscar usuario
             $db->query("SELECT u.id, dp.nombres, dp.apellidos FROM usuarios u LEFT JOIN datos_personales dp ON dp.usuario_id = u.id WHERE u.correo = :email");
@@ -828,5 +889,22 @@ class AuthController extends Controller
             3 => '/pasante'     // Pasante
         ];
         $this->redirect($routes[$roleId] ?? '/auth/login');
+    }
+
+    /**
+     * Renueva la sesión activa desde JS (keep-alive de inactividad).
+     * SGP-FIX-v2 [sesión_inactividad paso_4] aplicado
+     */
+    public function keepalive(): void
+    {
+        header('Content-Type: application/json');
+        if (empty($_SESSION['user_id'])) {
+            http_response_code(401);
+            echo json_encode(['success' => false]);
+            exit;
+        }
+        $_SESSION['last_activity'] = time();
+        echo json_encode(['success' => true]);
+        exit;
     }
 }

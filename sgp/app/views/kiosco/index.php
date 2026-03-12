@@ -312,7 +312,7 @@
 
                 <!-- LINK OLVIDÓ PIN -->
                 <div style="text-align: center; margin-top: 20px;">
-                    <a href="#" onclick="solicitarResetPin(event)" class="auth-link" style="color:#059669;font-size:0.9rem;font-weight:600;text-decoration:none;">
+                    <a href="#" onclick="solicitarResetPin(event)" class="auth-link" style="color:#162660;font-size:0.9rem;font-weight:600;text-decoration:none;">
                         ¿Olvidaste tu PIN? Solicitar reseteo
                     </a>
                 </div>

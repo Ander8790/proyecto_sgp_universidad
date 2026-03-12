@@ -1,4 +1,8 @@
 <?php
+// SGP-FIX-v2 [1] aplicado — Timeout de sesión por inactividad
+if (!defined('SESSION_TIMEOUT_SECONDS')) {
+    define('SESSION_TIMEOUT_SECONDS', 600); // 10 minutos
+}
 return [
     'db' => [
         // conexion a la base de datos 

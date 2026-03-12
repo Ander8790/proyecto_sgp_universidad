@@ -412,6 +412,24 @@ class UserModel
     }
 
     /**
+     * Obtener KPIs de Usuarios en una sola consulta SQL
+     * Optimizado para reemplazar los filter_array en PHP
+     */
+    public function getUsersKPIs(): array
+    {
+        $this->db->query("
+            SELECT 
+                COUNT(*) as total,
+                SUM(CASE WHEN rol_id = 3 THEN 1 ELSE 0 END) as pasantes,
+                SUM(CASE WHEN estado = 'activo' THEN 1 ELSE 0 END) as activos,
+                SUM(CASE WHEN estado = 'inactivo' THEN 1 ELSE 0 END) as inactivos
+            FROM usuarios
+        ");
+        $row = $this->db->single();
+        return $row ? (array) $row : ['total' => 0, 'pasantes' => 0, 'activos' => 0, 'inactivos' => 0];
+    }
+
+    /**
      * Actualizar Datos de Usuario
      * 
      * PROPÓSITO:

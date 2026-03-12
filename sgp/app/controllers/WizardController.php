@@ -31,7 +31,7 @@ class WizardController extends Controller
 
         $this->userModel = $this->model('User');
         $config = require '../app/config/config.php';
-        $this->db = new Database($config['db']);
+        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
     }
 
     /**

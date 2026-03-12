@@ -32,7 +32,7 @@ class AsignacionesController extends Controller
         }
 
         $config    = require APPROOT . '/config/config.php';
-        $this->db  = new Database($config['db']);
+        $this->db  = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         
         $this->asignacionModel = $this->model('Asignacion');
     }
@@ -95,6 +95,7 @@ class AsignacionesController extends Controller
         $tutorId        = (int)($_POST['tutor_id']        ?? 0);
         $horasMeta      = (int)($_POST['horas_meta']      ?? 1440);
         $fechaInicio    = trim($_POST['fecha_inicio']     ?? '');
+        $observaciones  = trim($_POST['observaciones']    ?? '');
 
         if (!$pasanteId || !$departamentoId || !$fechaInicio) {
             echo json_encode(['success' => false, 'message' => 'Pasante, departamento y fecha de inicio son obligatorios.']);
@@ -121,7 +122,7 @@ class AsignacionesController extends Controller
         $tutorIdVal = $tutorId > 0 ? $tutorId : null;
         $autoRellenar = isset($_POST['auto_rellenar']) && $_POST['auto_rellenar'] == '1';
 
-        if ($this->asignacionModel->guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin)) {
+        if ($this->asignacionModel->guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin, $observaciones)) {
             
             // -------------------------------------------------------------
             // FASE 1: AUTO-RELLENADO PARA PASANTES TARDÍOS
@@ -287,11 +288,12 @@ class AsignacionesController extends Controller
 
         $sql = "
             SELECT u.id AS pasante_id, u.cedula, dp.nombres, dp.apellidos, 
-                   COALESCE(dpa.institucion_procedencia, 'No especificada') AS institucion_procedencia, 
+                   COALESCE(inst.nombre, dpa.institucion_procedencia, 'No especificada') AS institucion_procedencia, 
                    dpa.estado_pasantia
             FROM usuarios u
             JOIN datos_personales dp ON u.id = dp.usuario_id
             LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
+            LEFT JOIN instituciones inst ON dpa.institucion_procedencia = inst.id
             WHERE u.rol_id = 3
               AND (dpa.estado_pasantia IN ('Pendiente', 'Sin Asignar') OR dpa.estado_pasantia IS NULL OR dpa.estado_pasantia = '')
               AND (u.cedula LIKE :q OR dp.nombres LIKE :q OR dp.apellidos LIKE :q)

@@ -10,7 +10,7 @@ class AsignacionModel {
 
     public function __construct() {
         $config = require '../app/config/config.php';
-        $this->db = new Database($config['db']);
+        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
     }
 
     /**
@@ -23,7 +23,7 @@ class AsignacionModel {
                 u.cedula,
                 dp.nombres,
                 dp.apellidos,
-                dpa.institucion_procedencia,
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_procedencia,
                 COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
                 COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
                 COALESCE(dpa.horas_meta, 1440)               AS horas_meta,
@@ -40,6 +40,7 @@ class AsignacionModel {
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN usuarios         tu  ON tu.id = dpa.tutor_id
             LEFT JOIN datos_personales tup ON tup.usuario_id = tu.id
+            LEFT JOIN instituciones    inst ON dpa.institucion_procedencia = inst.id
             WHERE u.rol_id = 3 AND u.estado = 'activo'
             ORDER BY
                 FIELD(COALESCE(dpa.estado_pasantia,'Sin Asignar'),
@@ -59,12 +60,13 @@ class AsignacionModel {
                 u.cedula,
                 dp.nombres,
                 dp.apellidos,
-                dpa.institucion_procedencia,
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_procedencia,
                 COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
                 COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
                 COALESCE(dpa.horas_meta, 1440)               AS horas_meta,
                 dpa.fecha_inicio_pasantia,
                 dpa.fecha_fin_estimada,
+                dpa.observaciones,
                 d.nombre           AS departamento_nombre,
                 tup.nombres        AS tutor_nombres,
                 tup.apellidos      AS tutor_apellidos
@@ -74,6 +76,7 @@ class AsignacionModel {
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN usuarios         tu  ON tu.id = dpa.tutor_id
             LEFT JOIN datos_personales tup ON tup.usuario_id = tu.id
+            LEFT JOIN instituciones    inst ON dpa.institucion_procedencia = inst.id
             WHERE u.id = :uid
             LIMIT 1
         ");
@@ -82,28 +85,46 @@ class AsignacionModel {
     }
 
     /**
-     * Guardar/Actualizar una asignación (UPSERT)
+     * Guardar/Actualizar una asignación
+     * Utiliza lógica de comprobación previa para asegurar la actualización del registro existente
      */
-    public function guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin) {
-        $this->db->query("
-            INSERT INTO datos_pasante
-                (usuario_id, departamento_asignado_id, tutor_id, horas_meta,
-                 fecha_inicio_pasantia, fecha_fin_estimada, estado_pasantia)
-            VALUES
-                (:uid, :dept_id, :tutor_id, :horas_meta, :fecha_inicio, :fecha_fin, 'Pendiente')
-            ON DUPLICATE KEY UPDATE
-                departamento_asignado_id = VALUES(departamento_asignado_id),
-                tutor_id                 = VALUES(tutor_id),
-                horas_meta               = VALUES(horas_meta),
-                fecha_inicio_pasantia    = VALUES(fecha_inicio_pasantia),
-                fecha_fin_estimada       = VALUES(fecha_fin_estimada)
-        ");
+    public function guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin, $observaciones = '') {
+        // 1. Comprobar si ya existe un registro para este pasante
+        $this->db->query("SELECT id FROM datos_pasante WHERE usuario_id = :uid LIMIT 1");
+        $this->db->bind(':uid', $pasanteId);
+        $existe = $this->db->single();
+
+        if ($existe) {
+            // 2. Si existe, ACTUALIZAMOS
+            $this->db->query("
+                UPDATE datos_pasante 
+                SET departamento_asignado_id = :dept_id,
+                    tutor_id                 = :tutor_id,
+                    horas_meta               = :horas_meta,
+                    fecha_inicio_pasantia    = :fecha_inicio,
+                    fecha_fin_estimada       = :fecha_fin,
+                    estado_pasantia          = 'Pendiente',
+                    observaciones            = :obs
+                WHERE usuario_id = :uid
+            ");
+        } else {
+            // 3. Si no existe, INSERTAMOS
+            $this->db->query("
+                INSERT INTO datos_pasante
+                    (usuario_id, departamento_asignado_id, tutor_id, horas_meta,
+                     fecha_inicio_pasantia, fecha_fin_estimada, estado_pasantia, observaciones)
+                VALUES
+                    (:uid, :dept_id, :tutor_id, :horas_meta, :fecha_inicio, :fecha_fin, 'Pendiente', :obs)
+            ");
+        }
+
         $this->db->bind(':uid',          $pasanteId);
         $this->db->bind(':dept_id',      $departamentoId);
         $this->db->bind(':tutor_id',     $tutorIdVal);
         $this->db->bind(':horas_meta',   $horasMeta);
         $this->db->bind(':fecha_inicio', $fechaInicio);
         $this->db->bind(':fecha_fin',    $fechaFin);
+        $this->db->bind(':obs',          $observaciones);
 
         return $this->db->execute();
     }

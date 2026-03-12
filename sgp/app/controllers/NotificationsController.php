@@ -25,7 +25,7 @@ class NotificationsController extends Controller
         
         // Load model
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         $this->notificationModel = new NotificationModel($db);
     }
 
@@ -92,7 +92,7 @@ class NotificationsController extends Controller
     {
         $alerts = [];
         $config = require APPROOT . '/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
 
         // 1. Pasantes sin asignar (Solo Admin)
         if ($role_id === 1) {

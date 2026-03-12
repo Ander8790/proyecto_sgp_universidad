@@ -49,9 +49,12 @@ class UsersController extends Controller
     {
         $users = $this->userModel->getAllUsers();
         
+        // Optimización: KPIs precalculados en SQL
+        $kpis = $this->userModel->getUsersKPIs();
+        
         // Get roles for dropdown
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         $db->query("SELECT id, nombre FROM roles ORDER BY id");
         $roles = $db->resultSet();
         
@@ -61,6 +64,7 @@ class UsersController extends Controller
         
         $this->view('users/index', [
             'users' => $users,
+            'kpis'  => $kpis,
             'roles' => $roles,
             'departamentos' => $departamentos
         ]);
@@ -98,7 +102,7 @@ class UsersController extends Controller
 
         // Initialize Database for transaction control
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
 
         try {
             $db->beginTransaction();
@@ -170,7 +174,7 @@ class UsersController extends Controller
         if ($user) {
             // Get personal data (nombres/apellidos from datos_personales, cedula from usuarios)
             $config = require '../app/config/config.php';
-            $db = new Database($config['db']);
+            $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
             $db->query("
                 SELECT u.cedula, dp.nombres, dp.apellidos
                 FROM usuarios u
@@ -374,7 +378,7 @@ public function update()
 
         // Get user cedula — now lives in usuarios table
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         $db->query("SELECT cedula FROM usuarios WHERE id = :uid");
         $db->bind(':uid', $id);
         $result = $db->single();
@@ -417,7 +421,7 @@ public function update()
 
         // Soft delete - set estado to inactivo
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         $db->query("UPDATE usuarios SET estado = 'inactivo' WHERE id = :id");
         $db->bind(':id', $id);
 
@@ -442,7 +446,7 @@ public function update()
         }
         
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         
         $db->query("
             SELECT 
@@ -510,7 +514,7 @@ public function update()
         $newStatus = $user['estado'] === 'activo' ? 'inactivo' : 'activo';
 
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         $db->query("UPDATE usuarios SET estado = :status WHERE id = :id");
         $db->bind(':status', $newStatus);
         $db->bind(':id', $id);
@@ -538,7 +542,7 @@ public function update()
         }
 
         $config = require '../app/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
 
         $like = '%' . $q . '%';
         $rolFilter = isset($_GET['rol']) ? (int)$_GET['rol'] : 0;
@@ -708,7 +712,7 @@ public function update()
         }
 
         $config = require APPROOT . '/config/config.php';
-        $db = new Database($config['db']);
+        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
 
         // Extraer Data
         $db->query("

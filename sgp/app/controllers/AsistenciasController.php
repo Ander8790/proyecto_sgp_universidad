@@ -21,7 +21,7 @@ class AsistenciasController extends Controller
         AuthMiddleware::verificarEstado();
 
         $config  = require '../app/config/config.php';
-        $this->db = new Database($config['db']);
+        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
         $this->asistenciaModel = $this->model('Asistencia');
     }
 
@@ -404,6 +404,10 @@ class AsistenciasController extends Controller
                 ];
             }
 
+            // SGP-FIX-v2 [1.3] aplicado — JSON_HEX_* flags para prevenir XSS via </script>
+            $pasantesParaJSJson  = json_encode($pasantesParaJS,  JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
+            $resumenDeptosJSJson = json_encode($resumenDeptosJS, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
+
             // ===== JS DATA: Calendario =====
             $calendarioJS = [];
             $daysJS = [];
@@ -482,6 +486,7 @@ class AsistenciasController extends Controller
      */
     public function registro_manual(): void
     {
+        $this->verifyCsrf(); // SGP-FIX-v2 [1.1] aplicado
         header('Content-Type: application/json');
 
         if ((int)Session::get('role_id') !== 1) {
@@ -531,6 +536,15 @@ class AsistenciasController extends Controller
 
             if (!in_array($ext, $allowed)) {
                 echo json_encode(['success' => false, 'message' => 'Formato de archivo no permitido. Use JPG, PNG o PDF.']);
+                exit;
+            }
+
+            // SGP-FIX-v2 [1.5] aplicado — Validar MIME real además de la extensión
+            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
+            $finfo        = new finfo(FILEINFO_MIME_TYPE);
+            $mimeReal     = $finfo->file($file['tmp_name']);
+            if (!in_array($mimeReal, $allowedMimes)) {
+                echo json_encode(['success' => false, 'message' => 'Tipo de archivo no permitido (MIME inválido).']);
                 exit;
             }
 
@@ -768,6 +782,7 @@ class AsistenciasController extends Controller
      */
     public function anular_registro(): void
     {
+        $this->verifyCsrf(); // SGP-FIX-v2 [1.1] aplicado
         header('Content-Type: application/json');
         if ((int)Session::get('role_id') !== 1) {
             echo json_encode(['success' => false, 'message' => 'Sin permisos.']);

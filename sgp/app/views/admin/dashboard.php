@@ -326,9 +326,17 @@ $actividadReciente  = $data['actividadReciente']  ?? [];
                                     </div>
                                 </div>
                             </div>
+                            <?php if ($isSinAsignar): 
+                                $instMsg = htmlspecialchars($alerta->institucion_procedencia ?? 'No registrada');
+                            ?>
+                            <button onclick="editarAsignacion(<?= (int)$alerta->usuario_id ?>, '<?= addslashes($title) ?>', '<?= addslashes($alerta->cedula) ?>', '<?= addslashes($instMsg) ?>')" style="background: #fff; color: <?= $iconColor ?>; border: 1px solid <?= $iconColor ?>; padding: 6px 12px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);" onmouseover="this.style.background='<?= $iconColor ?>'; this.style.color='#fff';" onmouseout="this.style.background='#fff'; this.style.color='<?= $iconColor ?>';">
+                                <i class="ti ti-check"></i> Asignar
+                            </button>
+                            <?php else: ?>
                             <a href="<?= $btnLink ?>" title="Resolver" style="background: #fff; color: <?= $iconColor ?>; border: 1px solid #E2E8F0; width: 32px; height: 32px; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onmouseover="this.style.background='<?= $iconColor ?>'; this.style.color='#fff';" onmouseout="this.style.background='#fff'; this.style.color='<?= $iconColor ?>';">
                                 <i class="ti ti-arrow-right"></i>
                             </a>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                     </div>
@@ -340,8 +348,7 @@ $actividadReciente  = $data['actividadReciente']  ?? [];
 
 </div>
 
-<script src="<?= URLROOT ?>/js/apexcharts.min.js"></script>
-<script src="<?= URLROOT ?>/js/echarts.min.js"></script>
+<?php require APPROOT . '/views/inc/modal_asignacion.php'; ?>
 
 <script>
 document.addEventListener("DOMContentLoaded", function () {
@@ -409,9 +416,9 @@ document.addEventListener("DOMContentLoaded", function () {
     function updateDateTime() {
         const now = new Date();
         const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
         document.getElementById('currentDate').textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
-        document.getElementById('currentTime').textContent = timeStr;
+        document.getElementById('currentTime').textContent = timeStr.toUpperCase();
     }
     updateDateTime(); setInterval(updateDateTime, 1000);
 

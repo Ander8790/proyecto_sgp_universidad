@@ -168,7 +168,7 @@ if (!isset($user) || empty($user)) {
                             <span style="font-size: 0.75rem; color: #6B7280; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;">Institución de Procedencia</span>
                         </div>
                         <h5 style="font-weight: 600; margin: 0; color: #1F2937; font-size: 1.05rem;">
-                            <?= htmlspecialchars($user['institucion_procedencia']) ?>
+                            <?= htmlspecialchars($user['institucion_nombre'] ?? $user['institucion_procedencia'] ?? 'No especificada') ?>
                         </h5>
                     </div>
                     <?php endif; ?>
@@ -312,9 +312,11 @@ if (!isset($user) || empty($user)) {
                 
                 <?php if (Session::get('role_id') == 3): // Pasante ?>
                 <div class="form-group" style="margin-bottom: 24px;">
-                    <label>Institución de Procedencia *</label>
-                    <input type="text" name="institucion_procedencia" id="edit_institucion" required 
-                        value="<?= htmlspecialchars($user['institucion_procedencia'] ?? '') ?>" class="input-modern">
+                    <label>Institución de Procedencia * <small style="color: #6B7280;">(No editable)</small></label>
+                    <input type="text" name="institucion_nombre" id="edit_institucion" readonly 
+                        value="<?= htmlspecialchars($user['institucion_nombre'] ?? $user['institucion_procedencia'] ?? '') ?>" 
+                        class="input-modern"
+                        style="background-color: #F3F4F6; cursor: not-allowed; color: #6B7280;">
                 </div>
                 <?php endif; ?>
                 

@@ -360,9 +360,13 @@
                 
                 
                 
-                <p style="color: #6b7280; font-size: 0.9rem; margin-bottom: 1.5rem;">
-                    Selecciona 3 preguntas diferentes y proporciona tus respuestas. Estas te ayudarán a recuperar tu cuenta.
-                </p>
+                <div style="background: rgba(37, 99, 235, 0.05); border: 1px solid rgba(37, 99, 235, 0.2); border-left: 4px solid #2563eb; border-radius: 8px; padding: 12px 16px; margin-bottom: 1.5rem; display: flex; align-items: flex-start; gap: 12px;">
+                    <i class="ti ti-info-square-rounded" style="color: #2563eb; font-size: 1.25rem; margin-top: 2px;"></i>
+                    <p style="color: #334155; font-size: 0.85rem; margin: 0; line-height: 1.5;">
+                        <strong style="color: #1e3a8a; font-weight: 700; display: block; margin-bottom: 2px;">Importante para tu seguridad</strong> 
+                        Selecciona 3 preguntas diferentes y proporciona tus respuestas. Estas serán la única forma de recuperar tu cuenta si olvidas la contraseña.
+                    </p>
+                </div>
                 
                 <?php 
                 // DEBUG TEMPORAL: Ver qué variables están disponibles

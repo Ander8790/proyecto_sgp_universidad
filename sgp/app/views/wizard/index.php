@@ -270,6 +270,14 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
             var fnac     = document.getElementById('fecha_nacimiento');
             var genero   = document.getElementById('genero');
             if (!telefono || !telefono.value.trim())  { NotificationService.warning('El campo Teléfono es obligatorio'); telefono && telefono.focus(); return false; }
+            
+            var phoneStr = telefono.value.replace(/[^0-9]/g, '');
+            if (phoneStr.length !== 11) {
+                NotificationService.warning('El teléfono debe tener 11 números válidos (Ej: 0414-1234567).'); 
+                telefono.focus(); 
+                return false;
+            }
+
             if (!fnac     || !fnac.value)             { NotificationService.warning('La Fecha de Nacimiento es obligatoria'); fnac && fnac.focus(); return false; }
             if (!genero   || !genero.value)           { NotificationService.warning('Selecciona tu género'); genero && genero.focus(); return false; }
             return true;
@@ -559,7 +567,7 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 <div class="step3-grid">
                     <!-- Teléfono — ocupa columna completa -->
                     <div class="form-group full-col">
-                        <input type="tel" name="telefono" id="telefono" class="input-modern" placeholder=" " required inputmode="numeric">
+                        <input type="tel" name="telefono" id="telefono" class="input-modern" placeholder=" " required inputmode="numeric" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/^(\d{4})(\d)/, '$1-$2').slice(0, 12);">
                         <label for="telefono" class="label-floating">
                             <i class="ti ti-phone" style="margin-right:8px;font-size:18px;"></i>Teléfono *
                         </label>

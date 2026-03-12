@@ -31,9 +31,10 @@ class PasanteController extends Controller
         AuthMiddleware::verificarEstado();
 
         $config = require '../app/config/config.php';
-        $this->db = new Database($config['db']);
+        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
 
         require_once '../app/models/PasanteModel.php';
+        require_once '../app/models/AsistenciaModel.php';
         $this->pasanteModel = new PasanteModel();
     }
 
@@ -108,7 +109,7 @@ class PasanteController extends Controller
         $pasante = $this->pasanteModel->getByUsuarioId($userId);
 
         // ✅ PRO-RATA: Calcular horas dinámicamente desde asistencias
-        $asistenciaModel = new AsistenciaModel();
+        $asistenciaModel = new AsistenciaModel($this->db);
         $horasMeta = (int)(($pasante->horas_meta ?? 0) > 0 ? $pasante->horas_meta : 1440);
         $proRata   = $asistenciaModel->calcularProgresoProRata($userId, $horasMeta);
 
@@ -168,4 +169,25 @@ class PasanteController extends Controller
         ]);
     }
 
+    /**
+     * Endpoint AJAX para verificar el estado actual de la pasantía.
+     * Utilizado para el polling de actualización automática.
+     */
+    public function getStatusAjax(): void
+    {
+        if (Session::get('role_id') != 3) {
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'No autorizado']);
+            return;
+        }
+
+        $userId = (int)Session::get('user_id');
+        $pasante = $this->pasanteModel->getByUsuarioId($userId);
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'estado'  => $pasante->estado_pasantia ?? 'Sin Asignar'
+        ]);
+    }
 }

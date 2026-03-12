@@ -11,6 +11,7 @@ class Session
                 session_start();
             }
         }
+        self::checkInactivity(); // SGP-FIX-v2 [2] aplicado
     }
 
     public static function destroy()
@@ -127,5 +128,42 @@ class Session
             return false;
         }
         return hash_equals($_SESSION['csrf_token'], $token);
+    }
+
+    /**
+     * Verifica inactividad de sesión y la destruye si supera el timeout.
+     * Devuelve JSON 401 para peticiones AJAX/PJAX; redirect para el resto.
+     * SGP-FIX-v2 [2] aplicado
+     */
+    public static function checkInactivity(): void
+    {
+        $timeout = defined('SESSION_TIMEOUT_SECONDS') ? SESSION_TIMEOUT_SECONDS : 600;
+
+        // Solo verificar si hay sesión activa con usuario autenticado
+        if (!isset($_SESSION['user_id'])) {
+            return;
+        }
+
+        if (isset($_SESSION['last_activity'])) {
+            $inactivo = time() - $_SESSION['last_activity'];
+            if ($inactivo > $timeout) {
+                self::destroy();
+                $esPjax = !empty($_SERVER['HTTP_X_PJAX'])
+                       || !empty($_SERVER['HTTP_X_REQUESTED_WITH']);
+                if ($esPjax) {
+                    http_response_code(401);
+                    header('Content-Type: application/json');
+                    echo json_encode([
+                        'success'  => false,
+                        'reason'   => 'session_expired',
+                        'redirect' => '/sgp/auth/login'
+                    ]);
+                    exit;
+                }
+                header('Location: /sgp/auth/login?razon=inactividad');
+                exit;
+            }
+        }
+        $_SESSION['last_activity'] = time();
     }
 }

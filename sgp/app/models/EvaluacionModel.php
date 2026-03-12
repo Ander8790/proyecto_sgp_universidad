@@ -9,7 +9,7 @@ class EvaluacionModel {
 
     public function __construct() {
         $config = require '../app/config/config.php';
-        $this->db = new Database($config['db']);
+        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
     }
 
     /**

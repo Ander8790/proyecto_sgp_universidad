@@ -388,14 +388,17 @@ function filtrarPorEstado(estado) {
 
 // Inicializar Tooltips y DataTables si no están
 $(document).ready(function() {
-    if (!$.fn.DataTable.isDataTable('.table')) {
-        $('.table').DataTable({
+    var $tablaAdmin = $('.table');
+    if ($tablaAdmin.length && !$.fn.DataTable.isDataTable($tablaAdmin)) {
+        $tablaAdmin.DataTable({
             language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
             pageLength: 10,
             responsive: true,
             dom: '<"top"f>rt<"bottom"ip><"clear">',
             columnDefs: [{ orderable: false, targets: 6 }]
         });
+    } else if ($tablaAdmin.length && $.fn.DataTable.isDataTable($tablaAdmin)) {
+        $tablaAdmin.DataTable().draw(false);
     }
     
     // Forzar inicialización de tooltips de Bootstrap
