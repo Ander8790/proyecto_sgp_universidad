@@ -247,13 +247,133 @@ class AuditModel
     /**
      * Obtener Instancia de Database
      * 
-     * PROPÓSITO:
-     * Exponer la conexión a BD para queries personalizadas en el controlador.
-     * 
      * @return Database Instancia de la conexión
      */
     public function getDb(): Database
     {
         return $this->db;
     }
+
+    // ============================================================
+    // MÉTODOS DE CICLO DE VIDA — SGP Lifecycle v2
+    // ============================================================
+
+    /**
+     * KPIs del header de Bitácora
+     *
+     * Devuelve en una sola consulta:
+     *   - total_activos : registros en tabla bitacora (activos)
+     *   - total_historico: registros archivados en bitacora_historico
+     *   - hoy            : eventos registrados hoy
+     *   - semana         : eventos de los últimos 7 días
+     *   - ultima_purga   : fecha de la última acción AUDIT_PURGE
+     *
+     * @return array
+     */
+    public function getKPIs(): array
+    {
+        // Contadores de bitacora activa
+        $this->db->query("
+            SELECT
+                COUNT(*)                                                        AS total_activos,
+                SUM(DATE(created_at) = CURDATE())                              AS hoy,
+                SUM(created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY))             AS semana,
+                MAX(CASE WHEN accion = 'AUDIT_PURGE' THEN created_at END)      AS ultima_purga
+            FROM bitacora
+        ");
+        $row = $this->db->single();
+
+        // Total archivado (tabla cold)
+        $this->db->query("SELECT COUNT(*) AS total FROM bitacora_historico");
+        $hist = $this->db->single();
+
+        return [
+            'total_activos'   => (int)($row->total_activos   ?? 0),
+            'hoy'             => (int)($row->hoy             ?? 0),
+            'semana'          => (int)($row->semana          ?? 0),
+            'ultima_purga'    => $row->ultima_purga           ?? null,
+            'total_historico' => (int)($hist->total          ?? 0),
+        ];
+    }
+
+    /**
+     * Ejecutar el ciclo de purga (llama al Stored Procedure spPurgarBitacora)
+     *
+     * @param int $diasCriticos  Días de retención para acciones críticas (default 365)
+     * @param int $diasOperacion Días de retención para acciones operacionales (default 90)
+     * @param int $ejecutadoPor  ID del admin que ejecuta la purga (0 = automático)
+     * @return array ['archivados' => int, 'purgados' => int]
+     */
+    public function purgar(int $diasCriticos = 365, int $diasOperacion = 90, int $ejecutadoPor = 0): array
+    {
+        $this->db->query("CALL spPurgarBitacora(:dias_c, :dias_o, :uid)");
+        $this->db->bind(':dias_c', $diasCriticos);
+        $this->db->bind(':dias_o', $diasOperacion);
+        $this->db->bind(':uid',    $ejecutadoPor);
+        $result = $this->db->single();
+
+        return [
+            'archivados' => (int)($result->archivados ?? 0),
+            'purgados'   => (int)($result->purgados   ?? 0),
+        ];
+    }
+
+    /**
+     * Obtener registros del histórico (tabla cold) con paginación y filtros
+     *
+     * @param int         $limit
+     * @param int         $offset
+     * @param string|null $accion
+     * @param string|null $dateFrom
+     * @param string|null $dateTo
+     * @return array ['data' => array, 'total' => int]
+     */
+    public function getHistorico(
+        int $limit    = 25,
+        int $offset   = 0,
+        ?string $accion    = null,
+        ?string $dateFrom  = null,
+        ?string $dateTo    = null
+    ): array {
+        $where  = 'WHERE 1=1';
+        $params = [];
+
+        if ($accion) {
+            $where .= ' AND h.accion = :accion';
+            $params[':accion'] = $accion;
+        }
+        if ($dateFrom) {
+            $where .= ' AND DATE(h.created_at) >= :fecha_desde';
+            $params[':fecha_desde'] = $dateFrom;
+        }
+        if ($dateTo) {
+            $where .= ' AND DATE(h.created_at) <= :fecha_hasta';
+            $params[':fecha_hasta'] = $dateTo;
+        }
+
+        // Count total
+        $this->db->query("SELECT COUNT(*) AS total FROM bitacora_historico h $where");
+        foreach ($params as $k => $v) $this->db->bind($k, $v);
+        $countRow = $this->db->single();
+        $total = (int)($countRow->total ?? 0);
+
+        // Rows paginadas
+        $this->db->query("
+            SELECT h.*, u.correo AS usuario_email,
+                   CONCAT(COALESCE(dp.nombres,''),' ',COALESCE(dp.apellidos,'')) AS usuario_nombre
+            FROM bitacora_historico h
+            LEFT JOIN usuarios u        ON h.usuario_id = u.id
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+            $where
+            ORDER BY h.created_at DESC
+            LIMIT :limit OFFSET :offset
+        ");
+        foreach ($params as $k => $v) $this->db->bind($k, $v);
+        $this->db->bind(':limit',  $limit,  \PDO::PARAM_INT);
+        $this->db->bind(':offset', $offset, \PDO::PARAM_INT);
+        $rows = $this->db->resultSet();
+
+        return ['data' => $rows, 'total' => $total];
+    }
 }
+

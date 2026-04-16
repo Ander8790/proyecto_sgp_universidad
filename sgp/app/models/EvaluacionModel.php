@@ -34,6 +34,29 @@ class EvaluacionModel {
     }
 
     /**
+     * Obtener evaluaciones de los pasantes de un tutor específico
+     */
+    public function getByTutor(int $tutorId) {
+        $this->db->query("
+            SELECT
+                e.*,
+                dp.nombres   AS pasante_nombres,
+                dp.apellidos AS pasante_apellidos,
+                u.cedula     AS pasante_cedula,
+                tp.nombres   AS tutor_nombres,
+                tp.apellidos AS tutor_apellidos
+            FROM evaluaciones e
+            LEFT JOIN datos_personales dp ON dp.usuario_id = e.pasante_id
+            LEFT JOIN usuarios         u  ON u.id = e.pasante_id
+            LEFT JOIN datos_personales tp ON tp.usuario_id = e.tutor_id
+            WHERE e.tutor_id = :tutor_id
+            ORDER BY e.created_at DESC
+        ");
+        $this->db->bind(':tutor_id', $tutorId);
+        return $this->db->resultSet();
+    }
+
+    /**
      * Guardar una nueva evaluación
      */
     public function guardar($pasanteId, $tutorId, $fecha, $lapso, $promedio, $obs, $valores, $criterios) {
@@ -67,5 +90,43 @@ class EvaluacionModel {
         $this->db->bind(':obs',      $obs ?: null);
 
         return $this->db->execute();
+    }
+
+    /**
+     * Verificar si un pasante ya tiene evaluación registrada
+     */
+    public function getByPasante(int $pasanteId) {
+        $this->db->query("
+            SELECT id, promedio_final, fecha_evaluacion
+            FROM evaluaciones
+            WHERE pasante_id = :pid
+            ORDER BY created_at DESC
+            LIMIT 1
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        return $this->db->single();
+    }
+
+    /**
+     * Obtener una evaluación por ID con todos sus criterios y nombres
+     */
+    public function getById(int $id) {
+        $this->db->query("
+            SELECT
+                e.*,
+                CONCAT(dp.nombres, ' ', dp.apellidos)  AS pasante_nombre,
+                u.cedula                               AS pasante_cedula,
+                CONCAT(tp.nombres, ' ', tp.apellidos)  AS tutor_nombre,
+                DATE_FORMAT(e.fecha_evaluacion, '%d/%m/%Y') AS fecha_formateada,
+                e.promedio_final AS promedio
+            FROM evaluaciones e
+            LEFT JOIN datos_personales dp ON dp.usuario_id = e.pasante_id
+            LEFT JOIN usuarios         u  ON u.id = e.pasante_id
+            LEFT JOIN datos_personales tp ON tp.usuario_id = e.tutor_id
+            WHERE e.id = :id
+            LIMIT 1
+        ");
+        $this->db->bind(':id', $id);
+        return $this->db->single();
     }
 }

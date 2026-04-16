@@ -10,64 +10,32 @@
  */
 class AuthMiddleware
 {
-    /**
-     * Tiempo máximo de inactividad en segundos (30 minutos)
-     */
-    const INACTIVITY_LIMIT = 1800; // 30 * 60
-    
+    // [FIX-P3] Eliminada constante INACTIVITY_LIMIT (1800 s) — era distinta al valor real de config.php
+    // (SESSION_TIMEOUT_SECONDS = 1500 s). La fuente de verdad del timeout es config.php.
+    // Session::start() → Session::checkInactivity() ya gestiona el timeout y actualiza last_activity.
+
     /**
      * Verificar si el usuario tiene sesión activa
-     * Si no tiene sesión o está inactivo, redirige al login
-     * 
+     * Si no tiene sesión o está inactivo, redirige al login.
+     *
+     * La verificación de inactividad ya fue ejecutada por Session::start() → checkInactivity().
+     * Este método solo valida que user_id exista tras ese check.
+     *
      * @param bool $isAjax Si la petición es AJAX
      * @return void
      */
     public static function verificarSesion($isAjax = false)
     {
+        // [FIX-P3] Session::start() ya invoca checkInactivity() internamente con SESSION_TIMEOUT_SECONDS
         Session::start();
-        
-        // Verificar si existe sesión de usuario
+
+        // Verificar si existe sesión de usuario (si expiró, checkInactivity ya destruyó la sesión y redirigió)
         if (!Session::get('user_id')) {
             self::redirectToLogin($isAjax, 'Debe iniciar sesión');
             return;
         }
-        
-        // Verificar inactividad
-        if (self::isInactive()) {
-            Session::destroy();
-            self::redirectToLogin($isAjax, 'Sesión expirada por inactividad');
-            return;
-        }
-        
-        // Actualizar última actividad
-        self::updateActivity();
-    }
-    
-    /**
-     * Verificar si la sesión está inactiva
-     * 
-     * @return bool
-     */
-    private static function isInactive()
-    {
-        $lastActivity = Session::get('last_activity');
-        
-        if (!$lastActivity) {
-            return false;
-        }
-        
-        $inactiveTime = time() - $lastActivity;
-        return $inactiveTime > self::INACTIVITY_LIMIT;
-    }
-    
-    /**
-     * Actualizar timestamp de última actividad
-     * 
-     * @return void
-     */
-    private static function updateActivity()
-    {
-        Session::set('last_activity', time());
+        // [FIX-P3] Eliminados isInactive() y updateActivity() — lógica duplicada y con timeout incorrecto.
+        // Session::checkInactivity() ya actualizó $_SESSION['last_activity'] en esta misma request.
     }
     
     /**
@@ -151,10 +119,6 @@ class AuthMiddleware
             return;
         }
         
-        // Obtener URL actual
-        $currentUrl = $_SERVER['REQUEST_URI'];
-        $urlPath = parse_url($currentUrl, PHP_URL_PATH);
-        
         // NIVEL 1: LA JAULA - Cambio de Clave Obligatorio O Perfil Incompleto
         if (Session::get('requiere_cambio_clave') == 1 || Session::get('perfil_completado') === false) {
             /**
@@ -205,7 +169,46 @@ class AuthMiddleware
             return;
         }
         
-        // Usuario ha completado el wizard y tiene acceso completo
-        // No se requieren validaciones adicionales
+        // NIVEL 2: Verificar que admin/tutor tenga cargo registrado.
+        // Se ejecuta una sola vez por sesión (controlado por 'cargo_verificado').
+        // Captura usuarios que completaron el wizard antes de que se exigiera el cargo.
+        if (!Session::get('cargo_verificado')) {
+            $rolId = (int)Session::get('role_id');
+
+            if ($rolId !== 3 && $rolId > 0) { // solo admin (1) y tutor (2)
+                try {
+                    $db = Database::getInstance();
+                    $db->query("SELECT cargo FROM datos_personales WHERE usuario_id = :uid LIMIT 1");
+                    $db->bind(':uid', Session::get('user_id'));
+                    $dp = $db->single();
+
+                    if (!$dp || empty(trim($dp->cargo ?? ''))) {
+                        Session::set('perfil_completado', false);
+
+                        $allowedPaths = ['/auth/logout', '/wizard/index', '/wizard/procesar'];
+                        $currentPath  = str_replace('/proyecto_sgp/sgp/public', '', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+                        $isAllowed    = false;
+                        foreach ($allowedPaths as $path) {
+                            if (strpos($currentPath, $path) !== false) { $isAllowed = true; break; }
+                        }
+
+                        if (!$isAllowed) {
+                            if (self::isAjaxRequest()) {
+                                header('Content-Type: application/json');
+                                echo json_encode(['success' => false, 'message' => 'Complete su perfil profesional', 'redirect' => URLROOT . '/wizard/index']);
+                                exit;
+                            }
+                            header('Location: ' . URLROOT . '/wizard/index');
+                            exit;
+                        }
+                        return;
+                    }
+                } catch (Exception $e) {
+                    // Si falla la consulta no bloqueamos al usuario
+                }
+            }
+
+            Session::set('cargo_verificado', true);
+        }
     }
 }

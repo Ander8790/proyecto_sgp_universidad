@@ -3,16 +3,36 @@
  * Encuentra y moderniza todos los selects del sistema automáticamente.
  */
 
+// ============================================================================
+// FIX GLOBAL: Monkey-Patch defensivo para prevenir crashes de eventos 
+// huérfanos (Zombie Listeners) disparados durante la navegación por PJAX.
+// ============================================================================
+if (typeof Choices !== 'undefined' && typeof Choices.prototype._onKeyDown === 'function') {
+    const originalOnKeyDown = Choices.prototype._onKeyDown;
+    Choices.prototype._onKeyDown = function (e) {
+        // Valida que los objetos internos de esta instancia sigan existiendo 
+        // y no haya sido vaciada por el destructor o el Garbage Collector
+        if (!this.input || !this._store || !this.passedElement) {
+            return;
+        }
+        return originalOnKeyDown.call(this, e);
+    };
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     initAllSelects();
 });
 
 function initAllSelects() {
     // Buscar todos los select que NO tengan ya la clase choices__input (para no duplicar)
-    // Opcionalmente podemos ignorar los select que tengan la clase 'no-choices' si alguna vez necesitamos uno nativo
-    const selects = document.querySelectorAll('select:not(.no-choices)');
+    // Opcionalmente podemos ignorar los select que tengan la clase 'no-choices'
+    // También ignoramos explícitamente los selects internos de Flatpickr para que no se rompan
+    const selects = document.querySelectorAll('select:not(.no-choices):not(.flatpickr-monthDropdown-months)');
 
     selects.forEach(selectElement => {
+        // No inicializar Choices en el selector de paginación de DataTables
+        if (selectElement.closest('.dataTables_length')) return;
+        
         initChoicesOnElement(selectElement);
     });
 }
@@ -47,6 +67,11 @@ function initChoicesOnElement(element) {
         // Inicializar Choices y guardarlo en una propiedad del elemento para referencia futura
         const choiceInstance = new Choices(element, config);
         element.choicesInstance = choiceInstance;
+        
+        // Registrar globalmente para poder destruirlo en eventos PJAX
+        if (!window.SGPChoicesInstances) window.SGPChoicesInstances = [];
+        window.SGPChoicesInstances.push(choiceInstance);
+        
     } catch (e) {
         console.warn('SGP: Falló al inicializar Choices en el elemento:', element, e);
     }
@@ -98,8 +123,11 @@ window.SGPChoices = {
      */
     initContainer: function (containerElement) {
         if (!containerElement) return;
-        const selects = containerElement.querySelectorAll('select:not(.no-choices)');
-        selects.forEach(s => window.SGPChoices.reinit(s));
+        const selects = containerElement.querySelectorAll('select:not(.no-choices):not(.flatpickr-monthDropdown-months)');
+        selects.forEach(s => {
+            if (s.closest('.dataTables_length')) return;
+            window.SGPChoices.reinit(s);
+        });
     },
 
     /**
@@ -107,5 +135,27 @@ window.SGPChoices = {
      */
     initAll: function () {
         initAllSelects();
+    },
+
+    /**
+     * Destruye todas las instancias activas para prevenir memory leaks en Pjax.
+     */
+    destroyAll: function () {
+        if (window.SGPChoicesInstances) {
+            window.SGPChoicesInstances.forEach(instance => {
+                try {
+                    // 1. Romper referencia cíclica en nuestro lado del DOM
+                    if (instance.passedElement && instance.passedElement.element) {
+                        instance.passedElement.element.choicesInstance = null;
+                    }
+                    // 2. Destruir limpiamente la instancia nativa
+                    instance.destroy();
+                } catch (e) {
+                    console.warn('SGP: Advertencia al destruir Choices.js (probablemente ya GC)', e);
+                }
+            });
+            // 3. Vaciar completamente el arreglo global de referencias
+            window.SGPChoicesInstances = [];
+        }
     }
 };

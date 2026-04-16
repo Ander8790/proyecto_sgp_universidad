@@ -46,12 +46,15 @@ class RoleMiddleware
                 exit;
             }
             
-            // Guardamos el mensaje flash de error intercepción
-            Session::setFlash('error', 'Acceso Denegado: No tienes permisos para ver este módulo');
-            
-            // Forzar redirección al dashboard correspondiente a su rol
-            self::redirectToRoleDashboard($currentRoleId);
-            exit; // Cortamos el flujo de ejecución
+            // Mostrar página de error 403
+            if (!headers_sent()) {
+                http_response_code(403);
+            }
+            $view403 = defined('APPROOT')
+                ? APPROOT . '/views/errors/403.php'
+                : dirname(dirname(__FILE__)) . '/views/errors/403.php';
+            require $view403;
+            exit;
         }
     }
     

@@ -114,7 +114,6 @@
         }
 
         loadingEl.classList.add('active');
-
         try {
             let url = URLROOT + '/users/buscar?q=' + encodeURIComponent(query);
             if (activeRoleFilter > 0) url += '&rol=' + activeRoleFilter;
@@ -127,16 +126,37 @@
                 return;
             }
 
-            resultsEl.innerHTML = json.data.map((u, i) => `
-                <div class="sgp-result-item sgp-anim-item" style="animation-delay:${i * 50}ms" onclick="SGPModal.verUsuario(${u.id})">
-                    <div class="sgp-result-avatar" style="background:${AVATAR_COLORS[u.rol_id] || AVATAR_COLORS[3]}">${u.iniciales}</div>
-                    <div class="sgp-result-info">
-                        <div class="sgp-result-name">${escHtml(u.nombres)} ${escHtml(u.apellidos)}</div>
-                        <div class="sgp-result-meta">C.I. ${escHtml(u.cedula)} · ${escHtml(u.departamento)}</div>
+            resultsEl.innerHTML = json.data.map((u, i) => {
+                const clickAction = activeRoleFilter > 0 && window.SGPModal._onSelect 
+                    ? `SGPModal._handleSelect(${u.id}, '${escHtml(u.nombres)}', '${escHtml(u.apellidos)}', '${u.iniciales}', '${u.rol_id}', '${escHtml(u.cedula)}', '${escHtml(u.departamento)}')`
+                    : `SGPModal.verUsuario(${u.id})`;
+                
+                // Construir línea de meta contextual según rol
+                const isPasante = parseInt(u.rol_id) === 3;
+                let metaParts = [];
+                if (u.cedula) metaParts.push(`<i class="ti ti-id" style="font-size:0.7rem;opacity:0.7;"></i> ${escHtml(u.cedula)}`);
+                if (u.departamento && u.departamento !== 'Sin asignar') {
+                    metaParts.push(`<i class="ti ti-building" style="font-size:0.7rem;opacity:0.7;"></i> ${escHtml(u.departamento)}`);
+                }
+                if (isPasante && u.tutor_nombre) {
+                    metaParts.push(`<i class="ti ti-user-check" style="font-size:0.7rem;color:#10b981;"></i> <span style="color:#059669;font-weight:600;">${escHtml(u.tutor_nombre)}</span>`);
+                } else if (isPasante && u.institucion) {
+                    metaParts.push(`<i class="ti ti-school" style="font-size:0.7rem;opacity:0.7;"></i> ${escHtml(u.institucion)}`);
+                } else if (isPasante && !u.tutor_nombre) {
+                    metaParts.push(`<span style="color:#f59e0b;font-size:0.7rem;font-weight:600;"><i class="ti ti-alert-triangle" style="font-size:0.65rem;"></i> Sin tutor asignado</span>`);
+                }
+
+                return `
+                    <div class="sgp-result-item sgp-anim-item" style="animation-delay:${i * 50}ms" onclick="${clickAction}">
+                        <div class="sgp-result-avatar" style="background:${AVATAR_COLORS[u.rol_id] || AVATAR_COLORS[3]}">${u.iniciales}</div>
+                        <div class="sgp-result-info" style="flex:1;min-width:0;">
+                            <div class="sgp-result-name">${escHtml(u.nombres)} ${escHtml(u.apellidos)}</div>
+                            <div class="sgp-result-meta" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">${metaParts.join(' <span style="opacity:0.3">·</span> ')}</div>
+                        </div>
+                        <span class="sgp-result-badge ${BADGE_CLASSES[u.rol_id] || ''}">${escHtml(u.rol_nombre)}</span>
                     </div>
-                    <span class="sgp-result-badge ${BADGE_CLASSES[u.rol_id] || ''}">${escHtml(u.rol_nombre)}</span>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         } catch (e) {
             loadingEl.classList.remove('active');
             resultsEl.innerHTML = '<div class="sgp-empty-state"><i class="ti ti-alert-circle"></i><p>Error en la búsqueda</p></div>';
@@ -217,9 +237,14 @@
         ];
 
         if (d.es_pasante) {
+            let instHtml = escHtml(d.institucion || 'No registrada');
+            if (d.inst_rep_nombre) {
+                instHtml += `<br><span style="font-size:0.7rem; color:#64748b; font-weight:500;"><i class="ti ti-user" style="margin-right:2px;"></i>Rep: ${escHtml(d.inst_rep_nombre)}</span>`;
+            }
+            
             bentoItems.push(
-                { label: 'Tutor Asignado', value: d.tutor_nombre, icon: 'user-star' },
-                { label: 'Institución', value: d.institucion || 'No registrada', icon: 'school' },
+                { label: 'Tutor Asignado', value: escHtml(d.tutor_nombre || 'Sin asignar'), icon: 'user-star' },
+                { label: 'Institución', value: instHtml, icon: 'school' },
                 { label: 'Inicio Pasantía', value: d.fecha_inicio || 'Sin definir', icon: 'calendar' },
                 { label: 'Fin Pasantía', value: d.fecha_fin || 'Sin definir', icon: 'calendar-due' }
             );
@@ -280,11 +305,11 @@
     // ─── Reset PIN ───
     async function resetPin(userId, nombre) {
         const result = await Swal.fire({
-            title: '🔒 Restablecer PIN',
+            title: '<i class="ti ti-lock"></i> Restablecer PIN',
             html: `¿Restablecer el PIN de asistencia de <strong>${nombre}</strong>?<br><small>Se generará un nuevo PIN aleatorio de 4 dígitos.</small>`,
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: '✅ Sí, restablecer',
+            confirmButtonText: '<i class="ti ti-check"></i> Sí, restablecer',
             cancelButtonText: 'Cancelar',
             confirmButtonColor: '#f59e0b'
         });
@@ -303,7 +328,7 @@
                 cache.delete('user_' + userId);
 
                 Swal.fire({
-                    title: '✅ PIN Restablecido',
+                    title: '<i class="ti ti-circle-check"></i> PIN Restablecido',
                     html: `El nuevo PIN para <strong>${nombre}</strong> es:<br><br>
                            <div style="font-size:2.5rem;font-weight:900;letter-spacing:8px;color:#162660;
                                        background:#f1f5f9;border-radius:12px;padding:16px;display:inline-block">
@@ -332,23 +357,28 @@
 
     // ─── Public API ───
     window.SGPModal = {
+        _onSelect: null,
         buscar: function (options) {
             init();
             activeRoleFilter = (options && options.rol) ? options.rol : 0;
+            this._onSelect = (options && options.onSelect) ? options.onSelect : null;
+
             const el = document.getElementById('sgpModalBuscar');
             el.classList.add('active');
             // Update title based on filter
             const titleEl = el.querySelector('.sgp-modal-header h3');
             if (titleEl) {
-                const label = activeRoleFilter === 3 ? 'Buscar Pasante' : 'Búsqueda Rápida';
-                const icon = activeRoleFilter === 3 ? 'ti-user-search' : 'ti-search';
+                const label = this._onSelect ? 'Seleccionar Usuario' : (activeRoleFilter === 3 ? 'Buscar Pasante' : 'Búsqueda Rápida');
+                const icon = this._onSelect ? 'ti-pointer' : (activeRoleFilter === 3 ? 'ti-user-search' : 'ti-search');
                 titleEl.innerHTML = `<i class="ti ${icon}" style="margin-right:8px"></i>${label}`;
             }
             const subtitleEl = el.querySelector('.sgp-modal-header p');
             if (subtitleEl) {
-                subtitleEl.textContent = activeRoleFilter === 3
-                    ? 'Buscar por nombre o cédula del pasante'
-                    : 'Buscar por nombre o número de cédula';
+                subtitleEl.textContent = this._onSelect 
+                    ? 'Haz clic en el resultado para seleccionar'
+                    : (activeRoleFilter === 3
+                        ? 'Buscar por nombre o cédula del pasante'
+                        : 'Buscar por nombre o número de cédula');
             }
             setTimeout(() => {
                 const input = document.getElementById('sgpSearchInput');
@@ -357,12 +387,19 @@
                     '<div class="sgp-empty-state"><i class="ti ti-users-group"></i><p>Escriba al menos 2 caracteres para buscar</p></div>';
             }, 100);
         },
+        _handleSelect: function(id, nombres, apellidos, iniciales, rol_id, cedula, departamento) {
+            if (this._onSelect) {
+                this._onSelect({ id, nombres, apellidos, iniciales, rol_id, cedula, departamento });
+                this.cerrar('buscar');
+            }
+        },
         verUsuario: verUsuario,
         resetPin: resetPin,
         cerrar: function (tipo) {
             const id = tipo === 'buscar' ? 'sgpModalBuscar' : 'sgpModalVer';
             const el = document.getElementById(id);
             if (el) el.classList.remove('active');
+            if (tipo === 'buscar') this._onSelect = null;
         }
     };
 })();

@@ -1,6 +1,10 @@
 Options -MultiViews
 RewriteEngine On
 RewriteBase /proyecto_sgp/sgp/public/
+
+# Servir archivos estáticos de uploads/ directamente sin pasar por el router
+RewriteRule ^uploads/ - [L,NC]
+
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule ^(.+)$ index.php?url=$1 [QSA,L]

@@ -26,7 +26,7 @@
 
     // ─── Configuración ─────────────────────────────────────────────────────────
     const CONTENT_ID = 'sgp-content';
-    const NAV_SELECTOR = '.nav-link';
+    const NAV_SELECTOR = '.nav-link, .dock-item, .dock-sheet-item, .pjax-link';
     const PJAX_HEADER = 'X-PJAX';
     const ACTIVE_CLASS = 'active';
     const TRANSITION_MS = 180; // ms de fade entre vistas
@@ -38,15 +38,47 @@
 
     /** Muestra el spinner de carga (reutiliza el existente del layout). */
     function showSpinner() {
-        if (typeof window.showLoading === 'function') {
-            window.showLoading('Cargando…');
-        }
+        // Obsoleto: Usamos SlimProgress para no bloquear UI (Sensación rápida SPA)
+        startSlimProgress();
     }
 
     /** Oculta el spinner. */
     function hideSpinner() {
-        if (typeof window.hideLoading === 'function') {
-            window.hideLoading();
+        // Obsoleto: Usamos SlimProgress 
+        finishSlimProgress();
+    }
+
+    /* ─── Novedad Premium UX: Top Slim Progress Bar (Estilo Github / YouTube) ─── */
+    function startSlimProgress() {
+        let bar = document.getElementById('sgp-slim-progress');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.id = 'sgp-slim-progress';
+            bar.style.position = 'fixed';
+            bar.style.top = '0';
+            bar.style.left = '0';
+            bar.style.height = '3px';
+            bar.style.background = 'linear-gradient(90deg, #3b82f6, #10b981)'; // Gradiente neón dinámico
+            bar.style.zIndex = '9999999';
+            bar.style.width = '0%';
+            bar.style.boxShadow = '0 0 10px rgba(16, 185, 129, 0.5)';
+            bar.style.transition = 'width 1.5s cubic-bezier(0.1, 0.8, 0.2, 1), opacity 0.3s ease';
+            document.body.appendChild(bar);
+        }
+        bar.style.opacity = '1';
+        bar.style.width = '10%';
+        void bar.offsetWidth; // Force repaint
+        bar.style.width = '75%';
+    }
+
+    function finishSlimProgress() {
+        let bar = document.getElementById('sgp-slim-progress');
+        if (bar) {
+            bar.style.width = '100%';
+            setTimeout(function() { 
+                bar.style.opacity = '0'; 
+                setTimeout(function() { bar.style.width = '0%'; }, 300); // Reset after hidden
+            }, 250);
         }
     }
 
@@ -151,11 +183,9 @@
             });
         }
 
-        // 3. Re-inicializa Choices.js
-        if (typeof Choices !== 'undefined') {
-            document.querySelectorAll('[data-choices]').forEach(function (el) {
-                if (!el._choices) new Choices(el, { searchEnabled: true });
-            });
+        // 3. Re-inicializa Choices.js utilizando la API general
+        if (typeof window.SGPChoices !== 'undefined') {
+            window.SGPChoices.initAll();
         }
 
 
@@ -179,7 +209,7 @@
         }
 
         showSpinner();
-        content.style.opacity = '0';
+        content.style.opacity = '0.5'; // No bajar a 0 para evitar salto blanco (percibido como lento)
         content.style.transition = 'opacity ' + TRANSITION_MS + 'ms ease';
 
         // SGP-FIX-v2 [3.1] Timeout de seguridad: desbloquea la UI si fetch falla sin
@@ -220,6 +250,10 @@
                         // Silenciar — puede fallar si ya fueron destruidas
                     }
                 }
+                // Destruir Choices.js antes de borrar DOM
+                if (typeof window.SGPChoices !== 'undefined') {
+                    window.SGPChoices.destroyAll();
+                }
 
                 content.innerHTML = html;
 
@@ -231,6 +265,9 @@
 
                 execInlineScripts(content);
                 reinitLibraries();
+
+                // SGP-FIX PJAX: Notificar al sistema que la vista cargó sin recarga
+                document.dispatchEvent(new CustomEvent('pjax:complete', { detail: { url: url } }));
 
                 content.scrollIntoView({ behavior: 'smooth', block: 'start' });
             })

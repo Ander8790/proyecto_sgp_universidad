@@ -36,7 +36,8 @@ class PasantesController extends Controller
      */
     public function index(): void
     {
-        $pasantes = $this->pasanteModel->getAll();
+        $periodoId = (int)(Session::get('selected_periodo_id') ?? 0);
+        $pasantes = $this->pasanteModel->getAll($periodoId);
 
         // Contadores para KPI cards
         $total      = count($pasantes);
@@ -47,6 +48,10 @@ class PasantesController extends Controller
         // Departamentos activos para el modal de asignación
         $this->db->query("SELECT id, nombre FROM departamentos WHERE activo = 1 ORDER BY nombre ASC");
         $departamentos = $this->db->resultSet();
+
+        // Periodos académicos para el modal
+        $this->db->query("SELECT id, nombre, estado FROM periodos_academicos ORDER BY fecha_inicio DESC");
+        $periodos = $this->db->resultSet();
 
         // Tutores activos para el modal
         $this->db->query("
@@ -66,6 +71,7 @@ class PasantesController extends Controller
             'culminados'   => $culminados,
             'departamentos'=> $departamentos,
             'tutores'      => $tutores,
+            'periodos'     => $periodos,
         ]);
     }
 
@@ -214,7 +220,7 @@ class PasantesController extends Controller
             $notificationModel = new NotificationModel($this->db);
             $notificationModel->create(
                 $pasanteId,
-                'cambio_estado',
+                'info',
                 'Actualización de Estado',
                 "El estado de tu pasantía ha cambiado a: {$estado}.",
                 URLROOT . '/perfil'

@@ -21,7 +21,7 @@ class AsistenciasController extends Controller
         AuthMiddleware::verificarEstado();
 
         $config  = require '../app/config/config.php';
-        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
+        $this->db = new Database($config['db']);
         $this->asistenciaModel = $this->model('Asistencia');
     }
 
@@ -35,13 +35,20 @@ class AsistenciasController extends Controller
      */
     public function index(): void
     {
-        $rolId = (int)Session::get('role_id');
+        $rolId  = (int)Session::get('role_id');
         $userId = (int)Session::get('user_id');
 
         if ($rolId !== 1 && $rolId !== 2 && $rolId !== 3) { // solo Admin, Tutor y Pasante
             Session::setFlash('error', 'Sin permisos para esta sección.');
             $this->redirect('/dashboard');
             return;
+        }
+
+        // ── AUTO-FILL SILENCIOSO ────────────────────────────────────
+        // Solo Admins y Tutores disparan el relleno (no por cada pasante que entra).
+        // Se ejecuta al cargar la vista; INSERT IGNORE garantiza idempotencia.
+        if ($rolId === 1 || $rolId === 2) {
+            $this->asistenciaModel->rellenarDiasVacios();
         }
 
         $vista = $_GET['vista'] ?? 'diaria'; // 'diaria', 'semanal', 'mensual', 'anual'
@@ -83,7 +90,7 @@ class AsistenciasController extends Controller
             $fechaFin = $dto->format('Y-m-d');
             $tituloRango = "de la semana " . $paramsUrl['semana'] . " del " . $paramsUrl['anio'];
         } elseif ($vista === 'mensual') {
-            $fechaInicio = $paramsUrl['anio'] . '-' . $paramsUrl['mes'] . '-01';
+            $fechaInicio = $paramsUrl['anio'] . '-' . str_pad($paramsUrl['mes'], 2, '0', STR_PAD_LEFT) . '-01';
             $fechaFin    = date('Y-m-t', strtotime($fechaInicio));
             $tituloRango = "de " . ($nombreMes) . " " . $anioActual;
         } elseif ($vista === 'anual') {
@@ -404,10 +411,6 @@ class AsistenciasController extends Controller
                 ];
             }
 
-            // SGP-FIX-v2 [1.3] aplicado — JSON_HEX_* flags para prevenir XSS via </script>
-            $pasantesParaJSJson  = json_encode($pasantesParaJS,  JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
-            $resumenDeptosJSJson = json_encode($resumenDeptosJS, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE);
-
             // ===== JS DATA: Calendario =====
             $calendarioJS = [];
             $daysJS = [];
@@ -486,7 +489,6 @@ class AsistenciasController extends Controller
      */
     public function registro_manual(): void
     {
-        $this->verifyCsrf(); // SGP-FIX-v2 [1.1] aplicado
         header('Content-Type: application/json');
 
         if ((int)Session::get('role_id') !== 1) {
@@ -539,15 +541,6 @@ class AsistenciasController extends Controller
                 exit;
             }
 
-            // SGP-FIX-v2 [1.5] aplicado — Validar MIME real además de la extensión
-            $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];
-            $finfo        = new finfo(FILEINFO_MIME_TYPE);
-            $mimeReal     = $finfo->file($file['tmp_name']);
-            if (!in_array($mimeReal, $allowedMimes)) {
-                echo json_encode(['success' => false, 'message' => 'Tipo de archivo no permitido (MIME inválido).']);
-                exit;
-            }
-
             if ($file['size'] > 5 * 1024 * 1024) { // 5 MB máx
                 echo json_encode(['success' => false, 'message' => 'El archivo supera el límite de 5 MB.']);
                 exit;
@@ -589,6 +582,12 @@ class AsistenciasController extends Controller
             $existente = $this->db->single();
         }
 
+        // ── DETECCIÓN DE RETARDO ──────────────────────────────────
+        // Un registro es_retardo cuando:
+        //   estado = 'Presente'  Y  hora_registro > 09:00:00
+        $horaRegistro = date('H:i:s');
+        $esRetardo    = ($estado === 'Presente' && $horaRegistro > '09:00:00') ? 1 : 0;
+
         if ($existente) {
             // Actualizar el registro existente
             $this->db->query("
@@ -596,27 +595,31 @@ class AsistenciasController extends Controller
                 SET estado = :estado,
                     motivo_justificacion = :motivo,
                     ruta_evidencia       = COALESCE(:evidencia, ruta_evidencia),
-                    metodo               = 'Manual'
+                    metodo               = 'Manual',
+                    es_retardo           = :retardo,
+                    es_auto_fill         = 0
                 WHERE id = :id
             ");
             $this->db->bind(':estado',    $estado);
             $this->db->bind(':motivo',    $motivo ?: null);
             $this->db->bind(':evidencia', $rutaEvidencia);
+            $this->db->bind(':retardo',   $esRetardo);
             $this->db->bind(':id',        (int)$existente->id);
         } else {
             // Insertar nuevo registro manual
             $this->db->query("
                 INSERT INTO asistencias
-                    (pasante_id, fecha, hora_registro, estado, metodo, motivo_justificacion, ruta_evidencia)
+                    (pasante_id, fecha, hora_registro, estado, metodo, motivo_justificacion, ruta_evidencia, es_retardo, es_auto_fill)
                 VALUES
-                    (:pid, :fecha, :hora, :estado, 'Manual', :motivo, :evidencia)
+                    (:pid, :fecha, :hora, :estado, 'Manual', :motivo, :evidencia, :retardo, 0)
             ");
-            $this->db->bind(':pid',      $pasanteId);
-            $this->db->bind(':fecha',    $fecha);
-            $this->db->bind(':hora',     date('H:i:s'));
-            $this->db->bind(':estado',   $estado);
-            $this->db->bind(':motivo',   $motivo ?: null);
+            $this->db->bind(':pid',       $pasanteId);
+            $this->db->bind(':fecha',     $fecha);
+            $this->db->bind(':hora',      $horaRegistro);
+            $this->db->bind(':estado',    $estado);
+            $this->db->bind(':motivo',    $motivo ?: null);
             $this->db->bind(':evidencia', $rutaEvidencia);
+            $this->db->bind(':retardo',   $esRetardo);
         }
 
         $ok = $this->db->execute();
@@ -677,7 +680,7 @@ class AsistenciasController extends Controller
             $dto->modify('+6 days');
             $fechaFin = $dto->format('Y-m-d');
         } elseif ($vista === 'mensual') {
-            $fechaInicio = $paramsUrl['anio'] . '-' . $paramsUrl['mes'] . '-01';
+            $fechaInicio = $paramsUrl['anio'] . '-' . str_pad($paramsUrl['mes'], 2, '0', STR_PAD_LEFT) . '-01';
             $fechaFin    = date('Y-m-t', strtotime($fechaInicio));
         } elseif ($vista === 'anual') {
             $fechaInicio = $paramsUrl['anio'] . '-01-01';
@@ -754,11 +757,13 @@ class AsistenciasController extends Controller
         // Mismos filtros que pasantesActivos: Rol 3, Usuario activo, Pasantía activa
         $this->db->query("
             SELECT u.id, u.cedula, dp.nombres, dp.apellidos,
-                   d.nombre AS departamento_nombre
+                   d.nombre AS departamento_nombre,
+                   COALESCE(inst.nombre, dpa.institucion_procedencia, 'N/D') AS institucion_nombre
             FROM   usuarios u
-            LEFT JOIN datos_personales  dp  ON dp.usuario_id  = u.id
-            LEFT JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
-            LEFT JOIN departamentos     d   ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
+            LEFT JOIN datos_personales    dp   ON dp.usuario_id   = u.id
+            LEFT JOIN datos_pasante       dpa  ON dpa.usuario_id  = u.id
+            LEFT JOIN departamentos       d    ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
+            LEFT JOIN instituciones       inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
             WHERE  u.rol_id = 3
               AND  u.estado = 'activo'
               AND  COALESCE(dpa.estado_pasantia, 'Sin Asignar') = 'Activo'
@@ -782,7 +787,6 @@ class AsistenciasController extends Controller
      */
     public function anular_registro(): void
     {
-        $this->verifyCsrf(); // SGP-FIX-v2 [1.1] aplicado
         header('Content-Type: application/json');
         if ((int)Session::get('role_id') !== 1) {
             echo json_encode(['success' => false, 'message' => 'Sin permisos.']);
@@ -885,46 +889,414 @@ class AsistenciasController extends Controller
 
     /**
      * Endpoint 3: obtenerResumenMensual() — Almanaque Inteligente (Heatmap)
-     * Devuelve el historial de asistencias de un pasante en un mes específico.
+     *
+     * Devuelve el historial de asistencias de un pasante para un mes específico,
+     * enriquecido con flags de retardo, feriados y KPI de retardos del mes.
+     *
+     * Respuesta JSON:
+     *   {
+     *     success: true,
+     *     datos: { "YYYY-MM-DD": { estado, es_retardo, es_auto_fill } },
+     *     feriados: { "YYYY-MM-DD": "Descripción" },
+     *     kpi: { presentes, ausentes, justificados, retardos, auto_fills }
+     *   }
      */
     public function obtenerResumenMensual(): void
     {
         header('Content-Type: application/json');
-        
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['success' => false, 'message' => 'Método no permitido.']);
             exit;
         }
 
         $pasanteId = (int)($_POST['pasante_id'] ?? 0);
-        $mesAnio = trim($_POST['mes_anio'] ?? ''); // Formato YYYY-MM
-        
+        $mesAnio   = trim($_POST['mes_anio'] ?? ''); // Formato YYYY-MM
+
         if ($pasanteId <= 0 || !preg_match('/^\d{4}-\d{2}$/', $mesAnio)) {
             echo json_encode(['success' => false, 'message' => 'Parámetros inválidos.']);
             exit;
         }
 
         $fechaInicio = $mesAnio . '-01';
-        $fechaFin = date('Y-m-t', strtotime($fechaInicio));
+        $fechaFin    = date('Y-m-t', strtotime($fechaInicio));
 
+        // ── Registros del mes para este pasante ──────────────────
         $this->db->query("
-            SELECT fecha, estado 
-            FROM asistencias 
-            WHERE pasante_id = :pid 
-              AND fecha >= :inicio AND fecha <= :fin
+            SELECT fecha,
+                   estado,
+                   COALESCE(es_retardo,  0) AS es_retardo,
+                   COALESCE(es_auto_fill, 0) AS es_auto_fill
+            FROM   asistencias
+            WHERE  pasante_id = :pid
+              AND  fecha >= :inicio AND fecha <= :fin
+            ORDER  BY fecha ASC
         ");
-        $this->db->bind(':pid', $pasanteId);
+        $this->db->bind(':pid',    $pasanteId);
         $this->db->bind(':inicio', $fechaInicio);
-        $this->db->bind(':fin', $fechaFin);
-        
+        $this->db->bind(':fin',    $fechaFin);
         $registros = $this->db->resultSet();
-        
-        $datosGrid = [];
+
+        // ── Feriados del mes ──────────────────────────────────────
+        $feriados = $this->asistenciaModel->getFeriadosEnRango($fechaInicio, $fechaFin);
+
+        // ── Construir mapa de datos + KPIs ────────────────────────
+        $datosGrid  = [];
+        $kpi = ['presentes' => 0, 'ausentes' => 0, 'justificados' => 0, 'retardos' => 0, 'auto_fills' => 0];
+
         foreach ($registros as $reg) {
-            $datosGrid[$reg->fecha] = $reg->estado;
+            $datosGrid[$reg->fecha] = [
+                'estado'       => $reg->estado,
+                'es_retardo'   => (int)$reg->es_retardo,
+                'es_auto_fill' => (int)$reg->es_auto_fill,
+            ];
+
+            $est = strtolower($reg->estado);
+            if (strpos($est, 'presente')    !== false) $kpi['presentes']++;
+            elseif (strpos($est, 'ausente') !== false) $kpi['ausentes']++;
+            else                                        $kpi['justificados']++;
+
+            if ((int)$reg->es_retardo   === 1) $kpi['retardos']++;
+            if ((int)$reg->es_auto_fill === 1) $kpi['auto_fills']++;
         }
 
-        echo json_encode(['success' => true, 'datos' => $datosGrid]);
+        echo json_encode([
+            'success'  => true,
+            'datos'    => $datosGrid,
+            'feriados' => $feriados,
+            'kpi'      => $kpi,
+        ]);
         exit;
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // VISTA ALMANAQUE INDIVIDUAL — Historial Premium del Pasante
+    // ────────────────────────────────────────────────────────────────
+
+    /**
+     * almanaque($pasanteId) — Panel histórico de un pasante individual.
+     * Incluye heatmap anual, justificaciones con evidencias y evaluaciones.
+     *
+     * GET /asistencias/almanaque/{pasante_id}?anio=YYYY
+     */
+    public function almanaque($pasanteId = null): void
+    {
+        $rolId  = (int)Session::get('role_id');
+        if (!in_array($rolId, [1, 2])) {
+            $this->redirect('/dashboard');
+            return;
+        }
+
+        $pasanteId = (int)($pasanteId ?? 0);
+        if ($pasanteId <= 0) {
+            $this->redirect('/asistencias');
+            return;
+        }
+
+        $anio = (int)($_GET['anio'] ?? date('Y'));
+
+        // ── Perfil del pasante ────────────────────────────────────
+        $this->db->query("
+            SELECT
+                u.id,
+                u.cedula,
+                dp.nombres,
+                dp.apellidos,
+                d.nombre        AS departamento,
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_nombre,
+                dpa.estado_pasantia,
+                dpa.horas_acumuladas,
+                COALESCE(dpa.horas_meta, 1440) AS horas_meta,
+                dpa.fecha_inicio_pasantia  AS fecha_inicio,
+                dpa.fecha_fin_estimada     AS fecha_fin,
+                CONCAT(tp.nombres, ' ', tp.apellidos) AS tutor_nombre
+            FROM usuarios u
+            LEFT JOIN datos_personales  dp  ON dp.usuario_id = u.id
+            LEFT JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos     d   ON d.id = dpa.departamento_asignado_id
+            LEFT JOIN instituciones     inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN usuarios          tu  ON tu.id = dpa.tutor_id
+            LEFT JOIN datos_personales  tp  ON tp.usuario_id = tu.id
+            WHERE u.id = :id AND u.rol_id = 3
+            LIMIT 1
+        ");
+        $this->db->bind(':id', $pasanteId);
+        $pasante = $this->db->single();
+
+        if (!$pasante) {
+            $this->redirect('/asistencias');
+            return;
+        }
+
+        // ── Pro-Rata dinámico (horas reales desde tabla asistencias) ──
+        $horasMeta = (int)(($pasante->horas_meta ?? 0) > 0 ? $pasante->horas_meta : 1440);
+        $proRataAlm = $this->asistenciaModel->calcularProgresoProRata($pasanteId, $horasMeta);
+        $pasante->horas_acumuladas = $proRataAlm->horas_mostradas;
+        $pasante->horas_meta       = $proRataAlm->horas_meta;
+
+        // ── LAZY AUTOFILL — rellenar días faltantes antes de renderizar ──
+        // Solo aplica si la pasantía está activa y tiene fecha de inicio.
+        // No sobreescribe registros existentes (INSERT IGNORE).
+        if (($pasante->estado_pasantia ?? '') === 'Activo' && !empty($pasante->fecha_inicio)) {
+            $ayer      = date('Y-m-d', strtotime('-1 day'));
+            $feriados_ = $this->asistenciaModel->getFeriadosEnRango($pasante->fecha_inicio, $ayer);
+
+            // Obtener fechas ya registradas del pasante
+            $this->db->query("
+                SELECT fecha FROM asistencias
+                WHERE pasante_id = :pid
+                  AND fecha >= :fi AND fecha <= :fl
+            ");
+            $this->db->bind(':pid', $pasanteId);
+            $this->db->bind(':fi',  $pasante->fecha_inicio);
+            $this->db->bind(':fl',  $ayer);
+            $registradas_ = $this->db->resultSet();
+            $fechasRegistradas_ = array_flip(array_column($registradas_, 'fecha'));
+
+            // Iterar días hábiles y rellenar faltantes
+            $cursor_ = new DateTime($pasante->fecha_inicio);
+            $fino_   = new DateTime($ayer);
+            while ($cursor_ <= $fino_) {
+                $dow_  = (int)$cursor_->format('N');
+                $fstr_ = $cursor_->format('Y-m-d');
+                if ($dow_ <= 5 && !isset($feriados_[$fstr_]) && !isset($fechasRegistradas_[$fstr_])) {
+                    $this->db->query("
+                        INSERT IGNORE INTO asistencias
+                            (pasante_id, fecha, hora_registro, estado, metodo, motivo_justificacion, created_at)
+                        VALUES
+                            (:pid, :fecha, '23:59:00', 'Ausente', 'Sistema',
+                             'Cierre automático — sin registro en 24 horas', :created)
+                    ");
+                    $this->db->bind(':pid',     $pasanteId);
+                    $this->db->bind(':fecha',   $fstr_);
+                    $this->db->bind(':created', $fstr_ . ' 23:59:00');
+                    $this->db->execute();
+                }
+                $cursor_->modify('+1 day');
+            }
+        }
+
+        // ── Años con registros (para navegación) ────────────────────
+        $this->db->query("
+            SELECT DISTINCT YEAR(fecha) AS anio
+            FROM asistencias
+            WHERE pasante_id = :pid
+            ORDER BY anio ASC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $aniosRows = $this->db->resultSet();
+        $anios = array_map(fn($r) => (int)$r->anio, $aniosRows);
+        if (!in_array($anio, $anios)) $anios[] = $anio;
+        sort($anios);
+
+        // ── Período / Cohorte del pasante (para el banner) ───────────
+        $this->db->query("
+            SELECT pe.nombre AS periodo_nombre, pe.estado AS periodo_estado
+            FROM datos_pasante dpa
+            LEFT JOIN periodos_academicos pe ON pe.id = dpa.periodo_id
+            WHERE dpa.usuario_id = :pid
+            LIMIT 1
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $periodoRow = $this->db->single();
+        $periodoDatos = [
+            'nombre' => $periodoRow->periodo_nombre ?? null,
+            'estado' => $periodoRow->periodo_estado ?? null,
+        ];
+
+        // ── Registros del año (para el heatmap y stats) ───────────
+        $fechaInicio = "{$anio}-01-01";
+        $fechaFin    = "{$anio}-12-31";
+
+        $this->db->query("
+            SELECT fecha, hora_registro, estado, metodo, motivo_justificacion, ruta_evidencia
+            FROM asistencias
+            WHERE pasante_id = :pid
+              AND fecha >= :fi AND fecha <= :ff
+              AND estado != 'Anulado'
+            ORDER BY fecha ASC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $this->db->bind(':fi',  $fechaInicio);
+        $this->db->bind(':ff',  $fechaFin);
+        $registrosAnio = $this->db->resultSet();
+
+        // Feriados del año
+        $feriados = $this->asistenciaModel->getFeriadosEnRango($fechaInicio, $fechaFin);
+
+        // Mapa fecha → datos
+        $mapaRegistros = [];
+        foreach ($registrosAnio as $r) {
+            $mapaRegistros[$r->fecha] = $r;
+        }
+
+        // ── Construir grilla anual ─────────────────────────────────
+        $hoy = date('Y-m-d');
+        $grilla = []; $weekLabels = [];
+        $stats = ['P' => 0, 'A' => 0, 'J' => 0, 'laborables' => 0];
+
+        $cursor = new DateTime($fechaInicio);
+        $fin = new DateTime($fechaFin);
+        $startDow = (int)$cursor->format('N');
+        // Startamos el cursor en Lunes de la primera semana
+        if ($startDow > 1) $cursor->modify('-' . ($startDow - 1) . ' days');
+
+        $wk = 0;
+        while ($cursor <= $fin) {
+            $dow = (int)$cursor->format('N');
+            $fechaS = $cursor->format('Y-m-d');
+            $yearOfCell = (int)$cursor->format('Y');
+
+            if ($dow === 1) {
+                $wk++;
+                $weekLabels[$wk] = $cursor->format('d/m');
+                $grilla[$wk] = [];
+            }
+
+            if ($dow <= 5) { // Solo L-V
+                if ($yearOfCell !== $anio) {
+                    $grilla[$wk][$dow] = ['fecha'=>$fechaS,'estado'=>'fuera','hora'=>null,'metodo'=>null,'feriadoNombre'=>null];
+                } elseif ($fechaS > $hoy) {
+                    $grilla[$wk][$dow] = ['fecha'=>$fechaS,'estado'=>'futuro','hora'=>null,'metodo'=>null,'feriadoNombre'=>null];
+                } elseif (isset($feriados[$fechaS])) {
+                    $grilla[$wk][$dow] = ['fecha'=>$fechaS,'estado'=>'feriado','hora'=>null,'metodo'=>null,'feriadoNombre'=>$feriados[$fechaS]];
+                } elseif (isset($mapaRegistros[$fechaS])) {
+                    $r = $mapaRegistros[$fechaS];
+                    $e = $r->estado === 'Presente' ? 'P' : ($r->estado === 'Justificado' ? 'J' : 'A');
+                    if (in_array($e, ['P','J','A'])) {
+                        $stats[$e]++;
+                        $stats['laborables']++;
+                    }
+                    $grilla[$wk][$dow] = ['fecha'=>$fechaS,'estado'=>$e,'hora'=>$r->hora_registro,'metodo'=>$r->metodo,'feriadoNombre'=>null];
+                } else {
+                    $stats['laborables']++;
+                    $grilla[$wk][$dow] = ['fecha'=>$fechaS,'estado'=>'sin_dato','hora'=>null,'metodo'=>null,'feriadoNombre'=>null];
+                }
+            }
+            $cursor->modify('+1 day');
+        }
+
+        // ── Stats adicionales ─────────────────────────────────────
+        $pctAsistencia = $stats['laborables'] > 0
+            ? round(($stats['P'] + $stats['J']) / $stats['laborables'] * 100, 1) : 0;
+
+        // Racha actual y máxima
+        $rachaActual = 0; $rachaMax = 0; $corriente = 0;
+        $diasOrdenados = array_filter($registrosAnio, fn($r) => in_array($r->estado, ['Presente','Justificado']));
+        foreach ($diasOrdenados as $r) {
+            $corriente++;
+            if ($corriente > $rachaMax) $rachaMax = $corriente;
+        }
+        // Racha actual = días consecutivos hasta hoy
+        $tmpRacha = 0;
+        foreach (array_reverse($registrosAnio) as $r) {
+            if ($r->fecha > $hoy) continue;
+            if (in_array($r->estado, ['Presente','Justificado'])) $tmpRacha++;
+            else break;
+        }
+        $rachaActual = $tmpRacha;
+
+        // Timeline — días HÁBILES (L-V), coherente con horas_meta
+        // horas_meta / 8h por día = total de días laborables de la pasantía
+        // Ej: 1440h / 8 = 180 días hábiles (no 252 días calendario)
+        $diasTrans = 0; $diasTotal = 0; $diasRest = 0; $pctTiempo = 0;
+        if ($pasante->fecha_inicio) {
+            $fI = new DateTime($pasante->fecha_inicio);
+            $fF = $pasante->fecha_fin ? new DateTime($pasante->fecha_fin) : null;
+            $fH = new DateTime($hoy);
+            if ($fF) {
+                // Total de días hábiles = horas_meta / 8h por día laboral
+                $diasTotal = max(1, (int)round($horasMeta / 8));
+
+                // Contar días hábiles (lunes a viernes) desde inicio hasta hoy (inclusive)
+                // Se limita al fin estimado para no exceder el 100%
+                if ($fH >= $fI) {
+                    $cursor = clone $fI;
+                    $limite = clone ($fH < $fF ? $fH : $fF);
+                    $conteo = 0;
+                    while ($cursor <= $limite) {
+                        if ((int)$cursor->format('N') <= 5) { // 1=Lun … 5=Vie
+                            $conteo++;
+                        }
+                        $cursor->modify('+1 day');
+                    }
+                    $diasTrans = min($diasTotal, $conteo);
+                }
+
+                $diasRest  = max(0, $diasTotal - $diasTrans);
+                $pctTiempo = round($diasTrans / $diasTotal * 100, 1);
+            }
+        }
+
+        // ── Historial completo (todas las fechas) ─────────────────
+        $this->db->query("
+            SELECT fecha, hora_registro AS hora_entrada, estado, metodo,
+                   motivo_justificacion, ruta_evidencia, es_auto_fill
+            FROM asistencias
+            WHERE pasante_id = :pid AND fecha >= :fi AND fecha <= :ff
+              AND estado != 'Anulado'
+            ORDER BY fecha DESC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $this->db->bind(':fi',  $fechaInicio);
+        $this->db->bind(':ff',  $fechaFin);
+        $historialCompleto = $this->db->resultSet();
+
+        // ── Justificaciones con evidencia (para la card Bento) ────
+        $this->db->query("
+            SELECT fecha, motivo_justificacion, ruta_evidencia, metodo
+            FROM asistencias
+            WHERE pasante_id = :pid
+              AND estado = 'Justificado'
+              AND estado != 'Anulado'
+            ORDER BY fecha DESC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $justificaciones = $this->db->resultSet();
+
+        // ── Evaluaciones (para la card Bento) ─────────────────────
+        $this->db->query("
+            SELECT
+                e.id,
+                e.fecha_evaluacion,
+                e.lapso_academico,
+                e.promedio_final,
+                e.observaciones,
+                e.criterio_iniciativa,   e.criterio_interes,
+                e.criterio_conocimiento, e.criterio_analisis,
+                e.criterio_comunicacion, e.criterio_aprendizaje,
+                e.criterio_companerismo, e.criterio_cooperacion,
+                e.criterio_puntualidad,  e.criterio_presentacion,
+                e.criterio_desarrollo,   e.criterio_analisis_res,
+                e.criterio_conclusiones, e.criterio_recomendacion,
+                CONCAT(tp.nombres, ' ', tp.apellidos) AS tutor_nombre
+            FROM evaluaciones e
+            LEFT JOIN datos_personales tp ON tp.usuario_id = e.tutor_id
+            WHERE e.pasante_id = :pid
+            ORDER BY e.fecha_evaluacion DESC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $evaluaciones = $this->db->resultSet();
+
+        $this->view('asistencias/almanaque', [
+            'title'            => 'Almanaque — ' . trim(($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? '')),
+            'pasante'          => $pasante,
+            'anio'             => $anio,
+            'anios'            => $anios,
+            'periodo'          => $periodoDatos,
+            'grilla'           => $grilla,
+            'weekLabels'       => $weekLabels,
+            'stats'            => $stats,
+            'pctAsistencia'    => $pctAsistencia,
+            'rachaActual'      => $rachaActual,
+            'rachaMax'         => $rachaMax,
+            'historialCompleto'=> $historialCompleto,
+            'diasTrans'        => $diasTrans,
+            'diasTotal'        => $diasTotal,
+            'diasRest'         => $diasRest,
+            'pctTiempo'        => $pctTiempo,
+            'justificaciones'  => $justificaciones,
+            'evaluaciones'     => $evaluaciones,
+        ]);
     }
 }

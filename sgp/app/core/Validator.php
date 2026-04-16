@@ -5,7 +5,9 @@ class Validator
     public static function sanitizeString($data) {
         $data = trim($data);
         $data = stripslashes($data);
-        $data = htmlspecialchars($data);
+        // [FIX-P1] Eliminado htmlspecialchars() del input — anti-patrón que corrompe datos en BD.
+        // El escape XSS debe aplicarse en la SALIDA (vistas), no en la entrada.
+        // Todas las vistas deben usar htmlspecialchars($var, ENT_QUOTES, 'UTF-8') al hacer echo.
         return $data;
     }
 

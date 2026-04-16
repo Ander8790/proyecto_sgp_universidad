@@ -2,6 +2,11 @@
 // Configuración global de Zona Horaria para Venezuela (-04:00)
 date_default_timezone_set('America/Caracas');
 
+// [FIX-P1] Silenciar display_errors para evitar que Notices/Warnings corrompan respuestas JSON
+ini_set('display_errors', '0');
+ini_set('display_startup_errors', '0');
+error_reporting(E_ALL); // Mantener E_ALL para que set_error_handler los capture en log
+
 // NOTE: Content-Type is NOT set globally here — each controller/endpoint sets its own headers.
 //       Previously, the `header('Content-Type: text/html')` here was overriding application/json endpoints.
 require_once '../app/config/config.php';
@@ -27,7 +32,37 @@ require_once '../app/helpers/CacheControl.php';
 require_once '../app/libraries/UrlSecurity.php';
 require_once '../app/models/NotificationModel.php'; // Modelo de notificaciones
 require_once '../app/models/AuditModel.php'; // Modelo de auditoría (Global)
+require_once '../app/models/FeriadoModel.php'; // Modelo de días feriados
 require_once '../app/core/App.php';
+
+// ============================================
+// SGP — Manejador global de errores no capturados
+// ============================================
+set_exception_handler(function (\Throwable $e) {
+    error_log('[SGP-FATAL] ' . date('Y-m-d H:i:s') . ' | ' . get_class($e) . ': ' . $e->getMessage() . ' en ' . $e->getFile() . ':' . $e->getLine());
+
+    if (!headers_sent()) {
+        http_response_code(500);
+    }
+
+    $view500 = defined('APPROOT')
+        ? APPROOT . '/views/errors/500.php'
+        : dirname(__DIR__) . '/app/views/errors/500.php';
+
+    if (file_exists($view500)) {
+        require $view500;
+    } else {
+        $fallback = defined('URLROOT') ? URLROOT : '';
+        echo '<meta http-equiv="refresh" content="0;url=' . $fallback . '/auth/login?error=sistema">';
+    }
+    exit;
+});
+
+set_error_handler(function ($errno, $errstr, $errfile, $errline) {
+    if (error_reporting() === 0) return false;
+    error_log('[SGP-ERROR] ' . date('Y-m-d H:i:s') . " | [{$errno}] {$errstr} en {$errfile}:{$errline}");
+    return true; // no ejecutar el handler interno de PHP
+});
 
 // ============================================
 // ROUTER INTELIGENTE - Redirección Automática

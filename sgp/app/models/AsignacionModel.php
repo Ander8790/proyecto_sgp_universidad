@@ -88,7 +88,12 @@ class AsignacionModel {
      * Guardar/Actualizar una asignación
      * Utiliza lógica de comprobación previa para asegurar la actualización del registro existente
      */
-    public function guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin, $observaciones = '') {
+    public function guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin, $observaciones = '', $periodoId = 0) {
+        // Si tiene tutor + departamento + fecha → Activo directamente.
+        // Sin tutor → Pendiente (falta completar la asignación).
+        $nuevoEstado  = ($tutorIdVal && $departamentoId && $fechaInicio) ? 'Activo' : 'Pendiente';
+        $periodoIdVal = $periodoId > 0 ? $periodoId : null;
+
         // 1. Comprobar si ya existe un registro para este pasante
         $this->db->query("SELECT id FROM datos_pasante WHERE usuario_id = :uid LIMIT 1");
         $this->db->bind(':uid', $pasanteId);
@@ -97,14 +102,15 @@ class AsignacionModel {
         if ($existe) {
             // 2. Si existe, ACTUALIZAMOS
             $this->db->query("
-                UPDATE datos_pasante 
+                UPDATE datos_pasante
                 SET departamento_asignado_id = :dept_id,
                     tutor_id                 = :tutor_id,
                     horas_meta               = :horas_meta,
                     fecha_inicio_pasantia    = :fecha_inicio,
                     fecha_fin_estimada       = :fecha_fin,
-                    estado_pasantia          = 'Pendiente',
-                    observaciones            = :obs
+                    estado_pasantia          = :estado,
+                    observaciones            = :obs,
+                    periodo_id               = :periodo_id
                 WHERE usuario_id = :uid
             ");
         } else {
@@ -112,9 +118,9 @@ class AsignacionModel {
             $this->db->query("
                 INSERT INTO datos_pasante
                     (usuario_id, departamento_asignado_id, tutor_id, horas_meta,
-                     fecha_inicio_pasantia, fecha_fin_estimada, estado_pasantia, observaciones)
+                     fecha_inicio_pasantia, fecha_fin_estimada, estado_pasantia, observaciones, periodo_id)
                 VALUES
-                    (:uid, :dept_id, :tutor_id, :horas_meta, :fecha_inicio, :fecha_fin, 'Pendiente', :obs)
+                    (:uid, :dept_id, :tutor_id, :horas_meta, :fecha_inicio, :fecha_fin, :estado, :obs, :periodo_id)
             ");
         }
 
@@ -124,7 +130,9 @@ class AsignacionModel {
         $this->db->bind(':horas_meta',   $horasMeta);
         $this->db->bind(':fecha_inicio', $fechaInicio);
         $this->db->bind(':fecha_fin',    $fechaFin);
+        $this->db->bind(':estado',       $nuevoEstado);
         $this->db->bind(':obs',          $observaciones);
+        $this->db->bind(':periodo_id',   $periodoIdVal);
 
         return $this->db->execute();
     }

@@ -32,7 +32,7 @@
         <div class="notifications-wrapper">
             <button class="notification-btn" id="notificationBtn" aria-label="Notificaciones">
                 <i class="ti ti-bell"></i>
-                <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                <span class="notification-badge" id="notificationBadge"></span>
             </button>
             
             <!-- Dropdown de Notificaciones -->

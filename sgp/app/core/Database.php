@@ -55,7 +55,7 @@ class Database
 
         $dsn     = 'mysql:host=' . $this->host . ';dbname=' . $this->db_name . ';charset=' . $this->charset;
         $options = [
-            PDO::ATTR_PERSISTENT         => true,
+            PDO::ATTR_PERSISTENT         => false, // [FIX-P2] Desactivado: conexiones persistentes agotan el pool de MySQL en Apache/mod_php sin pooler intermedio
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_general_ci"
@@ -78,7 +78,12 @@ class Database
     /** Prepara una sentencia SQL */
     public function query($sql)
     {
-        $this->stmt = $this->dbh->prepare($sql);
+        try {
+            $this->stmt = $this->dbh->prepare($sql);
+        } catch (PDOException $e) {
+            error_log('[SGP-DB-QUERY-ERROR] ' . date('Y-m-d H:i:s') . ' | SQL: ' . substr($sql, 0, 100) . ' | Error: ' . $e->getMessage());
+            throw new RuntimeException('Error al procesar la consulta.', 0, $e);
+        }
     }
 
     /** Enlaza un parámetro a la sentencia preparada */
@@ -106,7 +111,12 @@ class Database
     /** Ejecuta la sentencia preparada */
     public function execute()
     {
-        return $this->stmt->execute();
+        try {
+            return $this->stmt->execute();
+        } catch (PDOException $e) {
+            error_log('[SGP-DB-EXEC-ERROR] ' . date('Y-m-d H:i:s') . ' | Error: ' . $e->getMessage());
+            throw new RuntimeException('Error al ejecutar la consulta.', 0, $e);
+        }
     }
 
     /** Devuelve todos los resultados como array de objetos */

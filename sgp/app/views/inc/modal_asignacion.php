@@ -84,6 +84,21 @@
                     </select>
                 </div>
 
+                <!-- Periodo Académico -->
+                <div style="margin-bottom: 18px;">
+                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;">
+                        <i class="ti ti-calendar-stats" style="margin-right: 6px;"></i>Periodo Académico *
+                    </label>
+                    <select name="periodo_id" id="selectPeriodo" required class="input-modern">
+                        <option value="">Selecciona un periodo...</option>
+                        <?php foreach ($periodos as $per): ?>
+                        <option value="<?= (int)$per->id ?>" <?= $per->estado === 'Activo' ? 'selected' : '' ?> style="color: <?= $per->estado === 'Activo' ? '#16a34a' : ($per->estado === 'Cerrado' ? '#94a3b8' : '#d97706') ?>">
+                            <?= htmlspecialchars($per->nombre) ?> (<?= htmlspecialchars($per->estado) ?>)
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+
                 <!-- ===== CALCULADORA INTELIGENTE (Fusión Smart) ===== -->
                 <div style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                     
@@ -296,6 +311,7 @@ window.abrirModalAsignacion = function() {
     if (window.SGPChoices) {
         window.SGPChoices.reinit('#selectTutor');
         window.SGPChoices.reinit('#selectDepartamento');
+        window.SGPChoices.reinit('#selectPeriodo');
     }
 }
 
@@ -502,6 +518,7 @@ document.addEventListener('DOMContentLoaded', function() {
             timeoutId = setTimeout(() => {
                 const formData = new FormData();
                 formData.append('query', query);
+                const _esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
                 fetch('<?= URLROOT ?>/asignaciones/buscarPasanteAjax', { method: 'POST', body: formData })
                 .then(r => r.json())
                 .then(data => {
@@ -517,22 +534,26 @@ document.addEventListener('DOMContentLoaded', function() {
                             div.style.gap = '12px';
                             div.addEventListener('mouseover', () => div.style.background = '#f8fafc');
                             div.addEventListener('mouseout', () => div.style.background = 'white');
-                            
-                            const inis = (p.nombres.charAt(0) + p.apellidos.charAt(0)).toUpperCase();
+
+                            const inis = (_esc(p.nombres.charAt(0)) + _esc(p.apellidos.charAt(0))).toUpperCase();
                             div.innerHTML = `
                                 <div style="width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg, #162660, #2563eb); display:flex; align-items:center; justify-content:center; font-size:0.85rem; font-weight:800; color:white;">${inis}</div>
                                 <div>
-                                    <div style="font-size:0.9rem; font-weight:800; color:#1e293b;">${p.nombres} ${p.apellidos}</div>
-                                    <div style="font-size:0.75rem; font-weight:600; color:#64748b;">C.I: ${p.cedula}</div>
+                                    <div style="font-size:0.9rem; font-weight:800; color:#1e293b;">${_esc(p.nombres)} ${_esc(p.apellidos)}</div>
+                                    <div style="font-size:0.75rem; font-weight:600; color:#64748b;">C.I: ${_esc(p.cedula)}</div>
                                 </div>
                             `;
-                            
+
                             div.onclick = () => seleccionarPasante(p);
                             listaSug.appendChild(div);
                         });
                     } else {
                         listaSug.innerHTML = '<div style="padding:16px; text-align:center; color:#94a3b8; font-size:0.85rem; font-weight:600;">No se encontraron resultados pendientes</div>';
                     }
+                    listaSug.style.display = 'block';
+                })
+                .catch(() => {
+                    listaSug.innerHTML = '<div style="padding:16px; text-align:center; color:#ef4444; font-size:0.85rem; font-weight:600;">Error al buscar pasantes</div>';
                     listaSug.style.display = 'block';
                 });
             }, 300);

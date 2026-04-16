@@ -44,9 +44,9 @@ class WizardController extends Controller
         // Datos básicos del usuario + nombres/apellidos ya existentes (para la tarjeta de identidad)
         $this->db->query("
             SELECT u.id, u.cedula, u.correo, u.rol_id, u.requiere_cambio_clave,
-                   u.pin_asistencia,
+                   u.pin_asistencia, u.departamento_id,
                    r.nombre AS rol_nombre,
-                   dp.nombres, dp.apellidos, dp.telefono, dp.genero, dp.fecha_nacimiento,
+                   dp.nombres, dp.apellidos, dp.telefono, dp.genero, dp.fecha_nacimiento, dp.cargo,
                    dpa.institucion_procedencia
             FROM usuarios u
             LEFT JOIN roles r ON u.rol_id = r.id
@@ -56,6 +56,21 @@ class WizardController extends Controller
         ");
         $this->db->bind(':uid', $userId);
         $user = $this->db->single();
+
+        // Detectar si es un restablecimiento de contraseña de usuario con perfil ya completo
+        // En ese caso, solo se piden pasos 1 y 2 (contraseña + preguntas de seguridad)
+        $rolId = (int)($user->rol_id ?? 0);
+        $soloPasswordReset = false;
+        if ($user && $user->requiere_cambio_clave == 1) {
+            $tienePersonal = !empty($user->telefono) && !empty($user->fecha_nacimiento) && !empty($user->genero);
+            if ($tienePersonal) {
+                if ($rolId === 3) {
+                    $soloPasswordReset = !empty($user->pin_asistencia) && !empty($user->institucion_procedencia);
+                } else {
+                    $soloPasswordReset = !empty($user->cargo) && !empty($user->departamento_id);
+                }
+            }
+        }
 
         // Preguntas de seguridad
         $questions = $this->userModel->getSecurityQuestions();
@@ -68,24 +83,24 @@ class WizardController extends Controller
             $this->db->query("SELECT id, nombre, direccion FROM instituciones ORDER BY nombre ASC");
             $instituciones = $this->db->resultSet();
         } catch (Exception $e) {
-            error_log("⚠️ WIZARD: Error cargando instituciones: " . $e->getMessage());
+            error_log('[SGP-WIZARD] [WARN] Error cargando instituciones: ' . $e->getMessage());
         }
 
         try {
             $this->db->query("SELECT id, nombre, descripcion FROM departamentos WHERE activo = 1 ORDER BY nombre ASC");
             $departamentos = $this->db->resultSet();
         } catch (Exception $e) {
-            error_log("⚠️ WIZARD: Error cargando departamentos: " . $e->getMessage());
+            error_log('[SGP-WIZARD] [WARN] Error cargando departamentos: ' . $e->getMessage());
         }
 
         $data = [
-            'user'          => $user,
-            'questions'     => $questions,
-            'instituciones' => $instituciones,
-            'departamentos' => $departamentos,
-            'title'         => 'Configuración de Seguridad',
-            // NUEVO: Bandera para saltar pasos si es auto-registrado
-            'saltar_seguridad' => (Session::get('requiere_cambio_clave') == 0)
+            'user'               => $user,
+            'questions'          => $questions,
+            'instituciones'      => $instituciones,
+            'departamentos'      => $departamentos,
+            'title'              => 'Configuración de Seguridad',
+            'saltar_seguridad'   => (Session::get('requiere_cambio_clave') == 0),
+            'solo_password_reset' => $soloPasswordReset,
         ];
 
         $this->view('wizard/index', $data, false);
@@ -107,7 +122,9 @@ class WizardController extends Controller
         $user   = $this->userModel->findById($userId);
         $rolId  = (int)($user['rol_id'] ?? Session::get('role_id') ?? 0);
 
-        $saltarSeguridad = ($user['requiere_cambio_clave'] == 0);
+        $saltarSeguridad  = ($user['requiere_cambio_clave'] == 0);
+        // Restablecimiento de contraseña de usuario que ya tiene perfil completo → solo pasos 1 y 2
+        $soloPasswordReset = (!$saltarSeguridad && (int)($_POST['solo_password_reset'] ?? 0) === 1);
 
         // ────────────────────────────────────────────────────
         // PASO 1: VALIDAR CONTRASEÑA (Solo si requiere_cambio_clave = 1)
@@ -132,6 +149,14 @@ class WizardController extends Controller
 
             if (strlen($newPassword) < 8) {
                 Session::setFlash('error', 'La contraseña debe tener al menos 8 caracteres.');
+                $this->redirect('/wizard/index');
+                return;
+            }
+
+            // 🔒 Bloquear contraseña temporal como contraseña permanente
+            $cedula = $user['cedula'] ?? '';
+            if (!empty($cedula) && $newPassword === 'Sgp.' . $cedula) {
+                Session::setFlash('error', 'No puedes usar tu contraseña temporal como contraseña permanente. Elige una contraseña personalizada.');
                 $this->redirect('/wizard/index');
                 return;
             }
@@ -164,67 +189,81 @@ class WizardController extends Controller
         }
 
         // ────────────────────────────────────────────────────
-        // PASO 3: DATOS PERSONALES
-        // nombres/apellidos: vienen de la BD (asignados por Admin), NO del POST
+        // PASO 3 y 4: SOLO si no es restablecimiento de contraseña de usuario existente
         // ────────────────────────────────────────────────────
-        // nombres/apellidos: viven en datos_personales (fijados por Admin), NO del POST
+        $telefono        = null;
+        $fechaNacimiento = null;
+        $genero          = null;
+        $pinAsistencia   = null;
+        $institucionId   = null;
+        $cargo           = null;
+        $departamentoId  = null;
+        $nombres_reales  = '';
+
+        // Siempre recuperar el nombre real para actualizar la sesión
         $this->db->query("SELECT nombres, apellidos FROM datos_personales WHERE usuario_id = :uid");
         $this->db->bind(':uid', $userId);
         $dpRow = $this->db->single();
         $nombres_reales = $dpRow ? trim(($dpRow->nombres ?? '') . ' ' . ($dpRow->apellidos ?? '')) : '';
 
-        $telefono        = trim($_POST['telefono']        ?? '');
-        $fechaNacimiento = trim($_POST['fecha_nacimiento'] ?? '');
-        $genero          = trim($_POST['genero']          ?? '');
+        if (!$soloPasswordReset) {
+            // PASO 3: DATOS PERSONALES
+            $telefono        = trim($_POST['telefono']         ?? '');
+            $fechaNacimiento = trim($_POST['fecha_nacimiento'] ?? '');
+            $genero          = trim($_POST['genero']           ?? '');
 
-        if (!$telefono) {
-            Session::setFlash('error', 'El campo Teléfono es obligatorio.');
-            $this->redirect('/wizard/index');
-            return;
-        }
-        if (!$fechaNacimiento) {
-            Session::setFlash('error', 'La Fecha de Nacimiento es obligatoria.');
-            $this->redirect('/wizard/index');
-            return;
-        }
-        if (!$genero) {
-            Session::setFlash('error', 'Selecciona tu género.');
-            $this->redirect('/wizard/index');
-            return;
-        }
-
-        // ────────────────────────────────────────────────────
-        // PASO 4: VALIDAR PERFIL PROFESIONAL
-        // ────────────────────────────────────────────────────
-        $pinAsistencia  = null;
-        $institucionId  = null;
-        $cargo          = null;
-        $departamentoId = null;
-
-        if ($rolId === 3) {
-            // PASANTE: PIN + Institución
-            $pinAsistencia = trim($_POST['pin_asistencia'] ?? '');
-            $institucionId = (int)($_POST['institucion_id'] ?? 0);
-
-            if (!preg_match('/^[0-9]{4}$/', $pinAsistencia)) {
-                Session::setFlash('error', 'El PIN debe tener exactamente 4 dígitos numéricos.');
+            if (!$telefono) {
+                Session::setFlash('error', 'El campo Teléfono es obligatorio.');
                 $this->redirect('/wizard/index');
                 return;
             }
-            if ($institucionId <= 0) {
-                Session::setFlash('error', 'Debes seleccionar tu institución de procedencia.');
+            if (!$fechaNacimiento) {
+                Session::setFlash('error', 'La Fecha de Nacimiento es obligatoria.');
                 $this->redirect('/wizard/index');
                 return;
             }
-        } else {
-            // ADMIN / TUTOR: solo Departamento (cargo se gestiona desde perfil)
-            $cargo          = null;
-            $departamentoId = (int)($_POST['departamento_id'] ?? 0);
-
-            if ($departamentoId <= 0) {
-                Session::setFlash('error', 'Debes seleccionar un departamento.');
+            if (!$genero) {
+                Session::setFlash('error', 'Selecciona tu género.');
                 $this->redirect('/wizard/index');
                 return;
+            }
+
+            // PASO 4: PERFIL PROFESIONAL
+            if ($rolId === 3) {
+                $pinAsistencia = trim($_POST['pin_asistencia'] ?? '');
+                $institucionId = (int)($_POST['institucion_id'] ?? 0);
+
+                if (!preg_match('/^[0-9]{4}$/', $pinAsistencia)) {
+                    Session::setFlash('error', 'El PIN debe tener exactamente 4 dígitos numéricos.');
+                    $this->redirect('/wizard/index');
+                    return;
+                }
+                if ($institucionId <= 0) {
+                    Session::setFlash('error', 'Debes seleccionar tu institución de procedencia.');
+                    $this->redirect('/wizard/index');
+                    return;
+                }
+            } else {
+                $cargo          = trim($_POST['cargo'] ?? '');
+                $departamentoId = (int)($_POST['departamento_id'] ?? 0);
+
+                if (!$cargo) {
+                    Session::setFlash('error', 'El campo Cargo / Puesto es obligatorio.');
+                    $this->redirect('/wizard/index');
+                    return;
+                }
+                // Si no viene departamento del POST, usar el que ya tenía asignado en usuarios
+                if ($departamentoId <= 0) {
+                    $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :uid LIMIT 1");
+                    $this->db->bind(':uid', $userId);
+                    $row = $this->db->single();
+                    $departamentoId = (int)($row->departamento_id ?? 0);
+                }
+                if ($departamentoId <= 0) {
+                    Session::setFlash('error', 'Debes seleccionar un departamento.');
+                    $this->redirect('/wizard/index');
+                    return;
+                }
             }
         }
 
@@ -268,7 +307,15 @@ class WizardController extends Controller
                 }
             }
 
-            if ($rolId === 3) {
+            if ($soloPasswordReset) {
+                // ── RESTABLECIMIENTO DE CONTRASEÑA: solo limpiar el flag ──
+                $this->db->query("UPDATE usuarios SET requiere_cambio_clave = 0 WHERE id = :user_id");
+                $this->db->bind(':user_id', $userId);
+                if (!$this->db->execute()) {
+                    throw new Exception('Error al actualizar el estado de la cuenta.');
+                }
+
+            } elseif ($rolId === 3) {
                 // ── PASANTE ──────────────────────────────────────────────
                 // A. usuarios: hashear pin_asistencia y flag
                 $pinHasheado = password_hash($pinAsistencia, PASSWORD_BCRYPT);
@@ -306,7 +353,6 @@ class WizardController extends Controller
                 }
 
                 // C. datos_pasante: lógica académica (UPSERT)
-                // Usamos institucion_procedencia (VARCHAR) para guardar la selección
                 $this->db->query("
                     INSERT INTO datos_pasante (usuario_id, estado_pasantia, horas_meta, horas_acumuladas, institucion_procedencia)
                     VALUES (:uid, 'Sin Asignar', 1440, 0, :inst_txt)
@@ -314,7 +360,7 @@ class WizardController extends Controller
                         institucion_procedencia = VALUES(institucion_procedencia)
                 ");
                 $this->db->bind(':uid', $userId);
-                $this->db->bind(':inst_txt', $institucionId); // Guardamos el valor (ID o texto) del select
+                $this->db->bind(':inst_txt', $institucionId);
 
                 if (!$this->db->execute()) {
                     throw new Exception('Error al crear registro de pasantía.');
@@ -338,7 +384,7 @@ class WizardController extends Controller
                     throw new Exception('Error al actualizar credenciales.');
                 }
 
-                // B. datos_personales: nombres, apellidos, cargo, etc. (UPSERT)
+                // B. datos_personales: cargo, etc. (UPSERT)
                 $this->db->query("
                     INSERT INTO datos_personales
                         (usuario_id, telefono, fecha_nacimiento, genero, cargo)
@@ -387,22 +433,67 @@ class WizardController extends Controller
 
             Session::set('requiere_cambio_clave', 0);
             Session::set('perfil_completado', true);
+            Session::set('cargo_verificado', true); // evitar re-check de cargo en esta sesión
 
             // Actualizar sesión con el nombre real del usuario (Tarea 1)
             if ($nombres_reales) {
                 Session::set('user_name', $nombres_reales);
             }
 
-            error_log("✅ WIZARD ÉXITO: Usuario ID $userId (rol $rolId) completó el onboarding de 4 pasos.");
+            error_log("[SGP-WIZARD] [OK] Usuario ID $userId (rol $rolId) completó el onboarding de 4 pasos.");
 
             Session::setFlash('success', '¡Configuración completada! Bienvenido al sistema.');
             $this->redirect('/dashboard');
 
         } catch (Exception $e) {
             $this->db->rollback();
-            error_log("❌ WIZARD ERROR: " . $e->getMessage());
-            Session::setFlash('error', 'Error al procesar la configuración: ' . $e->getMessage());
+            error_log('[SGP-WIZARD] [ERROR] ' . $e->getMessage());
+            // [FIX-C2] Mensaje genérico en flash — detalle solo en log
+            Session::setFlash('error', 'Error al procesar la configuración. Intente de nuevo.');
             $this->redirect('/wizard/index');
         }
+    }
+
+    /**
+     * Endpoint AJAX: Verifica si el teléfono ya está en uso por OTRO usuario.
+     * Requerido para la validación asíncrona del Paso 3 del Wizard.
+     */
+    public function checkPhone()
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['error' => 'Method Not Allowed']);
+            exit;
+        }
+
+        header('Content-Type: application/json');
+
+        $userId = Session::get('user_id');
+        if (!$userId) {
+            echo json_encode(['error' => 'No autorizado']);
+            exit;
+        }
+
+        $telefono = trim($_POST['telefono'] ?? '');
+        if (empty($telefono)) {
+            echo json_encode(['exists' => false]);
+            exit;
+        }
+
+        try {
+            // Verificar exclusión de sí mismo: id != :uid
+            $this->db->query("SELECT COUNT(id) as total FROM datos_personales WHERE telefono = :telefono AND usuario_id != :uid");
+            $this->db->bind(':telefono', $telefono);
+            $this->db->bind(':uid', $userId);
+            $result = $this->db->single();
+            
+            $exists = ($result && $result->total > 0);
+            echo json_encode(['exists' => $exists]);
+            
+        } catch (Exception $e) {
+            error_log('[SGP-WIZARD] Error en checkPhone AJAX: ' . $e->getMessage());
+            echo json_encode(['exists' => false, 'error' => 'Error BD']);
+        }
+        exit;
     }
 }

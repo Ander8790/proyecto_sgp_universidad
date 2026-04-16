@@ -1,0 +1,150 @@
+/* 
+ * SweetAlert2 - SGP Premium Bento Navy Theme 
+ * Minimalist Vanilla UI sin degradados agresivos ni sombras pesadas
+ */
+
+/* Contenedor Principal (Popup Bento) */
+.swal2-popup {
+    border-radius: 20px !important;
+    padding: 24px !important;
+    background: #ffffff !important;
+    box-shadow: 0 10px 40px -10px rgba(30, 58, 138, 0.08) !important;
+    border: 1px solid #e2e8f0 !important;
+    font-family: inherit !important;
+}
+
+/* Título */
+.swal2-title {
+    color: #1e3a8a !important; /* Navy oscuro corporativo */
+    font-weight: 700 !important;
+    font-size: 1.5rem !important;
+    padding: 0 0 16px 0 !important;
+    margin: 0 !important;
+}
+
+/* Texto / Contenido HTML */
+.swal2-html-container {
+    color: #475569 !important; /* Slate gris elegante */
+    font-size: 1.05rem !important;
+    line-height: 1.6 !important;
+    margin: 0 0 24px 0 !important;
+}
+
+/* Iconos Swal */
+.swal2-icon {
+    /* Limpia márgenes grandes para un look compacto */
+    margin-top: 10px !important;
+    margin-bottom: 24px !important;
+}
+
+/* Acciones (Contenedor de botones) */
+.swal2-actions {
+    margin: 0 !important;
+    gap: 12px !important;
+    width: 100% !important;
+}
+
+/* Botones Píldora Minimalistas */
+.swal2-styled.swal2-confirm,
+.swal2-styled.swal2-cancel,
+.swal2-styled.swal2-deny {
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    padding: 12px 24px !important;
+    font-size: 0.95rem !important;
+    box-shadow: none !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Botón principal Confirmar Navy */
+.swal2-styled.swal2-confirm {
+    background-color: #1d4ed8 !important; /* SGP Navy Primary */
+    color: #ffffff !important;
+    border: none !important;
+}
+
+.swal2-styled.swal2-confirm:hover {
+    background-color: #1e3a8a !important; /* Navy Dark Hover */
+}
+
+/* Botón Cancelar */
+.swal2-styled.swal2-cancel {
+    background-color: #f1f5f9 !important; /* Slate muy sutil */
+    color: #475569 !important;
+    border: none !important;
+}
+
+.swal2-styled.swal2-cancel:hover {
+    background-color: #e2e8f0 !important;
+    color: #0f172a !important;
+}
+
+/* Inputs de Swal */
+.swal2-input, .swal2-textarea {
+    border-radius: 12px !important;
+    border: 1px solid #e2e8f0 !important;
+    padding: 12px 16px !important;
+    color: #334155 !important;
+    font-family: monospace, sans-serif !important;
+    transition: all 0.2s ease !important;
+}
+.swal2-input:focus, .swal2-textarea:focus {
+    border-color: #1d4ed8 !important;
+    box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.1) !important;
+    outline: none !important;
+}
+
+/* Variante para cadenas alfanuméricas largas (ej. Sgp.12345678) */
+.swal-bento-token-long {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+    color: #1d4ed8 !important; /* Navy brillante */
+    letter-spacing: 2px !important;
+    background: #f8fafc !important;
+    padding: 14px 24px !important;
+    border-radius: 12px !important;
+    border: 2px dashed #cbd5e1 !important; /* Cajita punteada Premium */
+    display: inline-block !important;
+    font-family: monospace, sans-serif !important;
+    word-break: break-all !important;
+}
+
+/* Animación y Scrollbar */
+@keyframes bell-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(15deg); }
+  50% { transform: rotate(-10deg); }
+  75% { transform: rotate(5deg); }
+}
+.bell-ringing i {
+  display: inline-block;
+  animation: bell-wiggle 2s ease-in-out infinite;
+  transform-origin: top center;
+}
+.custom-scrollbar::-webkit-scrollbar { width: 6px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+
+/* Clases Vanilla CSS para Notificaciones */
+.notif-wrapper { position: relative; display: flex; align-items: center; justify-content: center; }
+.notif-btn { position: relative; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; color: #475569; border-radius: 50%; transition: all 0.2s; border: none; background: transparent; cursor: pointer; outline: none; }
+.notif-btn:hover { color: #1d4ed8; background-color: #eff6ff; }
+.notif-badge { position: absolute; top: -4px; right: -4px; display: flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background-color: #ef4444; color: white; font-size: 9px; font-weight: bold; border: 2px solid white; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+
+/* Clases para los ítems del dropdown */
+.notif-item { display: flex; gap: 12px; padding: 16px; transition: background-color 0.2s; text-decoration: none; }
+.notif-read { background-color: #ffffff; border-bottom: 1px solid #f1f5f9; opacity: 0.7; }
+.notif-read:hover { background-color: #f8fafc; }
+.notif-icon-read { color: #94a3b8; }
+
+.notif-critical { background-color: rgba(239, 68, 68, 0.05); border-left: 4px solid #ef4444; border-bottom: 1px solid #ffffff; }
+.notif-critical:hover { background-color: rgba(239, 68, 68, 0.1); }
+.notif-icon-critical { color: #ef4444; }
+
+.notif-warning { background-color: rgba(245, 158, 11, 0.05); border-left: 4px solid #f59e0b; border-bottom: 1px solid #ffffff; }
+.notif-warning:hover { background-color: rgba(245, 158, 11, 0.1); }
+.notif-icon-warning { color: #f59e0b; }
+
+.notif-info { background-color: rgba(59, 130, 246, 0.05); border-left: 4px solid #3b82f6; border-bottom: 1px solid #f8fafc; }
+.notif-info:hover { background-color: rgba(59, 130, 246, 0.1); }
+.notif-icon-info { color: #3b82f6; }

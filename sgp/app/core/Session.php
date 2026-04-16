@@ -1,9 +1,19 @@
 <?php
 class Session
 {
-    public static function start()
+    public static function start($checkInactivity = true)
     {
         if (session_status() === PHP_SESSION_NONE) {
+            // [FIX-P2] Forzar flags de seguridad en la cookie PHPSESSID antes de session_start()
+            session_set_cookie_params([
+                'lifetime' => 0,                              // Cookie de sesión (expira al cerrar el navegador)
+                'path'     => '/',
+                'domain'   => $_SERVER['HTTP_HOST'] ?? '',
+                'secure'   => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off', // Solo HTTPS si está disponible
+                'httponly' => true,                           // Bloquea acceso desde JavaScript (anti-XSS)
+                'samesite' => 'Lax'                           // Protección CSRF básica
+            ]);
+
             $urlActual = $_SERVER['REQUEST_URI'] ?? '';
 
             // Si la ruta NO contiene '/public/kiosco', iniciamos sesión normalmente
@@ -11,12 +21,15 @@ class Session
                 session_start();
             }
         }
-        self::checkInactivity(); // SGP-FIX-v2 [2] aplicado
+        
+        if ($checkInactivity) {
+            self::checkInactivity(); 
+        }
     }
 
     public static function destroy()
     {
-        self::start();
+        self::start(false); // Romper bucle de recursión: no re-chequear inactividad
         session_destroy();
     }
 
@@ -153,14 +166,22 @@ class Session
                 if ($esPjax) {
                     http_response_code(401);
                     header('Content-Type: application/json');
+                    $loginUrl = (defined('URLROOT') ? URLROOT : '') . '/auth/login';
                     echo json_encode([
                         'success'  => false,
                         'reason'   => 'session_expired',
-                        'redirect' => '/sgp/auth/login'
+                        'redirect' => $loginUrl
                     ]);
                     exit;
                 }
-                header('Location: /sgp/auth/login?razon=inactividad');
+                // Iniciar nueva sesión limpia para dejar el flash de inactividad
+                // antes de redirigir, de modo que login.php pueda mostrarlo.
+                session_start();
+                $_SESSION['flash_inactividad'] = 'Tu sesión ha concluido por inactividad.';
+                session_write_close();
+
+                $loginUrl = (defined('URLROOT') ? URLROOT : '') . '/auth/login';
+                header('Location: ' . $loginUrl);
                 exit;
             }
         }

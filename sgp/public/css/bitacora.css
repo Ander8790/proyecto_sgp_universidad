@@ -976,3 +976,19 @@ span.flatpickr-weekday {
         display: none !important;
     }
 }
+/* === SGP Bento Mobile Grid.js Responsive (Zero Horizontal Scroll) === */
+@media (max-width: 900px) {
+    .gridjs-head { display: block !important; }
+    .gridjs-thead { display: none !important; }
+    .gridjs-tbody { display: block !important; background: transparent !important; }
+    .gridjs-tr { display: block !important; background: white !important; border: 1px solid #DDE2F0 !important; border-radius: 16px !important; padding: 16px !important; margin-bottom: 16px !important; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05) !important; }
+    .gridjs-td { display: flex !important; justify-content: space-between !important; align-items: center !important; padding: 10px 0 !important; border: none !important; border-bottom: 1px solid #F1F5F9 !important; text-align: right !important; }
+    .gridjs-td:last-child { border-bottom: none !important; }
+    .gridjs-td:nth-child(1)::before { content: ID; font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; }
+    .gridjs-td:nth-child(2)::before { content: Usuario; font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; }
+    .gridjs-td:nth-child(3)::before { content: Acci\00f3n; font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; }
+    .gridjs-td:nth-child(4)::before { content: Tabla; font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; }
+    .gridjs-td:nth-child(5)::before { content: Red/IP; font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; }
+    .gridjs-td:nth-child(6)::before { content: Fecha; font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; }
+    .gridjs-td:nth-child(7)::before { content: Opciones; font-weight: 700; color: #64748b; font-size: 0.75rem; text-transform: uppercase; margin-right: auto; }
+}

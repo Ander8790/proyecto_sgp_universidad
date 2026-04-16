@@ -340,4 +340,10 @@ class DashboardAdminModel
         ");
         return $this->db->resultSet();
     }
+
+    public function getPeriodosAcademicos(): array
+    {
+        $this->db->query("SELECT id, nombre, estado FROM periodos_academicos ORDER BY fecha_inicio DESC");
+        return $this->db->resultSet();
+    }
 }

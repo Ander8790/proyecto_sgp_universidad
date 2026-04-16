@@ -1,7 +1,7 @@
 <?php
 /**
- * Vista: Evaluaciones de Pasantes — Planilla Digital
- * 14 criterios agrupados por categoría con selector visual 1-5
+ * Vista: Evaluaciones — Bento UI Seamless Slide
+ * Panel A: Dashboard (Pendientes + Historial) | Panel B: Formulario + Gauge en vivo
  */
 
 $evaluaciones  = $data['evaluaciones']  ?? [];
@@ -10,627 +10,946 @@ $tutores       = $data['tutores']       ?? [];
 $tutorActualId = $data['tutorActualId'] ?? null;
 $total         = $data['total']         ?? 0;
 
-// Definición de criterios agrupados por categoría
-$categorias = [
-    'Actitudes' => [
-        ['campo' => 'criterio_iniciativa', 'label' => 'Iniciativa', 'icon' => 'ti-bulb', 'desc' => 'Capacidad para proponer ideas y actuar proactivamente'],
-        ['campo' => 'criterio_interes',    'label' => 'Interés',    'icon' => 'ti-heart', 'desc' => 'Motivación y entusiasmo por las actividades asignadas'],
-    ],
-    'Competencias' => [
-        ['campo' => 'criterio_conocimiento',  'label' => 'Conocimiento',  'icon' => 'ti-book',         'desc' => 'Dominio técnico y teórico en su área'],
-        ['campo' => 'criterio_analisis',      'label' => 'Análisis',      'icon' => 'ti-brain',        'desc' => 'Capacidad para analizar problemas y situaciones'],
-        ['campo' => 'criterio_comunicacion',  'label' => 'Comunicación',  'icon' => 'ti-message-dots', 'desc' => 'Habilidad para expresar ideas de forma clara'],
-        ['campo' => 'criterio_aprendizaje',   'label' => 'Aprendizaje',   'icon' => 'ti-school',       'desc' => 'Velocidad y efectividad para adquirir nuevos conocimientos'],
-    ],
-    'Valores' => [
-        ['campo' => 'criterio_companerismo', 'label' => 'Compañerismo', 'icon' => 'ti-users',     'desc' => 'Relación y apoyo con los compañeros de trabajo'],
-        ['campo' => 'criterio_cooperacion',  'label' => 'Cooperación',  'icon' => 'ti-hand-stop', 'desc' => 'Disposición para colaborar en actividades grupales'],
-    ],
-    'Disciplina' => [
-        ['campo' => 'criterio_puntualidad',   'label' => 'Puntualidad',   'icon' => 'ti-clock',        'desc' => 'Cumplimiento de horarios y compromisos'],
-        ['campo' => 'criterio_presentacion',  'label' => 'Presentación',  'icon' => 'ti-shirt',        'desc' => 'Aspecto personal y cuidado en la presentación'],
-    ],
-    'Desempeño' => [
-        ['campo' => 'criterio_desarrollo',      'label' => 'Desarrollo',            'icon' => 'ti-code',            'desc' => 'Calidad en el desarrollo de actividades asignadas'],
-        ['campo' => 'criterio_analisis_res',     'label' => 'Análisis de Resultados','icon' => 'ti-chart-bar',       'desc' => 'Capacidad para interpretar y evaluar resultados'],
-        ['campo' => 'criterio_conclusiones',     'label' => 'Conclusiones',          'icon' => 'ti-clipboard-check', 'desc' => 'Elaboración de conclusiones fundamentadas'],
-        ['campo' => 'criterio_recomendacion',    'label' => 'Recomendaciones',       'icon' => 'ti-star',            'desc' => 'Aportes y sugerencias de mejora'],
-    ],
-];
+// ─── KPIs ──────────────────────────────────────────────────────────────────
+$promedioGlobal = 0;
+if (!empty($evaluaciones)) {
+    $suma = array_sum(array_map(fn($e) => (float)($e->promedio_final ?? 0), $evaluaciones));
+    $promedioGlobal = round($suma / count($evaluaciones), 2);
+}
+$totalEvaluados  = count(array_unique(array_map(fn($e) => (int)($e->pasante_id ?? 0), $evaluaciones)));
+$sinEvaluar      = array_values(array_filter($pasantes, fn($p) => (int)($p->total_evaluaciones ?? 0) === 0));
+$conEvaluacion   = array_values(array_filter($pasantes, fn($p) => (int)($p->total_evaluaciones ?? 0) > 0));
 
-$catColors = [
-    'Actitudes'    => '#f59e0b',
-    'Competencias' => '#2563eb',
-    'Valores'      => '#10b981',
-    'Disciplina'   => '#8b5cf6',
-    'Desempeño'    => '#ef4444',
+// ─── Serializar evaluaciones para JS ─────────────────────────────────────
+$evalsJs = json_encode(array_values(array_map(fn($e) => [
+    'id'    => (int)$e->id,
+    'pid'   => (int)$e->pasante_id,
+    'pNom'  => trim(($e->pasante_nombres ?? '') . ' ' . ($e->pasante_apellidos ?? '')),
+    'tNom'  => trim(($e->tutor_nombres   ?? '') . ' ' . ($e->tutor_apellidos   ?? '')),
+    'fecha' => $e->fecha_evaluacion ?? '',
+    'lapso' => $e->lapso_academico  ?? '',
+    'prom'  => (float)($e->promedio_final ?? 0),
+], $evaluaciones)));
+
+// ─── Tutores para JS ──────────────────────────────────────────────────────
+$tutoresJs = json_encode(array_values(array_map(fn($t) => [
+    'id'   => (int)$t->id,
+    'nombre' => trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? '')),
+], $tutores)));
+
+// ─── Categorías de evaluación ─────────────────────────────────────────────
+$categorias = [
+    ['label' => 'Actitudes',    'col' => 'col-md-4 col-lg-4',
+     'color' => '#3b82f6', 'bg' => '#eff6ff', 'icon' => 'ti-mood-happy', 'items' => [
+        ['key' => 'criterio_iniciativa', 'label' => 'Iniciativa', 'icon' => 'ti-bulb'],
+        ['key' => 'criterio_interes',    'label' => 'Interés',    'icon' => 'ti-heart'],
+    ]],
+    ['label' => 'Valores',      'col' => 'col-md-4 col-lg-4',
+     'color' => '#d97706', 'bg' => '#fffbeb', 'icon' => 'ti-shield-check', 'items' => [
+        ['key' => 'criterio_companerismo', 'label' => 'Compañerismo', 'icon' => 'ti-users'],
+        ['key' => 'criterio_cooperacion',  'label' => 'Cooperación',  'icon' => 'ti-hand-stop'],
+    ]],
+    ['label' => 'Disciplina',   'col' => 'col-md-4 col-lg-4',
+     'color' => '#7c3aed', 'bg' => '#f5f3ff', 'icon' => 'ti-calendar-check', 'items' => [
+        ['key' => 'criterio_puntualidad',  'label' => 'Puntualidad',  'icon' => 'ti-clock'],
+        ['key' => 'criterio_presentacion', 'label' => 'Presentación', 'icon' => 'ti-shirt'],
+    ]],
+    ['label' => 'Competencias', 'col' => 'col-12',
+     'color' => '#059669', 'bg' => '#f0fdf4', 'icon' => 'ti-brain', 'items' => [
+        ['key' => 'criterio_conocimiento', 'label' => 'Conocimiento', 'icon' => 'ti-book'],
+        ['key' => 'criterio_analisis',     'label' => 'Análisis',     'icon' => 'ti-chart-dots'],
+        ['key' => 'criterio_comunicacion', 'label' => 'Comunicación', 'icon' => 'ti-message-dots'],
+        ['key' => 'criterio_aprendizaje',  'label' => 'Aprendizaje',  'icon' => 'ti-school'],
+    ]],
+    ['label' => 'Desempeño',    'col' => 'col-12',
+     'color' => '#1e3a8a', 'bg' => '#f0f4ff', 'icon' => 'ti-trophy', 'items' => [
+        ['key' => 'criterio_desarrollo',    'label' => 'Desarrollo',    'icon' => 'ti-code'],
+        ['key' => 'criterio_analisis_res',  'label' => 'Análisis Res.', 'icon' => 'ti-chart-bar'],
+        ['key' => 'criterio_conclusiones',  'label' => 'Conclusiones',  'icon' => 'ti-clipboard-check'],
+        ['key' => 'criterio_recomendacion', 'label' => 'Recomendac.',   'icon' => 'ti-star'],
+    ]],
 ];
+$totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias));
 ?>
 
+<div class="dashboard-container" style="width:100%;max-width:100%;padding:0;">
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     ESTILOS RESPONSIVOS — un único bloque, cascada limpia
+═══════════════════════════════════════════════════════════════════════ -->
 <style>
-/* ===== MODAL (Gold Standard) ===== */
-.modal {
-    display: none; position: fixed; z-index: 1100; inset: 0;
-    background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(6px);
-    animation: fadeIn 0.3s; align-items: center; justify-content: center;
+/* ── BASE desktop ──────────────────────────────────────────────────── */
+.ev-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
 }
-.modal.active { display: flex; }
-.modal-content {
-    background: white; border-radius: 24px; max-width: 700px; width: 94%;
-    max-height: 92vh; display: flex; flex-direction: column; overflow: hidden;
-    animation: slideUp 0.3s; box-shadow: 0 32px 80px rgba(15, 23, 42, 0.3);
-}
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes slideUp { from { transform: translateY(24px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.modal-header {
-    background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%);
-    padding: 24px 28px; display: flex; justify-content: space-between;
-    align-items: center; flex-shrink: 0; color: white;
-}
-.modal-header-info { display: flex; align-items: center; gap: 14px; }
-.modal-header-icon {
-    background: rgba(255,255,255,0.15); border-radius: 12px;
-    width: 44px; height: 44px; display: flex; align-items: center;
-    justify-content: center; font-size: 1.3rem; flex-shrink: 0;
-}
-.modal-title { font-size: 1.3rem; font-weight: 700; color: white !important; margin: 0; }
-.modal-subtitle { font-size: 0.82rem; color: rgba(255,255,255,0.75); margin: 3px 0 0; }
-.modal-body-scroll { padding: 28px; overflow-y: auto; flex: 1; }
-.modal-close {
-    background: rgba(255,255,255,0.15); border: none; color: white;
-    width: 36px; height: 36px; display: flex; align-items: center;
-    justify-content: center; border-radius: 50%; cursor: pointer;
-    font-size: 1.1rem; transition: background 0.2s; flex-shrink: 0;
-}
-.modal-close:hover { background: rgba(255,255,255,0.3); }
-.modal-close i { color: white !important; }
-
-/* ===== STAR RATING ===== */
-.star-rating { display: flex; gap: 4px; flex-direction: row-reverse; justify-content: flex-end; }
-.star-rating input { display: none; }
-.star-rating label {
-    cursor: pointer; font-size: 1.6rem; color: #e2e8f0;
-    transition: all 0.15s; line-height: 1;
-}
-.star-rating label:hover,
-.star-rating label:hover ~ label,
-.star-rating input:checked ~ label {
-    color: #f59e0b;
-    transform: scale(1.15);
-}
-
-/* ===== FORM ===== */
-.input-modern {
-    width: 100%; padding: 12px 16px; border: 2px solid #e5e7eb;
-    border-radius: 12px; font-size: 0.9rem; transition: all 0.2s;
-    background: white; color: #1e293b; font-weight: 500; box-sizing: border-box;
-}
-.input-modern:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,0.1); }
-
-/* ===== CATEGORY CARDS ===== */
-.eval-category {
-    border-radius: 16px; padding: 20px; margin-bottom: 20px;
-    border: 1px solid #f1f5f9; background: #fafbfc;
-}
-.eval-category-header {
-    display: flex; align-items: center; gap: 10px; margin-bottom: 16px;
-    padding-bottom: 12px; border-bottom: 2px solid;
-}
-.eval-criterio {
+.ev-banner {
+    background: linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);
+    border-radius: 20px; padding: 28px 36px; margin-bottom: 24px;
+    position: relative; overflow: hidden;
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 0; border-bottom: 1px solid #f1f5f9; gap: 16px;
 }
-.eval-criterio:last-child { border-bottom: none; }
+/* El slide ocupa el 50% del slider (200% de ancho total) */
+#vistaDashboard  { width: 50%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-bottom: 20px; }
+#vistaEvaluacion { width: 50%; display: flex; flex-direction: column; padding-bottom: 24px; }
+.ev-panel-b-grid { display: grid; grid-template-columns: 1fr 290px; gap: 16px; align-items: start; }
+.ev-sidebar      { position: sticky; top: 86px; display: flex; flex-direction: column; gap: 14px; }
 
-/* ===== RESPONSIVE ===== */
-@media (max-width: 768px) {
-    .eval-stats-grid { grid-template-columns: 1fr 1fr !important; }
-    .eval-criterio { flex-direction: column; align-items: flex-start; }
+/* ── TABLET ≤ 991px ────────────────────────────────────────────────── */
+@media (max-width: 991px) {
+    .ev-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 20px 18px;
+        gap: 14px;
+    }
+    .ev-banner-deco   { display: none !important; }
+    .ev-banner-btn    { width: 100%; }
+    .ev-banner-btn button { width: 100%; justify-content: center; }
+    .ev-kpi-grid      { grid-template-columns: 1fr 1fr; gap: 12px; }
 }
+
+/* ── MÓVIL ≤ 767px — Navegación push nativa ─────────────────────── */
+@media (max-width: 767px) {
+
+    /* ── Panel A ── */
+    .ev-kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+    .ev-kpi-grid .ev-kpi-card { padding: 14px 12px !important; }
+    .ev-kpi-grid .ev-kpi-val  { font-size: 1.5rem !important; }
+    #vistaDashboard { grid-template-columns: 1fr !important; gap: 12px !important; width: 100% !important; }
+    .ev-list-scroll { height: 280px !important; min-height: 160px !important; }
+    #evalOuter  { overflow: visible !important; }
+    #evalSlider { display: block !important; width: 100% !important; transform: none !important; transition: none !important; }
+
+    /* ════ PANEL B — full-screen push desde la derecha ════ */
+    #vistaEvaluacion {
+        position: fixed !important;
+        top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+        width: 100% !important;
+        z-index: 3200 !important;
+        background: #eef2f7 !important;
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch !important;
+        overscroll-behavior: contain !important;
+        transform: translateX(100%) !important;
+        transition: transform .38s cubic-bezier(.4,0,.2,1) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        padding-bottom: 88px !important;
+    }
+    #vistaEvaluacion.ev-panel-visible { transform: translateX(0) !important; }
+
+    /* ── Header sticky ── */
+    .ev-fb-header {
+        position: sticky !important; top: 0 !important; z-index: 10 !important;
+        border-radius: 0 !important; margin-bottom: 0 !important;
+        padding: 10px 12px 8px !important; gap: 6px !important;
+        flex-wrap: wrap !important;
+    }
+    /* Primera fila: Volver + Avatar + Nombre */
+    .ev-fb-header > button:first-child { order: 1 !important; flex-shrink: 0 !important; }
+    #fbAvatar { order: 2 !important; width: 30px !important; height: 30px !important; border-radius: 8px !important; font-size: 0.75rem !important; flex-shrink: 0 !important; }
+    .ev-fb-nombre { order: 3 !important; flex: 1 !important; min-width: 0 !important; }
+    #fbNombre { font-size: 0.8rem !important; }
+    #fbMeta   { font-size: 0.63rem !important; }
+    .ev-fb-criterios { display: none !important; }
+    /* Botón Excelente a Todo — segunda fila, ancho completo */
+    #btnMarcarTodoGlobal {
+        order: 10 !important;
+        width: 100% !important;
+        justify-content: center !important;
+        padding: 8px 12px !important;
+        font-size: 0.8rem !important;
+        gap: 6px !important; border-radius: 10px !important;
+    }
+    #btnMarcarTodoGlobal i { font-size: 0.9rem !important; }
+    #btnMarcarTodoGlobal span { display: inline !important; }
+
+    /* ── Mini donut: reemplazado por gauge ring en tarjeta ── */
+    .ev-mob-donut { display: none !important; }
+    /* Mostrar el gauge ring real */
+    .ev-gauge-wrap { display: inline-flex !important; margin-bottom: 6px !important; }
+
+    /* ── Layout del body ── */
+    .ev-panel-b-grid {
+        display: flex !important; flex-direction: column !important;
+        gap: 0 !important; padding: 0 !important;
+    }
+
+    /* ══ SIDEBAR: DOS TARJETAS — misma altura ══ */
+    .ev-sidebar {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr !important;
+        gap: 8px !important;
+        padding: 10px 10px 4px !important;
+        order: -1 !important;
+        position: static !important;
+        align-items: stretch !important;   /* ambas tarjetas siempre igual de altas */
+    }
+
+    /* ── Tarjeta Izquierda: Gauge Ring ── */
+    .ev-sidebar > div:first-child {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        border-radius: 16px !important;
+        padding: 12px 10px !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        text-align: center !important;
+        box-sizing: border-box !important;
+    }
+    /* Título */
+    .ev-sidebar > div:first-child > p {
+        font-size: 0.58rem !important;
+        margin: 0 0 4px !important;
+        letter-spacing: .3px !important;
+        flex-shrink: 0 !important;
+        align-self: center !important;
+    }
+    /* Anillo: ocupa el espacio libre, centra el SVG */
+    .ev-gauge-wrap {
+        flex: 1 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin-bottom: 4px !important;
+    }
+    .ev-gauge-wrap svg { width: 124px !important; height: 124px !important; }
+    #gaugeValue { font-size: 1.5rem !important; }
+    #gaugeDenom { font-size: 0.68rem !important; }
+    #gaugeLabel { font-size: 0.58rem !important; margin-top: 2px !important; }
+    /* Contador pegado al fondo */
+    .ev-gauge-counter {
+        width: 100% !important; padding: 6px 8px !important;
+        border-radius: 10px !important; box-sizing: border-box !important;
+        flex-shrink: 0 !important;
+    }
+    .ev-gauge-counter span:first-child { font-size: 0.56rem !important; }
+    #gaugeCount { font-size: 0.62rem !important; padding: 1px 6px !important; }
+    /* Ocultar leyenda ★ */
+    .ev-gauge-legend { display: none !important; }
+
+    /* ── Tarjeta Derecha: Controles ── */
+    /* SIN height explícito → align-items:stretch controla la altura,
+       ambas tarjetas siempre tienen exactamente la misma altura */
+    .ev-sidebar > div:last-child {
+        border-radius: 16px !important;
+        border: 1px solid #DDE2F0 !important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.06) !important;
+        overflow: hidden !important;
+        box-sizing: border-box !important;
+    }
+    /* Cuerpo de controles */
+    #mobConfigBody {
+        padding: 10px 10px !important;
+        display: flex !important; flex-direction: column !important; gap: 8px !important;
+        height: 100% !important; box-sizing: border-box !important;
+    }
+    /* Ocultar botón guardar del desktop */
+    #btnGuardar { display: none !important; }
+    /* Labels */
+    #mobConfigBody label { font-size: 0.62rem !important; margin-bottom: 3px !important; }
+    /* Campos read-only — altura fija para no romper layout */
+    .ev-field-ro {
+        padding: 6px 8px !important; font-size: 0.74rem !important;
+        border-radius: 9px !important; height: 32px !important;
+        min-height: 32px !important; max-height: 32px !important;
+        overflow: hidden !important; box-sizing: border-box !important;
+    }
+    .ev-auto-badge { font-size: 0.55rem !important; padding: 1px 5px !important; }
+    /* Select tutor — misma altura que los campos ro, no crece al cambiar */
+    #fTutorId {
+        font-size: 0.74rem !important; padding: 0 8px !important;
+        border-radius: 9px !important;
+        height: 32px !important; min-height: 32px !important; max-height: 32px !important;
+        box-sizing: border-box !important; width: 100% !important;
+        overflow: hidden !important; text-overflow: ellipsis !important;
+    }
+    /* Fecha + Lapso: columna única */
+    .ev-meta-grid { grid-template-columns: 1fr !important; gap: 6px !important; }
+    /* Textarea observaciones — altura fija */
+    #fObs {
+        font-size: 0.74rem !important; padding: 6px 8px !important;
+        border-radius: 9px !important;
+        height: 48px !important; min-height: 48px !important; max-height: 48px !important;
+        resize: none !important; box-sizing: border-box !important;
+    }
+
+    /* ── Criterios bento ── */
+    .ev-panel-b-grid > div:first-child { padding: 10px 10px 6px !important; }
+    .eval-cat-wrapper .row { --bs-gutter-x: 0.45rem !important; --bs-gutter-y: 0.45rem !important; }
+    .eval-cat-wrapper .row > [class*="col-"] { flex: 0 0 50% !important; max-width: 50% !important; }
+
+    /* Sección de categoría — tarjeta bento blanca */
+    .eval-cat-wrapper {
+        background: rgba(255,255,255,0.75) !important;
+        border-radius: 16px !important; padding: 10px !important;
+        margin-bottom: 8px !important;
+        border: 1px solid rgba(0,0,0,0.06) !important;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.05) !important;
+    }
+    .eval-cat-wrapper > div > div:first-child {
+        margin-bottom: 8px !important; padding-bottom: 0 !important; border-bottom: none !important;
+    }
+
+    /* Card criterio base bento */
+    .criterio-card {
+        flex-direction: column !important; align-items: center !important;
+        text-align: center !important; padding: 12px 6px 10px !important;
+        border-radius: 14px !important; border-width: 1.5px !important;
+        gap: 0 !important; height: 100% !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.06) !important;
+        transition: transform .15s ease, box-shadow .15s ease !important;
+    }
+    .criterio-card:active { transform: scale(0.95) !important; }
+
+    /* Fondos tintados por categoría */
+    .criterio-card[data-cat-color="#3b82f6"] { background:#eff6ff !important; border-color:rgba(59,130,246,.25) !important; }
+    .criterio-card[data-cat-color="#d97706"] { background:#fffbeb !important; border-color:rgba(217,119,6,.25) !important; }
+    .criterio-card[data-cat-color="#7c3aed"] { background:#f5f3ff !important; border-color:rgba(124,58,237,.25) !important; }
+    .criterio-card[data-cat-color="#059669"] { background:#f0fdf4 !important; border-color:rgba(5,150,105,.25) !important; }
+    .criterio-card[data-cat-color="#1e3a8a"] { background:#f0f4ff !important; border-color:rgba(30,58,138,.25) !important; }
+
+    /* Icon rings tintados */
+    .criterio-card[data-cat-color="#3b82f6"] .ev-icon-ring { background:rgba(59,130,246,.15) !important; border-color:rgba(59,130,246,.3) !important; }
+    .criterio-card[data-cat-color="#d97706"] .ev-icon-ring { background:rgba(217,119,6,.15) !important;  border-color:rgba(217,119,6,.3) !important; }
+    .criterio-card[data-cat-color="#7c3aed"] .ev-icon-ring { background:rgba(124,58,237,.15) !important; border-color:rgba(124,58,237,.3) !important; }
+    .criterio-card[data-cat-color="#059669"] .ev-icon-ring { background:rgba(5,150,105,.15) !important;  border-color:rgba(5,150,105,.3) !important; }
+    .criterio-card[data-cat-color="#1e3a8a"] .ev-icon-ring { background:rgba(30,58,138,.15) !important;  border-color:rgba(30,58,138,.3) !important; }
+
+    .criterio-card .ev-icon-ring { width:30px !important; height:30px !important; margin:0 auto 7px !important; min-width:unset !important; }
+    .criterio-card .ev-icon-ring i { font-size:0.82rem !important; }
+    .criterio-card p { font-size:0.67rem !important; font-weight:800 !important; margin:0 0 7px !important; line-height:1.2 !important; flex:unset !important; color:#0f172a !important; }
+    .criterio-card .star-group { gap:0 !important; flex-wrap:nowrap !important; }
+    .criterio-card .star-btn {
+        font-size:1.1rem !important; padding:2px 1px !important;
+        min-height:36px !important; min-width:22px !important;
+        display:inline-flex !important; align-items:center !important; justify-content:center !important;
+    }
+
+    /* Barra Guardar fija — oculta por defecto, visible solo al abrir panel B */
+    .ev-save-bar {
+        display: none !important;
+    }
+    .ev-save-bar.ev-save-active {
+        display: block !important; position: fixed !important;
+        bottom: 0 !important; left: 0 !important; right: 0 !important;
+        padding: 10px 14px 20px !important;
+        background: rgba(255,255,255,0.97) !important;
+        backdrop-filter: blur(16px) !important; -webkit-backdrop-filter: blur(16px) !important;
+        border-top: 1px solid #e2e8f0 !important;
+        box-shadow: 0 -4px 24px rgba(0,0,0,0.08) !important;
+        z-index: 3300 !important;
+    }
+    .ev-btn-volver-mobile { display: none !important; }
+}
+
+@media (min-width: 768px) {
+    .ev-mob-donut    { display: none !important; }
+    .ev-save-bar     { display: none !important; }
+    .ev-btn-volver-mobile { display: none !important; }
+}
+
+/* ── SweetAlert2 Bento Premium — Evaluaciones ─────────────────────── */
+.swal-eval-popup {
+    border-radius: 24px !important;
+    padding: 28px 24px 24px !important;
+    box-shadow: 0 25px 60px rgba(0,0,0,0.15) !important;
+    border: 1px solid rgba(0,0,0,0.06) !important;
+    font-family: inherit !important;
+    max-width: 380px !important;
+}
+.swal-eval-success { background: #fff !important; }
+.swal-eval-popup .swal2-title {
+    font-size: 1.2rem !important; font-weight: 800 !important;
+    color: #0f172a !important; padding: 0 !important;
+    margin: 0 0 10px !important; line-height: 1.3 !important;
+}
+.swal-eval-btn-confirm {
+    border-radius: 12px !important; font-weight: 700 !important;
+    font-size: 0.88rem !important; padding: 11px 24px !important;
+    display: inline-flex !important; align-items: center !important;
+    gap: 6px !important; transition: all .2s !important;
+}
+.swal-eval-btn-cancel {
+    border-radius: 12px !important; font-weight: 700 !important;
+    font-size: 0.88rem !important; padding: 11px 24px !important;
+    display: inline-flex !important; align-items: center !important;
+    gap: 6px !important;
+}
+.swal2-actions { gap: 8px !important; margin-top: 20px !important; }
 </style>
 
-<div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
-
-    <!-- ===== BANNER ===== -->
-    <div style="background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%); border-radius: 20px; padding: 32px 40px; margin-bottom: 28px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;">
-        <div style="position: absolute; top: -40px; right: -40px; width: 220px; height: 220px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
-        <div style="position: absolute; bottom: -60px; left: 30%; width: 160px; height: 160px; background: rgba(255,255,255,0.03); border-radius: 50%;"></div>
+<!-- ═══ BANNER ════════════════════════════════════════════════════════════════ -->
+<div class="ev-banner">
+    <div class="ev-banner-deco" style="position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(255,255,255,0.04);border-radius:50%;pointer-events:none;"></div>
+    <div style="display:flex;align-items:center;gap:16px;z-index:1;">
+        <div style="background:rgba(255,255,255,0.15);border-radius:14px;padding:12px;flex-shrink:0;">
+            <i class="ti ti-star" style="font-size:28px;color:white;"></i>
+        </div>
         <div>
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 10px;">
-                    <i class="ti ti-star" style="font-size: 28px; color: white;"></i>
-                </div>
-                <div>
-                    <h1 style="color: white; font-size: 1.8rem; font-weight: 700; margin: 0;">Evaluaciones de Pasantes</h1>
-                    <p style="color: rgba(255,255,255,0.7); margin: 0; font-size: 0.9rem; display: flex; align-items: center; gap: 8px;">
-                        <i class="ti ti-clipboard-check"></i>
-                        Planilla Digital de Evaluación — 14 Criterios
-                        <span style="background: rgba(255,255,255,0.2); color: white; padding: 2px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;">
-                            <?= $total ?> evaluaciones
-                        </span>
-                    </p>
-                </div>
-            </div>
-        </div>
-        <div style="display: flex; gap: 12px; z-index: 1;">
-            <button onclick="abrirModalEvaluacion()"
-                style="background: white; color: #162660; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.25s; flex-shrink: 0;"
-                onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'"
-                onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 12px rgba(0,0,0,0.2)'">
-                <i class="ti ti-plus" style="font-size: 1.1rem;"></i>
-                Nueva Evaluación
-            </button>
+            <h1 style="color:white;font-size:1.65rem;font-weight:700;margin:0;">Evaluaciones de Pasantes</h1>
+            <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:0.85rem;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <i class="ti ti-clipboard-check"></i>
+                <span>Gestión y Seguimiento Académico</span>
+                <?php if ($total > 0): ?>
+                <span style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.1);border-radius:50px;padding:3px 12px;color:white;font-weight:700;font-size:0.78rem;"><?= $total ?> registradas</span>
+                <?php endif; ?>
+            </p>
         </div>
     </div>
-
-    <!-- ===== KPIs (Interactivos) ===== -->
-    <div class="eval-stats-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 28px;">
-        <?php
-            $promedioGlobal = 0;
-            if (!empty($evaluaciones)) {
-                $sumaPromedios = array_sum(array_map(fn($e) => (float)($e->promedio_final ?? 0), $evaluaciones));
-                $promedioGlobal = round($sumaPromedios / count($evaluaciones), 2);
-            }
-        ?>
-        <?php foreach ([
-            ['label' => 'Total Evaluaciones', 'id' => 'kpi-total', 'value' => $total,           'sub' => 'realizadas',         'color' => '#1e3a8a', 'icon' => 'ti-file-analytics', 'filter' => ''],
-            ['label' => 'Promedio Global',     'id' => 'kpi-prom',  'value' => $promedioGlobal . '/5', 'sub' => 'rendimiento general', 'color' => '#f59e0b', 'icon' => 'ti-star', 'filter' => ''],
-            ['label' => 'Pasantes Evaluados',  'id' => 'kpi-users', 'value' => count(array_unique(array_map(fn($e) => $e->pasante_id, $evaluaciones))), 'sub' => 'con evaluación', 'color' => '#16a34a', 'icon' => 'ti-users', 'filter' => ''],
-        ] as $s): ?>
-        <div class="kpi-card" 
-             style="border-left: 4px solid <?= $s['color'] ?>; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;"
-             onmouseover="this.style.transform='translateY(-5px)';this.style.boxShadow='0 10px 20px rgba(0,0,0,0.1)'"
-             onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
-            <div class="kpi-info">
-                <p class="kpi-label"><?= $s['label'] ?></p>
-                <h2 class="kpi-value" style="color: <?= $s['color'] ?>;"><?= $s['value'] ?></h2>
-                <p class="kpi-sub"><?= $s['sub'] ?></p>
-            </div>
-            <div class="kpi-icon-box" style="background: <?= $s['color'] ?>18;">
-                <i class="ti <?= $s['icon'] ?>" style="color: <?= $s['color'] ?>;"></i>
-            </div>
-        </div>
-        <?php endforeach; ?>
-    </div>
-
-    <!-- ===== TABLA DE EVALUACIONES ===== -->
-    <div style="background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); overflow: hidden;">
-        <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0;">
-                <i class="ti ti-list" style="color: #162660;"></i> Historial de Evaluaciones
-            </h3>
-        </div>
-        <div style="overflow-x: auto;">
-            <table style="width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f8fafc;">
-                        <?php foreach (['Pasante', 'Tutor Evaluador', 'Fecha', 'Lapso', 'Promedio', 'Acciones'] as $h): ?>
-                        <th style="padding: 14px 20px; text-align: left; font-size: 0.8rem; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;"><?= $h ?></th>
-                        <?php endforeach; ?>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($evaluaciones as $ev):
-                        $pNom = htmlspecialchars(($ev->pasante_nombres ?? '') . ' ' . ($ev->pasante_apellidos ?? ''));
-                        $tNom = htmlspecialchars(($ev->tutor_nombres ?? '') . ' ' . ($ev->tutor_apellidos ?? ''));
-                        $prom = (float)($ev->promedio_final ?? 0);
-                        $promColor = $prom >= 4 ? '#10b981' : ($prom >= 3 ? '#f59e0b' : '#ef4444');
-                        $promBg = $prom >= 4 ? '#dcfce7' : ($prom >= 3 ? '#fef3c7' : '#fee2e2');
-                        $iniciales = strtoupper(substr($ev->pasante_nombres ?? '?', 0, 1) . substr($ev->pasante_apellidos ?? '', 0, 1));
-                    ?>
-                    <tr style="border-bottom: 1px solid #f1f5f9; transition: all 0.2s;"
-                        onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
-                        <td style="padding: 16px 20px;">
-                            <div style="display: flex; align-items: center; gap: 12px;">
-                                <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, #162660, #3b82f6); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">
-                                    <?= $iniciales ?>
-                                </div>
-                                <div>
-                                    <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;"><?= $pNom ?></span>
-                                    <div style="font-size: 0.75rem; color: #94a3b8;"><?= htmlspecialchars($ev->pasante_cedula ?? '') ?></div>
-                                </div>
-                            </div>
-                        </td>
-                        <td style="padding: 16px 20px; color: #1e293b; font-size: 0.85rem; font-weight: 500;"><?= $tNom ?></td>
-                        <td style="padding: 16px 20px; color: #64748b; font-size: 0.85rem;"><?= date('d/m/Y', strtotime($ev->fecha_evaluacion)) ?></td>
-                        <td style="padding: 16px 20px; color: #64748b; font-size: 0.85rem;"><?= htmlspecialchars($ev->lapso_academico ?? '—') ?></td>
-                        <td style="padding: 16px 20px;">
-                            <span style="background: <?= $promBg ?>; color: <?= $promColor ?>; padding: 6px 14px; border-radius: 20px; font-size: 0.9rem; font-weight: 800;">
-                                <?= number_format($prom, 1) ?>/5
-                            </span>
-                        </td>
-                        <td class="px-4 py-3">
-                            <div class="d-flex justify-content-center" style="gap: 12px;">
-                                <button onclick="verEvaluacion(<?= (int)$ev->id ?>)"
-                                        class="btn btn-sm border-0 shadow-sm transition-all" 
-                                        data-bs-toggle="tooltip" title="Ver detalle" 
-                                        style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #2563eb; color: #ffffff; border-radius: 6px !important;">
-                                    <i class="ti ti-eye fs-5 text-white"></i>
-                                </button>
-                                
-                                <a href="<?= URLROOT ?>/reportes/evaluacion_pdf/<?= $ev->id ?>" 
-                                   target="_blank"
-                                   class="btn btn-sm border-0 shadow-sm transition-all" 
-                                   data-bs-toggle="tooltip" title="Exportar PDF" 
-                                   style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #dc2626; color: #ffffff; border-radius: 6px !important;">
-                                    <i class="ti ti-file-type-pdf fs-5 text-white"></i>
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-</div><!-- /dashboard-container -->
-
-<!-- ===== MODAL DE EVALUACIÓN (Gold Standard + Planilla Digital) ===== -->
-<div id="modalEvaluacion" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <div class="modal-header-info">
-                <div class="modal-header-icon">
-                    <i class="ti ti-star"></i>
-                </div>
-                <div>
-                    <h2 class="modal-title">Nueva Evaluación</h2>
-                    <p class="modal-subtitle">Planilla digital — 14 criterios de evaluación</p>
-                </div>
-            </div>
-            <button class="modal-close" onclick="cerrarModalEval()">
-                <i class="ti ti-x"></i>
-            </button>
-        </div>
-
-        <div class="modal-body-scroll">
-            <form id="formEvaluacion" onsubmit="submitEvaluacion(event)">
-
-                <!-- Pasante y Tutor -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
-                    <div>
-                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;">
-                            <i class="ti ti-user" style="margin-right: 6px;"></i>Pasante *
-                        </label>
-                        <select name="pasante_id" required class="input-modern">
-                            <option value="">Seleccionar...</option>
-                            <?php foreach ($pasantes as $p): ?>
-                            <option value="<?= (int)$p->id ?>"><?= htmlspecialchars(($p->nombres ?? '') . ' ' . ($p->apellidos ?? '')) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;">
-                            <i class="ti ti-school" style="margin-right: 6px;"></i>Tutor *
-                        </label>
-                        <select name="tutor_id" required class="input-modern">
-                            <option value="">Seleccionar...</option>
-                            <?php foreach ($tutores as $t): ?>
-                            <option value="<?= (int)$t->id ?>" <?= ($tutorActualId == $t->id) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars(($t->nombres ?? '') . ' ' . ($t->apellidos ?? '')) ?>
-                            </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Fecha y Lapso -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 24px;">
-                    <div>
-                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;">
-                            <i class="ti ti-calendar" style="margin-right: 6px;"></i>Fecha *
-                        </label>
-                        <input type="date" name="fecha_evaluacion" required class="input-modern" value="<?= date('Y-m-d') ?>">
-                    </div>
-                    <div>
-                        <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;">
-                            <i class="ti ti-tag" style="margin-right: 6px;"></i>Lapso Académico
-                        </label>
-                        <input type="text" name="lapso_academico" class="input-modern" placeholder="Ej: 2025-II">
-                    </div>
-                </div>
-
-                <!-- ===== CRITERIOS POR CATEGORÍA ===== -->
-                <?php foreach ($categorias as $catNombre => $criterios):
-                    $catColor = $catColors[$catNombre] ?? '#64748b';
-                ?>
-                <div class="eval-category">
-                    <div class="eval-category-header" style="border-color: <?= $catColor ?>;">
-                        <div style="background: <?= $catColor ?>18; border-radius: 10px; padding: 8px; display: flex; align-items: center; justify-content: center;">
-                            <i class="ti ti-category" style="color: <?= $catColor ?>; font-size: 1.1rem;"></i>
-                        </div>
-                        <h4 style="margin: 0; color: <?= $catColor ?>; font-size: 1rem; font-weight: 700;"><?= $catNombre ?></h4>
-                    </div>
-
-                    <?php foreach ($criterios as $crit): ?>
-                    <div class="eval-criterio">
-                        <div style="flex: 1;">
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
-                                <i class="ti <?= $crit['icon'] ?>" style="color: <?= $catColor ?>; font-size: 1rem;"></i>
-                                <span style="font-weight: 600; color: #1e293b; font-size: 0.9rem;"><?= $crit['label'] ?></span>
-                            </div>
-                            <span style="font-size: 0.78rem; color: #94a3b8;"><?= $crit['desc'] ?></span>
-                        </div>
-                        <div class="star-rating">
-                            <?php for ($i = 5; $i >= 1; $i--): ?>
-                            <input type="radio" name="<?= $crit['campo'] ?>" value="<?= $i ?>" id="<?= $crit['campo'] ?>_<?= $i ?>" required>
-                            <label for="<?= $crit['campo'] ?>_<?= $i ?>" title="<?= $i ?>/5">★</label>
-                            <?php endfor; ?>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
-                <?php endforeach; ?>
-
-                <!-- Promedio en tiempo real -->
-                <div style="background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); border: 2px solid #c7d2fe; border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center;">
-                    <p style="margin: 0 0 4px; font-size: 0.85rem; color: #64748b; font-weight: 600;">PROMEDIO CALCULADO</p>
-                    <span id="promedioDisplay" style="font-size: 2.5rem; font-weight: 800; color: #162660;">0.00</span>
-                    <span style="font-size: 1.2rem; color: #94a3b8; font-weight: 600;"> / 5</span>
-                </div>
-
-                <!-- Observaciones -->
-                <div style="margin-bottom: 24px;">
-                    <label style="display: block; font-weight: 600; color: #374151; margin-bottom: 8px; font-size: 0.9rem;">
-                        <i class="ti ti-notes" style="margin-right: 6px;"></i>Observaciones Generales
-                    </label>
-                    <textarea name="observaciones" rows="3" class="input-modern" placeholder="Comentarios adicionales sobre el desempeño..." style="resize: vertical;"></textarea>
-                </div>
-
-                <!-- Botones -->
-                <div style="display: flex; gap: 12px;">
-                    <button type="button" onclick="cerrarModalEval()" style="flex: 1; padding: 14px; border: 1.5px solid #e2e8f0; border-radius: 12px; background: white; color: #64748b; font-weight: 600; cursor: pointer; font-size: 0.9rem;">
-                        Cancelar
-                    </button>
-                    <button type="submit" id="btnGuardarEval"
-                        style="flex: 2; padding: 14px; background: linear-gradient(135deg, #172554 0%, #1e3a8a 100%); border: none; border-radius: 12px; color: white; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 0.95rem;">
-                        <i class="ti ti-check"></i> Guardar Evaluación
-                    </button>
-                </div>
-            </form>
-        </div>
+    <div class="ev-banner-btn" style="background:rgba(0,0,0,0.15);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:5px;z-index:1;">
+        <button onclick="EvalApp.nuevaDesdeBoton()" style="background:white;color:#1e3a8a;border:none;padding:11px 22px;border-radius:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:0.9rem;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+            <i class="ti ti-plus"></i> Nueva Evaluación
+        </button>
     </div>
 </div>
 
-<!-- MODAL DETALLE DE EVALUACIÓN (Read-only) -->
+<!-- ═══ KPIs ═════════════════════════════════════════════════════════════════ -->
+<div class="ev-kpi-grid">
+<?php foreach ([
+    ['label' => 'Total Evaluaciones', 'value' => $total,              'sub' => 'realizadas',       'color' => '#2563eb', 'icon' => 'ti-file-analytics'],
+    ['label' => 'Promedio Global',    'value' => $promedioGlobal.'/5','sub' => 'rendimiento',      'color' => '#f59e0b', 'icon' => 'ti-star'],
+    ['label' => 'Evaluados',          'value' => $totalEvaluados,     'sub' => 'con evaluación',   'color' => '#10b981', 'icon' => 'ti-circle-check'],
+    ['label' => 'Pendientes',         'value' => count($sinEvaluar),  'sub' => 'sin evaluar',      'color' => '#ef4444', 'icon' => 'ti-alert-circle'],
+] as $k): ?>
+<div class="ev-kpi-card" style="background:white;border-radius:16px;padding:18px 20px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid <?= $k['color'] ?>;transition:all .25s;"
+     onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 10px 24px rgba(0,0,0,.09)'"
+     onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <p style="color:#64748b;font-size:0.75rem;margin:0 0 6px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;"><?= $k['label'] ?></p>
+        <i class="ti <?= $k['icon'] ?>" style="color:<?= $k['color'] ?>;font-size:1.3rem;opacity:0.65;"></i>
+    </div>
+    <h2 class="ev-kpi-val" style="font-size:2.1rem;font-weight:800;color:<?= $k['color'] ?>;margin:0 0 2px;"><?= $k['value'] ?></h2>
+    <p style="color:#94a3b8;font-size:0.75rem;margin:0;"><?= $k['sub'] ?></p>
+</div>
+<?php endforeach; ?>
+</div>
+
+<!-- ═══ BOTÓN VOLVER (solo móvil, Panel B activo) ═══════════════════════════ -->
+<button class="ev-btn-volver-mobile" id="btnVolverMobile"
+    style="display:none;align-items:center;gap:8px;background:white;border:1.5px solid #e2e8f0;border-radius:12px;padding:10px 16px;font-size:0.85rem;font-weight:600;color:#334155;cursor:pointer;margin-bottom:10px;"
+    onclick="EvalApp.volver()">
+    <i class="ti ti-arrow-left"></i> Volver a la lista
+</button>
+
+<!-- ═══ SLIDER CONTAINER ═══════════════════════════════════════════════════════ -->
+<div id="evalOuter" style="overflow:hidden;position:relative;">
+<div id="evalSlider" style="display:flex;width:200%;transition:transform .48s cubic-bezier(.4,0,.2,1);">
+
+    <!-- ══ PANEL A — DASHBOARD: Pendientes | Historial ══════════════════════ -->
+    <div id="vistaDashboard">
+
+        <!-- ─── Card Pendientes por Evaluar ─────────────────────────────── -->
+        <div style="background:white;border-radius:16px;box-shadow:0 4px 6px rgba(0,0,0,0.04);overflow:hidden;border:1px solid #f1f5f9;display:flex;flex-direction:column;min-height:280px;">
+            <div style="padding:20px 24px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <h3 style="font-size:0.95rem;font-weight:700;color:#1e293b;margin:0;">
+                    <i class="ti ti-alert-circle" style="color:#ef4444;margin-right:8px;"></i>
+                    Pendientes por Evaluar
+                </h3>
+                <span style="background:#fef2f2;color:#dc2626;padding:4px 12px;border-radius:20px;font-size:0.78rem;font-weight:700;flex-shrink:0;">
+                    <?= count($sinEvaluar) ?> pasante<?= count($sinEvaluar) !== 1 ? 's' : '' ?>
+                </span>
+            </div>
+
+            <div class="ev-list-scroll" style="height:calc(100vh - 390px);min-height:220px;overflow-y:auto;overflow-x:hidden;">
+                <?php if (empty($sinEvaluar)): ?>
+                <div style="min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:32px;">
+                    <div style="width:72px;height:72px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <div style="text-align:center;">
+                        <p style="font-weight:700;color:#15803d;font-size:0.95rem;margin:0 0 6px;">¡Excelente trabajo!</p>
+                        <p style="color:#94a3b8;font-size:0.82rem;margin:0;line-height:1.5;">No hay pasantes pendientes<br>por evaluar en este momento.</p>
+                    </div>
+                </div>
+                <?php else: ?>
+                <?php foreach ($sinEvaluar as $p):
+                    $ini = strtoupper(substr($p->nombres ?? '?', 0, 1) . substr($p->apellidos ?? '', 0, 1));
+                    $tutNom = trim($p->tutor_nombre ?? '');
+                    $metaLabel = $tutNom
+                        ? $tutNom
+                        : ($p->departamento && $p->departamento !== 'Sin departamento'
+                            ? $p->departamento
+                            : ($p->institucion_nombre ?? 'Sin información'));
+                    $pj  = htmlspecialchars(json_encode([
+                        'id'              => (int)$p->id,
+                        'nombre'          => trim(($p->nombres ?? '') . ' ' . ($p->apellidos ?? '')),
+                        'cedula'          => $p->cedula ?? '',
+                        'depto'           => $p->departamento ?? '',
+                        'tutor_id'        => $p->tutor_id ?? null,
+                        'tutor_nombre'    => $tutNom,
+                        'institucion'     => $p->institucion_nombre ?? '',
+                        'periodo_nombre'  => $p->periodo_nombre ?? '',
+                    ]), ENT_QUOTES);
+                ?>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #f8fafc;transition:background .15s;" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='white'">
+                    <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+                        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#162660,#2563eb);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.78rem;flex-shrink:0;"><?= $ini ?></div>
+                        <div style="min-width:0;">
+                            <div style="font-weight:600;color:#1e293b;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars(trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''))) ?></div>
+                            <div style="font-size:0.73rem;color:#64748b;display:flex;align-items:center;gap:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                                <i class="ti ti-user-check" style="color:#2563eb;font-size:0.7rem;flex-shrink:0;"></i>
+                                <?= htmlspecialchars($metaLabel) ?>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="EvalApp.abrirFormulario(<?= $pj ?>)"
+                        style="background:#eff6ff;color:#162660;border:1.5px solid #bfdbfe;padding:6px 14px;border-radius:8px;font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap;flex-shrink:0;margin-left:8px;"
+                        onmouseover="this.style.background='#dbeafe';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='#eff6ff';this.style.transform='none'">
+                        <i class="ti ti-clipboard-check"></i> Evaluar
+                    </button>
+                </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ─── Card Historial de Evaluaciones ──────────────────────────── -->
+        <div style="background:white;border-radius:16px;box-shadow:0 4px 6px rgba(0,0,0,0.04);overflow:hidden;border:1px solid #f1f5f9;display:flex;flex-direction:column;min-height:280px;">
+            <div style="padding:20px 24px;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+                <h3 style="font-size:0.95rem;font-weight:700;color:#1e293b;margin:0;">
+                    <i class="ti ti-list-details" style="color:#2563eb;margin-right:8px;"></i>
+                    Historial de Evaluaciones
+                </h3>
+                <span style="background:#eff6ff;color:#162660;padding:4px 12px;border-radius:20px;font-size:0.78rem;font-weight:700;flex-shrink:0;">
+                    <?= $total ?> registro<?= $total !== 1 ? 's' : '' ?>
+                </span>
+            </div>
+
+            <div class="ev-list-scroll" style="height:calc(100vh - 390px);min-height:220px;overflow-y:auto;overflow-x:hidden;">
+                <?php if (empty($evaluaciones)): ?>
+                <div style="min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:32px;">
+                    <div style="width:72px;height:72px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                            <line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>
+                        </svg>
+                    </div>
+                    <div style="text-align:center;">
+                        <p style="font-weight:700;color:#475569;font-size:0.95rem;margin:0 0 6px;">Sin evaluaciones aún</p>
+                        <p style="color:#94a3b8;font-size:0.82rem;margin:0;line-height:1.5;">Las evaluaciones registradas<br>aparecerán aquí.</p>
+                    </div>
+                </div>
+                <?php else: ?>
+                <?php foreach ($evaluaciones as $ev):
+                    $pNom = trim(($ev->pasante_nombres ?? '') . ' ' . ($ev->pasante_apellidos ?? ''));
+                    $tNom = trim(($ev->tutor_nombres   ?? '') . ' ' . ($ev->tutor_apellidos   ?? ''));
+                    $prom = (float)($ev->promedio_final ?? 0);
+                    $ini  = strtoupper(substr($ev->pasante_nombres ?? '?', 0, 1) . substr($ev->pasante_apellidos ?? '', 0, 1));
+                    $pc   = $prom >= 4 ? '#10b981' : ($prom >= 3 ? '#f59e0b' : '#ef4444');
+                    $pb   = $prom >= 4 ? '#dcfce7'  : ($prom >= 3 ? '#fef3c7' : '#fee2e2');
+                ?>
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;border-bottom:1px solid #f8fafc;transition:background .15s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                    <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#162660,#2563eb);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:0.78rem;flex-shrink:0;"><?= $ini ?></div>
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;color:#1e293b;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($pNom) ?></div>
+                        <div style="font-size:0.73rem;color:#94a3b8;margin-top:1px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <i class="ti ti-user-check" style="color:#2563eb;"></i>
+                            <span><?= htmlspecialchars($tNom ?: '—') ?></span>
+                            <span style="opacity:.5;">·</span>
+                            <span><?= date('d/m/Y', strtotime($ev->fecha_evaluacion)) ?></span>
+                        </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        <span style="background:<?= $pb ?>;color:<?= $pc ?>;padding:4px 10px;border-radius:20px;font-size:0.82rem;font-weight:800;"><?= number_format($prom, 1) ?>/5</span>
+                        <button onclick="verEvaluacion(<?= (int)$ev->id ?>)"
+                            style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 9px;cursor:pointer;color:#64748b;font-size:0.8rem;transition:background .15s;"
+                            onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                            <i class="ti ti-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+    </div><!-- /vistaDashboard -->
+
+
+    <!-- ══ PANEL B — BENTO UI: Criterios + Anillo Gauge en vivo ════════════ -->
+    <div id="vistaEvaluacion">
+
+        <!-- ── Header ──────────────────────────────────────────────────── -->
+        <div style="background:linear-gradient(135deg,#0f172a 0%,#1e3a8a 55%,#2563eb 100%);padding:16px 20px;border-radius:20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;" class="ev-fb-header">
+            <button onclick="EvalApp.volver()"
+                style="background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:8px 14px;color:#fff;cursor:pointer;font-size:0.83rem;font-weight:600;display:flex;align-items:center;gap:6px;transition:background .15s;white-space:nowrap;flex-shrink:0;"
+                onmouseover="this.style.background='rgba(255,255,255,.22)'" onmouseout="this.style.background='rgba(255,255,255,.12)'">
+                <i class="ti ti-arrow-left"></i> Volver
+            </button>
+            <div id="fbAvatar"
+                style="width:40px;height:40px;border-radius:11px;background:rgba(255,255,255,0.18);border:2px solid rgba(255,255,255,0.22);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:0.95rem;flex-shrink:0;">?</div>
+            <div class="ev-fb-nombre" style="flex:1;min-width:0;">
+                <div id="fbNombre" style="color:#fff;font-weight:700;font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">—</div>
+                <div id="fbMeta" style="color:rgba(255,255,255,.6);font-size:0.72rem;margin-top:1px;"></div>
+            </div>
+            <span class="ev-fb-criterios" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:5px 11px;color:rgba(255,255,255,.9);font-size:0.72rem;font-weight:700;white-space:nowrap;flex-shrink:0;">
+                <i class="ti ti-list-check"></i> <?= $totalCriterios ?> criterios
+            </span>
+            <button id="btnMarcarTodoGlobal" data-marcado="0"
+                onclick="EvalApp.toggleMarcarTodo(this)"
+                style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);border:none;color:#fff;border-radius:10px;padding:8px 14px;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 4px 15px rgba(16,185,129,0.3);transition:all .3s;white-space:nowrap;flex-shrink:0;"
+                onmouseover="this.style.filter='brightness(1.1)';this.style.transform='translateY(-1px)'"
+                onmouseout="this.style.filter='none';this.style.transform='none'">
+                <i class="ti ti-stars" style="font-size:1rem;"></i>
+                <span>Excelente a Todo</span>
+            </button>
+        </div>
+
+        <!-- ── Mobile: mini donut + meta (oculto en desktop) ── -->
+        <div class="ev-mob-donut" style="display:none;background:white;border-bottom:1px solid #e2e8f0;padding:12px 16px;align-items:center;gap:14px;">
+            <!-- Donut SVG reutiliza mismo path que el gauge desktop -->
+            <div style="position:relative;width:72px;height:72px;flex-shrink:0;">
+                <svg viewBox="0 0 36 36" width="72" height="72" style="transform:rotate(-90deg);">
+                    <path fill="none" stroke="#f1f5f9" stroke-width="4"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <path id="mobGaugeArc" fill="none" stroke="#e2e8f0" stroke-width="4"
+                        stroke-linecap="round" stroke-dasharray="0 100"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        style="transition:stroke-dasharray .5s cubic-bezier(.4,0,.2,1),stroke .4s ease;"/>
+                </svg>
+                <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;">
+                    <div style="display:flex;align-items:baseline;gap:1px;">
+                        <span id="mobGaugeVal" style="font-size:1.0rem;font-weight:900;color:#162660;line-height:1;transition:color .3s;">—</span>
+                        <span id="mobGaugeDenom" style="font-size:0.55rem;color:#94a3b8;font-weight:700;display:none;">/5</span>
+                    </div>
+                </div>
+            </div>
+            <!-- Meta derecha -->
+            <div style="flex:1;min-width:0;">
+                <span id="mobGaugeLabel" style="display:inline-block;font-size:0.7rem;font-weight:700;color:#94a3b8;padding:3px 10px;border-radius:20px;background:#f1f5f9;margin-bottom:9px;transition:all .3s;">Sin calificar</span>
+                <div style="display:flex;align-items:center;gap:7px;">
+                    <div style="flex:1;background:#e2e8f0;border-radius:8px;height:7px;overflow:hidden;">
+                        <div id="mobGaugeProgress" style="height:100%;background:#e2e8f0;border-radius:8px;width:0%;transition:width .4s ease,background .4s ease;"></div>
+                    </div>
+                    <span id="mobGaugeCount" style="font-size:0.7rem;font-weight:800;color:#1D4ED8;white-space:nowrap;flex-shrink:0;">0/<?= $totalCriterios ?></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Body Bento ──────────────────────────────────────────────── -->
+        <form id="formEvaluacion" onsubmit="return false;">
+            <?= CsrfHelper::field() ?>
+            <input type="hidden" name="pasante_id" id="fPasanteId" value="">
+            <div class="ev-panel-b-grid">
+
+                <!-- ── Col izquierda: Criterios ── -->
+                <div>
+                    <div class="row g-3">
+                    <?php foreach ($categorias as $cat):
+                        $isSmall = count($cat['items']) <= 2;
+                        $itemCol = $isSmall ? 'col-6 col-md-12' : 'col-6 col-md-6 col-xl-3';
+                    ?>
+                    <div class="<?= $cat['col'] ?><?= !$isSmall ? ' mt-3' : '' ?>">
+                        <div class="eval-cat-wrapper" style="height:100%;">
+                            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;<?= !$isSmall ? 'padding-bottom:12px;border-bottom:1px solid #DDE2F0;' : '' ?>">
+                                <span style="display:inline-flex;align-items:center;gap:6px;padding:5px 13px;border-radius:50px;background:<?= $cat['bg'] ?>;color:<?= $cat['color'] ?>;font-size:0.72rem;font-weight:800;text-transform:uppercase;letter-spacing:.5px;">
+                                    <i class="ti <?= $cat['icon'] ?>" style="font-size:0.85rem;"></i>
+                                    <?= $cat['label'] ?>
+                                </span>
+                                <!-- Switch: marcar toda la categoría como Excelente -->
+                                <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;" title="Marcar todos como Excelente">
+                                    <span style="font-size:0.63rem;color:#7480A0;font-weight:700;white-space:nowrap;"><?= count($cat['items']) ?> ítems</span>
+                                    <div style="width:30px;height:18px;border-radius:9px;background:#DDE2F0;position:relative;cursor:pointer;transition:background .3s;flex-shrink:0;">
+                                        <div class="cat-switch-knob" style="position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:white;box-shadow:0 1px 3px rgba(0,0,0,0.2);transition:transform .3s;"></div>
+                                    </div>
+                                    <input type="checkbox" class="cat-switch-input" style="display:none;" onchange="EvalApp.toggleCategoria(this)">
+                                </label>
+                            </div>
+                            <div class="row g-3">
+                                <?php foreach ($cat['items'] as $item): ?>
+                                <div class="<?= $itemCol ?>">
+                                    <div class="criterio-card eval-criterio-tile"
+                                         data-cat-color="<?= $cat['color'] ?>"
+                                         style="background:white;border:1px solid #DDE2F0;border-radius:20px;padding:22px 16px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -2px rgba(0,0,0,0.05);display:flex;flex-direction:column;align-items:center;text-align:center;cursor:pointer;transition:transform .4s cubic-bezier(0.16,1,0.3,1),box-shadow .4s cubic-bezier(0.16,1,0.3,1),border-color .3s;height:100%;"
+                                         onmouseover="this.style.transform='translateY(-6px)';this.style.boxShadow='0 20px 25px -5px rgba(0,0,0,.1),0 8px 10px -6px rgba(0,0,0,.04)';this.style.borderColor='<?= $cat['color'] ?>'"
+                                         onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -2px rgba(0,0,0,0.05)';this.style.borderColor='#DDE2F0'">
+                                        <div class="ev-icon-ring" style="width:54px;height:54px;border-radius:50%;border:2.5px solid #F1F5F9;background:#F8FAFD;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;transition:all .4s ease;"
+                                             onmouseover="this.style.borderColor='<?= $cat['color'] ?>';this.style.transform='scale(1.1)'"
+                                             onmouseout="this.style.borderColor='#F1F5F9';this.style.transform='none'">
+                                            <i class="ti <?= $item['icon'] ?>" style="color:<?= $cat['color'] ?>;font-size:1.35rem;"></i>
+                                        </div>
+                                        <p style="font-size:0.76rem;font-weight:700;color:#0D1424;margin:0 0 12px;line-height:1.3;"><?= $item['label'] ?></p>
+                                        <div class="star-group d-flex justify-content-center" data-criterio="<?= $item['key'] ?>" style="gap:2px;">
+                                            <?php for ($s = 1; $s <= 5; $s++): ?>
+                                            <button type="button" class="star-btn" data-val="<?= $s ?>"
+                                                style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:#e2e8f0;padding:0;line-height:1;transition:color .1s,transform .12s;">★</button>
+                                            <?php endfor; ?>
+                                            <input type="hidden" class="star-input" name="<?= $item['key'] ?>" value="0">
+                                        </div>
+                                    </div>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                    </div><!-- /row g-3 criterios -->
+                </div><!-- /col criterios wrapper -->
+
+                <!-- ── Col derecha: Anillo + Controles ── -->
+                <div class="ev-sidebar">
+
+                    <!-- Anillo Gauge -->
+                    <div style="background:white;border-radius:20px;padding:24px 20px 20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -2px rgba(0,0,0,0.05);border:1px solid #DDE2F0;text-align:center;">
+                        <p style="font-size:0.72rem;font-weight:800;color:#7480A0;text-transform:uppercase;letter-spacing:.5px;margin:0 0 14px;">Promedio en Vivo</p>
+                        <div class="ev-gauge-wrap" style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:10px;">
+                            <svg viewBox="0 0 36 36" width="160" height="160" style="transform:rotate(-90deg);">
+                                <path fill="none" stroke="#f1f5f9" stroke-width="3.5"
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                <path fill="none" stroke="#fee2e2" stroke-width="2" opacity=".7"
+                                    stroke-dasharray="40 100"
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                                <path id="gaugeArc" fill="none" stroke="#e2e8f0" stroke-width="3.5"
+                                    stroke-linecap="round" stroke-dasharray="0 100"
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    style="transition:stroke-dasharray .5s cubic-bezier(.4,0,.2,1),stroke .4s ease;"/>
+                            </svg>
+                            <div style="position:absolute;text-align:center;pointer-events:none;">
+                                <div style="display:flex;align-items:baseline;justify-content:center;gap:2px;line-height:1;">
+                                    <span id="gaugeValue" style="font-size:1.9rem;font-weight:900;color:#162660;transition:color .3s;">—</span>
+                                    <span id="gaugeDenom" style="font-size:0.85rem;color:#94a3b8;font-weight:700;display:none;">/5</span>
+                                </div>
+                                <div id="gaugeLabel" style="font-size:0.7rem;font-weight:700;color:#94a3b8;margin-top:3px;transition:color .3s;">Sin calificar</div>
+                            </div>
+                        </div>
+                        <div class="ev-gauge-counter" style="background:#F8FAFD;border:1px solid #DDE2F0;border-radius:12px;padding:10px 12px;">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                <span style="font-size:0.68rem;color:#7480A0;font-weight:700;text-transform:uppercase;letter-spacing:.4px;">Calificados</span>
+                                <span id="gaugeCount" style="font-size:0.72rem;color:#1D4ED8;font-weight:800;background:rgba(29,78,216,0.07);padding:2px 9px;border-radius:20px;">0 / <?= $totalCriterios ?></span>
+                            </div>
+                            <div style="background:#DDE2F0;border-radius:8px;height:5px;overflow:hidden;">
+                                <div id="gaugeProgress" style="height:100%;background:#1D4ED8;border-radius:8px;width:0%;transition:width .4s ease;"></div>
+                            </div>
+                        </div>
+                        <div class="ev-gauge-legend" style="display:flex;justify-content:space-between;align-items:center;padding:0 2px;margin-top:4px;">
+                            <span style="font-size:0.62rem;color:#ef4444;font-weight:700;">★ Deficiente</span>
+                            <span style="font-size:0.62rem;color:#f59e0b;font-weight:700;">★★★ Bueno</span>
+                            <span style="font-size:0.62rem;color:#10b981;font-weight:700;">★★★★★ Excelente</span>
+                        </div>
+                    </div>
+
+                    <!-- Controles -->
+                    <div style="background:white;border-radius:20px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.05),0 2px 4px -2px rgba(0,0,0,0.05);border:1px solid #DDE2F0;overflow:hidden;">
+
+                        <!-- Cuerpo de controles (siempre visible) -->
+                        <div id="mobConfigBody" style="display:flex;flex-direction:column;gap:14px;padding:20px;">
+
+                        <!-- Tutor — lógica de roles del proyecto actual -->
+                        <div>
+                            <label style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;margin-bottom:7px;">
+                                <i class="ti ti-user-check" style="color:#1D4ED8;font-size:0.85rem;"></i> Tutor Evaluador *
+                            </label>
+                            <?php
+                            $rolIdVista = (int)(Session::get('role_id') ?? 0);
+                            if ($rolIdVista === 1): ?>
+                                <select name="tutor_id" id="fTutorId" required
+                                    style="width:100%;padding:9px 12px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.83rem;color:#0D1424;background:#F8FAFD;transition:all .3s;outline:none;"
+                                    onfocus="this.style.borderColor='#1D4ED8';this.style.background='#fff';this.style.boxShadow='0 0 0 4px rgba(29,78,216,0.07)'" onblur="this.style.borderColor='#f1f5f9';this.style.background='#F8FAFD';this.style.boxShadow='none'">
+                                    <option value="">— Automático (Tutor Asignado) —</option>
+                                    <?php foreach ($tutores as $t): ?>
+                                    <option value="<?= (int)$t->id ?>" <?= ($tutorActualId && (int)$t->id === (int)$tutorActualId) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars(trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? ''))) ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                            <?php else:
+                                $tutorNombre = 'Automático (Tutor Asignado)';
+                                if ($tutorActualId) {
+                                    foreach ($tutores as $t) {
+                                        if ((int)$t->id === (int)$tutorActualId) {
+                                            $tutorNombre = trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? ''));
+                                            break;
+                                        }
+                                    }
+                                }
+                            ?>
+                                <div class="ev-field-ro" style="width:100%;padding:9px 12px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.83rem;color:#64748b;background:#F8FAFD;display:flex;align-items:center;gap:8px;">
+                                    <i class="ti ti-lock" style="font-size:0.9rem;flex-shrink:0;"></i>
+                                    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($tutorNombre) ?></span>
+                                    <span class="ev-auto-badge" style="margin-left:auto;background:#e2e8f0;color:#64748b;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;flex-shrink:0;">Auto</span>
+                                </div>
+                                <input type="hidden" name="tutor_id" id="fTutorId" value="<?= (int)$tutorActualId ?>">
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Fecha + Lapso — automáticos (read-only) -->
+                        <div class="ev-meta-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                            <div>
+                                <label style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;margin-bottom:7px;">
+                                    <i class="ti ti-calendar-event" style="color:#1D4ED8;font-size:0.8rem;"></i> Fecha
+                                </label>
+                                <div class="ev-field-ro" style="width:100%;padding:8px 10px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.8rem;color:#0D1424;background:#F8FAFD;box-sizing:border-box;display:flex;align-items:center;gap:6px;">
+                                    <i class="ti ti-check" style="color:#10b981;font-size:0.85rem;flex-shrink:0;"></i>
+                                    <span id="dispFecha" style="flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= date('d') . ' de ' . ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][(int)date('n')-1] . ' ' . date('Y') ?></span>
+                                    <span class="ev-auto-badge" style="background:#dcfce7;color:#15803d;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;">Auto</span>
+                                </div>
+                                <input type="hidden" name="fecha_evaluacion" id="fFecha" value="<?= date('Y-m-d') ?>">
+                            </div>
+                            <div>
+                                <label style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;margin-bottom:7px;">
+                                    <i class="ti ti-school" style="color:#1D4ED8;font-size:0.8rem;"></i> Lapso
+                                </label>
+                                <div class="ev-field-ro" style="width:100%;padding:8px 10px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.8rem;color:#0D1424;background:#F8FAFD;box-sizing:border-box;display:flex;align-items:center;gap:6px;">
+                                    <i class="ti ti-check" style="color:#10b981;font-size:0.85rem;flex-shrink:0;"></i>
+                                    <span id="dispLapso" style="flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+                                    <span class="ev-auto-badge" style="background:#dcfce7;color:#15803d;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;">Auto</span>
+                                </div>
+                                <input type="hidden" name="lapso_academico" id="fLapso" value="">
+                            </div>
+                        </div>
+
+                        <!-- Observaciones -->
+                        <div>
+                            <label style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;margin-bottom:7px;">
+                                <i class="ti ti-notes" style="color:#1D4ED8;font-size:0.8rem;"></i> Observaciones
+                            </label>
+                            <textarea name="observaciones" id="fObs" rows="2" placeholder="Fortalezas, áreas de mejora..."
+                                style="width:100%;padding:9px 12px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.8rem;color:#0D1424;background:#F8FAFD;resize:none;box-sizing:border-box;transition:all .3s;font-family:inherit;outline:none;"
+                                onfocus="this.style.borderColor='#1D4ED8';this.style.background='#fff';this.style.boxShadow='0 0 0 4px rgba(29,78,216,0.07)'" onblur="this.style.borderColor='#f1f5f9';this.style.background='#F8FAFD';this.style.boxShadow='none'"></textarea>
+                        </div>
+
+                        <!-- Error -->
+                        <div id="panelError" style="display:none;background:#fef2f2;color:#dc2626;padding:9px 12px;border-radius:10px;font-size:0.8rem;font-weight:600;align-items:center;gap:7px;border:1px solid #fecaca;">
+                            <i class="ti ti-alert-triangle"></i> <span id="panelErrorTxt"></span>
+                        </div>
+
+                        <!-- Guardar (desktop) -->
+                        <button type="button" id="btnGuardar" onclick="EvalApp.guardar()"
+                            style="width:100%;padding:13px;border:none;border-radius:12px;background:#1D4ED8;color:#fff;font-weight:700;font-size:0.88rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(29,78,216,.3);transition:all .3s;"
+                            onmouseover="this.style.background='#1e40af';this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 20px rgba(29,78,216,.35)'"
+                            onmouseout="this.style.background='#1D4ED8';this.style.transform='none';this.style.boxShadow='0 4px 14px rgba(29,78,216,.3)'">
+                            <i class="ti ti-check" style="font-size:1rem;"></i> Guardar Evaluación
+                        </button>
+
+                        </div><!-- /mobConfigBody -->
+                    </div><!-- /controles card -->
+
+                </div><!-- /ev-sidebar -->
+            </div><!-- /ev-panel-b-grid -->
+        </form>
+
+    </div><!-- /vistaEvaluacion -->
+
+</div><!-- /evalSlider -->
+</div><!-- /evalOuter -->
+
+<!-- Barra Guardar fija (solo móvil) -->
+<div class="ev-save-bar" style="display:none;">
+    <button type="button" onclick="EvalApp.guardar()"
+        style="width:100%;padding:14px;border:none;border-radius:14px;background:linear-gradient(135deg,#1D4ED8,#2563eb);color:#fff;font-weight:700;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 18px rgba(29,78,216,.35);">
+        <i class="ti ti-device-floppy" style="font-size:1.1rem;"></i> Guardar Evaluación
+    </button>
+</div>
+
+</div><!-- /dashboard-container -->
+
+
+<!-- ═══ MODAL: DETALLE (read-only) ═══════════════════════════════════════════ -->
 <div id="modalDetalleEval" class="sgp-modal-overlay">
-    <div class="sgp-modal" style="max-width: 650px; border-radius: 20px;">
-        <div class="sgp-modal-header" style="padding: 24px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-                <div style="background: rgba(255,255,255,0.15); border-radius: 12px; padding: 10px;">
-                    <i class="ti ti-file-analytics" style="font-size: 1.5rem; color: white;"></i>
+    <div class="sgp-modal" style="max-width:650px;border-radius:20px;">
+        <div class="sgp-modal-header" style="padding:22px 24px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="background:rgba(255,255,255,0.15);border-radius:12px;padding:10px;">
+                    <i class="ti ti-file-analytics" style="font-size:1.4rem;color:white;"></i>
                 </div>
                 <div>
-                    <h3 style="margin: 0; font-size: 1.2rem;">Detalle de Evaluación</h3>
-                    <p id="detalleEvalSubtitulo" style="margin: 2px 0 0; font-size: 0.8rem; opacity: 0.8;">Cargando información...</p>
+                    <h3 style="margin:0;font-size:1.1rem;">Detalle de Evaluación</h3>
+                    <p id="detalleEvalSubtitulo" style="margin:2px 0 0;font-size:0.78rem;opacity:.8;">Cargando...</p>
                 </div>
             </div>
             <button class="sgp-modal-close" onclick="cerrarModalDetalle()"><i class="ti ti-x"></i></button>
         </div>
-        <div class="sgp-modal-body" id="bodyDetalleEval" style="padding: 24px; max-height: 70vh; overflow-y: auto;">
-            <!-- Contenido dinámico -->
-            <div style="text-align: center; padding: 40px;">
-                <i class="ti ti-loader sgp-spin" style="font-size: 2rem; color: #1e3a8a;"></i>
-            </div>
+        <div class="sgp-modal-body" id="bodyDetalleEval" style="padding:22px 24px;max-height:70vh;overflow-y:auto;">
+            <div style="text-align:center;padding:40px;"><i class="ti ti-loader sgp-spin" style="font-size:2rem;color:#1e3a8a;"></i></div>
         </div>
-        <div style="padding: 16px 24px; border-top: 1px solid #f1f5f9; display: flex; justify-content: flex-end; background: #f8fafc; border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;">
-            <button onclick="cerrarModalDetalle()" class="btn-banner-secondary" style="color:#64748b; border-color:#e2e8f0; background:white;">Cerrar</button>
+        <div style="padding:14px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:flex-end;background:#f8fafc;border-bottom-left-radius:20px;border-bottom-right-radius:20px;">
+            <button onclick="cerrarModalDetalle()" style="padding:9px 20px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;color:#64748b;font-weight:600;font-size:0.87rem;cursor:pointer;">Cerrar</button>
         </div>
     </div>
 </div>
 
+
 <script>
-// ── Modal Registro ──────────────────────────────────────────
-function abrirModalEvaluacion() {
-    document.getElementById('formEvaluacion').reset();
-    document.getElementById('promedioDisplay').textContent = '0.00';
-    <?php if ($tutorActualId): ?>
-    document.querySelector('[name="tutor_id"]').value = '<?= $tutorActualId ?>';
-    <?php endif; ?>
-    document.getElementById('modalEvaluacion').classList.add('active');
-    document.body.style.overflow = 'hidden';
-}
+const EVALS_DATA      = <?= $evalsJs ?>;
+const TUTORES_DATA    = <?= $tutoresJs ?>;
+const TOTAL_CRITERIOS = <?= $totalCriterios ?>;
+</script>
+<script src="<?= URLROOT ?>/js/evaluaciones.js?v=<?= time() ?>"></script>
+<script>
+/* ── Móvil: navegación push nativa (panel B entra desde la derecha) ── */
+(function () {
+    if (window.innerWidth > 767) return;
 
-function cerrarModalEval() {
-    document.getElementById('modalEvaluacion').classList.remove('active');
-    document.body.style.overflow = '';
-}
+    var panelB  = document.getElementById('vistaEvaluacion');
+    var saveBar = document.querySelector('.ev-save-bar');
 
-document.getElementById('modalEvaluacion').addEventListener('click', function(e) {
-    if (e.target === this) cerrarModalEval();
-});
-
-// ── Modal Detalle ───────────────────────────────────────────
-function cerrarModalDetalle() {
-    document.getElementById('modalDetalleEval').classList.remove('active');
-    document.body.style.overflow = '';
-}
-
-document.getElementById('modalDetalleEval').addEventListener('click', function(e) {
-    if (e.target === this) cerrarModalDetalle();
-});
-
-// ── Cálculo de Promedio en Tiempo Real ─────────────────────
-document.getElementById('formEvaluacion').addEventListener('change', function() {
-    var radios = this.querySelectorAll('input[type="radio"]:checked');
-    if (radios.length === 0) return;
-    var suma = 0;
-    radios.forEach(function(r) { suma += parseInt(r.value); });
-    var promedio = (suma / 14).toFixed(2);
-    var display = document.getElementById('promedioDisplay');
-    display.textContent = promedio;
-    // Color dinámico
-    var prom = parseFloat(promedio);
-    if (prom >= 4) display.style.color = '#10b981';
-    else if (prom >= 3) display.style.color = '#f59e0b';
-    else display.style.color = '#ef4444';
-});
-
-// ── Enviar ─────────────────────────────────────────────────
-async function submitEvaluacion(e) {
-    e.preventDefault();
-
-    // Validar que los 14 criterios estén llenados
-    var radios = document.querySelectorAll('#formEvaluacion input[type="radio"]:checked');
-    if (radios.length < 14) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({ icon: 'warning', title: 'Criterios incompletos', text: 'Debes evaluar los 14 criterios antes de guardar.', confirmButtonColor: '#162660' });
-        }
-        return;
+    function mostrarPanelB() {
+        panelB.classList.add('ev-panel-visible');
+        if (saveBar) saveBar.classList.add('ev-save-active');
+        panelB.scrollTop = 0;
+        document.body.style.overflow = 'hidden'; // evitar doble scroll
+    }
+    function ocultarPanelB() {
+        panelB.classList.remove('ev-panel-visible');
+        if (saveBar) saveBar.classList.remove('ev-save-active');
+        document.body.style.overflow = '';
     }
 
-    var btn = document.getElementById('btnGuardarEval');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...';
+    /* Esperar a que EvalApp cargue */
+    var chk = setInterval(function () {
+        if (typeof EvalApp === 'undefined') return;
+        clearInterval(chk);
 
-    var fd = new FormData(document.getElementById('formEvaluacion'));
+        var _abrir = EvalApp.abrirFormulario.bind(EvalApp);
+        var _nueva = EvalApp.nuevaDesdeBoton ? EvalApp.nuevaDesdeBoton.bind(EvalApp) : null;
 
-    try {
-        var resp = await fetch('<?= URLROOT ?>/evaluaciones/guardar', { method: 'POST', body: fd });
-        var json = await resp.json();
+        EvalApp.abrirFormulario = function (p) { _abrir(p); mostrarPanelB(); };
 
-        if (json.success) {
-            cerrarModalEval();
-            if (typeof Swal !== 'undefined') {
-                await Swal.fire({
-                    icon: 'success',
-                    title: '¡Evaluación Guardada!',
-                    html: '<p>' + json.message + '</p>',
-                    confirmButtonColor: '#162660',
-                });
+        /* Reimplementar volver: SweetAlert2 en lugar de confirm() nativo */
+        EvalApp.volver = function () {
+            var inputs  = Array.from(document.querySelectorAll('#formEvaluacion .star-input'));
+            var hasData = inputs.some(function(i) { return parseInt(i.value) > 0; });
+
+            if (!hasData) {
+                document.getElementById('evalSlider').style.transform = 'translateX(0)';
+                ocultarPanelB();
+                return;
             }
-            window.location.reload();
-        } else {
-            if (typeof Swal !== 'undefined') {
-                Swal.fire({ icon: 'error', title: 'Error', text: json.message, confirmButtonColor: '#162660' });
-            }
-            btn.disabled = false;
-            btn.innerHTML = '<i class="ti ti-check"></i> Guardar Evaluación';
-        }
-    } catch (err) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'Intenta de nuevo.', confirmButtonColor: '#162660' });
-        }
-        btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-check"></i> Guardar Evaluación';
-    }
-}
 
-// ── Ver Detalle ─────────────────────────────────────────────
-async function verEvaluacion(id) {
-    document.getElementById('modalDetalleEval').classList.add('active');
-    document.body.style.overflow = 'hidden';
-    const body = document.getElementById('bodyDetalleEval');
-    const subtitulo = document.getElementById('detalleEvalSubtitulo');
-    
-    body.innerHTML = '<div style="text-align: center; padding: 40px;"><i class="ti ti-loader sgp-spin" style="font-size: 2rem; color: #1e3a8a;"></i></div>';
-
-    try {
-        const resp = await fetch('<?= URLROOT ?>/evaluaciones/obtenerDetalleAjax/' + id);
-        const data = await resp.json();
-
-        if (data.success) {
-            const ev = data.evaluacion;
-            subtitulo.innerText = `Pasante: ${ev.pasante_nombre} • Fecha: ${ev.fecha_formateada}`;
-            
-            let itemsHtml = '';
-            // Agrupar criterios por categorías (igual que en el PHP)
-            const categorias = [
-                { label: 'Actitudes y Comportamiento', color: '#3b82f6', items: [
-                    { label: 'Interés por el aprendizaje', icon: 'ti-bulb', val: ev.c1 },
-                    { label: 'Responsabilidad y puntualidad', icon: 'ti-clock', val: ev.c2 },
-                    { label: 'Iniciativa y proactividad', icon: 'ti-rocket', val: ev.c3 }
-                ]},
-                { label: 'Competencias Técnicas', color: '#059669', items: [
-                    { label: 'Conocimientos aplicados', icon: 'ti-cpu', val: ev.c4 },
-                    { label: 'Calidad del trabajo', icon: 'ti-certificate', val: ev.c5 },
-                    { label: 'Cumplimiento de tareas', icon: 'ti-list-check', val: ev.c6 }
-                ]},
-                { label: 'Valores e Integridad', color: '#d97706', items: [
-                    { label: 'Ética y honestidad', icon: 'ti-shield-check', val: ev.c7 },
-                    { label: 'Respeto y compañerismo', icon: 'ti-users', val: ev.c8 },
-                    { label: 'Adaptabilidad a la cultura', icon: 'ti-adjustments-horizontal', val: ev.c9 }
-                ]},
-                { label: 'Disciplina y Organización', color: '#7c3aed', items: [
-                    { label: 'Orden en el puesto de trabajo', icon: 'ti-layout-grid', val: ev.c10 },
-                    { label: 'Uso de recursos institucionales', icon: 'ti-building', val: ev.c11 },
-                    { label: 'Disposición hacia la institución', icon: 'ti-heart', val: ev.c12 }
-                ]},
-                { label: 'Desempeño Global', color: '#1e3a8a', items: [
-                    { label: 'Capacidad de análisis', icon: 'ti-microscope', val: ev.c13 },
-                    { label: 'Integración al equipo', icon: 'ti-brand-hipchat', val: ev.c14 }
-                ]}
-            ];
-
-            categorias.forEach(cat => {
-                itemsHtml += `
-                    <div style="border-bottom: 2px solid ${cat.color}20; padding-bottom: 8px; margin-bottom: 12px; margin-top: 16px;">
-                        <span style="font-size: 0.75rem; font-weight: 800; color: ${cat.color}; letter-spacing: 0.5px; text-transform: uppercase;">${cat.label}</span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr; gap: 8px;">
-                `;
-                cat.items.forEach(it => {
-                    itemsHtml += `
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #f8fafc; border-radius: 12px; border: 1px solid #f1f5f9;">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <i class="ti ${it.icon}" style="color: ${cat.color};"></i>
-                                <span style="font-size: 0.85rem; font-weight: 600; color: #334155;">${it.label}</span>
-                            </div>
-                            <div style="display: flex; color: #f59e0b; font-size: 1rem;">
-                                ${'★'.repeat(it.val)}${'☆'.repeat(5 - it.val)}
-                            </div>
-                        </div>
-                    `;
-                });
-                itemsHtml += `</div>`;
+            Swal.fire({
+                title: '¿Salir de la evaluación?',
+                html: '<p style="color:#475569;font-size:0.9rem;margin:0;">Los criterios ya calificados <strong>se perderán</strong> si vuelves atrás.</p>',
+                icon: 'warning',
+                iconColor: '#f59e0b',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="ti ti-arrow-left"></i> Sí, volver',
+                cancelButtonText: '<i class="ti ti-pencil"></i> Seguir evaluando',
+                reverseButtons: true,
+                customClass: {
+                    popup:         'swal-eval-popup',
+                    title:         'swal-eval-title',
+                    confirmButton: 'swal-eval-btn-confirm',
+                    cancelButton:  'swal-eval-btn-cancel',
+                }
+            }).then(function(result) {
+                if (result.isConfirmed) {
+                    document.getElementById('evalSlider').style.transform = 'translateX(0)';
+                    ocultarPanelB();
+                }
             });
+        };
 
-            body.innerHTML = `
-                <div style="background: linear-gradient(135deg, #eff6ff 0%, #f5f3ff 100%); border: 2px solid #c7d2fe; border-radius: 16px; padding: 20px; margin-bottom: 20px; text-align: center;">
-                    <p style="margin: 0 0 4px; font-size: 0.8rem; color: #64748b; font-weight: 700;">PROMEDIO FINAL</p>
-                    <span style="font-size: 2.2rem; font-weight: 900; color: #162660;">${ev.promedio}</span>
-                    <span style="font-size: 1.1rem; color: #94a3b8; font-weight: 700;"> / 5</span>
-                </div>
-                ${itemsHtml}
-                <div style="margin-top: 20px; padding: 16px; background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px;">
-                    <label style="display: block; font-weight: 800; color: #92400e; font-size: 0.75rem; text-transform: uppercase; margin-bottom: 8px;">Observaciones del Tutor</label>
-                    <p style="margin: 0; font-size: 0.9rem; color: #78350f; line-height: 1.5;">${ev.observaciones || 'Sin observaciones registradas.'}</p>
-                </div>
-            `;
-        } else {
-            body.innerHTML = `<div style="text-align: center; padding: 40px; color: #dc2626;">Error: ${data.message}</div>`;
-        }
-    } catch (e) {
-        body.innerHTML = '<div style="text-align: center; padding: 40px; color: #dc2626;">Error de conexión al obtener detalles.</div>';
-    }
-}
-
-// Inicializar DataTables y Tooltips
-$(document).ready(function() {
-    // Si tienes un ID en la tabla, úsalo. Si no, usa la clase .table
-    var $tablaEval = $('table');
-    var tableInstance;
-    if ($tablaEval.length && !$.fn.DataTable.isDataTable($tablaEval)) {
-        tableInstance = $tablaEval.DataTable({
-            language: { 
-                url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json',
-                emptyTable: '<div style="text-align: center; padding: 48px 20px; color: #94a3b8;"><i class="ti ti-clipboard-off" style="font-size: 48px; display: block; margin-bottom: 12px;"></i>No hay evaluaciones registradas aún.<br><span style="font-size: 0.85rem;">Presiona "Nueva Evaluación" para comenzar.</span></div>'
-            },
-            pageLength: 10,
-            responsive: true,
-            dom: '<"top"f>rt<"bottom"ip><"clear">',
-            columnDefs: [{ orderable: false, targets: 5 }]
-        });
-    } else if ($tablaEval.length && $.fn.DataTable.isDataTable($tablaEval)) {
-        tableInstance = $tablaEval.DataTable();
-        tableInstance.draw(false);
-    }
-
-    // Tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
-});
+        if (_nueva) EvalApp.nuevaDesdeBoton = function () { _nueva(); mostrarPanelB(); };
+    }, 40);
+})();
 </script>

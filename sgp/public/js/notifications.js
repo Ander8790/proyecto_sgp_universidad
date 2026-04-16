@@ -8,6 +8,13 @@
 (function () {
     'use strict';
 
+    // Contador previo — usa sessionStorage para sobrevivir recargas de página.
+    // null = primera vez en la sesión (no sonar). Se resetea al cerrar el navegador.
+    const _STORAGE_KEY = 'sgp_notif_last_count';
+    let _lastKnownCount = sessionStorage.getItem(_STORAGE_KEY) !== null
+        ? parseInt(sessionStorage.getItem(_STORAGE_KEY), 10)
+        : null;
+
     // ==================== CONFIGURACIÓN ====================
     const CONFIG = {
         REFRESH_INTERVAL: 60000, // 60 segundos
@@ -49,28 +56,30 @@
 
     // ==================== INICIALIZACIÓN ====================
     function init() {
-        // Cachear elementos DOM
-        elements.btn = document.getElementById('notificationBtn');
-        elements.badge = document.getElementById('notificationBadge');
+        // Cachear elementos DOM — priorizar ID para compatibilidad con PJAX
+        elements.btn      = document.getElementById('bell-btn')        || document.getElementById('notificationBtn');
+        elements.badge    = document.getElementById('notif-badge-el')  || document.querySelector('.unread-count-badge');
         elements.dropdown = document.getElementById('notificationsDropdown');
-        elements.list = document.getElementById('notificationList');
+        elements.list     = document.getElementById('notificationList');
         elements.markAllBtn = document.getElementById('markAllReadBtn');
 
-        // ✨ MEJORADO: Validación silenciosa para páginas sin topbar (login, register, etc.)
-        if (!elements.btn || !elements.dropdown) {
-            // No mostrar warning en páginas de autenticación
-            // console.warn('⚠️ Elementos de notificaciones no encontrados en el DOM');
-            return;
+        // Validación silenciosa: páginas sin topbar (login, kiosco, etc.)
+        if (!elements.btn || !elements.dropdown) return;
+
+        // ── Pintar el badge INMEDIATAMENTE con el valor cacheado ──────────────
+        // Esto evita el flash de "0" durante el fetch inicial (PJAX o recarga)
+        var cached = sessionStorage.getItem(_STORAGE_KEY);
+        if (cached !== null) {
+            _paintBadge(parseInt(cached, 10));
         }
 
-        // Cargar notificaciones iniciales
+        // Luego carg desde el servidor (actualiza/reconcilia)
         loadNotifications();
-
-        // Configurar eventos
         setupEventListeners();
 
-        // Auto-refresh periódico
-        setInterval(loadNotifications, CONFIG.REFRESH_INTERVAL);
+        // Auto-refresh periódico (clearInterval seguro si ya existía)
+        if (window._sgpNotifInterval) clearInterval(window._sgpNotifInterval);
+        window._sgpNotifInterval = setInterval(loadNotifications, CONFIG.REFRESH_INTERVAL);
     }
 
     // ==================== EVENT LISTENERS ====================
@@ -173,61 +182,48 @@
             });
     }
 
+    // ==================== PINTAR BADGE (helper interno) ====================
+    /**
+     * Aplica visualmente el conteo al badge SIN tocar sessionStorage.
+     * Llamado desde init() (caché) y desde updateBadge() (servidor).
+     */
+    function _paintBadge(count) {
+        if (!elements.badge) return;
+        if (count > 0) {
+            elements.badge.textContent = count > 99 ? '99+' : count;
+            elements.badge.classList.add('badge-visible');
+            if (elements.btn) elements.btn.classList.add('bell-ringing');
+        } else {
+            elements.badge.textContent = '';
+            elements.badge.classList.remove('badge-visible');
+            if (elements.btn) elements.btn.classList.remove('bell-ringing');
+        }
+    }
+
     // ==================== ACTUALIZAR BADGE ====================
     function updateBadge(count) {
         if (!elements.badge) return;
 
-        const hadNotifications = elements.badge.style.display !== 'none';
-        const previousCount = parseInt(elements.badge.textContent) || 0;
+        // Detectar si llegó una notificación nueva
+        const isNew = (_lastKnownCount !== null && count > _lastKnownCount);
 
-        if (count > 0) {
-            elements.badge.textContent = count > 99 ? '99+' : count;
-            elements.badge.style.display = 'flex'; // flex para centrar contenido
+        // Pintar visualmente
+        _paintBadge(count);
 
-            // ✨ Agregar clase para animaciones
-            elements.btn.classList.add('has-notifications');
-
-            // ✨ Trigger animación si hay nuevas notificaciones
-            if (count > previousCount && hadNotifications) {
-                triggerBellAnimation();
-            }
-
-            // ✨ NUEVO: Shake automático cada 30 segundos
-            if (!window.notificationShakeInterval) {
-                window.notificationShakeInterval = setInterval(() => {
-                    if (elements.btn.classList.contains('has-notifications')) {
-                        triggerBellAnimation();
-                    }
-                }, 30000); // 30 segundos
-            }
-        } else {
-            elements.badge.style.display = 'none';
-            // ✨ Remover clase de animaciones
-            elements.btn.classList.remove('has-notifications');
-
-            // ✨ NUEVO: Limpiar intervalo de shake
-            if (window.notificationShakeInterval) {
-                clearInterval(window.notificationShakeInterval);
-                window.notificationShakeInterval = null;
-            }
+        if (count > 0 && isNew) {
+            // Sonar solo si es una notificación nueva en un poll posterior
+            try {
+                const audio = new Audio(URLROOT + '/sounds/pop.wav');
+                audio.volume = 0.5;
+                audio.play().catch(() => {});
+            } catch(e) {}
         }
+
+        _lastKnownCount = count;
+        sessionStorage.setItem(_STORAGE_KEY, count);
     }
 
-    // ==================== TRIGGER ANIMACIÓN DE CAMPANA ====================
-    /**
-     * Fuerza la animación de shake en la campana
-     * Útil cuando llega una nueva notificación
-     */
-    function triggerBellAnimation() {
-        // Remover clase para resetear animación
-        elements.btn.classList.remove('has-notifications');
 
-        // Force reflow (trick para reiniciar animación CSS)
-        void elements.btn.offsetWidth;
-
-        // Agregar clase de nuevo para trigger animación
-        elements.btn.classList.add('has-notifications');
-    }
 
     // ==================== RENDERIZAR NOTIFICACIONES ====================
     function renderNotifications(notifications) {
@@ -243,42 +239,42 @@
         notifications.forEach(notification => {
             let url = sanitizeUrl(notification.url); // ✅ Sanitizar URL para prevenir XSS
 
-            // ✨ REDIRECCIÓN INTELIGENTE: Si es solicitud de PIN, forzar ruta a configuración
-            if (notification.tipo === 'solicitud_pin') {
-                url = URLROOT + '/configuracion#restablecer-pin';
-            }
-
+            let isRead = (notification.leida == 1);
+            let containerClasses = '';
+            let iconClasses = '';
+            
             let tipoAlerta = notification.tipo || 'info';
-            let tema = 'primary';
-            let icono = 'bi-info-circle-fill';
+            let icono = 'ti-bell'; // Tabler Icon default
 
-            if (tipoAlerta === 'solicitud_pin' || tipoAlerta === 'warning') {
-                tema = 'warning';
-                icono = 'bi-shield-lock-fill';
-            } else if ((notification.titulo && notification.titulo.toLowerCase().includes('sin asignar')) || tipoAlerta === 'danger' || tipoAlerta === 'error') {
-                tema = 'danger';
-                icono = 'bi-exclamation-octagon-fill';
-            } else if (tipoAlerta === 'success' || tipoAlerta === 'asignacion_nueva') {
-                tema = 'success';
-                icono = 'bi-check-circle-fill';
+            if (isRead) {
+                containerClasses = 'notif-read';
+                iconClasses = 'notif-icon-read';
+                icono = 'ti-check';
+            } else if (tipoAlerta === 'critical' || tipoAlerta === 'danger' || tipoAlerta === 'error') {
+                containerClasses = 'notif-critical';
+                iconClasses = 'notif-icon-critical';
+                icono = 'ti-alert-circle';
+            } else if (tipoAlerta === 'warning') {
+                containerClasses = 'notif-warning';
+                iconClasses = 'notif-icon-warning';
+                icono = 'ti-shield-lock';
+            } else if (tipoAlerta === 'success') {
+                containerClasses = 'notif-info'; // Usaremos info por default ya que success css no fue provisto en Vanilla, aunque lo mapearé verde
+                iconClasses = 'notif-icon-info'; 
+                icono = 'ti-circle-check';
             } else {
-                tema = 'primary';
-                icono = 'bi-bell-fill';
+                containerClasses = 'notif-info';
+                iconClasses = 'notif-icon-info';
+                icono = 'ti-info-circle';
             }
 
             html += `
-                <a href="${url}" class="dropdown-item d-flex align-items-start gap-3 notif-item notif-${tema} notification-item notification-link" data-id="${notification.id}">
-                    <i class="bi ${icono} text-${tema} fs-5 mt-1"></i>
-                    <div class="flex-grow-1">
-                        <h6 class="mb-1 fw-bold text-dark" style="font-size: 0.9rem; line-height: 1.2;">
-                            ${escapeHtml(notification.titulo || 'Notificación')}
-                        </h6>
-                        <p class="mb-1 text-secondary" style="font-size: 0.8rem; line-height: 1.3; white-space: normal;">
-                            ${escapeHtml(notification.mensaje || '')}
-                        </p>
-                        <small class="text-${tema} fw-semibold" style="font-size: 0.75rem;">
-                            <i class="bi bi-clock me-1"></i>${notification.time_ago}
-                        </small>
+                <a href="${url}" class="notif-item ${containerClasses} notification-item notification-link" data-id="${notification.id}">
+                    <i class="ti ${icono} ${iconClasses}" style="font-size: 22px; margin-top: 2px;"></i>
+                    <div class="notif-content">
+                        <div class="notif-title" style="font-weight: 700; color: #334155; font-size: 0.9rem; margin-bottom: 4px;">${escapeHtml(notification.titulo || 'Notificación')}</div>
+                        <span class="notif-message" style="font-size: 0.8rem; color: #64748b; margin-bottom: 6px; line-height: 1.4; display: block;">${escapeHtml(notification.mensaje || '')}</span>
+                        <span class="notif-time" style="font-size: 0.75rem; color: #94a3b8; font-weight: 600; display: flex; align-items: center; gap: 4px;"><i class="ti ti-clock"></i>${notification.time_ago}</span>
                     </div>
                 </a>
             `;

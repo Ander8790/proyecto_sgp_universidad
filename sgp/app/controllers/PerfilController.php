@@ -465,20 +465,27 @@ class PerfilController extends Controller
                 dp.genero,
                 dp.fecha_nacimiento";
         
-        // Agregar campo específico para pasantes (institucion_procedencia e institucion_nombre)
-        if ($roleId == 3) { // Pasante
+        // Agregar campo específico para pasantes
+        if ($roleId == 3) {
             $query .= ",
+                u.avatar,
                 dpa.institucion_procedencia,
-                i.nombre as institucion_nombre";
+                i.nombre                   as institucion_nombre,
+                i.representante_nombre     as inst_rep_nombre,
+                i.representante_cargo      as inst_rep_cargo,
+                i.representante_correo     as inst_rep_correo,
+                i.representante_telefono   as inst_rep_telefono";
+        } else {
+            $query .= ", u.avatar";
         }
-        
+
         $query .= "
             FROM usuarios u
             LEFT JOIN roles r ON u.rol_id = r.id
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id";
-        
+
         // Agregar JOIN específico para pasantes e instituciones
-        if ($roleId == 3) { // Pasante
+        if ($roleId == 3) {
             $query .= " LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
                         LEFT JOIN instituciones i ON dpa.institucion_procedencia = i.id";
         }
@@ -550,14 +557,17 @@ class PerfilController extends Controller
         
         try {
             Session::start();
-            
+
             // Verificar método POST
             if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
                 throw new Exception('Método no permitido');
             }
-            
+
+            // [FIX-A3] Verificar token CSRF — previene ataques Cross-Site Request Forgery
+            CsrfHelper::verify();
+
             $userId = Session::get('user_id');
-            
+
             if (!$userId) {
                 throw new Exception('Usuario no autenticado');
             }
@@ -714,36 +724,18 @@ class PerfilController extends Controller
             ]);
             
         } catch (PDOException $e) {
-            // Error de base de datos
-            error_log("=== ERROR PDO EN ACTUALIZAR PERFIL ===");
-            error_log("Mensaje: " . $e->getMessage());
-            error_log("Código: " . $e->getCode());
-            error_log("Trace: " . $e->getTraceAsString());
-            
+            // [FIX-C2] Detalle interno solo en log — nunca exponer mensaje de BD al cliente
+            error_log('[SGP-PERFIL] PDOException en actualizarPerfil() | code=' . $e->getCode() . ' | ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
             echo json_encode([
-                'success' => false, 
-                'message' => 'Error de base de datos: ' . $e->getMessage(),
-                'debug' => [
-                    'code' => $e->getCode(),
-                    'type' => 'PDOException'
-                ]
+                'success' => false,
+                'message' => 'Error al guardar el perfil. Intente de nuevo.'
             ]);
         } catch (Throwable $e) {
-            // Captura CUALQUIER error (incluso fatales)
-            error_log("=== ERROR FATAL EN ACTUALIZAR PERFIL ===");
-            error_log("Tipo: " . get_class($e));
-            error_log("Mensaje: " . $e->getMessage());
-            error_log("Archivo: " . $e->getFile() . ":" . $e->getLine());
-            error_log("Trace: " . $e->getTraceAsString());
-            
+            // [FIX-C2] Mensaje genérico al cliente — detalles completos solo en log del servidor
+            error_log('[SGP-PERFIL] Throwable en actualizarPerfil() | type=' . get_class($e) . ' | ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());
             echo json_encode([
-                'success' => false, 
-                'message' => 'Error del sistema: ' . $e->getMessage(),
-                'debug' => [
-                    'type' => get_class($e),
-                    'file' => basename($e->getFile()),
-                    'line' => $e->getLine()
-                ]
+                'success' => false,
+                'message' => 'Error interno del servidor. Intente de nuevo.'
             ]);
         }
         
@@ -767,14 +759,17 @@ class PerfilController extends Controller
     public function cambiar_password()
     {
         Session::start();
-        
+
         // Solo aceptar POST
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Método no permitido']);
             exit;
         }
-        
+
+        // [FIX-A3] Verificar token CSRF — previene ataques Cross-Site Request Forgery
+        CsrfHelper::verify();
+
         $userId = Session::get('user_id');
         
         // Capturar datos
@@ -927,13 +922,16 @@ class PerfilController extends Controller
     public function actualizar_preguntas()
     {
         Session::start();
-        
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => 'Método no permitido']);
             exit;
         }
-        
+
+        // [FIX-A3] Verificar token CSRF — previene ataques Cross-Site Request Forgery
+        CsrfHelper::verify();
+
         $userId = Session::get('user_id');
         
         // Capturar datos
@@ -1012,7 +1010,89 @@ class PerfilController extends Controller
                 'message' => 'Error al actualizar las preguntas: ' . $e->getMessage()
             ]);
         }
-        
+
+        exit;
+    }
+
+    /**
+     * POST /perfil/subirFoto
+     * Sube o cambia la foto de perfil del usuario autenticado.
+     * Acepta JPG, PNG, WEBP — max 2 MB.
+     * Guarda en /sgp/public/img/avatars/{user_id}.{ext}
+     * Actualiza columna `avatar` en tabla `usuarios`.
+     */
+    public function subirFoto(): void
+    {
+        header('Content-Type: application/json');
+        $userId = (int)Session::get('user_id');
+        if (!$userId) {
+            echo json_encode(['success' => false, 'message' => 'Sin sesión']);
+            exit;
+        }
+
+        if (empty($_FILES['foto']) || $_FILES['foto']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['success' => false, 'message' => 'No se recibió ningún archivo']);
+            exit;
+        }
+
+        $file    = $_FILES['foto'];
+        $maxSize = 2 * 1024 * 1024; // 2 MB
+
+        if ($file['size'] > $maxSize) {
+            echo json_encode(['success' => false, 'message' => 'La imagen no puede superar 2 MB']);
+            exit;
+        }
+
+        // Validar tipo real con finfo (no confiar en extension)
+        $finfo    = new finfo(FILEINFO_MIME_TYPE);
+        $mime     = $finfo->file($file['tmp_name']);
+        $allowed  = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp'];
+
+        if (!array_key_exists($mime, $allowed)) {
+            echo json_encode(['success' => false, 'message' => 'Formato no permitido. Usa JPG, PNG o WEBP']);
+            exit;
+        }
+
+        $ext     = $allowed[$mime];
+        $dirPath = APPROOT . '/../public/img/avatars';
+
+        if (!is_dir($dirPath)) {
+            mkdir($dirPath, 0755, true);
+        }
+
+        // Eliminar foto anterior si existe
+        foreach (['jpg','png','webp'] as $e) {
+            $old = $dirPath . '/' . $userId . '.' . $e;
+            if (file_exists($old)) unlink($old);
+        }
+
+        $destFile = $dirPath . '/' . $userId . '.' . $ext;
+
+        if (!move_uploaded_file($file['tmp_name'], $destFile)) {
+            echo json_encode(['success' => false, 'message' => 'Error al guardar la imagen']);
+            exit;
+        }
+
+        $avatarVal = $userId . '.' . $ext;
+
+        try {
+            $this->db->query("UPDATE usuarios SET avatar = :avatar WHERE id = :id");
+            $this->db->bind(':avatar', $avatarVal);
+            $this->db->bind(':id',     $userId);
+            $this->db->execute();
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => 'Error al actualizar la base de datos']);
+            exit;
+        }
+
+        // Actualizar sesión para que el header muestre la foto de inmediato
+        Session::set('user_avatar', $avatarVal);
+
+        echo json_encode([
+            'success' => true,
+            'avatar'  => URLROOT . '/img/avatars/' . $avatarVal . '?v=' . time(),
+            'message' => 'Foto actualizada correctamente'
+        ]);
         exit;
     }
 }

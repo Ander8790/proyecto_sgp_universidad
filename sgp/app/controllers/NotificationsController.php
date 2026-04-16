@@ -50,8 +50,8 @@ class NotificationsController extends Controller
                 $this->jsonResponse(false, 'Usuario no autenticado');
             }
 
-            $notifications = $this->notificationModel->getUnreadByUser($user_id);
-            $count = $this->notificationModel->getCountUnread($user_id);
+            $notifications = $this->notificationModel->getUnreadByUser($user_id, $role_id);
+            $count = $this->notificationModel->getCountUnread($user_id, $role_id);
 
             // Format timestamps
             if ($notifications) {
@@ -62,14 +62,7 @@ class NotificationsController extends Controller
                 $notifications = [];
             }
 
-            // ── Dynamic system alerts for admins and tutors ──
-            if ((int)$role_id === 1 || (int)$role_id === 2) {
-                $dynamicAlerts = $this->getDynamicAlerts((int)$role_id, (int)$user_id);
-                if (!empty($dynamicAlerts)) {
-                    $notifications = array_merge($dynamicAlerts, $notifications);
-                    $count += count($dynamicAlerts);
-                }
-            }
+            // [REMOVED] Dynamic system alerts were moved to Dashboard (Event-Driven only architecture)
 
             $this->jsonResponse(true, 'Notificaciones obtenidas', [
                 'count' => $count,
@@ -77,152 +70,12 @@ class NotificationsController extends Controller
             ]);
         } catch (Exception $e) {
             // Log error for debugging
-            error_log('❌ NotificationsController::getUnread - Error: ' . $e->getMessage());
-            
-            // Return JSON error instead of HTML
-            $this->jsonResponse(false, 'Error al obtener notificaciones: ' . $e->getMessage());
+            // [FIX-C2] Detalle de excepción solo en log — mensaje genérico al cliente
+            error_log('[SGP-NOTIF] getUnread() Error: ' . $e->getMessage());
+            $this->jsonResponse(false, 'Error al obtener notificaciones.');
         }
     }
 
-    /**
-     * Generate dynamic system alerts (not stored in DB)
-     * These are ephemeral and computed on each request.
-     */
-    private function getDynamicAlerts(int $role_id, int $user_id): array
-    {
-        $alerts = [];
-        $config = require APPROOT . '/config/config.php';
-        $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
-
-        // 1. Pasantes sin asignar (Solo Admin)
-        if ($role_id === 1) {
-            $db->query("
-                SELECT COUNT(*) AS total 
-                FROM datos_pasante 
-                WHERE estado_pasantia IN ('Pendiente', '') OR estado_pasantia IS NULL
-            ");
-            $pendientes = (int)($db->single()->total ?? 0);
-            if ($pendientes > 0) {
-                $alerts[] = $this->createDynamicAlert(
-                    'sys_pendientes', 'alerta_sistema',
-                    $pendientes . ' pasante' . ($pendientes > 1 ? 's' : '') . ' sin asignar',
-                    'Requieren departamento o tutor para iniciar pasantía.',
-                    URLROOT . '/pasantes'
-                );
-            }
-        }
-
-        // 2. Pasantías próximas a vencer (Admin y Tutor)
-        $whereTutor = ($role_id === 2) ? " AND tutor_id = {$user_id}" : "";
-        $db->query("
-            SELECT COUNT(*) AS total 
-            FROM datos_pasante 
-            WHERE estado_pasantia = 'Activo' 
-              AND fecha_fin_estimada IS NOT NULL 
-              AND DATEDIFF(fecha_fin_estimada, CURDATE()) <= 15
-              AND DATEDIFF(fecha_fin_estimada, CURDATE()) >= 0
-              {$whereTutor}
-        ");
-        $prox_vencer = (int)($db->single()->total ?? 0);
-        if ($prox_vencer > 0) {
-            $alerts[] = $this->createDynamicAlert(
-                'sys_proximos_vencer', 'alerta_urgente',
-                $prox_vencer . ' pasantía' . ($prox_vencer > 1 ? 's' : '') . ' próxima' . ($prox_vencer > 1 ? 's' : '') . ' a vencer',
-                'Finalizan en los próximos 15 días. Verificar progreso de horas.',
-                URLROOT . '/asignaciones'
-            );
-        }
-
-        // 3. Pasantes que completaron sus horas (Solo Admin)
-        if ($role_id === 1) {
-            $db->query("
-                SELECT COUNT(*) AS total 
-                FROM datos_pasante 
-                WHERE estado_pasantia = 'Activo' AND horas_acumuladas >= horas_meta
-            ");
-            $horas_listas = (int)($db->single()->total ?? 0);
-            if ($horas_listas > 0) {
-                $alerts[] = $this->createDynamicAlert(
-                    'sys_horas_completadas', 'alerta_exito',
-                    $horas_listas . ' pasante' . ($horas_listas > 1 ? 's' : '') . ' completó sus horas',
-                    'Listos para finalizar pasantía y generar constancia.',
-                    URLROOT . '/pasantes'
-                );
-            }
-        }
-
-        // 4. Usuarios pendientes de wizard (Solo Admin)
-        if ($role_id === 1) {
-            $db->query("
-                SELECT COUNT(*) AS total 
-                FROM usuarios 
-                WHERE requiere_cambio_clave = 1 AND estado = 'activo'
-            ");
-            $wizard_pendientes = (int)($db->single()->total ?? 0);
-            if ($wizard_pendientes > 0) {
-                $alerts[] = $this->createDynamicAlert(
-                    'sys_wizard_pendiente', 'alerta_sistema',
-                    $wizard_pendientes . ' usuario' . ($wizard_pendientes > 1 ? 's' : '') . ' pendiente' . ($wizard_pendientes > 1 ? 's' : '') . ' de registro',
-                    'Falta completar el wizard de primer ingreso.',
-                    URLROOT . '/users'
-                );
-            }
-        }
-
-        // 5. Asistencia de hoy (Admin y Tutor)
-        $db->query("
-            SELECT COUNT(*) AS total 
-            FROM datos_pasante 
-            WHERE estado_pasantia = 'Activo' {$whereTutor}
-        ");
-        $pasantes_activos = (int)($db->single()->total ?? 0);
-
-        if ($pasantes_activos > 0) {
-                if ($role_id === 2) {
-                    $db->query("
-                        SELECT COUNT(DISTINCT a.pasante_id) AS total 
-                        FROM asistencias a
-                        JOIN datos_pasante dp ON a.pasante_id = dp.usuario_id
-                        WHERE a.fecha = CURDATE()
-                          AND dp.tutor_id = {$user_id}
-                    ");
-                } else {
-                    $db->query("
-                        SELECT COUNT(DISTINCT pasante_id) AS total 
-                        FROM asistencias 
-                        WHERE fecha = CURDATE()
-                    ");
-                }
-            $asistencias_hoy = (int)($db->single()->total ?? 0);
-
-            $alerts[] = $this->createDynamicAlert(
-                'sys_asistencia_hoy', 'info',
-                "Asistencia de hoy: {$asistencias_hoy} de {$pasantes_activos}",
-                "Pasantes activos que han registrado entrada el día de hoy.",
-                URLROOT . '/asistencias'
-            );
-        }
-
-        return $alerts;
-    }
-
-    /**
-     * Helper param dynamic alerts
-     */
-    private function createDynamicAlert($id, $tipo, $titulo, $mensaje, $url) 
-    {
-        return (object)[
-            'id'         => $id,
-            'tipo'       => $tipo,
-            'titulo'     => $titulo,
-            'mensaje'    => $mensaje,
-            'url'        => $url,
-            'leida'      => 0,
-            'leido'      => 0,
-            'created_at' => date('Y-m-d H:i:s'),
-            'time_ago'   => 'Ahora'
-        ];
-    }
 
     /**
      * Mark notification as read (AJAX)

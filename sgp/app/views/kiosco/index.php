@@ -13,9 +13,10 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
 
-    <script>const URLROOT = '<?php echo URLROOT; ?>';</script>
+    <script>const URLROOT = <?php echo json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>;</script> <!-- [FIX-C3] -->
 
     <style>
     /* ===== KIOSCO: OVERRIDE SOBRE EL SISTEMA DE LOGIN ===== */

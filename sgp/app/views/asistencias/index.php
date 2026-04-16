@@ -47,6 +47,33 @@ table.dataTable tbody tr:hover {
     background-color: #f8f9fc !important;
     transition: background-color 0.2s ease;
 }
+
+/* ── Responsividad Banner Asistencias ── */
+.asist-banner-actions { display: flex; gap: 12px; align-items: center; z-index: 1; }
+@media (max-width: 768px) {
+    .module-banner {
+        flex-wrap: wrap !important;
+        padding: 20px 18px !important;
+        gap: 16px !important;
+    }
+    .module-banner > div:first-of-type { width: 100%; }
+    .asist-banner-actions {
+        width: 100%; flex-wrap: wrap; gap: 8px;
+    }
+    .asist-banner-actions button {
+        flex: 1; min-width: 140px; justify-content: center;
+    }
+    /* Stack de dos columnas diarias */
+    .asist-diaria-grid {
+        grid-template-columns: 1fr !important;
+    }
+    /* KPIs 2x2 en tablet */
+    .asist-kpi-grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+}
+@media (max-width: 480px) {
+    .asist-kpi-grid-4 { grid-template-columns: 1fr !important; }
+    .module-banner h1 { font-size: 1.3rem !important; }
+}
 </style>
 
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
@@ -56,7 +83,8 @@ table.dataTable tbody tr:hover {
         background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%);
         border-radius: 20px; padding: 32px 40px; margin-bottom: 28px;
         position: relative; overflow: hidden;
-        display: flex; align-items: center; justify-content: space-between;">
+        display: flex; align-items: center; justify-content: space-between;
+        flex-wrap: wrap; gap: 16px;">
 
         <!-- Círculos decorativos -->
         <div style="position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:rgba(255,255,255,0.05);border-radius:50%;"></div>
@@ -74,7 +102,7 @@ table.dataTable tbody tr:hover {
             </div>
             
             <!-- Selector de Vistas: Chips Individuales -->
-            <div style="display: flex; gap: 8px;">
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                 <?php
                 $filtros = [
                     ['key' => 'diaria',  'label' => 'Diario'],
@@ -98,7 +126,7 @@ table.dataTable tbody tr:hover {
         </div>
 
         <!-- Lado Derecho: Acciones -->
-        <div style="display: flex; gap: 12px; align-items: center; z-index: 1;">
+        <div class="asist-banner-actions">
             <button onclick="abrirModalConsulta()" style="background: rgba(255, 255, 255, 0.15); color: white; border: 1px solid rgba(255, 255, 255, 0.3); padding: 10px 20px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 8px; backdrop-filter: blur(10px); transition: all 0.2s;" onmouseover="this.style.background='rgba(255, 255, 255, 0.25)'" onmouseout="this.style.background='rgba(255, 255, 255, 0.15)'">
                 <i class="ti ti-search" style="font-size: 1.1rem;"></i> Consulta Rápida
             </button>
@@ -183,7 +211,7 @@ table.dataTable tbody tr:hover {
             </div>
         </div>
     <?php else: ?>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:28px;">
+        <div class="asist-kpi-grid-4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:28px;">
 
             <!-- Total Activos -->
             <div class="stat-card" style="background:white;border-radius:16px;padding:24px;box-shadow:0 2px 12px rgba(0,0,0,0.04);border-left:4px solid #3b82f6; transition: all 0.3s; cursor: default;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 24px rgba(0,0,0,0.08)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.04)'">
@@ -250,7 +278,7 @@ table.dataTable tbody tr:hover {
     <div class="tablas-container">
         <?php if ($vistaActual === 'diaria' || empty($vistaActual)): ?>
             <!-- ===== TABLA REGISTROS DEL DÍA + LISTA SIN MARCAR ===== -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+            <div class="asist-diaria-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
 
         <!-- Marcaron Hoy -->
         <div style="background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); overflow: hidden; margin-bottom: 24px; border: 1px solid #f1f5f9;">
@@ -315,13 +343,14 @@ table.dataTable tbody tr:hover {
                         </td>
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle; text-align:center;">
                             <button onclick="verDetalle(<?= (int)$r->id ?>,<?= htmlspecialchars(json_encode([
-                                'nombre'  => $nombre,
-                                'cedula'  => $r->cedula ?? '—',
-                                'depto'   => $r->departamento_nombre ?? '—',
-                                'hora'    => $r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—',
-                                'metodo'  => $r->metodo ?? '—',
-                                'estado'  => $r->estado,
-                                'motivo'  => $r->motivo_justificacion ?? ''
+                                'nombre'     => $nombre,
+                                'cedula'     => $r->cedula ?? '—',
+                                'depto'      => $r->departamento_nombre ?? '—',
+                                'hora'       => $r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—',
+                                'metodo'     => $r->metodo ?? '—',
+                                'estado'     => $r->estado,
+                                'motivo'     => $r->motivo_justificacion ?? '',
+                                'pasante_id' => (int)($r->pasante_id ?? 0)
                             ]), ENT_QUOTES) ?>)"
                                 style="background: #f1f5f9; color: #3b82f6; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#f1f5f9'"
                                 title="Ver detalle">
@@ -617,6 +646,7 @@ table.dataTable tbody tr:hover {
             .sw-d1{animation-delay:.04s}.sw-d2{animation-delay:.08s}.sw-d3{animation-delay:.12s}
             .sw-d4{animation-delay:.16s}.sw-d5{animation-delay:.20s}.sw-d6{animation-delay:.24s}
             .sw-d7{animation-delay:.28s}.sw-d8{animation-delay:.32s}
+            .sw-collapsed { display: none !important; }
 
             /* ── Flatpickr fixes ── */
             .flatpickr-monthDropdown-months {
@@ -831,7 +861,7 @@ table.dataTable tbody tr:hover {
                         $swDiIdx++; $swDelay++;
                     ?>
                     <div class="sw-dept-card sw-rv sw-d<?= min($swDelay, 8) ?>">
-                        <div class="sw-dept-head">
+                        <div class="sw-dept-head" style="cursor: pointer;" onclick="this.nextElementSibling.classList.toggle('sw-collapsed'); this.querySelector('.chevron-toggle').style.transform = this.nextElementSibling.classList.contains('sw-collapsed') ? 'rotate(-90deg)' : 'rotate(0deg)'">
                             <div class="sw-dept-title">
                                 <div class="sw-dept-icon" style="background:<?= $dClr ?>18;">
                                     <i class="ti ti-building-community" style="color:<?= $dClr ?>;font-size:1rem;"></i>
@@ -846,6 +876,7 @@ table.dataTable tbody tr:hover {
                                     <span class="sw-pbar-lbl"><?= $pct ?>%</span>
                                 </div>
                                 <span class="sw-badge"><?= count($pasantes) ?> pasantes</span>
+                                <i class="ti ti-chevron-down chevron-toggle" style="transition: transform 0.3s; font-size:1.2rem; color:#7480A0;"></i>
                             </div>
                         </div>
                         <div class="sw-table-wrap">
@@ -1027,7 +1058,6 @@ table.dataTable tbody tr:hover {
             ?>
 
             <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-            <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
             <style>
             .claude-replica {
                 /* Design Tokens exactos del código original */
@@ -1049,6 +1079,7 @@ table.dataTable tbody tr:hover {
 
                 font-family: var(--font); background: var(--bg); color: var(--ink);
                 padding: 28px; border-radius: 20px; margin-top: 15px; box-sizing: border-box; font-size: 14px;
+                overflow-x: auto;
             }
             .claude-replica * { box-sizing: border-box; font-family: inherit; }
             
@@ -1088,14 +1119,8 @@ table.dataTable tbody tr:hover {
             .claude-replica .tile:hover { box-shadow: var(--shadow-md); border-color: var(--border-hover); }
 
             /* LOS SPANS QUE HACEN LA MAGIA */
-            .claude-replica .t-health   { grid-column: span 5; grid-row: span 4; }
-            .claude-replica .t-alert    { grid-column: span 4; grid-row: span 4; }
             .claude-replica .t-calendar { grid-column: span 3; grid-row: span 4; }
-            .claude-replica .t-present  { grid-column: span 6; grid-row: span 5; }
-            .claude-replica .t-absent   { grid-column: span 6; grid-row: span 5; }
-            .claude-replica .t-dept     { grid-column: span 8; grid-row: span 6; }
-            .claude-replica .t-toplist  { grid-column: span 4; grid-row: span 6; }
-            .claude-replica .t-trend    { grid-column: span 12; grid-row: span 6; padding-bottom: 12px; }
+            .claude-replica .t-absent   { grid-column: span 9; grid-row: span 4; }
             .claude-replica .t-table    { grid-column: span 12; grid-row: span 7; }
 
             /* TILE HEADER */
@@ -1106,33 +1131,6 @@ table.dataTable tbody tr:hover {
             .claude-replica .tile-btn { padding: 4px 10px; border-radius: 7px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-2); font-family: var(--font); transition: all 0.15s; display: flex; align-items: center; gap: 4px; }
             .claude-replica .tile-btn:hover { background: var(--surface-3); color: var(--ink); border-color: var(--border-hover); }
 
-            /* HEALTH DONUT */
-            .claude-replica .health-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 14px 18px 18px; }
-            .claude-replica .donut-container { position: relative; width: 136px; height: 136px; }
-            .claude-replica .donut-svg { transform: rotate(-90deg); }
-            .claude-replica .donut-track { fill: none; stroke: var(--surface-3); stroke-width: 13; }
-            .claude-replica .donut-fill { fill: none; stroke: var(--blue); stroke-width: 13; stroke-linecap: round; stroke-dasharray: 376; stroke-dashoffset: 376; transition: stroke-dashoffset 1.6s cubic-bezier(0.16,1,0.3,1); filter: drop-shadow(0 0 6px var(--blue-glow)); }
-            .claude-replica .donut-center { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-            .claude-replica .donut-pct { font-size: 28px; font-weight: 800; color: var(--ink); letter-spacing: -1.5px; font-family: var(--mono); line-height: 1; }
-            .claude-replica .donut-sub { font-size: 10px; color: var(--ink-3); font-weight: 600; margin-top: 2px; }
-            .claude-replica .health-tag { display: flex; align-items: center; gap: 6px; padding: 5px 14px; border-radius: 99px; font-size: 11px; font-weight: 700; }
-            .claude-replica .health-bars { width: 100%; display: flex; flex-direction: column; gap: 9px; }
-            .claude-replica .hb-row { display: flex; align-items: center; gap: 8px; }
-            .claude-replica .hb-label { font-size: 10px; font-weight: 600; color: var(--ink-2); width: 70px; flex-shrink: 0; }
-            .claude-replica .hb-track { flex: 1; height: 6px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
-            .claude-replica .hb-fill { height: 100%; border-radius: 99px; width: 0; transition: width 1.3s cubic-bezier(0.16,1,0.3,1); }
-            .claude-replica .hb-val { font-size: 10px; font-weight: 700; color: var(--ink-2); width: 30px; text-align: right; font-family: var(--mono); }
-
-            /* ALERTAS */
-            .claude-replica .alert-list { display: flex; flex-direction: column; flex: 1; }
-            .claude-replica .alert-item { display: flex; align-items: center; gap: 10px; padding: 10px 18px; cursor: pointer; transition: background 0.15s; }
-            .claude-replica .alert-item:hover { background: var(--surface-2); }
-            .claude-replica .al-avatar { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
-            .claude-replica .al-info { flex: 1; min-width: 0; }
-            .claude-replica .al-name { font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 0;}
-            .claude-replica .al-dept { font-size: 10px; color: var(--ink-3); }
-            .claude-replica .al-badge { padding: 3px 9px; border-radius: 7px; font-size: 10px; font-weight: 700; font-family: var(--mono); background: var(--red-dim); color: var(--red); border: 1px solid var(--red-mid); flex-shrink: 0; }
-            .claude-replica .alert-cta { padding: 12px 18px; border-top: 1px solid var(--border); }
 
             /* CALENDARIO */
             .claude-replica .cal-wrap { padding: 10px 14px 14px; flex: 1; }
@@ -1169,34 +1167,6 @@ table.dataTable tbody tr:hover {
             .claude-replica .pill-violet { background: var(--violet-dim); color: var(--violet); }
             .claude-replica .pill-sky    { background: var(--sky-dim);    color: var(--sky); }
 
-            /* DEPT CARDS */
-            .claude-replica .dept-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; padding: 14px 16px; flex: 1; }
-            .claude-replica .dept-card { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r); padding: 14px 14px 12px; transition: all 0.15s; cursor: pointer; }
-            .claude-replica .dept-card:hover { border-color: var(--border-hover); background: var(--surface); box-shadow: var(--shadow-sm); transform: translateY(-1px); }
-            .claude-replica .dc-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
-            .claude-replica .dc-name { font-size: 12px; font-weight: 700; color: var(--ink); }
-            .claude-replica .dc-count { font-size: 10px; color: var(--ink-3); font-family: var(--mono); }
-            .claude-replica .dc-bar-wrap { height: 5px; background: var(--surface-3); border-radius: 99px; overflow: hidden; display: flex; margin-bottom: 10px; }
-            .claude-replica .dc-seg { height: 100%; transition: width 1.1s cubic-bezier(0.16,1,0.3,1); }
-            .claude-replica .dc-stats { display: flex; gap: 10px; }
-            .claude-replica .dc-stat { display: flex; align-items: center; gap: 4px; font-size: 10px; color: var(--ink-3); font-family: var(--mono); }
-            .claude-replica .dc-dot { width: 5px; height: 5px; border-radius: 50%; }
-
-            /* TOP LIST */
-            .claude-replica .top-list { display: flex; flex-direction: column; flex: 1; }
-            .claude-replica .top-item { display: flex; align-items: center; gap: 9px; padding: 9px 18px; transition: background 0.15s; }
-            .claude-replica .top-item:hover { background: var(--surface-2); }
-            .claude-replica .top-rank { width: 20px; font-size: 11px; font-weight: 700; color: var(--ink-3); font-family: var(--mono); text-align: center; }
-            .claude-replica .top-rank.gold   { color: #d97706; }
-            .claude-replica .top-rank.silver { color: #6b7280; }
-            .claude-replica .top-rank.bronze { color: #92400e; }
-            .claude-replica .top-av { width: 30px; height: 30px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
-            .claude-replica .top-info { flex: 1; min-width: 0; }
-            .claude-replica .top-name { font-size: 12px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin:0;}
-            .claude-replica .top-dept { font-size: 10px; color: var(--ink-3); margin:0;}
-            .claude-replica .top-bar { width: 48px; height: 4px; background: var(--surface-3); border-radius: 99px; overflow: hidden; }
-            .claude-replica .top-bar-fill { height: 100%; border-radius: 99px; width: 0; transition: width 1.2s cubic-bezier(0.16,1,0.3,1); }
-            .claude-replica .top-pct { font-family: var(--mono); font-size: 12px; font-weight: 700; flex-shrink: 0; min-width: 34px; text-align: right; }
 
             /* MASTER TABLE */
             .claude-replica .master-wrap { overflow-x: auto; overflow-y: auto; max-height: 370px; flex: 1; }
@@ -1230,6 +1200,19 @@ table.dataTable tbody tr:hover {
             @keyframes fadein { from{opacity:0} to{opacity:1} }
             .claude-modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); width: 90%; max-width: 460px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--shadow-xl); animation: slideup 0.25s cubic-bezier(0.16,1,0.3,1); }
             @keyframes slideup { from { transform: translateY(18px); opacity:0; } to { transform: translateY(0); opacity:1; } }
+            @media (max-width: 900px) {
+                .claude-replica .bento { grid-template-columns: 1fr; }
+                .claude-replica .t-calendar, .claude-replica .t-absent, .claude-replica .t-table {
+                    grid-column: span 1 !important;
+                    grid-row: span 1 !important;
+                }
+            }
+            @media (max-width: 600px) {
+                .claude-replica { padding: 14px; }
+                [style*="grid-template-columns:repeat(4"] {
+                    grid-template-columns: repeat(2, 1fr) !important;
+                }
+            }
             </style>
 
             <div class="claude-replica">
@@ -1259,60 +1242,29 @@ table.dataTable tbody tr:hover {
                     </button>
                 </div>
 
-                <div class="bento">
-                    
-                    <div class="tile t-health rv d2">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--blue-dim)">📊</div> Índice de Salud</div>
-                            <span class="tile-badge" style="background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-mid)">Regular · 86%</span>
-                        </div>
-                        <div class="health-wrap">
-                            <div class="donut-container">
-                                <svg class="donut-svg" width="136" height="136" viewBox="0 0 136 136">
-                                    <circle class="donut-track" cx="68" cy="68" r="60"/>
-                                    <circle class="donut-fill" cx="68" cy="68" r="60" id="donutFill"/>
-                                </svg>
-                                <div class="donut-center">
-                                    <span class="donut-pct" id="donutPct">0%</span>
-                                    <span class="donut-sub">salud global</span>
-                                </div>
-                            </div>
-                            <div class="health-tag" style="background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-mid)">
-                                ⚡ Estado Regular — <?= date('M Y') ?>
-                            </div>
-                            <div class="health-bars">
-                                <div class="hb-row">
-                                    <span class="hb-label">Presentes</span>
-                                    <div class="hb-track"><div class="hb-fill" id="hpFill" style="background:var(--green)"></div></div>
-                                    <span class="hb-val" id="hpVal">0%</span>
-                                </div>
-                                <div class="hb-row">
-                                    <span class="hb-label">Justificados</span>
-                                    <div class="hb-track"><div class="hb-fill" id="hjFill" style="background:var(--amber)"></div></div>
-                                    <span class="hb-val" id="hjVal">0%</span>
-                                </div>
-                                <div class="hb-row">
-                                    <span class="hb-label">Faltas</span>
-                                    <div class="hb-track"><div class="hb-fill" id="hfFill" style="background:var(--red)"></div></div>
-                                    <span class="hb-val" id="hfVal">0%</span>
-                                </div>
-                            </div>
-                        </div>
+                <?php
+                $totDias = $kpiPresentes + $kpiFaltas + $kpiJustificados;
+                ?>
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;" class="rv d2">
+                    <div style="background:#fff;border-radius:14px;border-left:4px solid #2563eb;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
+                        <div style="font-size:22px;font-weight:800;color:#1e293b;" id="kpiTotalDias"><?= $totDias ?></div>
+                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Dias registrados</div>
                     </div>
+                    <div style="background:#fff;border-radius:14px;border-left:4px solid <?= $healthIndex >= 90 ? '#059669' : ($healthIndex >= 75 ? '#d97706' : '#dc2626') ?>;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
+                        <div style="font-size:22px;font-weight:800;color:#1e293b;" id="kpiHealthPct"><?= $healthIndex ?>%</div>
+                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Indice de Salud</div>
+                    </div>
+                    <div style="background:#fff;border-radius:14px;border-left:4px solid #059669;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
+                        <div style="font-size:22px;font-weight:800;color:#059669;" id="kpiPresentes"><?= $kpiPresentes ?></div>
+                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Presentes</div>
+                    </div>
+                    <div style="background:#fff;border-radius:14px;border-left:4px solid #dc2626;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
+                        <div style="font-size:22px;font-weight:800;color:#dc2626;" id="kpiFaltas"><?= $kpiFaltas ?></div>
+                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Faltas</div>
+                    </div>
+                </div>
 
-                    <div class="tile t-alert rv d3">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--red-dim)">🔔</div> Atención Requerida</div>
-                            <span class="tile-badge" id="alertCountBadge" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-mid)">0 faltas</span>
-                        </div>
-                        <div class="alert-list" id="alertList"></div>
-                        <div class="alert-cta" style="margin-top:auto">
-                            <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="enviarNotificacionesMasivas()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                                Enviar notificaciones
-                            </button>
-                        </div>
-                    </div>
+                <div class="bento">
 
                     <div class="tile t-calendar rv d3">
                         <div class="tile-head">
@@ -1333,49 +1285,6 @@ table.dataTable tbody tr:hover {
                         </div>
                     </div>
 
-                    <div class="tile t-present rv d4">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--green-dim)">✓</div> Marcaron este mes</div>
-                            <div class="tile-actions">
-                                <?php 
-                                    $registrosMesFiltrados = array_filter($registrosLista ?? [], function($r) {
-                                        return ($r->estado ?? '') !== 'Ausente';
-                                    });
-                                ?>
-                                <span class="tile-badge" style="background:var(--green-dim);color:var(--green);border:1px solid var(--green-mid)"><?= count($registrosMesFiltrados) ?> registros</span>
-                                <button class="tile-btn" onclick="doExport()">
-                                    <svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> CSV
-                                </button>
-                            </div>
-                        </div>
-                        <div class="mini-table-wrap">
-                            <table class="mini-table">
-                                <thead><tr><th>Pasante</th><th>Hora</th><th>Método</th><th>Estado</th></tr></thead>
-                                <tbody>
-                                    <?php if(!empty($registrosMesFiltrados)): foreach(array_slice($registrosMesFiltrados, 0, 4) as $r): 
-                                        $nom = trim(($r->apellidos ?? '') . ', ' . ($r->nombres ?? ''));
-                                        $ini = strtoupper(substr($r->nombres ?? 'P', 0, 1) . substr($r->apellidos ?? 'A', 0, 1));
-                                        $hora = date('h:i A', strtotime($r->hora_registro ?? '00:00'));
-                                        $metodo = $r->metodo ?? 'Manual';
-                                        $estado = $r->estado ?? 'Presente';
-                                        
-                                        $pillMet = $metodo === 'Biométrico' ? 'pill-sky' : 'pill-violet';
-                                        $pillEst = strpos(strtolower($estado), 'ausente') !== false ? 'pill-red' : (strpos(strtolower($estado), 'tarde') !== false ? 'pill-amber' : 'pill-green');
-                                    ?>
-                                    <tr onclick="abrirModalDetalle('<?= $r->cedula ?>')" style="cursor:pointer">
-                                        <td><div class="person-cell"><div class="av" style="background:var(--blue)"><?= $ini ?></div><div><div class="pn"><?= htmlspecialchars($nom) ?></div><div class="pid">V-<?= $r->cedula ?? '' ?></div></div></div></td>
-                                        <td style="font-family:var(--mono);font-size:11px;color:var(--ink-2)"><?= $hora ?></td>
-                                        <td><span class="pill <?= $pillMet ?>"><?= htmlspecialchars($metodo) ?></span></td>
-                                        <td><span class="pill <?= $pillEst ?>"><?= htmlspecialchars($estado) ?></span></td>
-                                    </tr>
-                                    <?php endforeach; else: ?>
-                                    <tr><td colspan="4" style="text-align:center;padding:22px;color:var(--ink-3);">Nadie ha marcado en este mes.</td></tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
                     <div class="tile t-absent rv d4">
                         <div class="tile-head">
                             <div class="tile-title"><div class="tile-icon" style="background:var(--red-dim)">✗</div> Sin Marcar Este Mes</div>
@@ -1386,9 +1295,9 @@ table.dataTable tbody tr:hover {
                         </div>
                         <div class="mini-table-wrap">
                             <table class="mini-table">
-                                <thead><tr><th>Pasante</th><th>Departamento</th><th>Acción</th></tr></thead>
+                                <thead><tr><th>Pasante</th><th>Departamento</th><th>Accion</th></tr></thead>
                                 <tbody>
-                                    <?php if(!empty($sinMarcarMes)): foreach(array_slice($sinMarcarMes, 0, 4) as $p): 
+                                    <?php if(!empty($sinMarcarMes)): foreach(array_slice($sinMarcarMes, 0, 8) as $p):
                                         $nom = trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''));
                                         $ini = strtoupper(substr($p->nombres ?? 'P', 0, 1) . substr($p->apellidos ?? 'A', 0, 1));
                                     ?>
@@ -1398,56 +1307,14 @@ table.dataTable tbody tr:hover {
                                         <td><button class="tile-btn" onclick="abrirModalManual('<?= $p->cedula ?>', '<?= htmlspecialchars($nom) ?>')">+ Reg.</button></td>
                                     </tr>
                                     <?php endforeach; else: ?>
-                                    <tr><td colspan="3" style="text-align:center;padding:22px;font-size:11px;color:var(--ink-3);">🎉 ¡Todos los pasantes tienen registros este mes!</td></tr>
+                                    <tr><td colspan="3" style="text-align:center;padding:22px;font-size:11px;color:var(--ink-3);">Todos los pasantes tienen registros este mes.</td></tr>
                                     <?php endif; ?>
                                 </tbody>
                             </table>
                         </div>
                     </div>
 
-                    <div class="tile t-dept rv d5">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--violet-dim)">🏢</div> Resumen por Departamento</div>
-                            <div class="tile-actions">
-                                <button class="tile-btn" onclick="doExport()"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/></svg> Exportar</button>
-                            </div>
-                        </div>
-                        <div class="dept-grid" id="deptGrid"></div>
-                    </div>
-
-                    <div class="tile t-toplist rv d5">
-                        <div class="tile-head" style="justify-content: space-between;">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--amber-dim)">🏆</div> Top Asistencia</div>
-                            <div class="dropdown">
-                                <button class="tile-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-mid);font-size:10px;padding:2px 8px;border-radius:12px;">
-                                    <?= htmlspecialchars($nombreMes) ?> <i class="ti ti-chevron-down"></i>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 rounded-3 p-2" style="font-size: 0.8rem;">
-                                    <?php 
-                                    $mesesArr = ['01' => 'Enero', '02' => 'Febrero', '03' => 'Marzo', '04' => 'Abril', '05' => 'Mayo', '06' => 'Junio', '07' => 'Julio', '08' => 'Agosto', '09' => 'Septiembre', '10' => 'Octubre', '11' => 'Noviembre', '12' => 'Diciembre'];
-                                    foreach($mesesArr as $mIdx => $mName): ?>
-                                        <li><a class="dropdown-item rounded-2 <?= ($paramsUrl['mes'] == $mIdx) ? 'active bg-primary' : '' ?>" href="<?= URLROOT ?>/asistencias?vista=mensual&mes=<?= $mIdx ?>&anio=<?= $paramsUrl['anio'] ?>"><?= $mName ?></a></li>
-                                    <?php endforeach; ?>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li><h6 class="dropdown-header">Cambiar Año</h6></li>
-                                    <li><a class="dropdown-item rounded-2" href="<?= URLROOT ?>/asistencias?vista=mensual&mes=<?= $paramsUrl['mes'] ?>&anio=<?= $paramsUrl['anio']-1 ?>"><?= $paramsUrl['anio']-1 ?></a></li>
-                                    <li><a class="dropdown-item rounded-2" href="<?= URLROOT ?>/asistencias?vista=mensual&mes=<?= $paramsUrl['mes'] ?>&anio=<?= $paramsUrl['anio']+1 ?>"><?= $paramsUrl['anio']+1 ?></a></li>
-                                </ul>
-                            </div>
-                        </div>
-                        <div class="top-list" id="topList"></div>
-                    </div>
-
-                    <div class="tile t-trend rv d6">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--violet-dim)">📈</div> Tendencia Semanal de Asistencia</div>
-                        </div>
-                        <div style="padding: 14px 22px; flex: 1; min-height: 200px;">
-                            <canvas id="trendChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="tile t-table rv d6">
+                    <div class="tile t-table rv d5">
                         <div class="tile-head">
                             <div class="tile-title"><div class="tile-icon" style="background:var(--sky-dim)">📋</div> Tabla Maestra</div>
                             <div class="tile-actions">
@@ -1459,12 +1326,12 @@ table.dataTable tbody tr:hover {
                             <table class="master-table" id="mTable">
                                 <thead>
                                     <tr>
-                                        <th onclick="sortBy(0)">Pasante ↕</th>
-                                        <th onclick="sortBy(1)">Departamento ↕</th>
-                                        <th onclick="sortBy(2)" style="text-align:center">Presentes ↕</th>
-                                        <th onclick="sortBy(3)" style="text-align:center">Faltas ↕</th>
-                                        <th onclick="sortBy(4)" style="text-align:center">Justif. ↕</th>
-                                        <th onclick="sortBy(5)">% Asistencia ↕</th>
+                                        <th onclick="sortBy(0)">Pasante &updownarrow;</th>
+                                        <th onclick="sortBy(1)">Departamento &updownarrow;</th>
+                                        <th onclick="sortBy(2)" style="text-align:center">Presentes &updownarrow;</th>
+                                        <th onclick="sortBy(3)" style="text-align:center">Faltas &updownarrow;</th>
+                                        <th onclick="sortBy(4)" style="text-align:center">Justif. &updownarrow;</th>
+                                        <th onclick="sortBy(5)">% Asistencia &updownarrow;</th>
                                         <th>Estado</th>
                                     </tr>
                                 </thead>
@@ -1479,56 +1346,15 @@ table.dataTable tbody tr:hover {
             <script>
             const DB = <?= json_encode($pasantesParaJS ?? []) ?>;
             const DEPTOS = <?= json_encode($resumenDeptosJS ?? (object)[]) ?>;
-            
+
             const CAL = <?= json_encode($calendarioJS ?? (object)[]) ?>;
             const DAYS = <?= json_encode($daysJS ?? []) ?>;
 
             window.addEventListener('DOMContentLoaded', () => {
-                animarDonutYBarras();
                 buildCal();
-                buildDepts();
-                buildTop();
                 buildTable(DB);
-                buildAlerts(DB);
-                initTrendChart();
                 setTimeout(animBars, 500);
             });
-
-            function initTrendChart() {
-                const ctx = document.getElementById('trendChart').getContext('2d');
-                const labels = <?= $chartLabels ?>;
-                const data = <?= $chartData ?>;
-                
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: [{
-                            label: 'Asistencia %',
-                            data: data,
-                            borderColor: '#7c3aed',
-                            backgroundColor: 'rgba(124, 58, 237, 0.1)',
-                            fill: true,
-                            tension: 0.4,
-                            borderWidth: 3,
-                            pointBackgroundColor: '#fff',
-                            pointBorderColor: '#7c3aed',
-                            pointBorderWidth: 2,
-                            pointRadius: 4,
-                            pointHoverRadius: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
-                        scales: {
-                            y: { beginAtZero: true, max: 100, ticks: { callback: v => v + '%' } },
-                            x: { grid: { display: false } }
-                        }
-                    }
-                });
-            }
 
             // Motor de Filtros
             let activeChip = 'all';
@@ -1828,7 +1654,17 @@ table.dataTable tbody tr:hover {
                 document.getElementById('mTable').scrollIntoView({ behavior: 'smooth', block: 'center' });
             }
 
-            function abrirModalDetalle(cedula) {
+            function abrirModalDetalle(cedula, id_pasante = 0) {
+                const btnAlmanaque = document.getElementById('btnModalAlmanaque');
+                if (btnAlmanaque) {
+                    if (id_pasante > 0) {
+                        btnAlmanaque.href = '<?= URLROOT ?>/asistencias/almanaque/' + id_pasante;
+                        btnAlmanaque.style.display = 'flex';
+                    } else {
+                        btnAlmanaque.style.display = 'none';
+                    }
+                }
+
                 const p = DB.find(x => x.ci === cedula);
                 if(!p) return;
 
@@ -2402,6 +2238,49 @@ table.dataTable tbody tr:hover {
                     <textarea id="manual-motivo" name="motivo_justificacion" rows="3" class="form-input" placeholder="Describe el motivo de la justificación..." style="width:100%; resize:vertical;"></textarea>
                 </div>
 
+                <!-- ═══ UPLOAD DE EVIDENCIA (récipe médico / PDF) ═══ -->
+                <div class="form-group" id="div-evidencia" style="display:none;">
+                    <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+                        <i class="ti ti-paperclip" style="font-size:1.1rem;"></i>
+                        Evidencia / Récipe médico
+                        <span style="font-size:.72rem; font-weight:500; color:#94a3b8; text-transform:none; letter-spacing:0;">(opcional)</span>
+                    </label>
+                    <!-- Drop Zone -->
+                    <div id="dropzone-evidencia"
+                         onclick="document.getElementById('input-evidencia').click()"
+                         ondragover="event.preventDefault(); this.classList.add('dz-hover')"
+                         ondragleave="this.classList.remove('dz-hover')"
+                         ondrop="handleDrop(event)"
+                         style="border: 2px dashed #bfdbfe; border-radius: 14px; padding: 20px 16px; text-align: center; cursor: pointer;
+                                background: #f0f9ff; transition: all 0.2s; position: relative;">
+                        <i class="ti ti-cloud-upload" style="font-size: 2rem; color: #93c5fd; display: block; margin-bottom: 6px;"></i>
+                        <p style="margin:0; font-size:.82rem; color:#64748b; font-weight:600;">Arrastra aquí o <span style="color:#2563eb;">selecciona un archivo</span></p>
+                        <p style="margin:4px 0 0; font-size:.72rem; color:#94a3b8;">JPG, PNG, PDF · Máx. 5 MB</p>
+                        <!-- Preview -->
+                        <div id="dz-preview" style="display:none; margin-top:10px; align-items:center; gap:10px; background:white;
+                                                    border-radius:10px; padding:8px 12px; border:1px solid #bfdbfe;">
+                            <i id="dz-file-icon" class="ti ti-file-check" style="font-size:1.4rem; color:#2563eb;"></i>
+                            <div style="text-align:left; flex:1; min-width:0;">
+                                <div id="dz-file-name" style="font-size:.8rem; font-weight:700; color:#1e293b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></div>
+                                <div id="dz-file-size" style="font-size:.68rem; color:#94a3b8;"></div>
+                            </div>
+                            <button type="button" onclick="clearEvidencia(event)" style="background:#fee2e2; border:none; width:24px; height:24px; border-radius:50%; color:#dc2626; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+                                <i class="ti ti-x" style="font-size:.72rem;"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <input type="file" id="input-evidencia" name="evidencia" accept="image/*,.pdf"
+                           style="display:none;" onchange="showEvidenciaPreview(this.files[0])">
+                </div>
+
+                <style>
+                #dropzone-evidencia.dz-hover {
+                    border-color: #2563eb;
+                    background: #dbeafe;
+                    transform: scale(1.01);
+                }
+                </style>
+
                 <div style="display:flex; gap:12px; margin-top:24px;">
                     <button type="button" class="btn-cancel" onclick="cerrarModal()" style="flex:1;">Cancelar</button>
                     <button type="submit" class="btn-save" id="btn-submit-manual" style="flex:1;"><i class="ti ti-device-floppy"></i> Guardar</button>
@@ -2451,6 +2330,9 @@ table.dataTable tbody tr:hover {
             </div>
         </div>
         <div style="padding:0 24px 24px; display:flex; gap:12px;">
+             <a id="btnModalAlmanaque" href="#" style="width:100%; padding:14px; background:#f3e8ff; color:#7c3aed; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-size:0.95rem; font-family:inherit; transition:background 0.2s; text-decoration:none; display:none; align-items:center; justify-content:center; gap:8px;">
+                 <i class="ti ti-calendar-stats"></i> Almanaque
+             </a>
              <button onclick="cerrarModalDetalle()" style="width:100%; padding:14px; background:#f1f5f9; color:#475569; font-weight:700; border:none; border-radius:12px; cursor:pointer; font-size:0.95rem; font-family:inherit; transition:background 0.2s;">Cerrar Detalle</button>
         </div>
     </div>
@@ -2755,6 +2637,26 @@ table.dataTable tbody tr:hover {
                     </div>
                 </div>
 
+                <!-- FICHA DE DATOS RÁPIDOS -->
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:12px;">
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px;">
+                        <div style="font-size:0.63rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;"><i class="ti ti-id-badge"></i> Cédula</div>
+                        <div id="fichaCedula" style="font-size:0.82rem; font-weight:700; color:#0f172a; font-family:'JetBrains Mono',monospace;">—</div>
+                    </div>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px;">
+                        <div style="font-size:0.63rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;"><i class="ti ti-phone"></i> Teléfono</div>
+                        <div id="fichaTelefono" style="font-size:0.82rem; font-weight:700; color:#0f172a;">—</div>
+                    </div>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; grid-column:span 2;">
+                        <div style="font-size:0.63rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;"><i class="ti ti-school"></i> Institución de Procedencia</div>
+                        <div id="fichaInstitucion" style="font-size:0.82rem; font-weight:700; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">—</div>
+                    </div>
+                    <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:8px 10px; grid-column:span 2;">
+                        <div style="font-size:0.63rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px;"><i class="ti ti-user-check"></i> Tutor Asignado</div>
+                        <div id="fichaTutor" style="font-size:0.82rem; font-weight:700; color:#0f172a;">—</div>
+                    </div>
+                </div>
+
                 <!-- FILA: GRÁFICO RADIAL + KPIs -->
                 <div class="aud-stats-row">
                     <!-- Gráfico Radial de Progreso -->
@@ -2840,6 +2742,9 @@ table.dataTable tbody tr:hover {
                     display:none; align-items:center; justify-content:center; flex-shrink:0;">
             <!-- Botones contextuales (ocultos hasta que se seleccione pasante) -->
             <div style="display:flex; gap:8px; width: 100%;">
+                <a href="#" id="btnAudAlmanaque" class="aud-btn" style="display:none; flex: 1; justify-content: center; background:#f3e8ff; color:#7c3aed; border:1px solid #e9d5ff; font-weight: 700; text-decoration: none;">
+                    <i class="ti ti-calendar-stats"></i> Almanaque
+                </a>
                 <a href="#" id="btnExportarExcel" target="_self" class="aud-btn aud-btn-ghost" style="display:none; flex: 1; justify-content: center;">
                     <i class="ti ti-file-spreadsheet"></i> Exportar Excel
                 </a>
@@ -2899,7 +2804,7 @@ function cerrarModalConsulta() {
     }, 350);
 }
 /* ── Datos de pasantes (para el select del modal "Nuevo" registro) ── */
-const pasantesActivos = <?= json_encode(array_map(fn($p) => [
+var pasantesActivos = <?= json_encode(array_map(fn($p) => [
     'id'     => $p->id,
     'nombre' => trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? '')),
 ], $pasantesActivos), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
@@ -2962,6 +2867,8 @@ function cerrarModal() {
     document.getElementById('modal-manual').style.display = 'none';
     document.getElementById('form-manual').reset();
     document.getElementById('div-motivo').style.display = 'none';
+    document.getElementById('div-evidencia').style.display = 'none';
+    clearEvidencia();
     
     // Restaurar los inputs
     const inputVisible = document.getElementById('buscadorPasante');
@@ -2971,17 +2878,84 @@ function cerrarModal() {
     }
 }
 
-/* ── Toggle campo motivo ─────────────────────────────────────────── */
+/* ── Toggle campo motivo + evidencia ─────────────────────────────── */
 function toggleMotivo(estado) {
-    document.getElementById('div-motivo').style.display = estado === 'Justificado' ? 'block' : 'none';
-    document.getElementById('manual-motivo').required = estado === 'Justificado';
+    const isJust = estado === 'Justificado';
+    document.getElementById('div-motivo').style.display    = isJust ? 'block' : 'none';
+    document.getElementById('div-evidencia').style.display = isJust ? 'block' : 'none';
+    document.getElementById('manual-motivo').required      = isJust;
 }
 
-/* ── Submit del form lateral ──────────────────────────────────────── */
+/* ── Helpers para el dropzone de evidencia ────────────────────────── */
+function showEvidenciaPreview(file) {
+    if (!file) return;
+    const preview = document.getElementById('dz-preview');
+    const icon    = document.getElementById('dz-file-icon');
+    const name    = document.getElementById('dz-file-name');
+    const size    = document.getElementById('dz-file-size');
+    const isPdf   = file.type === 'application/pdf';
+    icon.className = isPdf ? 'ti ti-file-type-pdf' : 'ti ti-photo';
+    icon.style.color = isPdf ? '#dc2626' : '#2563eb';
+    name.textContent = file.name;
+    size.textContent = (file.size / 1024 / 1024).toFixed(2) + ' MB';
+    preview.style.display = 'flex';
+    document.getElementById('dropzone-evidencia').style.borderColor = '#2563eb';
+    document.getElementById('dropzone-evidencia').style.background  = '#eff6ff';
+}
+
+function clearEvidencia(e) {
+    if (e) e.stopPropagation();
+    document.getElementById('input-evidencia').value = '';
+    const preview = document.getElementById('dz-preview');
+    if (preview) preview.style.display = 'none';
+    const dz = document.getElementById('dropzone-evidencia');
+    if (dz) { dz.style.borderColor = '#bfdbfe'; dz.style.background = '#f0f9ff'; }
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('dropzone-evidencia').classList.remove('dz-hover');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const allowed = ['image/jpeg','image/png','image/webp','application/pdf'];
+    if (!allowed.includes(file.type)) {
+        Swal.fire({ icon: 'error', title: 'Formato no soportado', text: 'Use JPG, PNG o PDF.', confirmButtonColor: '#162660' });
+        return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+        Swal.fire({ icon: 'error', title: 'Archivo muy grande', text: 'El archivo supera el límite de 5 MB.', confirmButtonColor: '#162660' });
+        return;
+    }
+    // Asignar al input
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('input-evidencia').files = dt.files;
+    showEvidenciaPreview(file);
+}
+
+/* ── Submit del form lateral ——————————————————————————————————————— */
 function enviarManual(e) {
     e.preventDefault();
-    const fd = new FormData(e.target);
-    enviarRegistroManual(fd.get('pasante_id'), fd.get('estado'), fd.get('motivo_justificacion') || '');
+    const form = e.target;
+    const fd   = new FormData(form);
+    const btn  = document.getElementById('btn-submit-manual');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader ti-spin"></i> Guardando...'; }
+
+    fetch('<?= URLROOT ?>/asistencias/registro_manual', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: '¡Registrado!', text: data.message || 'Asistencia registrada correctamente.', confirmButtonColor: '#162660' })
+                    .then(() => location.reload());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'No se pudo registrar.', confirmButtonColor: '#162660' });
+                if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Guardar'; }
+            }
+        })
+        .catch(() => {
+            Swal.fire({ icon: 'error', title: 'Error de red', text: 'No se pudo conectar con el servidor.', confirmButtonColor: '#162660' });
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Guardar'; }
+        });
 }
 
 /* ── Envío AJAX compartido ───────────────────────────────────────── */
@@ -3045,6 +3019,17 @@ function verDetalle(id, info) {
         motivoContainer.style.display = 'block';
     } else {
         motivoContainer.style.display = 'none';
+    }
+
+    // Botón Almanaque
+    const btnAlmanaque = document.getElementById('btnModalAlmanaque');
+    if (btnAlmanaque) {
+        if (info.pasante_id > 0) {
+            btnAlmanaque.href = '<?= URLROOT ?>/asistencias/almanaque/' + info.pasante_id;
+            btnAlmanaque.style.display = 'flex';
+        } else {
+            btnAlmanaque.style.display = 'none';
+        }
     }
 
     // Mostrar modal
@@ -3172,26 +3157,22 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 </script>
 
+<!-- ===== DEPENDENCIAS DATATABLES Y ESTILO PREMIUM VENTO BOX ===== -->
+<link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
+<script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
 <!-- Estilos DataTables Premium (Globalizados en datatables-sgp.css) -->
 
 <script>
     $(document).ready(function() {
-        var $tablaHistorial = $('#tablaHistorial');
-        if ($tablaHistorial.length) {
-            var table;
-            if (!$.fn.DataTable.isDataTable($tablaHistorial)) {
-                // Inicializar la tabla
-                table = $tablaHistorial.DataTable({
-                    language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
-                    pageLength: 10,
-                    order: [[0, 'desc']],
-                    lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
-                    responsive: true
-                });
-            } else {
-                table = $tablaHistorial.DataTable();
-                table.draw(false);
-            }
+        if ($('#tablaHistorial').length) {
+            // Inicializar la tabla
+            var table = $('#tablaHistorial').DataTable({
+                language: { url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json' },
+                pageLength: 10,
+                order: [[0, 'desc']],
+                lengthMenu: [[10, 25, 50, -1], [10, 25, 50, "Todos"]],
+                responsive: true
+            });
             
             // Inicializar Flatpickr en español y en modo rango
             if (typeof flatpickr !== 'undefined') {
@@ -3258,6 +3239,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 </script>
 
+<!-- ===== APEXCHARTS PARA GRÁFICO RADIAL (Local) ===== -->
+<script src="<?= URLROOT ?>/assets/libs/apexcharts/apexcharts.min.js"></script>
+
 <script>
 // ==========================================
 // MOTOR DE CONSULTA RÁPIDA (AJAX + ApexCharts)
@@ -3310,17 +3294,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     data.forEach(pasante => {
                         const div = document.createElement('div');
                         div.className = 'sgp-result-item';
-                        
+
                         // Extraer iniciales reales (Ej: JG)
                         const iniciales = (pasante.nombres.charAt(0) + pasante.apellidos.charAt(0)).toUpperCase();
-                        
+                        const instText  = pasante.institucion_nombre || pasante.departamento_nombre || '—';
+                        const periodoBadge = pasante.periodo_nombre
+                            ? `<span style="background:#f3e8ff;color:#7e22ce;font-size:0.6rem;padding:2px 6px;border-radius:4px;font-weight:700;margin-right:4px;border:1px solid #e9d5ff;">${pasante.periodo_nombre}</span>`
+                            : '';
+
                         div.innerHTML = `
                             <div class="sgp-result-avatar" style="background:#10b981;">${iniciales}</div>
                             <div class="sgp-result-info">
                                 <div class="sgp-result-name">${pasante.nombres.toLowerCase()} ${pasante.apellidos.toLowerCase()}</div>
-                                <div class="sgp-result-meta">C.I: ${pasante.cedula} · ${pasante.departamento_nombre}</div>
+                                <div class="sgp-result-meta"><i class="ti ti-id" style="font-size:0.65rem;"></i> ${pasante.cedula} · <i class="ti ti-school" style="font-size:0.65rem; margin-left:3px;"></i> ${instText}</div>
                             </div>
-                            <span class="sgp-result-badge sgp-badge-pasante" style="background: #d1fae5; color: #059669; font-size: 0.6rem; margin-left: auto;">Pasante</span>
+                            <div style="display:flex;align-items:center;margin-left:auto;">${periodoBadge}<span class="sgp-result-badge sgp-badge-pasante" style="background:#d1fae5;color:#059669;font-size:0.6rem;">Pasante</span></div>
                         `;
                         
                         div.onclick = () => cargarAuditoriaPasante(pasante.pasante_id, pasante);
@@ -3383,11 +3371,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 const avatar = document.getElementById('avatarPasante');
                 avatar.innerText = iniciales;
                 avatar.style.background = '#10b981'; // Color por defecto pasante
-                
+
                 document.getElementById('nombrePasante').innerText = `${perfil.nombres} ${perfil.apellidos}`;
                 document.getElementById('deptoPasante').innerHTML = `<i class="ti ti-building"></i> ${perfil.departamento_nombre}`;
+
+                // B. Llenar Ficha de Datos Rápidos
+                const esc = t => String(t || '').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+                document.getElementById('fichaCedula').textContent   = perfil.cedula      || '—';
+                document.getElementById('fichaTelefono').textContent = perfil.telefono    || 'Sin registrar';
+                let instHtml = esc(perfil.institucion || 'Sin especificar');
+                if (perfil.representante_nombre) {
+                    instHtml += ` <span style="color:#64748b; font-size:0.75rem; font-weight:500;">· Rep: ${esc(perfil.representante_nombre)}</span>`;
+                }
+                if (perfil.periodo_nombre) {
+                    instHtml += ` <span style="background:#f3e8ff;color:#7e22ce;font-size:0.68rem;padding:1px 6px;border-radius:4px;font-weight:700;margin-left:4px;">${esc(perfil.periodo_nombre)}</span>`;
+                }
+                document.getElementById('fichaInstitucion').innerHTML = instHtml;
+                const tutorNombre = (perfil.tutor_nombre || '').trim();
+                document.getElementById('fichaTutor').textContent = tutorNombre || 'Sin asignar';
                 
                 // Botones Footer
+                const btnAlmanaque = document.getElementById('btnAudAlmanaque');
+                btnAlmanaque.href = '<?= URLROOT ?>/asistencias/almanaque/' + perfil.pasante_id;
+                btnAlmanaque.style.display = 'flex';
+
                 const btnExcel = document.getElementById('btnExportarExcel');
                 btnExcel.href = '<?= URLROOT ?>/reportes/excel/' + perfil.pasante_id; 
                 btnExcel.style.display = 'flex';
@@ -3619,13 +3626,23 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div id="grid-almanaque" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;">
                     <!-- Se llena vía JS -->
                 </div>
-                
+
+                <!-- KPI de retardos del mes -->
+                <div id="kpi-almanaque" style="margin-top: 16px; display: none; background: #fff7ed; border: 1px solid #fed7aa; border-radius: 10px; padding: 10px 16px; font-size: 0.78rem; color: #92400e; font-weight: 600; display: flex; gap: 16px; flex-wrap: wrap; align-items: center; justify-content: center;">
+                    <span><i class="ti ti-check" style="color:#10b981;"></i> <span id="kpi-presentes">0</span> Presentes</span>
+                    <span><i class="ti ti-clock-exclamation" style="color:#f97316;"></i> <span id="kpi-retardos">0</span> Retardos</span>
+                    <span><i class="ti ti-x" style="color:#ef4444;"></i> <span id="kpi-ausentes">0</span> Ausentes</span>
+                    <span><i class="ti ti-file-description" style="color:#2563eb;"></i> <span id="kpi-justificados">0</span> Justificados</span>
+                </div>
+
                 <!-- Leyenda interactiva -->
-                <div style="margin-top: 24px; display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; font-size: 0.75rem; color: #64748b; font-weight: 600;">
-                    <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; border-radius:3px; background:#10b981;"></span> Presente</div>
-                    <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; border-radius:3px; background:#ef4444;"></span> Ausente</div>
-                    <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; border-radius:3px; background:#f59e0b;"></span> Justificado</div>
-                    <div style="display:flex; align-items:center; gap:6px;"><span style="width:12px; height:12px; border-radius:3px; background:#f1f5f9; border:1px solid #e2e8f0;"></span> Sin Marcar</div>
+                <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; font-size: 0.72rem; color: #64748b; font-weight: 600;">
+                    <div style="display:flex; align-items:center; gap:5px;"><span style="width:11px; height:11px; border-radius:3px; background:#10b981;"></span> Presente</div>
+                    <div style="display:flex; align-items:center; gap:5px;"><span style="width:11px; height:11px; border-radius:3px; background:#f97316;"></span> Retardo</div>
+                    <div style="display:flex; align-items:center; gap:5px;"><span style="width:11px; height:11px; border-radius:3px; background:#ef4444;"></span> Ausente</div>
+                    <div style="display:flex; align-items:center; gap:5px;"><span style="width:11px; height:11px; border-radius:3px; background:#3b82f6;"></span> Justificado</div>
+                    <div style="display:flex; align-items:center; gap:5px;"><span style="width:11px; height:11px; border-radius:3px; background:#a855f7;"></span> Feriado</div>
+                    <div style="display:flex; align-items:center; gap:5px;"><span style="width:11px; height:11px; border-radius:3px; background:#f1f5f9; border:1px solid #e2e8f0;"></span> Sin Marcar</div>
                 </div>
             </div>
         </div>
@@ -3633,7 +3650,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 
 <script>
-    let currentAlmanaquePasanteId = null;
+    var currentAlmanaquePasanteId = null;
 
     function abrirAlmanaque(btn) {
         currentAlmanaquePasanteId = btn.getAttribute('data-id');
@@ -3693,8 +3710,17 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(res => res.json())
         .then(res => {
-            if(res.success) {
-                renderizarGridAlmanaque(mesAnio, res.datos);
+            if (res.success) {
+                renderizarGridAlmanaque(mesAnio, res.datos, res.feriados || {});
+                // Actualizar KPI de retardos
+                const kpi = res.kpi || {};
+                document.getElementById('kpi-presentes').textContent   = kpi.presentes    || 0;
+                document.getElementById('kpi-retardos').textContent     = kpi.retardos     || 0;
+                document.getElementById('kpi-ausentes').textContent     = kpi.ausentes     || 0;
+                document.getElementById('kpi-justificados').textContent = kpi.justificados || 0;
+                // Mostrar el bloque KPI (puede estar oculto)
+                const kpiEl = document.getElementById('kpi-almanaque');
+                if (kpiEl) kpiEl.style.display = 'flex';
             } else {
                 grid.innerHTML = `<div style="grid-column: 1 / -1; text-align: center; color: red;">Error al cargar datos.</div>`;
             }
@@ -3704,53 +3730,93 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function renderizarGridAlmanaque(mesAnio, asistenciasData) {
+    /**
+     * renderizarGridAlmanaque — Dibuja el heatmap de asistencias del mes.
+     *
+     * Paleta de colores:
+     *   #10b981  verde   — Presente (a tiempo)
+     *   #f97316  naranja — Presente con Retardo (hora > 09:00)
+     *   #ef4444  rojo    — Ausente (registro real o auto-fill)
+     *   #3b82f6  azul    — Justificado
+     *   #a855f7  violeta — Feriado
+     *   #f1f5f9  gris    — Sin marcar / Fin de semana
+     */
+    function renderizarGridAlmanaque(mesAnio, asistenciasData, feriadosData) {
         const grid = document.getElementById('grid-almanaque');
         const [year, month] = mesAnio.split('-').map(Number);
         const diasEnMes = new Date(year, month, 0).getDate();
-        
-        // 1 = Lunes, 0 = Domingo. JS usa 0=Domingo
+
+        // Ajuste de inicio: Lunes = 0, Domingo = 6
         let objDate = new Date(year, month - 1, 1);
-        let primerDiaSemana = objDate.getDay(); 
-        primerDiaSemana = primerDiaSemana === 0 ? 6 : primerDiaSemana - 1; // Ajuste para que Lunes sea 0 y Domingo 6
+        let primerDiaSemana = objDate.getDay();
+        primerDiaSemana = primerDiaSemana === 0 ? 6 : primerDiaSemana - 1;
 
         let html = '';
-        
-        // Espacios en blanco para empezar en el día correcto
+
+        // Espacios en blanco hasta el primer día
         for (let i = 0; i < primerDiaSemana; i++) {
             html += `<div style="aspect-ratio: 1/1;"></div>`;
         }
 
-        const btnHoy = new Date().toISOString().split('T')[0];
+        const hoy = new Date().toISOString().split('T')[0];
 
-        // Llenar los días
         for (let d = 1; d <= diasEnMes; d++) {
             const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-            const estadoStr = asistenciasData[dateStr] ? asistenciasData[dateStr].toLowerCase() : null;
-            
-            let bgClass = '#f8fafc'; // Gris default
-            let border = '1px solid #e2e8f0';
-            let color = '#94a3b8';
-            let tooltip = `Fecha: ${dateStr}\nSin marcar`;
-            
-            if (estadoStr) {
-                if (estadoStr.includes('presente')) {
-                    bgClass = '#10b981'; border = 'none'; color = '#fff'; tooltip = `Fecha: ${dateStr}\nPresente`;
-                } else if (estadoStr.includes('ausente')) {
-                    bgClass = '#ef4444'; border = 'none'; color = '#fff'; tooltip = `Fecha: ${dateStr}\nAusente`;
-                } else if (estadoStr.includes('justificado')) {
-                    bgClass = '#f59e0b'; border = 'none'; color = '#fff'; tooltip = `Fecha: ${dateStr}\nJustificado`;
+            const registro  = asistenciasData[dateStr] || null;   // objeto { estado, es_retardo, es_auto_fill }
+            const esFeriado = feriadosData[dateStr] != null;
+
+            let bg      = '#f8fafc';
+            let border  = '1px solid #e2e8f0';
+            let color   = '#94a3b8';
+            let tooltip = `${dateStr}\nSin marcar`;
+            let badge   = '';
+
+            if (esFeriado) {
+                // Feriado tiene prioridad visual sobre ausentes auto-fill
+                bg      = '#a855f7';
+                border  = 'none';
+                color   = '#fff';
+                tooltip = `${dateStr}\nFeriado: ${feriadosData[dateStr]}`;
+                badge   = `<span style="position:absolute;top:2px;right:2px;font-size:0.55rem;line-height:1;">🗓</span>`;
+            } else if (registro) {
+                const est = registro.estado ? registro.estado.toLowerCase() : '';
+                const esRetardo   = registro.es_retardo   == 1;
+                const esAutoFill  = registro.es_auto_fill == 1;
+
+                if (est.includes('presente')) {
+                    if (esRetardo) {
+                        bg      = '#f97316'; // naranja — retardo
+                        border  = 'none';
+                        color   = '#fff';
+                        tooltip = `${dateStr}\nPresente con Retardo`;
+                        badge   = `<span style="position:absolute;top:2px;right:2px;font-size:0.55rem;line-height:1;">⏰</span>`;
+                    } else {
+                        bg      = '#10b981'; // verde — puntual
+                        border  = 'none';
+                        color   = '#fff';
+                        tooltip = `${dateStr}\nPresente`;
+                    }
+                } else if (est.includes('ausente')) {
+                    bg      = esAutoFill ? '#fca5a5' : '#ef4444'; // rojo claro si auto-fill
+                    border  = 'none';
+                    color   = esAutoFill ? '#b91c1c' : '#fff';
+                    tooltip = `${dateStr}\nAusente${esAutoFill ? ' (auto)' : ''}`;
+                } else if (est.includes('justificado')) {
+                    bg      = '#3b82f6'; // azul
+                    border  = 'none';
+                    color   = '#fff';
+                    tooltip = `${dateStr}\nJustificado`;
                 }
             }
 
-            let todayShadow = (dateStr === btnHoy) ? 'box-shadow: inset 0 0 0 2px #3b82f6;' : '';
-            
+            const todayShadow = (dateStr === hoy) ? 'box-shadow: inset 0 0 0 2px #1e3a8a;' : '';
+
             html += `
-                <div title="${tooltip}" style="background: ${bgClass}; border: ${border}; border-radius: 4px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: ${color}; cursor: default; transition: transform 0.2s ease; ${todayShadow}" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-                    ${d}
-                </div>
-            `;
+                <div title="${tooltip}" style="position:relative; background: ${bg}; border: ${border}; border-radius: 4px; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; color: ${color}; cursor: default; transition: transform 0.2s ease; ${todayShadow}" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                    ${badge}${d}
+                </div>`;
         }
+
         grid.innerHTML = html;
     }
 </script>

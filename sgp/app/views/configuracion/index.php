@@ -1,466 +1,1426 @@
 <?php
-// Vista Configuración del Sistema — SGP
-// Leer mensajes flash
+// Vista Configuración del Sistema — Bento UI
 $flashSuccess = Session::getFlash('success');
-$flashError   = Session::getFlash('error');
-
-// Datos del controlador
-$instituciones = $data['instituciones'] ?? [];
-$departamentos = $data['departamentos'] ?? [];
-$totalInst     = count($instituciones);
-$totalDepto    = count($departamentos);
+$flashError = Session::getFlash('error');
+$instituciones   = $data['instituciones'] ?? [];
+$departamentos   = $data['departamentos'] ?? [];
+$kioscoActivo    = (int) ($data['kioscoActivo'] ?? 1);
+$feriados        = $data['feriados'] ?? [];
+$totalInst       = count($instituciones);
+$totalDepto      = count($departamentos);
+$totalFeriados   = count($feriados);
+$anioActual      = (int) date('Y');
+$hoy             = date('Y-m-d');
 ?>
+<style>
+    /* ── BENTO GRID ─────────────────────────────── */
+    .cfg-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 22px;
+        margin-bottom: 22px;
+    }
 
-
-
-    <style>
-    /* === Cards de sección === */
     .cfg-card {
         background: white;
-        border-radius: 16px;
-        padding: 28px;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-        margin-bottom: 24px;
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        transition: transform 0.25s ease, box-shadow 0.25s ease;
     }
+
+    .cfg-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.07);
+    }
+
+    .cg-3 {
+        grid-column: span 3;
+    }
+
+    .cg-4 {
+        grid-column: span 4;
+    }
+
+    .cg-5 {
+        grid-column: span 5;
+    }
+
+    .cg-6 {
+        grid-column: span 6;
+    }
+
+    .cg-7 {
+        grid-column: span 7;
+    }
+
+    .cg-8 {
+        grid-column: span 8;
+    }
+
+    .cg-12 {
+        grid-column: span 12;
+    }
+
+    /* ── KPI CARDS ──────────────────────────────── */
+    .cfg-kpi-icon {
+        width: 46px;
+        height: 46px;
+        border-radius: 13px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.3rem;
+        margin-bottom: 14px;
+    }
+
+    .cfg-kpi-value {
+        font-size: 2rem;
+        font-weight: 800;
+        line-height: 1;
+        margin-bottom: 5px;
+    }
+
+    .cfg-kpi-label {
+        font-size: 0.8rem;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    /* ── CARD HEADERS ───────────────────────────── */
     .cfg-card-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding-bottom: 16px;
+        margin-bottom: 18px;
+        padding-bottom: 14px;
         border-bottom: 1px solid #f1f5f9;
-        margin-bottom: 22px;
     }
+
     .cfg-card-title {
         display: flex;
         align-items: center;
         gap: 10px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #1e293b;
     }
+
     .cfg-icon-box {
-        width: 38px; height: 38px;
+        width: 36px;
+        height: 36px;
         border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         flex-shrink: 0;
     }
-    .cfg-count-badge {
-        padding: 4px 12px;
+
+    .cfg-badge {
+        font-size: 0.72rem;
+        padding: 3px 10px;
         border-radius: 20px;
-        font-size: 0.8rem;
         font-weight: 700;
     }
 
-    /* === Ítems de lista === */
+    /* ── LIST ITEMS ──────────────────────────────── */
     .cfg-list-item {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        padding: 14px 0;
-        border-bottom: 1px solid #f8fafc;
         gap: 12px;
+        padding: 10px 0;
+        border-bottom: 1px solid #f8fafc;
     }
-    .cfg-list-item:last-child { border-bottom: none; }
-    .cfg-list-item-info {
+
+    .cfg-list-item:last-child {
+        border-bottom: none;
+    }
+
+    .cfg-list-avatar {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        flex-shrink: 0;
         display: flex;
         align-items: center;
-        gap: 12px;
-        flex: 1;
-        min-width: 0;
+        justify-content: center;
     }
-    .cfg-list-icon {
-        width: 40px; height: 40px;
-        border-radius: 10px;
-        display: flex; align-items: center; justify-content: center;
-        flex-shrink: 0;
-        background: linear-gradient(135deg, #eff6ff, #dbeafe);
-    }
+
     .cfg-list-name {
-        margin: 0;
         font-weight: 700;
         color: #1e293b;
-        font-size: 0.92rem;
+        font-size: 0.88rem;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
     .cfg-list-sub {
-        margin: 3px 0 0;
-        color: #64748b;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+        color: #94a3b8;
+        margin-top: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 260px;
     }
+
     .cfg-delete-btn {
-        width: 34px; height: 34px;
+        width: 32px;
+        height: 32px;
         border-radius: 8px;
         border: none;
         background: #fef2f2;
         color: #ef4444;
         cursor: pointer;
-        display: flex; align-items: center; justify-content: center;
         flex-shrink: 0;
-        transition: all 0.2s;
-    }
-    .cfg-delete-btn:hover { background: #fee2e2; transform: scale(1.05); }
-
-    /* === Formulario lateral === */
-    .cfg-form-panel {
-        background: #f8fafc;
-        border-radius: 14px;
-        padding: 22px;
-        border: 1.5px solid #e2e8f0;
-        align-self: start;
-    }
-    .cfg-form-panel h4 {
-        margin: 0 0 18px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: #1e293b;
         display: flex;
         align-items: center;
-        gap: 8px;
+        justify-content: center;
+        transition: all 0.2s;
     }
+
+    .cfg-delete-btn:hover {
+        background: #fee2e2;
+        transform: scale(1.08);
+    }
+
+    /* ── ADD FORM (inline) ───────────────────────── */
+    .cfg-add-form {
+        margin-top: 16px;
+        padding-top: 14px;
+        border-top: 2px dashed #e2e8f0;
+    }
+
     .cfg-field-label {
         display: block;
-        font-size: 0.75rem;
+        font-size: 0.72rem;
         font-weight: 700;
         color: #64748b;
         text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 7px;
+        letter-spacing: 0.4px;
+        margin-bottom: 6px;
     }
+
     .cfg-input {
         width: 100%;
-        padding: 11px 14px;
+        padding: 10px 13px;
         border: 2px solid #e5e7eb;
         border-radius: 10px;
-        font-size: 0.9rem;
+        font-size: 0.88rem;
         color: #1e293b;
         background: white;
         box-sizing: border-box;
         transition: border-color 0.2s;
         font-family: inherit;
     }
-    .cfg-input:focus { outline: none; border-color: #2563eb; }
-    .cfg-submit-btn {
+
+    .cfg-input:focus {
+        outline: none;
+        border-color: #2563eb;
+    }
+
+    .cfg-btn-primary {
         width: 100%;
-        padding: 13px;
-        background: linear-gradient(135deg, #172554 0%, #2563eb 100%);
-        color: white;
+        padding: 11px;
         border: none;
         border-radius: 10px;
-        font-size: 0.95rem;
-        font-weight: 700;
         cursor: pointer;
+        background: linear-gradient(135deg, #172554 0%, #2563eb 100%);
+        color: white;
+        font-size: 0.9rem;
+        font-weight: 700;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
+        gap: 7px;
         transition: all 0.2s;
-        box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+        font-family: inherit;
     }
-    .cfg-submit-btn:hover {
+
+    .cfg-btn-primary:hover {
         transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba(37,99,235,0.4);
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35);
     }
 
-    /* === DOS COLUMNAS === */
-    .cfg-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-    .cfg-main-col { display: grid; grid-template-columns: 1fr 340px; gap: 28px; }
+    /* ── READONLY FIELD ──────────────────────────── */
+    .cfg-readonly {
+        width: 100%;
+        padding: 10px 13px;
+        border: 2px solid #f1f5f9;
+        border-radius: 10px;
+        font-size: 0.88rem;
+        color: #64748b;
+        background: #f8fafc;
+        box-sizing: border-box;
+        font-family: inherit;
+    }
 
-    /* === Empty state === */
-    .cfg-empty {
-        text-align: center;
-        padding: 32px 20px;
+    /* ── TOGGLE SWITCH ───────────────────────────── */
+    .cfg-toggle-wrap {
+        position: relative;
+        display: inline-block;
+        width: 54px;
+        height: 30px;
+        cursor: pointer;
+        flex-shrink: 0;
+    }
+
+    .cfg-toggle-wrap input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .cfg-toggle-track {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #e2e8f0;
+        border-radius: 30px;
+        transition: 0.3s;
+    }
+
+    .cfg-toggle-dot {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: 22px;
+        height: 22px;
+        background: white;
+        border-radius: 50%;
+        transition: 0.3s;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.18);
+    }
+
+    .cfg-toggle-wrap input:checked~.cfg-toggle-track {
+        background: #22c55e;
+    }
+
+    .cfg-toggle-wrap input:checked~.cfg-toggle-dot {
+        left: 28px;
+    }
+
+    /* ── INFO ROW (datos ISP) ────────────────────── */
+    .cfg-info-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px 12px;
+        background: #f8fafc;
+        border-radius: 10px;
+        margin-bottom: 8px;
+        border: 1px solid #f1f5f9;
+    }
+
+    .cfg-info-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cfg-info-label {
+        font-size: 0.7rem;
+        font-weight: 700;
         color: #94a3b8;
-    }
-    .cfg-empty i { font-size: 2.5rem; display: block; margin-bottom: 8px; }
-
-    @media (max-width: 900px) {
-        .cfg-two-col, .cfg-main-col { grid-template-columns: 1fr; }
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
     }
 
+    .cfg-info-value {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-top: 1px;
+    }
+
+    /* ── RESPONSIVE ──────────────────────────────── */
+    @media (max-width: 1200px) {
+        .cg-3 {
+            grid-column: span 6;
+        }
+
+        .cg-4 {
+            grid-column: span 6;
+        }
+
+        .cg-5 {
+            grid-column: span 12;
+        }
+
+        .cg-7 {
+            grid-column: span 12;
+        }
+
+        .cg-8 {
+            grid-column: span 12;
+        }
+    }
+
+    @media (max-width: 760px) {
+
+        .cg-3,
+        .cg-4,
+        .cg-6 {
+            grid-column: span 12;
+        }
+    }
 </style>
 
-<div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
+<div style="width:100%;max-width:1600px;margin:0 auto;padding:20px;">
 
+    <!-- ===== BANNER ===== -->
+    <style>
+        @media (max-width: 991px) {
+            .dashboard-banner {
+                flex-direction: column !important;
+                align-items: flex-start !important;
+                padding: 24px 20px !important;
+                gap: 20px !important;
+            }
 
-            <!-- ===== BANNER ===== -->
-            <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;">
-                <div style="position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:rgba(255,255,255,0.05);border-radius:50%;"></div>
-                <div style="position:absolute;bottom:-40px;left:-20px;width:160px;height:160px;background:rgba(255,255,255,0.04);border-radius:50%;"></div>
-                <div style="display:flex;align-items:center;gap:16px;z-index:1;">
-                    <div style="background:rgba(255,255,255,0.15);border-radius:14px;padding:14px;">
-                        <i class="ti ti-settings" style="font-size:32px;color:white;"></i>
+            .dashboard-banner>div:first-child,
+            .dashboard-banner>div:nth-child(2) {
+                display: none !important;
+            }
+
+            .dashboard-banner>div:last-child {
+                width: 100% !important;
+                text-align: left !important;
+            }
+        }
+    </style>
+    <div class="dashboard-banner"
+        style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:24px;padding:38px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 30px rgba(23,37,84,0.15);">
+        <div
+            style="position:absolute;top:-40px;right:-40px;width:220px;height:220px;background:rgba(255,255,255,0.05);border-radius:50%;">
+        </div>
+        <div
+            style="position:absolute;bottom:-50px;left:-30px;width:180px;height:180px;background:rgba(255,255,255,0.04);border-radius:50%;">
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;z-index:1;">
+            <div style="background:rgba(255,255,255,0.15);border-radius:16px;padding:14px;">
+                <i class="ti ti-settings-2" style="font-size:32px;color:white;"></i>
+            </div>
+            <div>
+                <h1 style="color:white;font-size:1.85rem;font-weight:800;margin:0;letter-spacing:-0.5px;">
+                    Configuración del Sistema
+                </h1>
+                <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:0.9rem;">
+                    <i class="ti ti-building-community"></i> <?= $totalDepto ?>
+                    departamento<?= $totalDepto !== 1 ? 's' : '' ?>
+                    &nbsp;·&nbsp; <i class="ti ti-school"></i> <?= $totalInst ?>
+                    institución<?= $totalInst !== 1 ? 'es' : '' ?>
+                </p>
+            </div>
+        </div>
+        <div style="z-index:1;text-align:right;">
+            <div
+                style="background:rgba(255,255,255,0.12);border-radius:12px;padding:10px 18px;color:rgba(255,255,255,0.9);font-size:0.82rem;font-weight:600;">
+                <i class="ti ti-building-hospital"></i> Instituto de Salud Pública<br>
+                <span style="opacity:0.7;font-weight:400;">SGP · Sistema de Gestión</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== FILA KPIs ===== -->
+    <div class="cfg-grid">
+
+        <!-- KPI: Departamentos -->
+        <div class="cfg-card cg-3" style="border-left:4px solid #059669;">
+            <div class="cfg-kpi-icon" style="background:#f0fdf4;color:#059669;">
+                <i class="ti ti-building-community"></i>
+            </div>
+            <div class="cfg-kpi-value" style="color:#059669;"><?= $totalDepto ?></div>
+            <div class="cfg-kpi-label">Departamentos activos</div>
+        </div>
+
+        <!-- KPI: Instituciones -->
+        <div class="cfg-card cg-3" style="border-left:4px solid #2563eb;">
+            <div class="cfg-kpi-icon" style="background:#eff6ff;color:#2563eb;">
+                <i class="ti ti-school"></i>
+            </div>
+            <div class="cfg-kpi-value" style="color:#2563eb;"><?= $totalInst ?></div>
+            <div class="cfg-kpi-label">Escuelas técnicas aliadas</div>
+        </div>
+
+        <!-- KPI: Kiosco -->
+        <div class="cfg-card cg-3" style="border-left:4px solid <?= $kioscoActivo ? '#22c55e' : '#dc2626' ?>;"
+            id="kpi-kiosco-card">
+            <div class="cfg-kpi-icon"
+                style="background:<?= $kioscoActivo ? '#dcfce7' : '#fee2e2' ?>;color:<?= $kioscoActivo ? '#16a34a' : '#dc2626' ?>;"
+                id="kpi-kiosco-icon-box">
+                <i class="ti ti-device-desktop"></i>
+            </div>
+            <div class="cfg-kpi-value"
+                style="color:<?= $kioscoActivo ? '#16a34a' : '#dc2626' ?>;font-size:1.3rem;padding-top:4px;"
+                id="kpi-kiosco-label"><?= $kioscoActivo ? 'Activo' : 'Inactivo' ?></div>
+            <div class="cfg-kpi-label">Estado del kiosco</div>
+        </div>
+
+        <!-- KPI: Meta de horas -->
+        <div class="cfg-card cg-3" style="border-left:4px solid #f59e0b;">
+            <div class="cfg-kpi-icon" style="background:#fef3c7;color:#d97706;">
+                <i class="ti ti-clock-hour-4"></i>
+            </div>
+            <div class="cfg-kpi-value" style="color:#d97706;">1440</div>
+            <div class="cfg-kpi-label">Horas meta por pasante</div>
+        </div>
+
+    </div><!-- /KPIs -->
+
+    <!-- ===== FILA 2: Departamentos + Instituciones ===== -->
+    <div class="cfg-grid">
+
+        <!-- CARD: Departamentos -->
+        <div class="cfg-card cg-6">
+            <div class="cfg-card-header">
+                <div class="cfg-card-title">
+                    <div class="cfg-icon-box" style="background:#f0fdf4;">
+                        <i class="ti ti-building-community" style="font-size:1.1rem;color:#059669;"></i>
                     </div>
                     <div>
-                        <h1 style="color:white;font-size:1.8rem;font-weight:700;margin:0;">Configuración del Sistema</h1>
-                        <p style="color:rgba(255,255,255,0.7);margin:4px 0 0;font-size:0.9rem;">
-                            <?= $totalDepto ?> departamentos · <?= $totalInst ?> institución<?= $totalInst !== 1 ? 'es' : '' ?> registrada<?= $totalInst !== 1 ? 's' : '' ?>
-                        </p>
+                        <div>Departamentos</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Áreas internas del
+                            ISP</div>
                     </div>
                 </div>
-                <div style="z-index:1;">
-                    <div style="background:rgba(255,255,255,0.12);border-radius:12px;padding:10px 20px;color:rgba(255,255,255,0.9);font-size:0.85rem;font-weight:600;">
-                        <i class="ti ti-building-hospital" style="margin-right:6px;"></i>Instituto de Salud Pública
+                <span class="cfg-badge" style="background:#f0fdf4;color:#059669;"><?= $totalDepto ?>
+                    activo<?= $totalDepto !== 1 ? 's' : '' ?></span>
+            </div>
+
+            <!-- Lista -->
+            <div style="flex:1;overflow-y:auto;max-height:300px;">
+                <?php if (empty($departamentos)): ?>
+                    <div style="text-align:center;padding:36px 20px;color:#94a3b8;">
+                        <i class="ti ti-building-community"
+                            style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:0.5;"></i>
+                        <p style="margin:0;font-size:0.88rem;">No hay departamentos registrados.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($departamentos as $depto): ?>
+                        <div class="cfg-list-item">
+                            <div class="cfg-list-avatar" style="background:linear-gradient(135deg,#172554,#1e3a8a);">
+                                <i class="ti ti-building-community" style="font-size:1rem;color:white;"></i>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div class="cfg-list-name"><?= htmlspecialchars($depto['nombre']) ?></div>
+                                <?php if (!empty($depto['descripcion'])): ?>
+                                    <div class="cfg-list-sub"><?= htmlspecialchars($depto['descripcion']) ?></div>
+                                <?php endif; ?>
+                            </div>
+                            <div style="display:flex;gap:4px;align-items:center;">
+                                <button type="button" class="cfg-edit-btn"
+                                    onclick="abrirEditarDepto(<?= (int) $depto['id'] ?>, '<?= htmlspecialchars($depto['nombre'], ENT_QUOTES) ?>', '<?= htmlspecialchars($depto['descripcion'] ?? '', ENT_QUOTES) ?>')"
+                                    title="Editar departamento">
+                                    <i class="ti ti-pencil" style="font-size:0.95rem;"></i>
+                                </button>
+                                <form method="POST" action="<?= URLROOT ?>/configuracion" style="margin:0;">
+                                    <input type="hidden" name="accion" value="eliminar_departamento">
+                                    <input type="hidden" name="id" value="<?= (int) $depto['id'] ?>">
+                                    <button type="button" class="cfg-delete-btn"
+                                        onclick="confirmarEliminar(this, 'departamento', '<?= htmlspecialchars($depto['nombre'], ENT_QUOTES) ?>')"
+                                        title="Eliminar departamento">
+                                        <i class="ti ti-trash" style="font-size:0.95rem;"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <!-- Botón abrir modal -->
+            <div class="cfg-add-form" style="padding:16px;">
+                <button type="button" onclick="abrirModalDepto()" class="cfg-btn-primary"
+                    style="width:100%;padding:11px;display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i class="ti ti-circle-plus"></i> Nuevo Departamento
+                </button>
+            </div>
+        </div>
+
+        <!-- CARD: Instituciones / Escuelas Técnicas -->
+        <div class="cfg-card cg-6">
+            <div class="cfg-card-header">
+                <div class="cfg-card-title">
+                    <div class="cfg-icon-box" style="background:#eff6ff;">
+                        <i class="ti ti-school" style="font-size:1.1rem;color:#2563eb;"></i>
+                    </div>
+                    <div>
+                        <div>Escuelas Técnicas Aliadas</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Origen de los
+                            pasantes</div>
+                    </div>
+                </div>
+                <span class="cfg-badge" style="background:#eff6ff;color:#2563eb;"><?= $totalInst ?>
+                    institución<?= $totalInst !== 1 ? 'es' : '' ?></span>
+            </div>
+
+            <!-- Lista -->
+            <div style="flex:1;overflow-y:auto;max-height:300px;">
+                <?php if (empty($instituciones)): ?>
+                    <div style="text-align:center;padding:36px 20px;color:#94a3b8;">
+                        <i class="ti ti-school" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:0.5;"></i>
+                        <p style="margin:0;font-size:0.88rem;">No hay escuelas registradas aún.</p>
+                        <p style="margin:6px 0 0;font-size:0.78rem;">Usa el formulario para agregar la primera.</p>
+                    </div>
+                <?php else: ?>
+                    <?php foreach ($instituciones as $inst): ?>
+                        <div class="cfg-list-item">
+                            <div class="cfg-list-avatar" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">
+                                <i class="ti ti-building-factory-2" style="font-size:1rem;color:white;"></i>
+                            </div>
+                            <div style="flex:1;min-width:0;">
+                                <div class="cfg-list-name"><?= htmlspecialchars($inst['nombre']) ?></div>
+                                <div class="cfg-list-sub">
+                                    <i class="ti ti-map-pin"
+                                        style="margin-right:2px;"></i><?= htmlspecialchars($inst['direccion'] ?? '—') ?>
+                                </div>
+                                <?php if (!empty($inst['representante_nombre'])): ?>
+                                    <div
+                                        style="margin-top:4px;font-size:0.75rem;color:#4f46e5;display:flex;align-items:center;gap:4px;">
+                                        <i class="ti ti-user-check" style="font-size:0.8rem;"></i>
+                                        <span><?= htmlspecialchars($inst['representante_nombre']) ?></span>
+                                        <?php if (!empty($inst['representante_cargo'])): ?>
+                                            <span style="color:#94a3b8;">· <?= htmlspecialchars($inst['representante_cargo']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div style="display:flex;gap:4px;align-items:center;">
+                                <button type="button" class="cfg-edit-btn"
+                                    onclick="abrirEditarInstitucion(<?= (int) $inst['id'] ?>, <?= htmlspecialchars(json_encode($inst), ENT_QUOTES) ?>)"
+                                    title="Editar institución">
+                                    <i class="ti ti-pencil" style="font-size:0.95rem;"></i>
+                                </button>
+                                <form method="POST" action="<?= URLROOT ?>/configuracion" style="margin:0;">
+                                    <input type="hidden" name="accion" value="eliminar_institucion">
+                                    <input type="hidden" name="id" value="<?= (int) $inst['id'] ?>">
+                                    <button type="button" class="cfg-delete-btn"
+                                        onclick="confirmarEliminar(this, 'institución', '<?= htmlspecialchars($inst['nombre'], ENT_QUOTES) ?>')"
+                                        title="Eliminar institución">
+                                        <i class="ti ti-trash" style="font-size:0.95rem;"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
+            <!-- Botón abrir modal -->
+            <div class="cfg-add-form" style="padding:16px;">
+                <button type="button" onclick="abrirModalInstitucion()" class="cfg-btn-primary"
+                    style="width:100%;padding:11px;background:linear-gradient(135deg,#1e40af,#3b82f6);box-shadow:0 4px 12px rgba(59,130,246,0.2);display:flex;align-items:center;justify-content:center;gap:8px;">
+                    <i class="ti ti-circle-plus"></i> Nueva Institución
+                </button>
+            </div>
+        </div>
+
+    </div><!-- /Fila 2 -->
+
+    <!-- ===== FILA 3: Datos ISP + Kiosco ===== -->
+    <div class="cfg-grid">
+
+        <!-- CARD: Datos de la Institución (lectura) -->
+        <div class="cfg-card cg-4">
+            <div class="cfg-card-header">
+                <div class="cfg-card-title">
+                    <div class="cfg-icon-box" style="background:#fef3c7;">
+                        <i class="ti ti-building-hospital" style="font-size:1.1rem;color:#d97706;"></i>
+                    </div>
+                    <div>
+                        <div>Datos de la Institución</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Información del ISP
+                        </div>
+                    </div>
+                </div>
+                <span class="cfg-badge" style="background:#fef3c7;color:#b45309;">Solo lectura</span>
+            </div>
+
+            <?php
+            $infoCampos = [
+                ['icon' => 'ti-building-hospital', 'bg' => '#fef3c7', 'clr' => '#d97706', 'label' => 'Nombre', 'value' => 'Instituto de Salud Pública del Estado Bolívar (ISP)'],
+                ['icon' => 'ti-id-badge', 'bg' => '#eff6ff', 'clr' => '#2563eb', 'label' => 'RIF', 'value' => 'G-20000366-9'],
+                ['icon' => 'ti-map', 'bg' => '#f0fdf4', 'clr' => '#059669', 'label' => 'Estado', 'value' => 'Bolívar'],
+                ['icon' => 'ti-map-pin', 'bg' => '#fdf2f8', 'clr' => '#9333ea', 'label' => 'Ciudad', 'value' => 'Ciudad Bolívar'],
+                ['icon' => 'ti-home', 'bg' => '#f8fafc', 'clr' => '#64748b', 'label' => 'Dirección', 'value' => 'Paseo Meneses, Torre ISP, Piso 3'],
+            ];
+            foreach ($infoCampos as $c): ?>
+                <div class="cfg-info-row">
+                    <div class="cfg-info-icon" style="background:<?= $c['bg'] ?>;">
+                        <i class="ti <?= $c['icon'] ?>" style="font-size:0.95rem;color:<?= $c['clr'] ?>;"></i>
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <div class="cfg-info-label"><?= $c['label'] ?></div>
+                        <div class="cfg-info-value" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                            <?= htmlspecialchars($c['value']) ?>
+                        </div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+
+        <!-- CARD: Kiosco -->
+        <div class="cfg-card cg-4">
+            <div class="cfg-card-header">
+                <div class="cfg-card-title">
+                    <div class="cfg-icon-box" style="background:#fef3c7;">
+                        <i class="ti ti-device-desktop" style="font-size:1.1rem;color:#d97706;"></i>
+                    </div>
+                    <div>
+                        <div>Configuración del Kiosco</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Registro de
+                            asistencia de pasantes</div>
                     </div>
                 </div>
             </div>
 
-            <!-- ===== FILA 1: DOS COLUMNAS ===== -->
-            <div class="cfg-two-col">
-
-                <!-- CARD: Departamentos -->
-                <div class="cfg-card">
-                    <div class="cfg-card-header">
-                        <div class="cfg-card-title">
-                            <div class="cfg-icon-box" style="background:#f0fdf4;">
-                                <i class="ti ti-building-community" style="font-size:1.3rem;color:#059669;"></i>
-                            </div>
-                            <span style="font-size:1rem;font-weight:700;color:#1e293b;">Departamentos</span>
-                        </div>
-                        <span class="cfg-count-badge" style="background:#f0fdf4;color:#059669;">
-                            <?= $totalDepto ?> activo<?= $totalDepto !== 1 ? 's' : '' ?>
-                        </span>
+            <div style="display:flex;flex-direction:column;gap:14px;">
+                <!-- Toggle Estado -->
+                <div
+                    style="background:#f8fafc;border-radius:14px;padding:16px;border:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <p style="margin:0;font-weight:700;color:#1e293b;font-size:0.92rem;">Estado del Kiosco</p>
+                        <p style="margin:3px 0 0;color:#64748b;font-size:0.78rem;">Habilitar o deshabilitar el acceso
+                        </p>
                     </div>
+                    <label class="cfg-toggle-wrap">
+                        <input type="checkbox" id="kioscoToggle" <?= $kioscoActivo ? 'checked' : '' ?>>
+                        <span class="cfg-toggle-track"></span>
+                        <span class="cfg-toggle-dot"></span>
+                    </label>
+                </div>
 
-                    <!-- Lista de departamentos desde BD -->
-                    <?php if (empty($departamentos)): ?>
-                        <div class="cfg-empty">
-                            <i class="ti ti-building-community"></i>
-                            <p style="margin:0;font-size:0.9rem;">No hay departamentos registrados.</p>
-                        </div>
-                    <?php else: ?>
-                        <?php foreach ($departamentos as $depto): ?>
-                        <div class="cfg-list-item">
-                            <div class="cfg-list-item-info">
-                                <div class="cfg-list-icon" style="background:linear-gradient(135deg,#172554,#1e3a8a);">
-                                    <i class="ti ti-building-community" style="font-size:1rem;color:white;"></i>
-                                </div>
-                                <div>
-                                    <p class="cfg-list-name"><?= htmlspecialchars($depto['nombre']) ?></p>
-                                    <?php if (!empty($depto['descripcion'])): ?>
-                                    <p class="cfg-list-sub"><?= htmlspecialchars($depto['descripcion']) ?></p>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                            <form method="POST" action="<?= URLROOT ?>/configuracion" style="margin:0;">
-                                <input type="hidden" name="accion" value="eliminar_departamento">
-                                <input type="hidden" name="id" value="<?= (int)$depto['id'] ?>">
-                                <button type="button" class="cfg-delete-btn"
-                                    onclick="confirmarEliminar(this, 'departamento', '<?= htmlspecialchars($depto['nombre'], ENT_QUOTES) ?>')"
-                                    title="Desactivar departamento">
-                                    <i class="ti ti-trash"></i>
-                                </button>
-                            </form>
-                        </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-
-                    <!-- Mini formulario nuevo departamento -->
-                    <div style="margin-top:20px;padding-top:18px;border-top:2px dashed #e2e8f0;">
-                        <form method="POST" action="<?= URLROOT ?>/configuracion">
-                            <input type="hidden" name="accion" value="agregar_departamento">
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-                                <div>
-                                    <label class="cfg-field-label">Nombre *</label>
-                                    <input type="text" name="nombre" class="cfg-input" placeholder="Ej: Informática" required>
-                                </div>
-                                <div>
-                                    <label class="cfg-field-label">Descripción</label>
-                                    <input type="text" name="descripcion" class="cfg-input" placeholder="Opcional">
-                                </div>
-                            </div>
-                            <button type="submit" class="cfg-submit-btn" style="padding:10px;">
-                                <i class="ti ti-plus"></i> Agregar Departamento
-                            </button>
-                        </form>
+                <div id="kioscoStatusBadge"
+                    style="background:#d1fae5;border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:9px;">
+                    <i class="ti ti-circle-check" id="kioscoStatusIcon"
+                        style="color:#059669;font-size:1.15rem;flex-shrink:0;"></i>
+                    <div>
+                        <p style="margin:0;font-size:0.82rem;font-weight:700;" id="kioscoStatusText">Kiosco activo y
+                            operativo</p>
+                        <p style="margin:2px 0 0;font-size:0.73rem;color:#065f46;" id="kioscoStatusSub">Los pasantes
+                            pueden registrar asistencia</p>
                     </div>
                 </div>
 
-                <!-- CARD: Datos de la Institución (lectura) -->
-                <div class="cfg-card">
-                    <div class="cfg-card-header">
-                        <div class="cfg-card-title">
-                            <div class="cfg-icon-box" style="background:#eff6ff;">
-                                <i class="ti ti-building-hospital" style="font-size:1.3rem;color:#2563eb;"></i>
-                            </div>
-                            <span style="font-size:1rem;font-weight:700;color:#1e293b;">Datos de la Institución</span>
-                        </div>
-                    </div>
-                    <?php
-                    $campos = [
-                        ['label' => 'Nombre', 'value' => 'Instituto de Salud Pública (ISP)'],
-                        ['label' => 'RIF', 'value' => 'G-20000123-4'],
-                        ['label' => 'Estado', 'value' => 'Bolívar'],
-                        ['label' => 'Ciudad', 'value' => 'Ciudad Bolívar'],
-                        ['label' => 'Dirección', 'value' => 'Av. Paseo Caroní, Torre ISP, Piso 3'],
-                    ];
-                    foreach ($campos as $campo): ?>
-                    <div style="margin-bottom:16px;">
-                        <label class="cfg-field-label"><?= $campo['label'] ?></label>
-                        <input type="text" value="<?= htmlspecialchars($campo['value']) ?>" readonly
-                            style="width:100%;padding:11px 14px;border:2px solid #e5e7eb;border-radius:10px;font-size:0.9rem;color:#64748b;background:#f8fafc;box-sizing:border-box;font-family:inherit;">
-                    </div>
-                    <?php endforeach; ?>
+                <div
+                    style="background:#f1f5f9;border-radius:9px;padding:10px 13px;display:flex;align-items:flex-start;gap:8px;">
+                    <i class="ti ti-info-circle" style="color:#64748b;font-size:1rem;flex-shrink:0;margin-top:1px;"></i>
+                    <span style="font-size:0.76rem;color:#64748b;line-height:1.5;">
+                        El kiosco usa PIN de 4 dígitos para registrar entradas y salidas. El estado se mantiene durante
+                        la sesión actual.
+                    </span>
                 </div>
+            </div>
+        </div>
 
-            </div><!-- /cfg-two-col -->
-
-            <!-- ===== CARD: Escuelas Técnicas Aliadas ===== -->
-            <div class="cfg-card">
-                <div class="cfg-card-header">
-                    <div class="cfg-card-title">
-                        <div class="cfg-icon-box" style="background:#eff6ff;">
-                            <i class="ti ti-school" style="font-size:1.3rem;color:#2563eb;"></i>
-                        </div>
-                        <div>
-                            <p style="margin:0;font-size:1rem;font-weight:700;color:#1e293b;">Escuelas Técnicas Aliadas</p>
-                            <p style="margin:2px 0 0;color:#64748b;font-size:0.82rem;">Instituciones de donde provienen los pasantes · Meta: 1440 horas</p>
-                        </div>
+        <!-- CARD: Reset PIN -->
+        <div class="cfg-card cg-4">
+            <div class="cfg-card-header">
+                <div class="cfg-card-title">
+                    <div class="cfg-icon-box" style="background:#fef3c7;">
+                        <i class="ti ti-key" style="font-size:1.1rem;color:#d97706;"></i>
                     </div>
-                    <span class="cfg-count-badge" style="background:#eff6ff;color:#2563eb;">
-                        <?= $totalInst ?> institución<?= $totalInst !== 1 ? 'es' : '' ?>
+                    <div>
+                        <div>Restablecer PIN</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">De Pasante</div>
+                    </div>
+                </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <button onclick="SGPModal.buscar()"
+                    style="width:100%;padding:12px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:10px;font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 12px rgba(245,158,11,0.3);font-family:inherit;">
+                    <i class="ti ti-key" style="font-size:1.1rem;"></i> Buscar Pasante
+                </button>
+
+                <div
+                    style="background:#fef3c7;border-radius:10px;padding:10px 13px;display:flex;align-items:flex-start;gap:8px;">
+                    <i class="ti ti-info-circle" style="color:#92400e;font-size:1rem;flex-shrink:0;margin-top:2px;"></i>
+                    <span style="font-size:0.76rem;color:#92400e;font-weight:500;line-height:1.4;">
+                        Genera un nuevo PIN aleatorio de 4 dígitos. Se mostrará una sola vez.
                     </span>
                 </div>
 
-                <div class="cfg-main-col">
+                <!-- Quick links -->
+                <div style="display:flex;gap:8px;flex-direction:column;margin-top:4px;">
+                    <a href="<?= URLROOT ?>/kiosco" target="_blank"
+                        style="padding:10px;border:2px solid #fef3c7;border-radius:9px;text-align:center;font-size:0.78rem;font-weight:700;color:#d97706;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;transition:all 0.2s;"
+                        onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='transparent'">
+                        <i class="ti ti-external-link"></i> Abrir Kiosco
+                    </a>
+                    <a href="<?= URLROOT ?>/asistencias"
+                        style="padding:10px;border:2px solid #e0e7ff;border-radius:9px;text-align:center;font-size:0.78rem;font-weight:700;color:#6366f1;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:5px;transition:all 0.2s;"
+                        onmouseover="this.style.background='#e0e7ff'" onmouseout="this.style.background='transparent'">
+                        <i class="ti ti-clipboard-list"></i> Ver Asistencias
+                    </a>
+                </div>
+            </div>
+        </div>
 
-                    <!-- Listado de instituciones -->
+    </div><!-- /Fila 3 -->
+
+    <!-- ===== FILA 4: Días Feriados + Mantenimiento ===== -->
+    <div class="cfg-grid">
+
+        <!-- CARD: Días Feriados (Premium Redesign) -->
+        <div class="cfg-card cg-8">
+            <?php
+            $meses_es    = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+            $diasSemanaF = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            $tipoPalF    = [
+                'Nacional'      => ['gradient'=>'linear-gradient(135deg,#7c3aed,#a78bfa)', 'bg'=>'#f5f3ff', 'color'=>'#7c3aed', 'dot'=>'#8b5cf6', 'border'=>'#ddd6fe'],
+                'Regional'      => ['gradient'=>'linear-gradient(135deg,#16a34a,#22c55e)', 'bg'=>'#f0fdf4', 'color'=>'#16a34a', 'dot'=>'#22c55e', 'border'=>'#bbf7d0'],
+                'Institucional' => ['gradient'=>'linear-gradient(135deg,#1e3a8a,#2563eb)', 'bg'=>'#eff6ff', 'color'=>'#2563eb', 'dot'=>'#3b82f6', 'border'=>'#bfdbfe'],
+            ];
+            $feriadosObj = array_map(fn($f) => (object)$f, $feriados);
+
+            // Próximo feriado
+            $proximoF  = null; $diasProx = 0;
+            foreach ($feriadosObj as $f) {
+                if ($f->fecha >= $hoy) { $proximoF = $f; $diasProx = (int)round((strtotime($f->fecha) - strtotime($hoy)) / 86400); break; }
+            }
+            // Agrupar por mes
+            $porMes = [];
+            foreach ($feriadosObj as $f) { $porMes[date('Y-m', strtotime($f->fecha))][] = $f; }
+            ?>
+
+            <!-- Header -->
+            <div class="cfg-card-header">
+                <div class="cfg-card-title">
+                    <div class="cfg-icon-box" style="background:#f5f3ff;">
+                        <i class="ti ti-calendar-event" style="font-size:1.1rem;color:#7c3aed;"></i>
+                    </div>
                     <div>
-                        <?php if (empty($instituciones)): ?>
-                            <div class="cfg-empty">
-                                <i class="ti ti-school"></i>
-                                <p style="margin:0;font-size:0.9rem;">No hay escuelas registradas aún.</p>
-                                <p style="margin:6px 0 0;font-size:0.8rem;">Agrega la primera usando el formulario.</p>
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($instituciones as $inst): ?>
-                            <div class="cfg-list-item">
-                                <div class="cfg-list-item-info">
-                                    <div class="cfg-list-icon">
-                                        <i class="ti ti-building-factory-2" style="font-size:1.2rem;color:#2563eb;"></i>
-                                    </div>
-                                    <div>
-                                        <p class="cfg-list-name"><?= htmlspecialchars($inst['nombre']) ?></p>
-                                        <p class="cfg-list-sub">
-                                            <i class="ti ti-map-pin" style="margin-right:3px;"></i><?= htmlspecialchars($inst['direccion']) ?>
-                                            <span style="margin-left:10px;background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:6px;font-size:0.75rem;font-weight:600;">1440 horas</span>
-                                        </p>
-                                    </div>
-                                </div>
-                                <form method="POST" action="<?= URLROOT ?>/configuracion" style="margin:0;">
-                                    <input type="hidden" name="accion" value="eliminar_institucion">
-                                    <input type="hidden" name="id" value="<?= (int)$inst['id'] ?>">
-                                    <button type="button" class="cfg-delete-btn"
-                                        onclick="confirmarEliminar(this, 'institución', '<?= htmlspecialchars($inst['nombre'], ENT_QUOTES) ?>')"
-                                        title="Eliminar institución">
-                                        <i class="ti ti-trash"></i>
-                                    </button>
-                                </form>
-                            </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                        <div>Días Feriados</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Días no laborables — excluidos del auto-fill de asistencias</div>
+                    </div>
+                </div>
+                <span class="cfg-badge" style="background:#f5f3ff;color:#7c3aed;"><?= $totalFeriados ?> en <?= $anioActual ?></span>
+            </div>
+
+            <?php if (empty($feriados)): ?>
+            <!-- Estado vacío -->
+            <div style="text-align:center;padding:44px 20px;color:#94a3b8;flex:1;">
+                <i class="ti ti-calendar-off" style="font-size:3rem;display:block;margin-bottom:12px;opacity:.4;"></i>
+                <p style="margin:0;font-size:.88rem;font-weight:600;">No hay días feriados registrados</p>
+                <p style="margin:6px 0 0;font-size:.78rem;">Agrega feriados para excluirlos del auto-fill de asistencias.</p>
+            </div>
+
+            <?php else: ?>
+
+            <!-- ── Banner: Próximo Feriado ── -->
+            <?php if ($proximoF):
+                $palP = $tipoPalF[$proximoF->tipo] ?? $tipoPalF['Nacional'];
+                $tsP  = strtotime($proximoF->fecha);
+                $countdownLabel = $diasProx === 0 ? '¡Hoy!' : ($diasProx === 1 ? 'Mañana' : "En {$diasProx} días");
+            ?>
+            <div style="background:<?= $palP['bg'] ?>;border:1px solid <?= $palP['border'] ?>;border-radius:14px;padding:13px 16px;margin-bottom:16px;display:flex;align-items:center;gap:14px;">
+                <div style="background:<?= $palP['gradient'] ?>;border-radius:10px;width:46px;min-width:46px;text-align:center;padding:7px 0;box-shadow:0 4px 10px rgba(0,0,0,.15);flex-shrink:0;">
+                    <div style="font-size:1.2rem;font-weight:900;color:white;line-height:1;"><?= date('d',$tsP) ?></div>
+                    <div style="font-size:.58rem;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.6px;"><?= strtoupper(substr($meses_es[(int)date('n',$tsP)],0,3)) ?></div>
+                </div>
+                <div style="flex:1;min-width:0;">
+                    <div style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:<?= $palP['color'] ?>;margin-bottom:2px;">Próximo feriado</div>
+                    <div style="font-size:.9rem;font-weight:800;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($proximoF->nombre) ?></div>
+                    <div style="font-size:.7rem;color:#94a3b8;margin-top:2px;"><?= $diasSemanaF[(int)date('w',$tsP)] ?> <?= date('d',$tsP) ?> de <?= $meses_es[(int)date('n',$tsP)] ?></div>
+                </div>
+                <div style="background:<?= $palP['gradient'] ?>;color:white;border-radius:20px;padding:6px 13px;font-size:.75rem;font-weight:800;flex-shrink:0;white-space:nowrap;box-shadow:0 3px 8px rgba(0,0,0,.15);">
+                    <?= $countdownLabel ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- ── Lista agrupada por mes ── -->
+            <div style="flex:1;overflow-y:auto;max-height:280px;padding-right:2px;">
+
+                <?php
+                $hayHistoricos = array_reduce($feriadosObj, fn($c,$f) => $c || $f->fecha < $hoy, false);
+                if ($hayHistoricos): ?>
+                <div style="display:flex;align-items:flex-start;gap:7px;padding:8px 10px;background:#f8fafc;border:1px solid #f1f5f9;border-radius:10px;margin-bottom:12px;">
+                    <i class="ti ti-info-circle" style="font-size:.88rem;color:#94a3b8;flex-shrink:0;margin-top:1px;"></i>
+                    <span style="font-size:.72rem;color:#94a3b8;line-height:1.45;">Los feriados <strong>en gris</strong> ya transcurrieron — su fecha y eliminación están bloqueadas para proteger el historial, pero puedes <strong>editar su nombre y tipo</strong> con el <i class="ti ti-pencil" style="font-size:.7rem;"></i>.</span>
+                </div>
+                <?php endif; ?>
+
+                <?php foreach ($porMes as $mesKey => $feriadosMes):
+                    $mesNum  = (int)date('n', strtotime($mesKey.'-01'));
+                    $anioMes = date('Y', strtotime($mesKey.'-01'));
+                    $hayProx = array_reduce($feriadosMes, fn($c,$f) => $c || $f->fecha >= $hoy, false);
+                ?>
+                <!-- Separador de mes -->
+                <div style="display:flex;align-items:center;gap:8px;margin:0 0 8px;padding-top:4px;">
+                    <span style="font-size:.68rem;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:<?= $hayProx ? '#7c3aed' : '#94a3b8' ?>;white-space:nowrap;"><?= $meses_es[$mesNum] ?> <?= $anioMes ?></span>
+                    <div style="flex:1;height:1px;background:<?= $hayProx ? '#ddd6fe' : '#f1f5f9' ?>;"></div>
+                    <span style="font-size:.65rem;font-weight:700;color:<?= $hayProx ? '#a78bfa' : '#cbd5e1' ?>;background:<?= $hayProx ? '#f5f3ff' : '#f8fafc' ?>;border-radius:20px;padding:1px 7px;"><?= count($feriadosMes) ?></span>
+                </div>
+
+                <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:12px;">
+                <?php foreach ($feriadosMes as $f):
+                    $esPasado = $f->fecha < $hoy;
+                    $esHoy    = $f->fecha === $hoy;
+                    $ts       = strtotime($f->fecha);
+                    $diasR    = (int)round((strtotime($f->fecha) - strtotime($hoy)) / 86400);
+                    $pal      = $tipoPalF[$f->tipo] ?? $tipoPalF['Nacional'];
+                    $diaNom   = $diasSemanaF[(int)date('w',$ts)];
+                    $numDia   = date('d',$ts);
+                    $mesNom   = $meses_es[(int)date('n',$ts)];
+                ?>
+                <div style="display:flex;align-items:center;gap:10px;padding:9px 11px;background:<?= $esPasado ? '#fafafa' : 'white' ?>;border-radius:12px;border:1px solid <?= $esPasado ? '#f1f5f9' : $pal['border'] ?>;transition:border-color .15s,background .15s;"
+                     onmouseover="this.style.background='<?= $esPasado ? '#f8fafc' : $pal['bg'] ?>';this.style.borderColor='<?= $esPasado ? '#e2e8f0' : $pal['dot'] ?>'"
+                     onmouseout="this.style.background='<?= $esPasado ? '#fafafa' : 'white' ?>';this.style.borderColor='<?= $esPasado ? '#f1f5f9' : $pal['border'] ?>'">
+
+                    <!-- Bloque fecha -->
+                    <div style="background:<?= $esPasado ? '#e2e8f0' : $pal['gradient'] ?>;border-radius:9px;width:40px;min-width:40px;text-align:center;padding:6px 0;flex-shrink:0;<?= $esPasado ? '' : 'box-shadow:0 3px 8px rgba(0,0,0,.12);' ?>">
+                        <div style="font-size:1rem;font-weight:900;color:<?= $esPasado ? '#94a3b8' : 'white' ?>;line-height:1;"><?= $numDia ?></div>
+                        <div style="font-size:.54rem;font-weight:700;color:<?= $esPasado ? '#94a3b8' : 'rgba(255,255,255,.85)' ?>;text-transform:uppercase;letter-spacing:.5px;"><?= strtoupper(substr($mesNom,0,3)) ?></div>
                     </div>
 
-                    <!-- Formulario nueva institución -->
-                    <div class="cfg-form-panel">
-                        <h4>
-                            <div style="width:28px;height:28px;background:linear-gradient(135deg,#172554,#2563eb);border-radius:7px;display:flex;align-items:center;justify-content:center;">
-                                <i class="ti ti-plus" style="color:white;font-size:0.85rem;"></i>
-                            </div>
-                            Nueva Escuela Técnica
-                        </h4>
-                        <form method="POST" action="<?= URLROOT ?>/configuracion">
-                            <input type="hidden" name="accion" value="agregar_institucion">
+                    <!-- Info -->
+                    <div style="flex:1;min-width:0;">
+                        <div style="font-size:.83rem;font-weight:700;color:<?= $esPasado ? '#94a3b8' : '#1e293b' ?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($f->nombre) ?></div>
+                        <div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
+                            <span style="font-size:.68rem;color:#94a3b8;"><?= $diaNom ?></span>
+                            <span style="font-size:.65rem;color:#cbd5e1;">·</span>
+                            <?php if (!$esPasado): ?>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:<?= $pal['bg'] ?>;color:<?= $pal['color'] ?>;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:20px;">
+                                <span style="width:5px;height:5px;border-radius:50%;background:<?= $pal['dot'] ?>;flex-shrink:0;display:inline-block;"></span>
+                                <?= htmlspecialchars($f->tipo) ?>
+                            </span>
+                            <?php else: ?>
+                            <span style="display:inline-flex;align-items:center;gap:3px;background:#f1f5f9;color:#94a3b8;font-size:.62rem;font-weight:700;padding:1px 7px;border-radius:20px;">
+                                <i class="ti ti-history" style="font-size:.6rem;"></i> Histórico
+                            </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-                            <div style="margin-bottom:14px;">
-                                <label class="cfg-field-label">Nombre *</label>
-                                <input type="text" name="nombre" class="cfg-input" placeholder="Ej: E.T.C Juan Bautista González" required>
-                            </div>
-                            <div style="margin-bottom:18px;">
-                                <label class="cfg-field-label">Dirección / Ciudad *</label>
-                                <input type="text" name="direccion" class="cfg-input" placeholder="Ciudad Bolívar" required>
-                            </div>
-                            <div style="background:#eff6ff;border-radius:10px;padding:12px;margin-bottom:16px;display:flex;align-items:center;gap:8px;">
-                                <i class="ti ti-info-circle" style="color:#2563eb;font-size:1.1rem;flex-shrink:0;"></i>
-                                <span style="font-size:0.8rem;color:#1e40af;font-weight:500;">
-                                    Las escuelas técnicas tienen una meta fija de <strong>1440 horas</strong> (≈9 meses).
-                                </span>
-                            </div>
-                            <button type="submit" class="cfg-submit-btn">
-                                <i class="ti ti-check"></i> Registrar Institución
+                    <!-- Derecha: countdown / editar / trash -->
+                    <?php if ($esPasado): ?>
+                        <button type="button" class="cfg-delete-btn"
+                            style="background:#f5f3ff;color:#7c3aed;flex-shrink:0;"
+                            onclick="abrirEditarFeriado(<?= (int)$f->id ?>, '<?= htmlspecialchars($f->nombre, ENT_QUOTES) ?>', '<?= htmlspecialchars($f->tipo, ENT_QUOTES) ?>', '<?= $f->fecha ?>')"
+                            title="Editar nombre y tipo">
+                            <i class="ti ti-pencil" style="font-size:.9rem;"></i>
+                        </button>
+                    <?php else: ?>
+                        <span style="background:<?= $pal['bg'] ?>;color:<?= $pal['color'] ?>;border-radius:20px;padding:3px 9px;font-size:.68rem;font-weight:800;flex-shrink:0;white-space:nowrap;">
+                            <?= $esHoy ? '¡Hoy!' : ($diasR === 1 ? 'Mañana' : "+{$diasR}d") ?>
+                        </span>
+                        <form method="POST" action="<?= URLROOT ?>/configuracion" style="margin:0;flex-shrink:0;">
+                            <input type="hidden" name="accion" value="eliminar_feriado">
+                            <input type="hidden" name="id"     value="<?= (int)$f->id ?>">
+                            <button type="button" class="cfg-delete-btn"
+                                onclick="confirmarEliminarFeriado(this, '<?= htmlspecialchars($f->nombre, ENT_QUOTES) ?>')"
+                                title="Eliminar feriado">
+                                <i class="ti ti-trash" style="font-size:.9rem;"></i>
                             </button>
                         </form>
+                    <?php endif; ?>
+                </div>
+                <?php endforeach; ?>
+                </div>
+                <?php endforeach; ?>
+            </div>
+
+            <?php endif; ?>
+
+            <!-- Botón agregar -->
+            <div class="cfg-add-form" style="padding-top:16px;">
+                <button type="button" onclick="abrirModalFeriado()" class="cfg-btn-primary">
+                    <i class="ti ti-circle-plus"></i> Registrar Día Feriado
+                </button>
+            </div>
+        </div>
+
+        <!-- CARD: Mantenimiento del Sistema -->
+        <div class="cfg-card cg-4">
+            <div class="cfg-card-header">
+                <div class="cfg-card-title">
+                    <div class="cfg-icon-box" style="background:#f0fdf4;">
+                        <i class="ti ti-tool" style="font-size:1.1rem;color:#059669;"></i>
                     </div>
+                    <div>
+                        <div>Mantenimiento</div>
+                        <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Estado y limpieza del sistema</div>
+                    </div>
+                </div>
+                <span class="cfg-badge" style="background:#f0fdf4;color:#059669;" id="bdg-estado-bd">
+                    <i class="ti ti-circle" style="font-size:0.55rem;margin-right:2px;"></i>Sin verificar
+                </span>
+            </div>
 
-                </div><!-- /cfg-main-col -->
-            </div><!-- /cfg-card -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
 
-            <!-- ===== CARD: Configuración del Kiosco ===== -->
-            <div class="cfg-card">
-                <div class="cfg-card-header">
-                    <div class="cfg-card-title">
-                        <div class="cfg-icon-box" style="background:#fef3c7;">
-                            <i class="ti ti-device-desktop" style="font-size:1.3rem;color:#d97706;"></i>
-                        </div>
+                <!-- Verificar BD -->
+                <div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #f1f5f9;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
-                            <span style="font-size:1rem;font-weight:700;color:#1e293b;">Configuración del Kiosco</span>
-                            <p style="margin:2px 0 0;color:#64748b;font-size:0.82rem;">Registro de asistencia de pasantes</p>
+                            <p style="margin:0;font-size:0.85rem;font-weight:700;color:#1e293b;">Base de Datos</p>
+                            <p style="margin:2px 0 0;font-size:0.73rem;color:#64748b;" id="txt-bd-sub">Verificar conexión y estado</p>
+                        </div>
+                        <i class="ti ti-database" style="font-size:1.4rem;color:#94a3b8;"></i>
+                    </div>
+                    <button type="button" onclick="verificarBD(this)"
+                        style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;color:#374151;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:inherit;"
+                        onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                        <i class="ti ti-plug-connected"></i> <span id="txt-btn-bd">Verificar Conexión</span>
+                    </button>
+                </div>
+
+                <!-- Limpiar sesiones -->
+                <div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #f1f5f9;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div>
+                            <p style="margin:0;font-size:0.85rem;font-weight:700;color:#1e293b;">Sesiones Expiradas</p>
+                            <p style="margin:2px 0 0;font-size:0.73rem;color:#64748b;">Limpiar tokens de sesión vencidos</p>
+                        </div>
+                        <i class="ti ti-eraser" style="font-size:1.4rem;color:#94a3b8;"></i>
+                    </div>
+                    <button type="button" onclick="limpiarSesiones(this)"
+                        style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;color:#374151;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:inherit;"
+                        onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                        <i class="ti ti-trash-x"></i> <span>Limpiar Sesiones</span>
+                    </button>
+                </div>
+
+                <!-- Acceso rápido a Bitácora -->
+                <div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #f1f5f9;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <div>
+                            <p style="margin:0;font-size:0.85rem;font-weight:700;color:#1e293b;">Bitácora del Sistema</p>
+                            <p style="margin:2px 0 0;font-size:0.73rem;color:#64748b;">Ver registro de actividades del sistema</p>
+                        </div>
+                        <i class="ti ti-clipboard-list" style="font-size:1.4rem;color:#94a3b8;"></i>
+                    </div>
+                    <a href="<?= URLROOT ?>/bitacora"
+                        style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;color:#374151;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;text-decoration:none;"
+                        onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                        <i class="ti ti-external-link"></i> Ir a Bitácora
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+    </div><!-- /Fila 4 -->
+
+</div><!-- /container -->
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Nuevo Feriado (SGP Premium)
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalFeriado"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);backdrop-filter:blur(5px);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:22px;width:100%;max-width:480px;margin:16px;box-shadow:0 28px 70px rgba(0,0,0,.22);overflow:hidden;animation:feriadoSlideIn .25s cubic-bezier(.34,1.56,.64,1);">
+
+        <!-- Header: azul institucional -->
+        <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 55%,#2563eb 100%);padding:22px 26px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-30px;right:-30px;width:130px;height:130px;background:rgba(255,255,255,.05);border-radius:50%;pointer-events:none;"></div>
+            <div style="display:flex;align-items:center;gap:13px;z-index:1;">
+                <div style="width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="ti ti-calendar-plus" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:800;font-size:1.02rem;letter-spacing:-.2px;">Registrar Día Feriado</div>
+                    <div style="color:rgba(255,255,255,.65);font-size:0.76rem;margin-top:2px;"><i class="ti ti-shield-check" style="font-size:.7rem;"></i> Excluido del auto-fill de asistencias</div>
+                </div>
+            </div>
+            <button onclick="cerrarModalFeriado()" type="button"
+                style="z-index:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;width:32px;height:32px;cursor:pointer;color:white;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;"
+                onmouseover="this.style.background='rgba(255,255,255,.22)'"
+                onmouseout="this.style.background='rgba(255,255,255,.12)'">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <!-- Preview de fecha (aparece dinámicamente) -->
+        <div id="feriadoPreview" style="display:none;background:#f5f3ff;border-bottom:1px solid #ddd6fe;padding:11px 26px;align-items:center;gap:12px;">
+            <div id="fpDateBlock" style="background:linear-gradient(135deg,#7c3aed,#a78bfa);border-radius:9px;width:42px;text-align:center;padding:6px 0;flex-shrink:0;box-shadow:0 3px 8px rgba(124,58,237,.25);">
+                <div id="fpDia"  style="font-size:1rem;font-weight:900;color:white;line-height:1;">—</div>
+                <div id="fpMes"  style="font-size:.55rem;font-weight:700;color:rgba(255,255,255,.85);text-transform:uppercase;letter-spacing:.5px;">—</div>
+            </div>
+            <div>
+                <div id="fpNombre" style="font-size:.83rem;font-weight:700;color:#1e293b;">Selecciona una fecha…</div>
+                <div id="fpDiaNom" style="font-size:.7rem;color:#94a3b8;margin-top:2px;"></div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <form method="POST" action="<?= URLROOT ?>/configuracion" style="padding:22px 26px;">
+            <input type="hidden" name="accion" value="agregar_feriado">
+
+            <!-- Fecha + Tipo -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+                <div>
+                    <label class="cfg-field-label">Fecha *</label>
+                    <input type="date" name="fecha" id="inputFeriadoFecha" class="cfg-input" required style="width:100%;" oninput="actualizarPreviewFeriado()">
+                </div>
+                <div>
+                    <label class="cfg-field-label">Tipo *</label>
+                    <select name="tipo" id="inputFeriadoTipo" class="cfg-input" style="width:100%;cursor:pointer;" onchange="actualizarPreviewFeriado()">
+                        <option value="Nacional">🟣 Nacional</option>
+                        <option value="Regional">🟢 Regional</option>
+                        <option value="Institucional">🔵 Institucional</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Nombre -->
+            <div style="margin-bottom:18px;">
+                <label class="cfg-field-label">Nombre del feriado *</label>
+                <input type="text" name="nombre" id="inputFeriadoNombre" class="cfg-input" placeholder="Ej: Día de la Independencia" required style="width:100%;" oninput="actualizarPreviewFeriado()">
+            </div>
+
+            <!-- Nota informativa -->
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 13px;display:flex;align-items:flex-start;gap:9px;margin-bottom:20px;">
+                <i class="ti ti-info-circle" style="color:#2563eb;font-size:1rem;flex-shrink:0;margin-top:2px;"></i>
+                <span style="font-size:0.76rem;color:#1e40af;font-weight:500;line-height:1.5;">
+                    El sistema no generará ausencias automáticas en días feriados. Los feriados pasados no se pueden eliminar una vez registrados.
+                </span>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="cerrarModalFeriado()"
+                    style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:11px;background:white;color:#64748b;font-weight:600;cursor:pointer;font-size:.88rem;font-family:inherit;transition:all .15s;"
+                    onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1'"
+                    onmouseout="this.style.background='white';this.style.borderColor='#e2e8f0'">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="flex:2;padding:11px;background:linear-gradient(135deg,#172554,#2563eb);border:none;border-radius:11px;color:white;font-weight:700;cursor:pointer;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(37,99,235,.3);font-family:inherit;transition:all .15s;"
+                    onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(37,99,235,.4)'"
+                    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(37,99,235,.3)'">
+                    <i class="ti ti-circle-check"></i> Registrar Feriado
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+@keyframes feriadoSlideIn {
+    from { opacity:0; transform:translateY(24px) scale(.97); }
+    to   { opacity:1; transform:translateY(0)    scale(1);   }
+}
+</style>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Editar Feriado (nombre y tipo — fecha bloqueada)
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalEditarFeriado"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.55);backdrop-filter:blur(5px);align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:22px;width:100%;max-width:440px;margin:16px;box-shadow:0 28px 70px rgba(0,0,0,.22);overflow:hidden;animation:feriadoSlideIn .25s cubic-bezier(.34,1.56,.64,1);">
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 55%,#2563eb 100%);padding:22px 26px;display:flex;align-items:center;justify-content:space-between;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-30px;right:-30px;width:130px;height:130px;background:rgba(255,255,255,.05);border-radius:50%;pointer-events:none;"></div>
+            <div style="display:flex;align-items:center;gap:13px;z-index:1;">
+                <div style="width:40px;height:40px;background:rgba(255,255,255,.15);border-radius:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <i class="ti ti-pencil" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:800;font-size:1.02rem;">Editar Feriado</div>
+                    <div style="color:rgba(255,255,255,.65);font-size:0.76rem;margin-top:2px;"><i class="ti ti-lock" style="font-size:.7rem;"></i> La fecha no puede modificarse</div>
+                </div>
+            </div>
+            <button onclick="cerrarEditarFeriado()" type="button"
+                style="z-index:1;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:8px;width:32px;height:32px;cursor:pointer;color:white;font-size:.95rem;display:flex;align-items:center;justify-content:center;transition:background .15s;flex-shrink:0;"
+                onmouseover="this.style.background='rgba(255,255,255,.22)'"
+                onmouseout="this.style.background='rgba(255,255,255,.12)'">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <form method="POST" action="<?= URLROOT ?>/configuracion" style="padding:22px 26px;">
+            <input type="hidden" name="accion" value="editar_feriado">
+            <input type="hidden" name="id" id="editFeriadoId">
+
+            <!-- Fecha (solo lectura — visual) -->
+            <div style="margin-bottom:16px;">
+                <label class="cfg-field-label">Fecha <span style="color:#94a3b8;font-size:.68rem;font-weight:500;text-transform:none;letter-spacing:0;">(no editable)</span></label>
+                <div id="editFeriadoFechaDisplay"
+                    style="display:flex;align-items:center;gap:10px;padding:9px 13px;background:#f8fafc;border:2px solid #f1f5f9;border-radius:10px;">
+                    <div id="editFeriadoDateBlock"
+                        style="background:#e2e8f0;border-radius:8px;width:38px;text-align:center;padding:5px 0;flex-shrink:0;">
+                        <div id="editFDia" style="font-size:.95rem;font-weight:900;color:#94a3b8;line-height:1;">—</div>
+                        <div id="editFMes" style="font-size:.5rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.4px;">—</div>
+                    </div>
+                    <div>
+                        <div id="editFNomFecha" style="font-size:.83rem;font-weight:600;color:#64748b;">—</div>
+                        <div style="display:flex;align-items:center;gap:4px;margin-top:2px;">
+                            <i class="ti ti-lock" style="font-size:.68rem;color:#cbd5e1;"></i>
+                            <span style="font-size:.68rem;color:#cbd5e1;">Fecha bloqueada</span>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-                    <!-- Toggle Kiosco -->
-                    <div style="background:#f8fafc;border-radius:14px;padding:20px;border:1px solid #f1f5f9;">
-                        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-                            <div>
-                                <p style="margin:0;font-weight:700;color:#1e293b;font-size:0.92rem;">Estado del Kiosco</p>
-                                <p style="margin:3px 0 0;color:#64748b;font-size:0.8rem;">Habilitar o deshabilitar el acceso</p>
-                            </div>
-                            <label style="position:relative;display:inline-block;width:52px;height:28px;cursor:pointer;">
-                                <input type="checkbox" id="kioscoToggle" checked style="opacity:0;width:0;height:0;">
-                                <span style="position:absolute;top:0;left:0;right:0;bottom:0;background:#e2e8f0;border-radius:28px;transition:0.3s;" id="kioscoToggleTrack"></span>
-                                <span style="position:absolute;top:3px;left:3px;width:22px;height:22px;background:#fff;border-radius:50%;transition:0.3s;box-shadow:0 2px 4px rgba(0,0,0,0.15);" id="kioscoToggleDot"></span>
-                            </label>
-                        </div>
-                        <div style="background:#d1fae5;border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:8px;" id="kioscoStatusBadge">
-                            <i class="ti ti-circle-check" style="color:#059669;font-size:1.1rem;"></i>
-                            <span style="font-size:0.82rem;color:#065f46;font-weight:600;" id="kioscoStatusText">Kiosco activo y operativo</span>
-                        </div>
-                    </div>
+            <!-- Nombre -->
+            <div style="margin-bottom:16px;">
+                <label class="cfg-field-label">Nombre del feriado *</label>
+                <input type="text" name="nombre" id="editFeriadoNombre" class="cfg-input" required style="width:100%;" placeholder="Ej: Día de la Independencia">
+            </div>
 
-                    <!-- Reset PIN -->
-                    <div id="restablecer-pin" style="background:#f8fafc;border-radius:14px;padding:20px;border:1px solid #f1f5f9;">
-                        <p style="margin:0 0 4px;font-weight:700;color:#1e293b;font-size:0.92rem;">Restablecer PIN de Pasante</p>
-                        <p style="margin:0 0 16px;color:#64748b;font-size:0.8rem;">Genera un nuevo PIN de 4 dígitos aleatorio</p>
-                        <button onclick="SGPModal.buscar()" style="width:100%;padding:13px;background:linear-gradient(135deg,#f59e0b,#d97706);color:white;border:none;border-radius:12px;font-size:0.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 12px rgba(245,158,11,0.3);font-family:inherit;">
-                            <i class="ti ti-key" style="font-size:1.1rem;"></i> Buscar Pasante y Restablecer PIN
-                        </button>
-                        <div style="background:#fef3c7;border-radius:10px;padding:10px 14px;margin-top:12px;display:flex;align-items:center;gap:8px;">
-                            <i class="ti ti-info-circle" style="color:#92400e;font-size:1rem;flex-shrink:0;"></i>
-                            <span style="font-size:0.78rem;color:#92400e;font-weight:500;">El nuevo PIN se mostrará una sola vez.</span>
-                        </div>
-                    </div>
-                </div>
-            </div><!-- /kiosco card -->
+            <!-- Tipo -->
+            <div style="margin-bottom:20px;">
+                <label class="cfg-field-label">Tipo *</label>
+                <select name="tipo" id="editFeriadoTipo" class="cfg-input" style="width:100%;cursor:pointer;">
+                    <option value="Nacional">🟣 Nacional</option>
+                    <option value="Regional">🟢 Regional</option>
+                    <option value="Institucional">🔵 Institucional</option>
+                </select>
+            </div>
 
-        </div><!-- /dashboard-container -->
-
+            <!-- Acciones -->
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="cerrarEditarFeriado()"
+                    style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:11px;background:white;color:#64748b;font-weight:600;cursor:pointer;font-size:.88rem;font-family:inherit;transition:all .15s;"
+                    onmouseover="this.style.background='#f8fafc';this.style.borderColor='#cbd5e1'"
+                    onmouseout="this.style.background='white';this.style.borderColor='#e2e8f0'">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="flex:2;padding:11px;background:linear-gradient(135deg,#172554,#2563eb);border:none;border-radius:11px;color:white;font-weight:700;cursor:pointer;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(37,99,235,.3);font-family:inherit;transition:all .15s;"
+                    onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 18px rgba(37,99,235,.4)'"
+                    onmouseout="this.style.transform='';this.style.boxShadow='0 4px 14px rgba(37,99,235,.3)'">
+                    <i class="ti ti-device-floppy"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script>
-    // ── Mostrar flash messages ──────────────────────────────
+    // ── Modal Feriado ──────────────────────────────────────
+    const _mesesEs  = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    const _diasEs   = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+    const _tipoPal  = {
+        'Nacional':      { gradient:'linear-gradient(135deg,#7c3aed,#a78bfa)', bg:'#f5f3ff' },
+        'Regional':      { gradient:'linear-gradient(135deg,#16a34a,#22c55e)', bg:'#f0fdf4' },
+        'Institucional': { gradient:'linear-gradient(135deg,#1e3a8a,#2563eb)', bg:'#eff6ff' },
+    };
+
+    function abrirModalFeriado() {
+        const m = document.getElementById('modalFeriado');
+        // Reset form
+        m.querySelector('input[name="fecha"]').value  = '';
+        m.querySelector('input[name="nombre"]').value = '';
+        m.querySelector('select[name="tipo"]').value  = 'Nacional';
+        document.getElementById('feriadoPreview').style.display = 'none';
+        m.style.display = 'flex';
+        setTimeout(() => m.querySelector('input[name="fecha"]').focus(), 100);
+    }
+    function cerrarModalFeriado() {
+        document.getElementById('modalFeriado').style.display = 'none';
+    }
+    document.getElementById('modalFeriado').addEventListener('click', function(e) {
+        if (e.target === this) cerrarModalFeriado();
+    });
+
+    function actualizarPreviewFeriado() {
+        const fechaVal  = document.getElementById('inputFeriadoFecha').value;
+        const nombreVal = document.getElementById('inputFeriadoNombre').value.trim();
+        const tipoVal   = document.getElementById('inputFeriadoTipo').value;
+        const preview   = document.getElementById('feriadoPreview');
+        if (!fechaVal) { preview.style.display = 'none'; return; }
+
+        const d    = new Date(fechaVal + 'T00:00:00');
+        const pal  = _tipoPal[tipoVal] || _tipoPal['Nacional'];
+        const dia  = String(d.getDate()).padStart(2,'0');
+        const mes  = _mesesEs[d.getMonth() + 1];
+        const diaN = _diasEs[d.getDay()];
+
+        document.getElementById('fpDia').textContent    = dia;
+        document.getElementById('fpMes').textContent    = mes.slice(0,3).toUpperCase();
+        document.getElementById('fpDateBlock').style.background = pal.gradient;
+        document.getElementById('fpNombre').textContent = nombreVal || 'Sin nombre aún…';
+        document.getElementById('fpDiaNom').textContent = diaN + ' · ' + dia + ' de ' + mes + ' ' + d.getFullYear();
+        preview.style.background = pal.bg;
+        preview.style.borderBottomColor = tipoVal === 'Nacional' ? '#ddd6fe' : tipoVal === 'Regional' ? '#bbf7d0' : '#bfdbfe';
+        preview.style.display    = 'flex';
+    }
+
+    // ── Modal Editar Feriado ───────────────────────────────
+    function abrirEditarFeriado(id, nombre, tipo, fecha) {
+        document.getElementById('editFeriadoId').value     = id;
+        document.getElementById('editFeriadoNombre').value = nombre;
+        document.getElementById('editFeriadoTipo').value   = tipo;
+
+        // Construir display de fecha (bloqueada)
+        const d    = new Date(fecha + 'T00:00:00');
+        const mes  = _mesesEs[d.getMonth() + 1];
+        const diaN = _diasEs[d.getDay()];
+        const diaNum = String(d.getDate()).padStart(2,'0');
+
+        document.getElementById('editFDia').textContent     = diaNum;
+        document.getElementById('editFMes').textContent     = mes.slice(0,3).toUpperCase();
+        document.getElementById('editFNomFecha').textContent = diaN + ' ' + diaNum + ' de ' + mes + ' ' + d.getFullYear();
+
+        document.getElementById('modalEditarFeriado').style.display = 'flex';
+        setTimeout(() => document.getElementById('editFeriadoNombre').select(), 100);
+    }
+    function cerrarEditarFeriado() {
+        document.getElementById('modalEditarFeriado').style.display = 'none';
+    }
+    document.getElementById('modalEditarFeriado').addEventListener('click', function(e) {
+        if (e.target === this) cerrarEditarFeriado();
+    });
+
+    // ── Confirmar eliminar feriado ─────────────────────────
+    function confirmarEliminarFeriado(btn, nombre) {
+        Swal.fire({
+            icon: 'warning',
+            title: '¿Eliminar feriado?',
+            html: '<strong>' + nombre + '</strong><br><small style="color:#64748b;">Esta acción no se puede deshacer.</small>',
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="ti ti-trash" style="margin-right:4px;"></i>Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then(function(result) {
+            if (result.isConfirmed) { btn.closest('form').submit(); }
+        });
+    }
+
+    // ── Verificar conexión BD ─────────────────────────────
+    function verificarBD(btn) {
+        const span = btn.querySelector('#txt-btn-bd');
+        const badge = document.getElementById('bdg-estado-bd');
+        const sub = document.getElementById('txt-bd-sub');
+        span.textContent = 'Verificando…';
+        btn.disabled = true;
+
+        fetch('<?= URLROOT ?>/configuracion/verificarConexionBD', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                badge.innerHTML = '<i class="ti ti-circle-filled" style="font-size:.55rem;margin-right:2px;color:#22c55e;"></i>Online';
+                badge.style.background = '#dcfce7'; badge.style.color = '#16a34a';
+                sub.textContent = 'MySQL ' + (data.version || '') + ' · ' + (data.latencia_ms || 0) + ' ms';
+                NotificationService.success('Conexión exitosa · ' + (data.latencia_ms || 0) + ' ms');
+            } else {
+                badge.innerHTML = '<i class="ti ti-circle-filled" style="font-size:.55rem;margin-right:2px;color:#ef4444;"></i>Error';
+                badge.style.background = '#fee2e2'; badge.style.color = '#dc2626';
+                NotificationService.error('Error de conexión a la base de datos');
+            }
+        })
+        .catch(() => { NotificationService.error('No se pudo contactar el servidor'); })
+        .finally(() => { span.textContent = 'Verificar Conexión'; btn.disabled = false; });
+    }
+
+    // ── Limpiar sesiones expiradas ─────────────────────────
+    function limpiarSesiones(btn) {
+        Swal.fire({
+            icon: 'question',
+            title: 'Limpiar sesiones',
+            text: '¿Eliminar todos los tokens de sesión expirados del sistema?',
+            showCancelButton: true,
+            confirmButtonColor: '#059669',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, limpiar',
+            cancelButtonText: 'Cancelar'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;"></i> Limpiando…';
+
+            fetch('<?= URLROOT ?>/configuracion/limpiarSesiones', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: 'csrf_token=<?= $_SESSION["csrf_token"] ?? "" ?>'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    NotificationService.success(data.message || 'Sesiones limpiadas correctamente');
+                } else {
+                    NotificationService.error(data.message || 'Error al limpiar sesiones');
+                }
+            })
+            .catch(() => { NotificationService.error('Error de conexión'); })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ti ti-trash-x"></i> <span>Limpiar Sesiones</span>';
+            });
+        });
+    }
+
+    // ── Purgar bitácora ────────────────────────────────────
+    function purgarBitacora(btn) {
+        const meses = document.getElementById('sel-purga-meses').value;
+        Swal.fire({
+            icon: 'warning',
+            title: '¿Purgar bitácora?',
+            html: `<strong>Se eliminarán logs de más de ${meses} meses.</strong><br><small style="color:#64748b;">Esta acción es irreversible.</small>`,
+            showCancelButton: true,
+            confirmButtonColor: '#dc2626',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: '<i class="ti ti-flame" style="margin-right:4px;"></i>Purgar',
+            cancelButtonText: 'Cancelar'
+        }).then(function(result) {
+            if (!result.isConfirmed) return;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;"></i>';
+
+            fetch('<?= URLROOT ?>/configuracion/purgarBitacora', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: 'meses=' + meses + '&csrf_token=<?= $_SESSION["csrf_token"] ?? "" ?>'
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    NotificationService.success(data.message || 'Bitácora purgada correctamente');
+                } else {
+                    NotificationService.error(data.message || 'Error al purgar bitácora');
+                }
+            })
+            .catch(() => { NotificationService.error('Error de conexión'); })
+            .finally(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ti ti-flame"></i> Purgar';
+            });
+        });
+    }
+
+    // ── Spin animation ─────────────────────────────────────
+    const styleEl = document.createElement('style');
+    styleEl.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+    document.head.appendChild(styleEl);
+</script>
+
+<script>
+    // ── Flash messages ──────────────────────────────────────────
     <?php if ($flashSuccess): ?>
-    NotificationService.success('<?= addslashes($flashSuccess) ?>');
+        NotificationService.success('<?= addslashes($flashSuccess) ?>');
     <?php endif; ?>
     <?php if ($flashError): ?>
-    Swal.fire({
-        icon: 'warning',
-        title: 'Aviso',
-        text: '<?= addslashes($flashError) ?>',
-        confirmButtonColor: '#162660',
-        confirmButtonText: 'Entendido'
-    });
+        Swal.fire({
+            icon: 'warning',
+            title: 'Aviso',
+            text: '<?= addslashes($flashError) ?>',
+            confirmButtonColor: '#162660',
+            confirmButtonText: 'Entendido'
+        });
     <?php endif; ?>
 
-    // ── Confirmar eliminación con SweetAlert ───────────────
+    // ── Confirmar eliminación ───────────────────────────────────
     function confirmarEliminar(btn, tipo, nombre) {
         Swal.fire({
             icon: 'warning',
@@ -471,12 +1431,462 @@ $totalDepto    = count($departamentos);
             cancelButtonColor: '#6b7280',
             confirmButtonText: '<i class="ti ti-trash" style="margin-right:4px;"></i>Sí, eliminar',
             cancelButtonText: 'Cancelar'
-        }).then(function(result) {
-            if (result.isConfirmed) {
-                // Submittear el form padre del botón
-                btn.closest('form').submit();
-            }
+        }).then(function (result) {
+            if (result.isConfirmed) { btn.closest('form').submit(); }
         });
     }
+
+    // ── Kiosco toggle ───────────────────────────────────────────
+    (function () {
+        const toggle = document.getElementById('kioscoToggle');
+        const badge = document.getElementById('kioscoStatusBadge');
+        const icon = document.getElementById('kioscoStatusIcon');
+        const text = document.getElementById('kioscoStatusText');
+        const sub = document.getElementById('kioscoStatusSub');
+        const kpiLbl = document.getElementById('kpi-kiosco-label');
+        const kpiCard = document.getElementById('kpi-kiosco-card');
+        const kpiIcon = document.getElementById('kpi-kiosco-icon-box');
+
+        function applyState(active) {
+            if (active) {
+                badge.style.background = '#d1fae5';
+                icon.className = 'ti ti-circle-check';
+                icon.style.color = '#059669';
+                text.style.color = '#065f46';
+                text.textContent = 'Kiosco activo y operativo';
+                sub.textContent = 'Los pasantes pueden registrar asistencia';
+                if (kpiLbl) { kpiLbl.textContent = 'Activo'; kpiLbl.style.color = '#16a34a'; }
+                if (kpiCard) { kpiCard.style.borderLeftColor = '#22c55e'; }
+                if (kpiIcon) { kpiIcon.style.background = '#dcfce7'; kpiIcon.style.color = '#16a34a'; }
+            } else {
+                badge.style.background = '#fee2e2';
+                icon.className = 'ti ti-circle-x';
+                icon.style.color = '#dc2626';
+                text.style.color = '#7f1d1d';
+                text.textContent = 'Kiosco deshabilitado';
+                sub.textContent = 'El acceso de pasantes está bloqueado';
+                if (kpiLbl) { kpiLbl.textContent = 'Inactivo'; kpiLbl.style.color = '#dc2626'; }
+                if (kpiCard) { kpiCard.style.borderLeftColor = '#dc2626'; }
+                if (kpiIcon) { kpiIcon.style.background = '#fee2e2'; kpiIcon.style.color = '#dc2626'; }
+            }
+        }
+
+        if (toggle) {
+            toggle.addEventListener('change', function () {
+                const nuevoEstado = this.checked ? 1 : 0;
+
+                fetch('<?= URLROOT ?>/configuracion/toggleKiosco', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                    body: 'activo=' + nuevoEstado
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            applyState(nuevoEstado === 1);
+                            NotificationService.success(data.message);
+                        } else {
+                            // Revertir el toggle si falló
+                            toggle.checked = !toggle.checked;
+                            NotificationService.error(data.message || 'Error al cambiar estado del kiosco');
+                        }
+                    })
+                    .catch(() => {
+                        toggle.checked = !toggle.checked;
+                        NotificationService.error('Error de conexión. Intenta de nuevo.');
+                    });
+            });
+
+            applyState(toggle.checked); // estado inicial visual
+        }
+    })();
 </script>
 
+<!-- CSS botón editar (compartido) -->
+<style>
+    .cfg-edit-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #2563eb;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .2s;
+    }
+
+    .cfg-edit-btn:hover {
+        background: #dbeafe;
+    }
+</style>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Nueva Institución
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalInstitucion"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div
+        style="background:#fff;border-radius:20px;width:100%;max-width:540px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);overflow:hidden;">
+
+        <!-- Header -->
+        <div
+            style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div
+                    style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-school" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:700;font-size:1rem;">Nueva Institución</div>
+                    <div style="color:rgba(255,255,255,.7);font-size:0.78rem;">Escuela técnica aliada</div>
+                </div>
+            </div>
+            <button onclick="cerrarModalInstitucion()"
+                style="background:rgba(255,255,255,.15);border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:background .2s;"
+                onmouseover="this.style.background='rgba(255,255,255,.25)'"
+                onmouseout="this.style.background='rgba(255,255,255,.15)'">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <form method="POST" action="<?= URLROOT ?>/configuracion" style="padding:24px;">
+            <input type="hidden" name="accion" value="agregar_institucion">
+
+            <!-- Institución -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Nombre
+                        *</label>
+                    <input type="text" name="nombre" class="cfg-input" placeholder="Ej: E.T.C Juan Bautista" required
+                        style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Dirección
+                        / Ciudad *</label>
+                    <input type="text" name="direccion" class="cfg-input" placeholder="Ciudad Bolivar" required
+                        style="width:100%;">
+                </div>
+            </div>
+
+            <!-- Divisor representante -->
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+                <span
+                    style="font-size:0.73rem;font-weight:700;color:#0369a1;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+                    <i class="ti ti-user-check"></i> Representante de la Institución
+                </span>
+                <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Nombre</label>
+                    <input type="text" name="representante_nombre" class="cfg-input"
+                        placeholder="Nombre del representante" style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Cargo</label>
+                    <input type="text" name="representante_cargo" class="cfg-input"
+                        placeholder="Coordinador de Pasantias" style="width:100%;">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Correo</label>
+                    <input type="email" name="representante_correo" class="cfg-input"
+                        placeholder="correo@institucion.edu" style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Teléfono</label>
+                    <input type="text" name="representante_telefono" class="cfg-input" placeholder="0412-0000000"
+                        style="width:100%;">
+                </div>
+            </div>
+
+            <!-- Acciones -->
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="cerrarModalInstitucion()"
+                    style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;background:white;color:#64748b;font-weight:600;cursor:pointer;font-size:0.9rem;transition:background .2s;"
+                    onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+                    Cancelar
+                </button>
+                <button type="submit"
+                    style="flex:2;padding:11px;background:linear-gradient(135deg,#1e40af,#3b82f6);border:none;border-radius:10px;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(59,130,246,.3);">
+                    <i class="ti ti-circle-check"></i> Registrar Institución
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Nuevo Departamento
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalDepto"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div
+        style="background:#fff;border-radius:20px;width:100%;max-width:460px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);overflow:hidden;">
+        <div
+            style="background:linear-gradient(135deg,#172554,#1e3a8a);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div
+                    style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-building-community" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:700;font-size:1rem;">Nuevo Departamento</div>
+                    <div style="color:rgba(255,255,255,.7);font-size:0.78rem;">Área interna del ISP</div>
+                </div>
+            </div>
+            <button onclick="cerrarModalDepto()"
+                style="background:rgba(255,255,255,.15);border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <form method="POST" action="<?= URLROOT ?>/configuracion" style="padding:24px;">
+            <input type="hidden" name="accion" value="agregar_departamento">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Nombre
+                        *</label>
+                    <input type="text" name="nombre" class="cfg-input" placeholder="Ej: Informatica" required
+                        style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Descripción</label>
+                    <input type="text" name="descripcion" class="cfg-input" placeholder="Opcional" style="width:100%;">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="cerrarModalDepto()"
+                    style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;background:white;color:#64748b;font-weight:600;cursor:pointer;font-size:0.9rem;">Cancelar</button>
+                <button type="submit"
+                    style="flex:2;padding:11px;background:linear-gradient(135deg,#172554,#1e3a8a);border:none;border-radius:10px;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(30,58,138,.3);">
+                    <i class="ti ti-circle-check"></i> Crear Departamento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Editar Departamento
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalEditarDepto"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div
+        style="background:#fff;border-radius:20px;width:100%;max-width:460px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);overflow:hidden;">
+        <div
+            style="background:linear-gradient(135deg,#172554,#1e3a8a);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div
+                    style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-pencil" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:700;font-size:1rem;">Editar Departamento</div>
+                    <div style="color:rgba(255,255,255,.7);font-size:0.78rem;">Modifica el nombre o descripción</div>
+                </div>
+            </div>
+            <button onclick="cerrarModalEditarDepto()"
+                style="background:rgba(255,255,255,.15);border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <form method="POST" action="<?= URLROOT ?>/configuracion" style="padding:24px;">
+            <input type="hidden" name="accion" value="editar_departamento">
+            <input type="hidden" name="id" id="editDeptoId">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Nombre
+                        *</label>
+                    <input type="text" name="nombre" id="editDeptoNombre" class="cfg-input" required
+                        style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Descripción</label>
+                    <input type="text" name="descripcion" id="editDeptoDesc" class="cfg-input" style="width:100%;">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="cerrarModalEditarDepto()"
+                    style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;background:white;color:#64748b;font-weight:600;cursor:pointer;font-size:0.9rem;">Cancelar</button>
+                <button type="submit"
+                    style="flex:2;padding:11px;background:linear-gradient(135deg,#172554,#1e3a8a);border:none;border-radius:10px;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(30,58,138,.3);">
+                    <i class="ti ti-device-floppy"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Editar Institución
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalEditarInstitucion"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div
+        style="background:#fff;border-radius:20px;width:100%;max-width:540px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);overflow:hidden;">
+        <div
+            style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div
+                    style="width:38px;height:38px;background:rgba(255,255,255,.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-pencil" style="color:white;font-size:1.2rem;"></i>
+                </div>
+                <div>
+                    <div style="color:white;font-weight:700;font-size:1rem;">Editar Institución</div>
+                    <div style="color:rgba(255,255,255,.7);font-size:0.78rem;">Modifica datos y representante</div>
+                </div>
+            </div>
+            <button onclick="cerrarModalEditarInstitucion()"
+                style="background:rgba(255,255,255,.15);border:none;border-radius:8px;width:32px;height:32px;cursor:pointer;color:white;font-size:1rem;display:flex;align-items:center;justify-content:center;">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <form method="POST" action="<?= URLROOT ?>/configuracion" style="padding:24px;">
+            <input type="hidden" name="accion" value="editar_institucion">
+            <input type="hidden" name="id" id="editInstId">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Nombre
+                        *</label>
+                    <input type="text" name="nombre" id="editInstNombre" class="cfg-input" required style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Dirección
+                        / Ciudad *</label>
+                    <input type="text" name="direccion" id="editInstDireccion" class="cfg-input" required
+                        style="width:100%;">
+                </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+                <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+                <span
+                    style="font-size:0.73rem;font-weight:700;color:#0369a1;display:flex;align-items:center;gap:5px;white-space:nowrap;">
+                    <i class="ti ti-user-check"></i> Representante
+                </span>
+                <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Nombre</label>
+                    <input type="text" name="representante_nombre" id="editInstRepNombre" class="cfg-input"
+                        style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Cargo</label>
+                    <input type="text" name="representante_cargo" id="editInstRepCargo" class="cfg-input"
+                        style="width:100%;">
+                </div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:22px;">
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Correo</label>
+                    <input type="email" name="representante_correo" id="editInstRepCorreo" class="cfg-input"
+                        style="width:100%;">
+                </div>
+                <div>
+                    <label
+                        style="display:block;font-size:0.78rem;font-weight:700;color:#374151;margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;">Teléfono</label>
+                    <input type="text" name="representante_telefono" id="editInstRepTel" class="cfg-input"
+                        style="width:100%;">
+                </div>
+            </div>
+            <div style="display:flex;gap:10px;">
+                <button type="button" onclick="cerrarModalEditarInstitucion()"
+                    style="flex:1;padding:11px;border:1.5px solid #e2e8f0;border-radius:10px;background:white;color:#64748b;font-weight:600;cursor:pointer;font-size:0.9rem;">Cancelar</button>
+                <button type="submit"
+                    style="flex:2;padding:11px;background:linear-gradient(135deg,#1e40af,#3b82f6);border:none;border-radius:10px;color:white;font-weight:700;cursor:pointer;font-size:0.9rem;display:flex;align-items:center;justify-content:center;gap:7px;box-shadow:0 4px 14px rgba(59,130,246,.3);">
+                    <i class="ti ti-device-floppy"></i> Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // ── Modal Nueva Institución ───────────────────────────
+    function abrirModalInstitucion() {
+        const m = document.getElementById('modalInstitucion');
+        m.style.display = 'flex';
+        setTimeout(() => m.querySelector('input[name="nombre"]').focus(), 100);
+    }
+    function cerrarModalInstitucion() {
+        document.getElementById('modalInstitucion').style.display = 'none';
+    }
+
+    // ── Modal Nuevo Departamento ──────────────────────────
+    function abrirModalDepto() {
+        const m = document.getElementById('modalDepto');
+        m.style.display = 'flex';
+        setTimeout(() => m.querySelector('input[name="nombre"]').focus(), 100);
+    }
+    function cerrarModalDepto() {
+        document.getElementById('modalDepto').style.display = 'none';
+    }
+
+    // ── Modal Editar Departamento ─────────────────────────
+    function abrirEditarDepto(id, nombre, descripcion) {
+        document.getElementById('editDeptoId').value = id;
+        document.getElementById('editDeptoNombre').value = nombre;
+        document.getElementById('editDeptoDesc').value = descripcion;
+        const m = document.getElementById('modalEditarDepto');
+        m.style.display = 'flex';
+        setTimeout(() => document.getElementById('editDeptoNombre').focus(), 100);
+    }
+    function cerrarModalEditarDepto() {
+        document.getElementById('modalEditarDepto').style.display = 'none';
+    }
+
+    // ── Modal Editar Institución ──────────────────────────
+    function abrirEditarInstitucion(id, inst) {
+        document.getElementById('editInstId').value = id;
+        document.getElementById('editInstNombre').value = inst.nombre || '';
+        document.getElementById('editInstDireccion').value = inst.direccion || '';
+        document.getElementById('editInstRepNombre').value = inst.representante_nombre || '';
+        document.getElementById('editInstRepCargo').value = inst.representante_cargo || '';
+        document.getElementById('editInstRepCorreo').value = inst.representante_correo || '';
+        document.getElementById('editInstRepTel').value = inst.representante_telefono || '';
+        const m = document.getElementById('modalEditarInstitucion');
+        m.style.display = 'flex';
+        setTimeout(() => document.getElementById('editInstNombre').focus(), 100);
+    }
+    function cerrarModalEditarInstitucion() {
+        document.getElementById('modalEditarInstitucion').style.display = 'none';
+    }
+
+    // ── Cerrar cualquier modal con Escape o clic en fondo ─
+    ['modalInstitucion', 'modalDepto', 'modalEditarDepto', 'modalEditarInstitucion'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.addEventListener('click', e => { if (e.target === el) el.style.display = 'none'; });
+    });
+    document.addEventListener('keydown', e => {
+        if (e.key === 'Escape') {
+            ['modalInstitucion', 'modalDepto', 'modalEditarDepto', 'modalEditarInstitucion'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.style.display = 'none';
+            });
+        }
+    });
+</script>

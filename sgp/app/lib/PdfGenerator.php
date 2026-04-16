@@ -43,8 +43,8 @@ class PdfGenerator
 
         $options = new \Dompdf\Options();
         $options->setIsRemoteEnabled(false);
-        $options->setIsHtml5ParserEnabled(true);
-        $options->setDefaultFont('DejaVu Sans');
+        $options->setIsHtml5ParserEnabled(false); // parser HTML4 es suficiente y más rápido
+        $options->setDefaultFont('Helvetica');     // fuente built-in PDF: carga en 0ms vs ~1s de DejaVu
 
         $dompdf = new \Dompdf\Dompdf($options);
         $dompdf->loadHtml($html, 'UTF-8');

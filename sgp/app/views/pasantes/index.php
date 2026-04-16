@@ -166,13 +166,66 @@
     background-color: #ffffff !important;
     border-radius: 0 0 12px 12px !important;
     box-shadow: 0px 10px 15px rgba(0,0,0,0.1) !important;
+/* Buscador inteligente y filtros */
+.search-input-wrapper {
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 4px 14px;
+    display: flex;
+    align-items: center;
+    transition: all 0.2s ease;
+}
+.search-input-wrapper:focus-within {
+    background-color: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+}
+.search-input-wrapper input::placeholder { color: #94a3b8; }
+
+/* Ocultar search default de DataTables */
+#tablaPasantes_filter { display: none !important; }
+
+@media (max-width: 1200px) {
+    .kpi-pasantes-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    .pasantes-filter-bar {
+        flex-direction: column;
+        align-items: stretch !important;
+    }
+    .pasantes-filter-bar .choices {
+        width: 100% !important;
+        margin-bottom: 10px;
+    }
+    #filterDepto, #filterInst { width: 100% !important; }
+    .pasantes-filter-bar > div { flex: 1 1 100%; width: 100%; }
+}
+@media (max-width: 768px) {
+    .kpi-pasantes-grid {
+        grid-template-columns: 1fr !important;
+    }
 }
 </style>
+
+<?php
+// Extraer Departamentos e Instituciones únicas para los filtros
+$departamentos = [];
+$instituciones = [];
+foreach($pasantes as $p) {
+    if(!empty($p->departamento_nombre)) $departamentos[$p->departamento_nombre] = true;
+    if(!empty($p->institucion_nombre)) $instituciones[$p->institucion_nombre] = true;
+}
+$departamentos = array_keys($departamentos);
+$instituciones = array_keys($instituciones);
+sort($departamentos);
+sort($instituciones);
+?>
 
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
 
     <!-- BANNER ESTANDARIZADO SGP -->
-    <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;">
+    <div class="pasantes-banner" style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;">
         <div style="position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:rgba(255,255,255,0.05);border-radius:50%;"></div>
         <div style="display:flex;align-items:center;gap:16px;z-index:1;">
             <div style="background:rgba(255,255,255,0.15);border-radius:14px;padding:14px;">
@@ -188,7 +241,7 @@
                 </p>
             </div>
         </div>
-        <div style="display:flex; z-index:1; align-items:center;">
+        <div class="pasantes-banner-actions" style="display:flex; z-index:1; align-items:center;">
             <!-- Contenedor Glassmorphism para el botón -->
             <div style="background: rgba(0, 0, 0, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                 <button onclick="SGPModal.buscar({rol: 3})" style="background:white;color:#1e3a8a;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:0.95rem;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
@@ -200,7 +253,7 @@
 
 
     <!-- KPI CARDS ESTANDARIZADAS -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:28px;">
+    <div class="kpi-pasantes-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:28px;">
         <?php
         $kpis = [
             ['label' => 'Total Pasantes',  'val' => $total,      'color' => '#2563eb', 'boxShadow' => 'rgba(37,99,235,0.15)', 'icon' => 'ti-users',        'sub' => 'registrados'],
@@ -218,6 +271,40 @@
             <p style="color:#94a3b8;font-size:0.8rem;margin:4px 0 0;"><?= $k['sub'] ?></p>
         </div>
         <?php endforeach; ?>
+    </div>
+
+    <!-- Filtros Inteligentes (Bento UI) -->
+    <div class="pasantes-filter-bar" style="margin-bottom: 24px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 16px; background: white; padding: 18px 24px; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.04);">
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center; flex: 1;">
+            <p style="font-size: 0.9rem; font-weight: 700; color: #64748b; margin: 0; display:flex; align-items:center; gap:6px;">
+                <i class="ti ti-filter" style="font-size:1.1rem; color:#2563eb;"></i> Filtros:
+            </p>
+            
+            <select id="filterDepto" class="form-input" style="width: 200px; padding: 8px 12px; border-radius: 10px; font-weight: 600; color: #334155; height: 42px;" onchange="aplicarFiltrosPasantes()">
+                <option value="">Cualquier Departamento</option>
+                <?php foreach($departamentos as $d): ?>
+                <option value="<?= htmlspecialchars($d) ?>"><?= htmlspecialchars($d) ?></option>
+                <?php endforeach; ?>
+            </select>
+
+            <select id="filterInst" class="form-input" style="width: 220px; padding: 8px 12px; border-radius: 10px; font-weight: 600; color: #334155; height: 42px;" onchange="aplicarFiltrosPasantes()">
+                <option value="">Cualquier Institución</option>
+                <?php foreach($instituciones as $i): ?>
+                <option value="<?= htmlspecialchars($i) ?>"><?= htmlspecialchars($i) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        
+        <!-- Buscador Inteligente -->
+        <div style="flex: 0 1 300px; min-width: 200px;">
+            <div style="position: relative; width: 100%;">
+                <i class="ti ti-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #1D4ED8; font-size: 1.2rem; z-index: 2; pointer-events: none;"></i>
+                <input type="text" id="customSearchPasantes" placeholder="Buscar pasante, cédula..." 
+                       style="width: 100%; height: 42px; padding: 0 16px 0 48px; border: 1.5px solid #DDE2F0; border-radius: 50px; background: white; color: #0D1424; font-weight: 600; font-size: 0.88rem; outline: none; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02);"
+                       onfocus="this.style.borderColor='#1D4ED8'; this.style.boxShadow='0 0 0 4px rgba(29, 78, 216, 0.07)'" 
+                       onblur="this.style.borderColor='#DDE2F0'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.02)'">
+            </div>
+        </div>
     </div>
 
     <!-- TABLA -->
@@ -238,7 +325,8 @@
             </button>
         </div>
         <?php else: ?>
-        <div style="overflow-x:auto; padding: 20px;">
+        <!-- TABLA — solo en pantallas grandes (≥ 992px) -->
+        <div class="table-responsive sgp-solo-desktop" style="padding: 20px;">
             <table id="tablaPasantes" class="table table-hover align-middle mb-0" style="width:100%; opacity: 0; transition: opacity 0.4s ease-in-out;">
                 <thead class="bg-light text-uppercase text-muted small fw-bold">
                     <tr>
@@ -248,10 +336,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                <?php foreach ($pasantes as $p):
+                <?php /** @var object $p */
+                foreach ($pasantes as $p):
                     $nombres  = htmlspecialchars(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''));
                     $cedula   = htmlspecialchars($p->cedula ?? '—');
-                    $inst     = htmlspecialchars($p->institucion_procedencia ?? '—');
+                    $inst     = htmlspecialchars($p->institucion_nombre ?? '—');
+                    $instRep  = $p->institucion_representante ? htmlspecialchars($p->institucion_representante) : null;
                     $depto    = htmlspecialchars($p->departamento_nombre ?? 'Sin asignar');
                     $estado   = $p->estado_pasantia ?? 'Pendiente';
                     $horasAcum = (int)($p->horas_acumuladas ?? 0);
@@ -282,6 +372,7 @@
                     <td class="px-4 py-3 text-muted"><?= $cedula ?></td>
                     <td class="px-4 py-3 text-muted">
                         <span class="dt-cell-truncate" title="<?= $inst ?>"><?= $inst ?></span>
+                        <?php if($instRep): ?><div style="font-size:0.7rem; color:#94a3b8; margin-top:2px; line-height:1;"><i class="ti ti-user" style="font-size:0.7rem;"></i> Rep: <?= $instRep ?></div><?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-muted"><?= $depto ?></td>
                     <td class="px-4 py-3">
@@ -318,6 +409,95 @@
                 </tbody>
             </table>
         </div>
+
+        <!-- CARD VIEW — solo en móvil (< 992px) -->
+        <div class="sgp-solo-mobile gap-3 px-3 pb-3" id="cardsPasantes">
+        <?php foreach ($pasantes as $p):
+            $nombres   = htmlspecialchars(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''));
+            $cedula    = htmlspecialchars($p->cedula ?? '—');
+            $inst      = htmlspecialchars($p->institucion_nombre ?? '—');
+            $instRep   = $p->institucion_representante ? htmlspecialchars($p->institucion_representante) : null;
+            $depto     = htmlspecialchars($p->departamento_nombre ?? 'Sin asignar');
+            $estado    = $p->estado_pasantia ?? 'Pendiente';
+            $horasAcum = (int)($p->horas_acumuladas ?? 0);
+            $horasMeta = (int)($p->horas_meta ?? 1440);
+            $diasAcum  = (int)ceil($horasAcum / 8);
+            $diasTotal = (int)ceil($horasMeta / 8);
+            $pct       = $horasMeta > 0 ? min(100, round(($horasAcum / $horasMeta) * 100)) : 0;
+            $estadoMap = [
+                'Activo'     => ['bg' => '#eff6ff', 'color' => '#2563eb'],
+                'Pendiente'  => ['bg' => '#fef9c3', 'color' => '#ca8a04'],
+                'Finalizado' => ['bg' => '#dcfce7', 'color' => '#16a34a'],
+                'Retirado'   => ['bg' => '#fee2e2', 'color' => '#dc2626'],
+            ];
+            $cfg     = $estadoMap[$estado] ?? ['bg' => '#f1f5f9', 'color' => '#64748b'];
+            $inicial = strtoupper(substr($p->nombres ?? 'P', 0, 1));
+            $pctColor = $pct >= 80 ? '#10b981' : ($pct >= 50 ? '#f59e0b' : '#ef4444');
+        ?>
+        <div class="bento-card-pasante mobile-card-item" data-depto="<?= htmlspecialchars($depto, ENT_QUOTES, 'UTF-8') ?>" data-inst="<?= htmlspecialchars($inst, ENT_QUOTES, 'UTF-8') ?>" data-search="<?= htmlspecialchars(strtolower($nombres . ' ' . $cedula), ENT_QUOTES, 'UTF-8') ?>">
+
+            <!-- Encabezado: avatar + nombre + badge estado -->
+            <div class="bcp-header">
+                <div class="bcp-avatar"><?= $inicial ?></div>
+                <div class="bcp-info">
+                    <span class="bcp-nombre"><?= $nombres ?></span>
+                    <span class="bcp-cedula">C.I: <?= $cedula ?></span>
+                </div>
+                <span class="bcp-badge"
+                      style="background:<?= $cfg['bg'] ?>; color:<?= $cfg['color'] ?>;">
+                    <?= $estado ?>
+                </span>
+            </div>
+
+            <!-- Cuerpo: datos secundarios -->
+            <div class="bcp-body">
+                <div class="bcp-row">
+                    <span class="bcp-label">Institución</span>
+                    <span class="bcp-value">
+                        <?= $inst ?>
+                        <?php if($instRep): ?><div style="font-size:0.7rem;color:#94a3b8;font-weight:500;margin-top:2px;line-height:1;"><i class="ti ti-user"></i> Rep: <?= $instRep ?></div><?php endif; ?>
+                    </span>
+                </div>
+                <div class="bcp-row">
+                    <span class="bcp-label">Departamento</span>
+                    <span class="bcp-value"><?= $depto ?></span>
+                </div>
+                <div class="bcp-row">
+                    <span class="bcp-label">Progreso</span>
+                    <div class="progress bcp-progress" role="progressbar"
+                         aria-valuenow="<?= $pct ?>"
+                         aria-valuemin="0" aria-valuemax="100">
+                        <div class="progress-bar"
+                             style="width:<?= $pct ?>%; background:<?= $pctColor ?>;"></div>
+                    </div>
+                    <span class="bcp-value-sm">
+                        <?= $pct ?>% &nbsp;·&nbsp; Día <?= $diasAcum ?>/<?= $diasTotal ?>
+                    </span>
+                </div>
+            </div>
+
+            <!-- Acciones — mismas funciones JS que la tabla -->
+            <div class="bcp-actions">
+                <button class="bcp-btn bcp-btn-outline"
+                        onclick="SGPModal.verUsuario(<?= $p->id ?>)"
+                        title="Ver perfil">
+                    <i class="ti ti-eye"></i> Ver
+                </button>
+                <button class="bcp-btn bcp-btn-primary"
+                        onclick="abrirModalEditar(<?= $p->id ?>)"
+                        title="Editar pasante">
+                    <i class="ti ti-edit"></i> Editar
+                </button>
+                <button class="bcp-btn bcp-btn-config bcp-btn-icon"
+                        onclick="cambiarEstado('<?= UrlSecurity::encrypt($p->id) ?>', '<?= $nombres ?>')"
+                        title="Cambiar estado">
+                    <i class="ti ti-settings"></i>
+                </button>
+            </div>
+
+        </div>
+        <?php endforeach; ?>
+        </div>
         <?php endif; ?>
     </div>
 
@@ -342,7 +522,7 @@
             
             <div class="form-group" style="margin-bottom: 25px;">
                 <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Nuevo Estado</label>
-                <select class="form-input" id="inp-nuevo-estado">
+                <select class="form-input no-choices" id="inp-nuevo-estado">
                     <option value="Pendiente">⏳ Pendiente</option>
                     <option value="Activo">✅ Activo</option>
                     <option value="Finalizado">🏆 Finalizado</option>
@@ -357,11 +537,44 @@
     </div>
 </div>
 
-<!-- DataTables Premium Assets (Estandarizado) -->
-<link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
-<script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
-
 <script>
+// ── Filtros y Búsqueda General ──
+function aplicarFiltrosPasantes() {
+    var depto = document.getElementById('filterDepto') ? document.getElementById('filterDepto').value : '';
+    var inst = document.getElementById('filterInst') ? document.getElementById('filterInst').value : '';
+    var search = document.getElementById('customSearchPasantes') ? document.getElementById('customSearchPasantes').value : '';
+
+    // 1. Filtrar DataTable (Desktop)
+    if ($.fn.DataTable.isDataTable('#tablaPasantes')) {
+        var dt = $('#tablaPasantes').DataTable();
+        dt.column(3).search(depto ? '^' + $.fn.dataTable.util.escapeRegex(depto) + '$' : '', true, false);
+        dt.column(2).search(inst ? '^' + $.fn.dataTable.util.escapeRegex(inst) + '$' : '', true, false);
+        dt.search(search);
+        dt.draw();
+    }
+
+    // 2. Filtrar Mobile Cards (Bento)
+    search = search.toLowerCase();
+    depto = depto.toLowerCase();
+    inst = inst.toLowerCase();
+
+    document.querySelectorAll('.mobile-card-item').forEach(function(card) {
+        var cardDepto = card.getAttribute('data-depto') ? card.getAttribute('data-depto').toLowerCase() : '';
+        var cardInst = card.getAttribute('data-inst') ? card.getAttribute('data-inst').toLowerCase() : '';
+        var cardSearch = card.getAttribute('data-search') ? card.getAttribute('data-search').toLowerCase() : '';
+
+        var matchDepto = (depto === '' || cardDepto === depto);
+        var matchInst = (inst === '' || cardInst === inst);
+        var matchSearch = (search === '' || cardSearch.includes(search));
+
+        if (matchDepto && matchInst && matchSearch) {
+            card.style.display = '';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
 // ── Editar Asignación (redirige al módulo de Asignaciones) ──
 function abrirModalEditar(pasanteId) {
     window.location.href = URLROOT + '/asignaciones?editar=' + pasanteId;
@@ -455,5 +668,39 @@ $(document).ready(function() {
     } else if ($tablaPasantes.length && $.fn.DataTable.isDataTable($tablaPasantes)) {
         $tablaPasantes.DataTable().draw(false);
     }
+
+    // SGP-FIX: recalcular columnas al pasar de móvil a desktop
+    var _dtPasAdjusted = false;
+    window.addEventListener('resize', function () {
+        if (window.innerWidth >= 992 && !_dtPasAdjusted) {
+            var dt = $('#tablaPasantes').DataTable();
+            if (dt) { dt.columns.adjust().draw(false); }
+            _dtPasAdjusted = true;
+        }
+        if (window.innerWidth < 992) { _dtPasAdjusted = false; }
+    });
+
+    // Binding Search Input
+    var searchInput = document.getElementById('customSearchPasantes');
+    if (searchInput) {
+        searchInput.addEventListener('input', aplicarFiltrosPasantes);
+    }
+    
+    // Animate Bento KPI Values
+    document.querySelectorAll('[data-kpi-value]').forEach(function(el) {
+        var target = parseInt(el.getAttribute('data-kpi-value')) || 0;
+        var current = 0;
+        var inc = Math.max(1, Math.floor(target / 15));
+        var interval = setInterval(function() {
+            current += inc;
+            if (current >= target) {
+                current = target;
+                clearInterval(interval);
+            }
+            el.textContent = current;
+        }, 40);
+        
+        if (target === 0) el.textContent = 0;
+    });
 });
 </script>

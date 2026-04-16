@@ -132,6 +132,46 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
         font-size: 18px;
     }
 
+    /* === SGP Bento Mobile Responsive Grid para Tablas === */
+    @media (max-width: 768px) {
+        .table-container table { display: block; width: 100%; border: none; }
+        .table-container thead { display: none; }
+        .table-container tbody { display: block; width: 100%; }
+        .table-container tbody tr {
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+        }
+        .table-container tbody td {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: right;
+            font-size: 0.88rem;
+        }
+        .table-container tbody td:last-child {
+            border-bottom: none;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .table-container tbody td::before {
+            content: attr(data-label);
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #64748b;
+            text-transform: uppercase;
+            text-align: left;
+            margin-right: auto;
+        }
+    }
+
     .btn-download {
         background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
         color: white;
@@ -315,7 +355,29 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
 
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
     <!-- BANNER MODERNO (Estilo Usuario) -->
-    <div class="welcome-banner welcome-banner-compact mb-4">
+    <style>
+    @media (max-width: 991px) {
+        .dashboard-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 24px 20px !important;
+            gap: 20px !important;
+            height: auto !important;
+        }
+        .dashboard-banner .welcome-meta {
+            display: none !important;
+        }
+        .dashboard-banner button {
+            position: relative !important;
+            top: 0 !important;
+            right: 0 !important;
+            transform: none !important;
+            width: 100% !important;
+            margin-top: 10px !important;
+        }
+    }
+    </style>
+    <div class="welcome-banner welcome-banner-compact dashboard-banner mb-4">
         <div class="welcome-icon">
             <i class="ti ti-database"></i>
         </div>
@@ -417,13 +479,13 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
                 <?php else: ?>
                     <?php foreach ($backups as $backup): ?>
                     <tr>
-                        <td>
+                        <td data-label="Archivo">
                             <i class="ti ti-file-database file-icon"></i>
                             <strong><?= htmlspecialchars($backup['filename']) ?></strong>
                         </td>
-                        <td><?= htmlspecialchars($backup['date']) ?></td>
-                        <td><strong><?= htmlspecialchars($backup['size']) ?></strong></td>
-                        <td style="text-align: center;">
+                        <td data-label="Creacin"><?= htmlspecialchars($backup['date']) ?></td>
+                        <td data-label="Tamao"><strong><?= htmlspecialchars($backup['size']) ?></strong></td>
+                        <td data-label="Acciones" style="text-align: center;">
                             <button onclick="downloadBackup('<?= htmlspecialchars($backup['filename']) ?>')" 
                                     class="btn-action btn-download" 
                                     title="Descargar respaldo">
@@ -543,11 +605,14 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
             preConfirm: () => {
                 showLoading('Restaurando base de datos...');
                 
+                const formData = new FormData();
+                formData.append('confirmacion_texto', filename);
                 return fetch(`<?= URLROOT ?>/backup/restore/${encodeURIComponent(filename)}`, {
                     method: 'POST',
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    },
+                    body: formData
                 })
                 .then(response => response.json())
                 .then(data => {

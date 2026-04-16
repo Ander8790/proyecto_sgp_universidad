@@ -1811,6 +1811,55 @@ auth-wrapper::before {
 }
 
 /* ====================================================
+   AUTH + PROFILE — RESPONSIVE MOBILE (SGP Bento)
+   ==================================================== */
+
+/* ── Reducir padding-top del fondo en móvil ──────── */
+@media (max-width: 768px) {
+    .auth-wrapper {
+        padding: 70px 16px 32px !important;
+        justify-content: flex-start;
+    }
+    /* Kiosco pill: arriba del todo (orden natural HTML), full-width, card-style */
+    .kiosco-pill {
+        position: static !important;
+        top: auto !important;
+        right: auto !important;
+        width: 100%;
+        max-width: 450px;
+        justify-content: center;
+        border-radius: 16px !important;
+        padding: 16px 20px !important;
+        font-size: 0.95rem !important;
+        margin-bottom: 14px !important;
+        margin-top: 0 !important;
+        gap: 10px !important;
+        box-shadow: 0 6px 18px rgba(33, 145, 80, 0.35) !important;
+    }
+}
+
+/* ── Modal grids 2 columnas → 1 en móvil ─────────── */
+@media (max-width: 600px) {
+    .profile-grid-2col {
+        grid-template-columns: 1fr !important;
+    }
+    /* Preguntas de seguridad en perfil */
+    .profile-security-grid {
+        grid-template-columns: 1fr !important;
+    }
+    /* Step buttons del registro */
+    .step-buttons {
+        flex-direction: column;
+        gap: 10px;
+    }
+    .step-buttons .btn-secondary,
+    .step-buttons .btn-primary {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ====================================================
    SCROLLBAR PERSONALIZADO
    ==================================================== */
 .sidebar::-webkit-scrollbar,
@@ -3594,4 +3643,483 @@ body.sidebar-collapse .main-footer {
     transform-origin: left center;
     /* Duración sincronizada con el JS (4000ms en NotificationService) */
     animation: notyfProgressBar 4s linear forwards;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   CARD VIEW — Pasantes (Mobile < 992px / Bootstrap d-lg-none)
+   ═══════════════════════════════════════════════════════════ */
+.bento-card-pasante {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(22, 38, 96, 0.06);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+.bento-card-pasante:active {
+    box-shadow: 0 4px 16px rgba(22, 38, 96, 0.12);
+}
+
+/* Encabezado */
+.bcp-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.bcp-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #162660, #3b82f6);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.bcp-info    { flex: 1; min-width: 0; }
+.bcp-nombre  {
+    display: block;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bcp-cedula  {
+    display: block;
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 600;
+    margin-top: 1px;
+}
+.bcp-badge   {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+
+/* Cuerpo */
+.bcp-body    {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.bcp-row     {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.bcp-label   {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    min-width: 90px;
+}
+.bcp-value   {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+.bcp-value-sm {
+    font-size: 0.72rem;
+    color: #64748b;
+}
+.bcp-progress {
+    flex: 1;
+    height: 6px;
+    border-radius: 99px;
+    background: #f1f5f9;
+    min-width: 80px;
+}
+
+/* Acciones */
+.bcp-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+.bcp-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 7px 10px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.bcp-btn-outline { background: #fff; border: 1px solid #e2e8f0; color: #475569; }
+.bcp-btn-outline:hover { background: #f1f5f9; }
+.bcp-btn-primary  { background: #162660; color: #fff; }
+.bcp-btn-primary:hover { background: #1e3a8a; }
+.bcp-btn-config   { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.bcp-btn-config:hover { background: #dbeafe; }
+.bcp-btn-icon     { flex: 0 0 auto; }
+
+/* ═══════════════════════════════════════════════════════════
+   CARD VIEW — Usuarios (Mobile < 992px / Bootstrap d-lg-none)
+   ═══════════════════════════════════════════════════════════ */
+.bcu-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(22, 38, 96, 0.06);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+.bcu-card:active {
+    box-shadow: 0 4px 16px rgba(22, 38, 96, 0.12);
+}
+.bcu-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.bcu-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.bcu-info    { flex: 1; min-width: 0; }
+.bcu-nombre  {
+    display: block;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bcu-email   {
+    display: block;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bcu-badge   {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.bcu-body {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.bcu-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.bcu-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    min-width: 80px;
+}
+.bcu-value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+.bcu-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+.bcu-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 7px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.bcu-btn-view   { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.bcu-btn-view:hover { background: #dbeafe; }
+.bcu-btn-edit   { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.bcu-btn-edit:hover { background: #fef3c7; }
+.bcu-btn-key    { background: #f8fafc; color: #64748b; border: 1px solid #e2e8f0; }
+.bcu-btn-key:hover { background: #f1f5f9; }
+.bcu-btn-toggle-off { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+.bcu-btn-toggle-off:hover { background: #fee2e2; }
+.bcu-btn-toggle-on  { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+.bcu-btn-toggle-on:hover  { background: #dcfce7; }
+.bcu-btn-icon   { flex: 0 0 auto; }
+
+/* ═══════════════════════════════════════════════════════════
+   CARD VIEW — Asignaciones (Mobile < 992px)
+   ═══════════════════════════════════════════════════════════ */
+.bca-card {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 2px 8px rgba(22, 38, 96, 0.06);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+.bca-card:active {
+    box-shadow: 0 4px 16px rgba(22, 38, 96, 0.12);
+}
+.bca-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+.bca-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #162660, #3b82f6);
+    color: #fff;
+    font-weight: 800;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.bca-info   { flex: 1; min-width: 0; }
+.bca-nombre {
+    display: block;
+    font-weight: 800;
+    font-size: 0.9rem;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.bca-cedula {
+    display: block;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 500;
+    margin-top: 1px;
+}
+.bca-badge {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    white-space: nowrap;
+}
+.bca-body {
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.bca-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.bca-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    min-width: 84px;
+}
+.bca-value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+.bca-progress-wrap {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+.bca-progress-bar {
+    flex: 1;
+    height: 7px;
+    background: #f1f5f9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.bca-progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s;
+}
+.bca-progress-pct {
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 34px;
+    text-align: right;
+}
+.bca-actions {
+    display: flex;
+    gap: 8px;
+    padding: 10px 16px;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+}
+.bca-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 7px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.bca-btn-view   { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+.bca-btn-view:hover { background: #dbeafe; }
+.bca-btn-edit   { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+.bca-btn-edit:hover { background: #fef3c7; }
+.bca-btn-fin    { background: #f5f3ff; color: #7c3aed; border: 1px solid #ddd6fe; }
+.bca-btn-fin:hover  { background: #ede9fe; }
+.bca-btn-icon   { flex: 0 0 auto; }
+
+/* ═══════════════════════════════════════════════════════════
+   CONTROL DE VISIBILIDAD — Tabla desktop / Cards móvil
+   ═══════════════════════════════════════════════════════════ */
+
+/* Desktop (≥ 992px): tabla visible, cards ocultas */
+.sgp-solo-desktop { display: block !important; }
+.sgp-solo-mobile  { display: none  !important; }
+
+/* Móvil (< 992px): tabla oculta, cards visibles */
+@media (max-width: 991.98px) {
+    .sgp-solo-desktop { display: none         !important; }
+    .sgp-solo-mobile  { display: flex         !important;
+                        flex-direction: column; }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   FIX — Modal Consulta Rápida en móvil (< 576px)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 576px) {
+    .modal-box,
+    .modal-content {
+        width: calc(100vw - 24px) !important;
+        max-width: calc(100vw - 24px) !important;
+        margin: 0 12px;
+    }
+    .modal-body,
+    .modal-body-scroll {
+        padding: 16px !important;
+    }
+    .modal-head {
+        padding: 18px 16px !important;
+    }
+    .modal-head h2 {
+        font-size: 1.05rem !important;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RESPONSIVE GLOBAL — Banners y KPIs (todos los módulos)
+   ═══════════════════════════════════════════════════════════ */
+@media (max-width: 991px) {
+    /* Banners — colapsar a columna */
+    .users-banner,
+    .pasantes-banner,
+    .asig-banner {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 20px !important;
+        padding: 24px !important;
+    }
+    /* Zona de botones — ancho completo */
+    .users-banner-actions,
+    .pasantes-banner-actions,
+    .asig-banner-actions {
+        width: 100% !important;
+        display: flex !important;
+        gap: 10px !important;
+    }
+    .users-banner-actions button,
+    .pasantes-banner-actions button,
+    .asig-banner-actions button {
+        flex: 1;
+        justify-content: center;
+    }
+    /* KPI grids — 2 columnas en tablet/móvil */
+    .kpi-users-grid,
+    .kpi-pasantes-grid,
+    .asig-stats-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+    /* Barra de filtros */
+    .users-filter-bar {
+        flex-wrap: wrap !important;
+    }
+}
+
+@media (max-width: 576px) {
+    /* KPI grids — 1 columna en móvil pequeño */
+    .kpi-users-grid,
+    .kpi-pasantes-grid,
+    .asig-stats-grid {
+        grid-template-columns: 1fr !important;
+    }
+    /* Banners — padding mínimo */
+    .users-banner,
+    .pasantes-banner,
+    .asig-banner {
+        padding: 18px 16px !important;
+        border-radius: 14px !important;
+    }
 }

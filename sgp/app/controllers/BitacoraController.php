@@ -42,20 +42,36 @@ class BitacoraController extends Controller
      */
     public function index(): void
     {
-        // Obtener registros de auditoría (últimos 500)
-        $logs = $this->auditModel->getAll(500);
-        
         // Obtener acciones únicas para filtro
         $actions = $this->getUniqueActions();
-        
+
+        // KPIs del ciclo de vida (header cards)
+        $kpis = [];
+        try {
+            $kpis = $this->auditModel->getKPIs();
+        } catch (\Throwable $e) {
+            // Si la tabla historico aún no existe, degradar gracefully
+            error_log('[SGP-BITACORA] getKPIs() fallback: ' . $e->getMessage());
+            $db = $this->auditModel->getDb();
+            $db->query('SELECT COUNT(*) AS total_activos, SUM(DATE(created_at)=CURDATE()) AS hoy, SUM(created_at>=DATE_SUB(NOW(),INTERVAL 7 DAY)) AS semana FROM bitacora');
+            $row = $db->single();
+            $kpis = [
+                'total_activos'   => (int)($row->total_activos ?? 0),
+                'hoy'             => (int)($row->hoy           ?? 0),
+                'semana'          => (int)($row->semana        ?? 0),
+                'ultima_purga'    => null,
+                'total_historico' => 0,
+            ];
+        }
+
         // Datos para la vista
         $data = [
-            'title' => 'Bitácora de Auditoría',
-            'logs' => $logs,
-            'actions' => $actions,
-            'total_logs' => count($logs)
+            'title'      => 'Bitácora de Auditoría',
+            'actions'    => $actions,
+            'total_logs' => $kpis['total_activos'],
+            'kpis'       => $kpis,
         ];
-        
+
         $this->view('bitacora/index', $data);
     }
 
@@ -178,12 +194,13 @@ class BitacoraController extends Controller
             $offset = isset($_GET['offset']) ? (int)$_GET['offset'] : 0;
             
             // Filtros
-            $action = $_GET['accion'] ?? null;
+            $action   = $_GET['accion']      ?? null;
             $dateFrom = $_GET['fecha_desde'] ?? null;
-            $dateTo = $_GET['fecha_hasta'] ?? null;
-            
+            $dateTo   = $_GET['fecha_hasta'] ?? null;
+            $q        = trim($_GET['q']      ?? '');
+
             $query = "
-                SELECT 
+                SELECT
                     b.id,
                     b.usuario_id,
                     b.accion,
@@ -200,32 +217,48 @@ class BitacoraController extends Controller
                 LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
                 WHERE 1=1
             ";
-            
+
             $countQuery = "
-                SELECT COUNT(*) as total 
+                SELECT COUNT(*) as total
                 FROM bitacora b
+                LEFT JOIN usuarios u ON b.usuario_id = u.id
+                LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
                 WHERE 1=1
             ";
-            
+
             $params = [];
-            
+
             if ($action) {
                 $query .= " AND b.accion = :accion";
                 $countQuery .= " AND b.accion = :accion";
                 $params[':accion'] = $action;
             }
-            
+
             if ($dateFrom) {
                 $query .= " AND DATE(b.created_at) >= :fecha_desde";
                 $countQuery .= " AND DATE(b.created_at) >= :fecha_desde";
                 $params[':fecha_desde'] = $dateFrom;
             }
-            
+
             if ($dateTo) {
                 $query .= " AND DATE(b.created_at) <= :fecha_hasta";
                 $countQuery .= " AND DATE(b.created_at) <= :fecha_hasta";
                 $params[':fecha_hasta'] = $dateTo;
             }
+
+            if ($q !== '') {
+                // [FIX-M2] Escapar wildcards LIKE ('%', '_') para prevenir full-table scans por DoS
+                $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
+                $query .= " AND (b.ip_address LIKE :q OR u.correo LIKE :q2 OR b.tabla_afectada LIKE :q3
+                                 OR CONCAT(COALESCE(dp.nombres,''),' ',COALESCE(dp.apellidos,'')) LIKE :q4)";
+                $countQuery .= " AND (b.ip_address LIKE :q OR u.correo LIKE :q2 OR b.tabla_afectada LIKE :q3
+                                      OR CONCAT(COALESCE(dp.nombres,''),' ',COALESCE(dp.apellidos,'')) LIKE :q4)";
+                $params[':q']  = $like;
+                $params[':q2'] = $like;
+                $params[':q3'] = $like;
+                $params[':q4'] = $like;
+            }
+
             
             $query .= " ORDER BY b.created_at DESC LIMIT :limit OFFSET :offset";
             
@@ -401,62 +434,197 @@ HTML;
     public function export(): void
     {
         try {
-            // Obtener parámetros de filtro (igual que filter())
-            $userId = $_GET['usuario_id'] ?? null;
-            $action = $_GET['accion'] ?? null;
-            $dateFrom = $_GET['fecha_desde'] ?? null;
-            $dateTo = $_GET['fecha_hasta'] ?? null;
-            
-            // Obtener registros (reutilizar lógica de filter)
-            // Por simplicidad, obtenemos todos
-            $logs = $this->auditModel->getAll(1000);
-            
-            // Configurar headers para descarga CSV
+            // Obtener parámetros de filtro desde GET
+            $action   = $_GET['accion']       ?? null;
+            $dateFrom = $_GET['fecha_desde']  ?? null;
+            $dateTo   = $_GET['fecha_hasta']  ?? null;
+
+            // Construir query con filtros aplicados (fix bug: antes ignoraba los filtros)
+            $query  = "
+                SELECT b.id, b.accion, b.tabla_afectada, b.registro_id,
+                       b.ip_address, b.user_agent, b.detalles, b.created_at,
+                       u.correo AS usuario_email,
+                       CONCAT(COALESCE(dp.nombres,''),' ',COALESCE(dp.apellidos,'')) AS usuario_nombre
+                FROM bitacora b
+                LEFT JOIN usuarios u ON b.usuario_id = u.id
+                LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+                WHERE 1=1
+            ";
+            $params = [];
+
+            if ($action) {
+                $query .= ' AND b.accion = :accion';
+                $params[':accion'] = $action;
+            }
+            if ($dateFrom) {
+                $query .= ' AND DATE(b.created_at) >= :fecha_desde';
+                $params[':fecha_desde'] = $dateFrom;
+            }
+            if ($dateTo) {
+                $query .= ' AND DATE(b.created_at) <= :fecha_hasta';
+                $params[':fecha_hasta'] = $dateTo;
+            }
+            $query .= ' ORDER BY b.created_at DESC';
+
+            $db = $this->auditModel->getDb();
+            $db->query($query);
+            foreach ($params as $k => $v) $db->bind($k, $v);
+            $logs = $db->resultSet();
+
+            // Generar CSV
+            $filename = 'bitacora_activa_' . date('Y-m-d_His') . '.csv';
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="bitacora_' . date('Y-m-d_His') . '.csv"');
-            
-            // Crear output stream
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+
             $output = fopen('php://output', 'w');
-            
-            // Escribir BOM para UTF-8
-            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-            
-            // Escribir encabezados
-            fputcsv($output, [
-                'ID',
-                'Usuario',
-                'Email',
-                'Acción',
-                'Tabla',
-                'Registro ID',
-                'IP',
-                'Navegador',
-                'Detalles',
-                'Fecha'
-            ]);
-            
-            // Escribir datos
+            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
+
+            fputcsv($output, ['ID','Usuario','Email','Acción','Tabla','Registro ID','IP','Navegador','Detalles','Fecha']);
+
             foreach ($logs as $log) {
+                $log = (array) $log;
                 fputcsv($output, [
                     $log['id'],
                     $log['usuario_nombre'] ?? 'Sistema',
-                    $log['usuario_email'] ?? 'N/A',
+                    $log['usuario_email']  ?? 'N/A',
                     $log['accion'],
                     $log['tabla_afectada'] ?? 'N/A',
-                    $log['registro_id'] ?? 'N/A',
+                    $log['registro_id']    ?? 'N/A',
                     $log['ip_address'],
-                    substr($log['user_agent'] ?? 'N/A', 0, 50),
-                    $log['detalles'] ?? 'N/A',
-                    $log['created_at']
+                    substr($log['user_agent'] ?? 'N/A', 0, 80),
+                    $log['detalles']       ?? 'N/A',
+                    $log['created_at'],
                 ]);
             }
-            
+
             fclose($output);
             exit;
-            
+
         } catch (Exception $e) {
             error_log("BitacoraController::export() Error: " . $e->getMessage());
             Session::setFlash('error', 'Error al exportar registros');
+            $this->redirect('/bitacora');
+        }
+    }
+
+    // ============================================================
+    // LIFECYCLE: Mantenimiento y Archivado
+    // ============================================================
+
+    /**
+     * AJAX — Ejecutar ciclo de purga/archivado
+     *
+     * POST: dias_criticos (int), dias_operacion (int)
+     * Responde JSON: { success, archivados, purgados, message }
+     */
+    public function mantenimiento(): void
+    {
+        if (ob_get_level()) ob_clean();
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            return;
+        }
+
+        try {
+            $diasCriticos  = max(30,  (int)($_POST['dias_criticos']  ?? 365));
+            $diasOperacion = max(7,   (int)($_POST['dias_operacion'] ?? 90));
+            $adminId       = (int)(Session::get('user_id') ?? 0);
+
+            $result = $this->auditModel->purgar($diasCriticos, $diasOperacion, $adminId);
+
+            echo json_encode([
+                'success'    => true,
+                'archivados' => $result['archivados'],
+                'purgados'   => $result['purgados'],
+                'message'    => $result['archivados'] > 0
+                    ? "Mantenimiento completado: {$result['archivados']} registros archivados y {$result['purgados']} eliminados de la tabla activa."
+                    : 'No había registros que superen el período de retención configurado.',
+            ]);
+
+        } catch (\Throwable $e) {
+            // [FIX-C2] Mensaje genérico al cliente — detalle solo en log
+            error_log('[SGP-BITACORA] mantenimiento() Error: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error al ejecutar el mantenimiento. Intente de nuevo.']);
+        }
+        exit;
+    }
+
+    /**
+     * API Grid.js — Histórico paginado (tabla cold)
+     *
+     * GET: limit, offset, accion, fecha_desde, fecha_hasta
+     * Responde JSON: { data: [], total: int }
+     */
+    public function apiGridHistorico(): void
+    {
+        if (ob_get_level()) ob_clean();
+        header('Content-Type: application/json');
+
+        try {
+            $limit    = max(1, (int)($_GET['limit']       ?? 10));
+            $offset   = max(0, (int)($_GET['offset']      ?? 0));
+            $accion   = $_GET['accion']      ?? null;
+            $dateFrom = $_GET['fecha_desde'] ?? null;
+            $dateTo   = $_GET['fecha_hasta'] ?? null;
+
+            $result = $this->auditModel->getHistorico($limit, $offset, $accion ?: null, $dateFrom ?: null, $dateTo ?: null);
+
+            echo json_encode(['data' => $result['data'], 'total' => $result['total']]);
+
+        } catch (\Throwable $e) {
+            error_log('[SGP-BITACORA] apiGridHistorico() Error: ' . $e->getMessage());
+            echo json_encode(['data' => [], 'total' => 0]);
+        }
+        exit;
+    }
+
+    /**
+     * Exportar histórico (tabla cold) a CSV con filtros
+     *
+     * GET: accion, fecha_desde, fecha_hasta
+     */
+    public function exportHistorico(): void
+    {
+        try {
+            $accion   = $_GET['accion']      ?? null;
+            $dateFrom = $_GET['fecha_desde'] ?? null;
+            $dateTo   = $_GET['fecha_hasta'] ?? null;
+
+            $result = $this->auditModel->getHistorico(10000, 0, $accion ?: null, $dateFrom ?: null, $dateTo ?: null);
+            $logs   = $result['data'];
+
+            $filename = 'bitacora_historico_' . date('Y-m-d_His') . '.csv';
+            header('Content-Type: text/csv; charset=utf-8');
+            header('Content-Disposition: attachment; filename="' . $filename . '"');
+
+            $output = fopen('php://output', 'w');
+            fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+
+            fputcsv($output, ['ID Orig.','Usuario','Email','Acción','Tabla','IP','Detalles','Fecha Original','Archivado En']);
+
+            foreach ($logs as $log) {
+                $log = (array) $log;
+                fputcsv($output, [
+                    $log['bitacora_id']    ?? '—',
+                    $log['usuario_nombre'] ?? 'Sistema',
+                    $log['usuario_email']  ?? 'N/A',
+                    $log['accion'],
+                    $log['tabla_afectada'] ?? 'N/A',
+                    $log['ip_address'],
+                    $log['detalles']       ?? 'N/A',
+                    $log['created_at'],
+                    $log['archivado_at'],
+                ]);
+            }
+
+            fclose($output);
+            exit;
+
+        } catch (\Throwable $e) {
+            error_log('[SGP-BITACORA] exportHistorico() Error: ' . $e->getMessage());
+            Session::setFlash('error', 'Error al exportar el histórico');
             $this->redirect('/bitacora');
         }
     }

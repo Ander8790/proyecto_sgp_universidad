@@ -152,8 +152,9 @@ class UsersController extends Controller
 
         } catch (Exception $e) {
             $db->rollBack();
-            error_log("Error creating user: " . $e->getMessage());
-            $this->jsonResponse(false, 'Error al crear usuario: ' . $e->getMessage());
+            // [FIX-C2] Mensaje genérico al cliente — detalle interno solo en log
+            error_log('[SGP-USERS] create() Error: ' . $e->getMessage());
+            $this->jsonResponse(false, 'Error al crear el usuario. Intente de nuevo.');
         }
     }
 
@@ -226,7 +227,30 @@ public function update()
         $this->jsonResponse(false, 'ID de usuario inválido');
     }
 
-    // 2. Validate extracted logic
+    // 2a. Protección de integridad: bloquear cambio de rol entre familias incompatibles
+    $nuevoRolId = (int)($_POST['rol_id'] ?? 0);
+    if ($nuevoRolId) {
+        $db = Database::getInstance();
+        $db->query("SELECT rol_id FROM usuarios WHERE id = :id LIMIT 1");
+        $db->bind(':id', $id);
+        $currentRow = $db->single();
+        $rolActual  = (int)($currentRow->rol_id ?? 0);
+
+        // Familia A: Admin(1) y Tutor(2) | Familia B: Pasante(3)
+        $familiaActual = ($rolActual === 3) ? 'B' : 'A';
+        $familiaNew    = ($nuevoRolId  === 3) ? 'B' : 'A';
+
+        if ($rolActual > 0 && $familiaActual !== $familiaNew) {
+            $nombres = [1 => 'Administrador', 2 => 'Tutor', 3 => 'Pasante'];
+            $this->jsonResponse(false,
+                'No se puede cambiar el rol de ' . ($nombres[$rolActual] ?? "ID $rolActual") .
+                ' a ' . ($nombres[$nuevoRolId] ?? "ID $nuevoRolId") .
+                '. Los perfiles requieren datos distintos. Elimina y vuelve a crear el usuario con el rol correcto.'
+            );
+        }
+    }
+
+    // 2b. Validate extracted logic
     $validacion = $this->validarDatosUsuario($_POST, $id);
     if (!$validacion['success']) {
         $this->jsonResponse(false, $validacion['message']);
@@ -544,7 +568,8 @@ public function update()
         $config = require '../app/config/config.php';
         $db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
 
-        $like = '%' . $q . '%';
+        // [FIX-M2] Escapar wildcards LIKE ('%', '_') para prevenir full-table scans por DoS
+        $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $q) . '%';
         $rolFilter = isset($_GET['rol']) ? (int)$_GET['rol'] : 0;
         $rolWhere = $rolFilter > 0 ? ' AND u.rol_id = :rol_filter' : '';
         
@@ -552,14 +577,24 @@ public function update()
             SELECT u.id, u.cedula, u.rol_id, u.estado,
                    dp.nombres, dp.apellidos,
                    r.nombre AS rol_nombre,
-                   d.nombre AS departamento
+                   -- Para pasantes: dept viene de datos_pasante; para tutores/admins: de usuarios
+                   COALESCE(dept_p.nombre, dept_u.nombre) AS departamento,
+                   dpa.tutor_id,
+                   CONCAT(COALESCE(dp_tutor.nombres,''), ' ', COALESCE(dp_tutor.apellidos,'')) AS tutor_nombre,
+                   inst.nombre AS institucion
             FROM usuarios u
-            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
-            LEFT JOIN roles r ON u.rol_id = r.id
-            LEFT JOIN departamentos d ON u.departamento_id = d.id
+            LEFT JOIN datos_personales dp      ON u.id = dp.usuario_id
+            LEFT JOIN roles r                  ON u.rol_id = r.id
+            LEFT JOIN departamentos dept_u     ON u.departamento_id = dept_u.id
+            LEFT JOIN datos_pasante dpa        ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos dept_p     ON dpa.departamento_asignado_id = dept_p.id
+            LEFT JOIN usuarios u_tutor         ON dpa.tutor_id = u_tutor.id
+            LEFT JOIN datos_personales dp_tutor ON u_tutor.id = dp_tutor.usuario_id
+            LEFT JOIN instituciones inst        ON dpa.institucion_procedencia = inst.id
             WHERE (u.cedula LIKE :q1 OR dp.nombres LIKE :q2 OR dp.apellidos LIKE :q3) $rolWhere
-            ORDER BY dp.nombres ASC
-            LIMIT 10
+              AND u.estado = 'activo'
+            ORDER BY dp.apellidos ASC, dp.nombres ASC
+            LIMIT 15
         ");
         $db->bind(':q1', $like);
         $db->bind(':q2', $like);
@@ -571,6 +606,7 @@ public function update()
 
         $data = [];
         foreach ($results as $r) {
+            $tutorNombre = trim($r->tutor_nombre ?? '');
             $data[] = [
                 'id'           => $r->id,
                 'cedula'       => $r->cedula,
@@ -579,6 +615,9 @@ public function update()
                 'rol_id'       => $r->rol_id,
                 'rol_nombre'   => $r->rol_nombre ?? 'Sin rol',
                 'departamento' => $r->departamento ?? 'Sin asignar',
+                'tutor_nombre' => $tutorNombre ?: null,
+                'tutor_id'     => $r->tutor_id ?? null,
+                'institucion'  => $r->institucion ?? null,
                 'estado'       => $r->estado,
                 'iniciales'    => strtoupper(substr($r->nombres ?? '?', 0, 1) . substr($r->apellidos ?? '', 0, 1))
             ];
@@ -636,17 +675,22 @@ public function update()
             'rol_nombre'     => $user->rol_nombre ?? 'Sin rol',
             'estado'         => $user->estado,
             'departamento'   => $user->departamento ?? 'Sin asignar',
-            'institucion'    => $user->institucion ?? '',
-            'iniciales'      => strtoupper(substr($user->nombres ?? '?', 0, 1) . substr($user->apellidos ?? '', 0, 1)),
-            'es_pasante'     => $isPasante,
-            'horas_acumuladas' => $horasAcum,
-            'horas_requeridas' => $horasReq,
-            'porcentaje_horas' => $porcHoras,
-            'estado_pasantia'  => $user->estado_pasantia ?? '',
-            'fecha_inicio'     => $user->fecha_inicio ? date('d/m/Y', strtotime($user->fecha_inicio)) : '',
-            'fecha_fin'        => $user->fecha_fin ? date('d/m/Y', strtotime($user->fecha_fin)) : '',
-            'tutor_nombre'     => $user->tutor_nombre ?? 'Sin asignar',
-            'tiene_pin'        => $isPasante
+            'institucion'       => $user->institucion ?? '',
+            'inst_rep_nombre'   => $user->inst_rep_nombre   ?? '',
+            'inst_rep_cargo'    => $user->inst_rep_cargo    ?? '',
+            'inst_rep_correo'   => $user->inst_rep_correo   ?? '',
+            'inst_rep_telefono' => $user->inst_rep_telefono ?? '',
+            'avatar'            => $user->avatar ?? 'default.png',
+            'iniciales'         => strtoupper(substr($user->nombres ?? '?', 0, 1) . substr($user->apellidos ?? '', 0, 1)),
+            'es_pasante'        => $isPasante,
+            'horas_acumuladas'  => $horasAcum,
+            'horas_requeridas'  => $horasReq,
+            'porcentaje_horas'  => $porcHoras,
+            'estado_pasantia'   => $user->estado_pasantia ?? '',
+            'fecha_inicio'      => $user->fecha_inicio ? date('d/m/Y', strtotime($user->fecha_inicio)) : '',
+            'fecha_fin'         => $user->fecha_fin ? date('d/m/Y', strtotime($user->fecha_fin)) : '',
+            'tutor_nombre'      => $user->tutor_nombre ?? 'Sin asignar',
+            'tiene_pin'         => $isPasante
         ];
 
         echo json_encode(['success' => true, 'data' => $data]);
@@ -774,6 +818,56 @@ public function update()
 
         $dompdf->stream("Perfil_Usuario_{$id}.pdf", ["Attachment" => false]);
         exit();
+    }
+
+    /**
+     * AJAX: Verificar unicidad de cédula o correo (sin exponer datos sensibles)
+     * GET /users/checkUnique?campo=cedula&valor=12345678
+     * GET /users/checkUnique?campo=correo&valor=user@mail.com&exclude=42
+     */
+    public function checkUnique(): void
+    {
+        header('Content-Type: application/json');
+
+        $campo     = $_GET['campo']   ?? '';
+        $valor     = trim($_GET['valor'] ?? '');
+        $excludeId = (int)($_GET['exclude'] ?? 0);
+
+        if (!in_array($campo, ['cedula', 'correo']) || $valor === '') {
+            echo json_encode(['available' => true]);
+            exit;
+        }
+
+        $db = Database::getInstance();
+
+        if ($campo === 'cedula') {
+            // Solo validar formato antes de consultar
+            if (!preg_match('/^[0-9]{7,8}$/', $valor)) {
+                echo json_encode(['available' => true, 'skip' => true]);
+                exit;
+            }
+            $sql = "SELECT id FROM usuarios WHERE cedula = :val";
+        } else {
+            if (!filter_var($valor, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['available' => true, 'skip' => true]);
+                exit;
+            }
+            $sql = "SELECT id FROM usuarios WHERE correo = :val";
+        }
+
+        if ($excludeId) {
+            $sql .= " AND id != :eid";
+        }
+
+        $db->query($sql);
+        $db->bind(':val', $valor);
+        if ($excludeId) {
+            $db->bind(':eid', $excludeId);
+        }
+
+        $exists = $db->single();
+        echo json_encode(['available' => !$exists]);
+        exit;
     }
 
     /**

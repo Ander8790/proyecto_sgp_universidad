@@ -31,6 +31,8 @@ class CaptchaHelper {
      */
     public static function storeInSession($code) {
         Session::start();
+        // Limpiar valor anterior antes de asignar el nuevo para evitar desfase de sesión
+        unset($_SESSION['captcha_code'], $_SESSION['captcha_time']);
         $_SESSION['captcha_code'] = strtoupper($code);
         $_SESSION['captcha_time'] = time();
     }

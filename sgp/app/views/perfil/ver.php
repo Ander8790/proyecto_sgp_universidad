@@ -13,9 +13,29 @@ if (!isset($user) || empty($user)) {
         <!-- Left Column: Profile Summary -->
         <div class="col-md-4" style="flex: 1; min-width: 300px; max-width: 400px;">
             <div class="smart-card" style="text-align: center;">
-                <!-- Avatar -->
-                <div style="width: 120px; height: 120px; background: var(--color-primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 48px; color: white; font-weight: 700;">
-                    <?= strtoupper(substr($user['nombres'] ?? $user['correo'], 0, 1)) ?>
+                <!-- Avatar con opción de cambio -->
+                <?php
+                $avatarFile = $user['avatar'] ?? 'default.png';
+                $avatarUrl  = ($avatarFile !== 'default.png')
+                    ? URLROOT . '/img/avatars/' . htmlspecialchars($avatarFile)
+                    : null;
+                ?>
+                <div style="position:relative;width:120px;height:120px;margin:0 auto 20px;">
+                    <?php if ($avatarUrl): ?>
+                    <img id="profileAvatarImg" src="<?= $avatarUrl ?>" alt="Foto de perfil"
+                         style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #e2e8f0;">
+                    <?php else: ?>
+                    <div id="profileAvatarInitials" style="width:120px;height:120px;background:var(--color-primary);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:48px;color:white;font-weight:700;">
+                        <?= strtoupper(substr($user['nombres'] ?? $user['correo'], 0, 1)) ?>
+                    </div>
+                    <?php endif; ?>
+                    <!-- Botón cambiar foto -->
+                    <label for="inputFotoPerfil" title="Cambiar foto"
+                           style="position:absolute;bottom:0;right:0;width:32px;height:32px;background:#162660;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid white;transition:background .2s;"
+                           onmouseover="this.style.background='#6366f1'" onmouseout="this.style.background='#162660'">
+                        <i class="ti ti-camera" style="color:white;font-size:0.9rem;"></i>
+                    </label>
+                    <input type="file" id="inputFotoPerfil" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="subirFotoPerfil(this)">
                 </div>
                 
                 <!-- Name -->
@@ -161,7 +181,7 @@ if (!isset($user) || empty($user)) {
                         </h5>
                     </div>
                     
-                    <?php if (Session::get('role_id') == 3 && !empty($user['institucion_procedencia'])): // Pasante ?>
+                    <?php if (Session::get('role_id') == 3 && !empty($user['institucion_procedencia'])): ?>
                     <div style="grid-column: 1 / -1;">
                         <div style="display: flex; align-items: center; margin-bottom: 6px;">
                             <i class="ti ti-building-bank" style="color: var(--color-primary); margin-right: 8px;"></i>
@@ -175,6 +195,40 @@ if (!isset($user) || empty($user)) {
                 </div>
             </div>
 
+            <!-- Tarjeta Institución + Representante (solo pasantes) -->
+            <?php if (Session::get('role_id') == 3 && !empty($user['inst_rep_nombre'])): ?>
+            <div class="smart-card" style="margin-top: 24px;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #E5E7EB;">
+                    <h3 style="font-size:1.1rem;color:var(--color-primary);font-weight:700;margin:0;">
+                        <i class="ti ti-school" style="margin-right:8px;"></i> Representante de Institución
+                    </h3>
+                </div>
+                <div style="display:flex;gap:16px;align-items:flex-start;background:#f0f9ff;border:1px solid #bae6fd;border-radius:14px;padding:18px;">
+                    <div style="width:48px;height:48px;background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="ti ti-user-check" style="color:white;font-size:1.3rem;"></i>
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-weight:700;font-size:1rem;color:#1e3a8a;"><?= htmlspecialchars($user['inst_rep_nombre']) ?></div>
+                        <?php if (!empty($user['inst_rep_cargo'])): ?>
+                        <div style="font-size:0.82rem;color:#0369a1;margin-top:2px;"><?= htmlspecialchars($user['inst_rep_cargo']) ?></div>
+                        <?php endif; ?>
+                        <div style="display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;">
+                            <?php if (!empty($user['inst_rep_correo'])): ?>
+                            <a href="mailto:<?= htmlspecialchars($user['inst_rep_correo']) ?>" style="display:flex;align-items:center;gap:5px;font-size:0.83rem;color:#2563eb;text-decoration:none;">
+                                <i class="ti ti-mail"></i><?= htmlspecialchars($user['inst_rep_correo']) ?>
+                            </a>
+                            <?php endif; ?>
+                            <?php if (!empty($user['inst_rep_telefono'])): ?>
+                            <span style="display:flex;align-items:center;gap:5px;font-size:0.83rem;color:#334155;">
+                                <i class="ti ti-phone" style="color:#2563eb;"></i><?= htmlspecialchars($user['inst_rep_telefono']) ?>
+                            </span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <!-- Tarjeta de Seguridad -->
             <div class="smart-card" style="margin-top: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid #E5E7EB;">
@@ -183,7 +237,7 @@ if (!isset($user) || empty($user)) {
                     </h3>
                 </div>
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div class="profile-security-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px;">
                     <!-- Cambiar Contraseña -->
                     <div style="background: #F9FAFB; padding: 20px; border-radius: 12px; border: 1px solid #E5E7EB;">
                         <div style="display: flex; align-items: center; margin-bottom: 12px;">
@@ -237,7 +291,7 @@ if (!isset($user) || empty($user)) {
         
         <div class="modal-body-scroll">
             <form id="editProfileForm" action="<?= URLROOT ?>/perfil/actualizar" method="POST">
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="profile-grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div class="form-group">
                         <label>Cédula * <small style="color: #6B7280;">(No editable)</small></label>
                         <input type="text" name="cedula" id="edit_cedula" readonly
@@ -257,7 +311,7 @@ if (!isset($user) || empty($user)) {
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="profile-grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <div class="form-group">
                         <label>Nombres *</label>
                         <input type="text" name="nombres" id="edit_nombres" required 
@@ -277,7 +331,7 @@ if (!isset($user) || empty($user)) {
                     </div>
                 </div>
                 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                <div class="profile-grid-2col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
                     <?php if (Session::get('role_id') != 3): // Solo Admin/Tutor ?>
                     <div class="form-group">
                         <label>Cargo *</label>
@@ -821,9 +875,11 @@ if (!isset($user) || empty($user)) {
     // Handle Edit Profile Form Submission
     document.getElementById('editProfileForm').addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const formData = new FormData(this);
-        
+        // [FIX-A3] Adjuntar token CSRF al FormData
+        formData.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
         fetch(this.action, {
             method: 'POST',
             body: formData
@@ -895,7 +951,9 @@ if (!isset($user) || empty($user)) {
         }
         
         const formData = new FormData(this);
-        
+        // [FIX-A3] Adjuntar token CSRF al FormData
+        formData.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
         fetch(this.action, {
             method: 'POST',
             body: formData
@@ -962,7 +1020,10 @@ if (!isset($user) || empty($user)) {
         
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="ti ti-loader" style="animation: spin 1s linear infinite;"></i> Guardando...';
-        
+
+        // [FIX-A3] Adjuntar token CSRF al FormData
+        formData.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
         fetch(this.action, {
             method: 'POST',
             body: formData
@@ -1048,3 +1109,59 @@ if (!isset($user) || empty($user)) {
 
 <!-- Validation.js para toggles de contraseña -->
 <script src="<?= URLROOT ?>/js/validation.js"></script>
+
+<script>
+function subirFotoPerfil(input) {
+    const file = input.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        Swal.fire({ icon: 'warning', title: 'Archivo muy grande', text: 'La imagen no puede superar 2 MB.', confirmButtonColor: '#162660' });
+        input.value = '';
+        return;
+    }
+
+    // Preview inmediato
+    const reader = new FileReader();
+    reader.onload = e => {
+        const img = document.getElementById('profileAvatarImg');
+        const ini = document.getElementById('profileAvatarInitials');
+        if (img) {
+            img.src = e.target.result;
+        } else if (ini) {
+            const newImg = document.createElement('img');
+            newImg.id = 'profileAvatarImg';
+            newImg.src = e.target.result;
+            newImg.alt = 'Foto de perfil';
+            newImg.style.cssText = 'width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid #e2e8f0;';
+            ini.replaceWith(newImg);
+        }
+        // También actualizar avatar en header
+        document.querySelectorAll('.profile-avatar').forEach(el => {
+            if (el.tagName !== 'IMG') el.style.backgroundImage = `url(${e.target.result})`;
+        });
+    };
+    reader.readAsDataURL(file);
+
+    // Upload al servidor
+    const fd = new FormData();
+    fd.append('foto', file);
+
+    fetch('<?= URLROOT ?>/perfil/subirFoto', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                if (window.notyf) notyf.success(res.message);
+                else Swal.fire({ icon: 'success', title: '¡Listo!', text: res.message, timer: 2000, showConfirmButton: false });
+            } else {
+                if (window.notyf) notyf.error(res.message);
+                else Swal.fire({ icon: 'error', title: 'Error', text: res.message, confirmButtonColor: '#162660' });
+            }
+        })
+        .catch(() => {
+            if (window.notyf) notyf.error('Error de conexión al subir la foto');
+        });
+
+    input.value = '';
+}
+</script>

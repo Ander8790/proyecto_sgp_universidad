@@ -93,7 +93,7 @@ function isActive($url) {
                 </a>
             </li>
             <li>
-                <a href="<?= URLROOT ?>/asignaciones" 
+                <a href="<?= URLROOT ?>/asignaciones"
                    class="nav-link <?= isActive('/asignaciones') ?>"
                    data-tooltip="Asignaciones">
                     <i class="ti ti-link"></i>
@@ -111,9 +111,9 @@ function isActive($url) {
             <li>
                 <a href="<?= URLROOT ?>/reportes" 
                    class="nav-link <?= isActive('/reportes') ?>"
-                   data-tooltip="Informes">
+                   data-tooltip="Centro de Reportes">
                     <i class="ti ti-file-analytics"></i>
-                    <span class="menu-text">Informes</span>
+                    <span class="menu-text">Reportes</span>
                 </a>
             </li>
             <li>
@@ -141,17 +141,39 @@ function isActive($url) {
                 </a>
             </li>
             <li>
-                <a href="<?= URLROOT ?>/configuracion" 
+                <a href="<?= URLROOT ?>/configuracion"
                    class="nav-link <?= isActive('/configuracion') ?>"
                    data-tooltip="Configuración">
                     <i class="ti ti-settings"></i>
                     <span class="menu-text">Configuración</span>
                 </a>
             </li>
+            <!-- Módulos Extras — al final por ser funcionalidades secundarias -->
+            <li style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                <a href="<?= URLROOT ?>/periodos"
+                   class="nav-link <?= isActive('/periodos') ?>"
+                   data-tooltip="Períodos Académicos">
+                    <i class="ti ti-calendar-month"></i>
+                    <span class="menu-text">Períodos</span>
+                </a>
+            </li>
+            <li>
+                <a href="<?= URLROOT ?>/actividades"
+                   class="nav-link <?= isActive('/actividades') ?>"
+                   data-tooltip="Actividades Extras">
+                    <i class="ti ti-briefcase"></i>
+                    <span class="menu-text">Act. Extras</span>
+                </a>
+            </li>
             <?php endif; ?>
 
             <?php if ($role == 'Tutor'): ?>
-            <!-- Menú Tutor -->
+            <!-- ========================================
+                 MENÚ TUTOR — Solo módulos autorizados
+                 (Matriz de Roles v2 — Multi-Tenant)
+                 Permitido: Inicio, Mis Pasantes, Asistencias, Evaluaciones, Reportes
+                 Oculto:    Usuarios, Asignaciones, Analíticas, Respaldos, Bitácora, Configuración
+                 ======================================== -->
             <li>
                 <a href="<?= URLROOT ?>/tutor/pasantes" 
                    class="nav-link <?= isActive('/tutor/pasantes') ?>"
@@ -161,15 +183,23 @@ function isActive($url) {
                 </a>
             </li>
             <li>
-                <a href="<?= URLROOT ?>/tutor/asistencias" 
-                   class="nav-link <?= isActive('/tutor/asistencias') ?>"
+                <a href="<?= URLROOT ?>/asistencias"
+                   class="nav-link <?= isActive('/asistencias') ?>"
                    data-tooltip="Asistencias">
                     <i class="ti ti-clock-check"></i>
                     <span class="menu-text">Asistencias</span>
                 </a>
             </li>
             <li>
-                <a href="<?= URLROOT ?>/evaluaciones" 
+                <a href="<?= URLROOT ?>/tutor/puntualidad"
+                   class="nav-link <?= isActive('/tutor/puntualidad') ?>"
+                   data-tooltip="Puntualidad">
+                    <i class="ti ti-clock-exclamation"></i>
+                    <span class="menu-text">Puntualidad</span>
+                </a>
+            </li>
+            <li>
+                <a href="<?= URLROOT ?>/evaluaciones"
                    class="nav-link <?= isActive('/evaluaciones') ?>"
                    data-tooltip="Evaluaciones">
                     <i class="ti ti-star"></i>
@@ -177,31 +207,46 @@ function isActive($url) {
                 </a>
             </li>
             <li>
-                <a href="<?= URLROOT ?>/analiticas" 
-                   class="nav-link <?= isActive('/analiticas') ?>"
-                   data-tooltip="Analíticas">
-                    <i class="ti ti-chart-dots"></i>
-                    <span class="menu-text">Analíticas</span>
+                <a href="<?= URLROOT ?>/reportes"
+                   class="nav-link <?= isActive('/reportes') ?>"
+                   data-tooltip="Reportes">
+                    <i class="ti ti-file-analytics"></i>
+                    <span class="menu-text">Reportes</span>
                 </a>
             </li>
             <?php endif; ?>
 
             <?php if ($role == 'Pasante'): ?>
-            <!-- Menú Pasante -->
             <li>
-                <a href="<?= URLROOT ?>/pasante/asistencia" 
+                <a href="<?= URLROOT ?>/pasante/asistencia"
                    class="nav-link <?= isActive('/pasante/asistencia') ?>"
                    data-tooltip="Mi Asistencia">
-                    <i class="ti ti-clock"></i>
+                    <i class="ti ti-clock-check"></i>
                     <span class="menu-text">Mi Asistencia</span>
                 </a>
             </li>
             <li>
-                <a href="<?= URLROOT ?>/analiticas" 
-                   class="nav-link <?= isActive('/analiticas') ?>"
-                   data-tooltip="Analíticas">
+                <a href="<?= URLROOT ?>/pasante/analiticas"
+                   class="nav-link <?= isActive('/pasante/analiticas') ?>"
+                   data-tooltip="Mis Analíticas">
                     <i class="ti ti-chart-dots"></i>
-                    <span class="menu-text">Analíticas</span>
+                    <span class="menu-text">Mis Analíticas</span>
+                </a>
+            </li>
+            <li>
+                <a href="<?= URLROOT ?>/pasante/misEvaluaciones"
+                   class="nav-link <?= isActive('/pasante/misEvaluaciones') ?>"
+                   data-tooltip="Mis Evaluaciones">
+                    <i class="ti ti-star"></i>
+                    <span class="menu-text">Mis Evaluaciones</span>
+                </a>
+            </li>
+            <li>
+                <a href="<?= URLROOT ?>/pasante/constancia"
+                   class="nav-link <?= isActive('/pasante/constancia') ?>"
+                   data-tooltip="Mi Constancia">
+                    <i class="ti ti-file-certificate"></i>
+                    <span class="menu-text">Mi Constancia</span>
                 </a>
             </li>
             <?php endif; ?>
@@ -215,3 +260,185 @@ function isActive($url) {
         </a>
     </div>
 </aside>
+
+<?php /* ============================================================
+   SGP MOBILE DOCK — Navegación iOS-Style (solo en móvil < 992px)
+   Reemplaza el sidebar lateral en resoluciones pequeñas.
+   ============================================================ */ ?>
+
+<!-- Overlay del Sheet "Más" -->
+<div id="sgpDockOverlay" class="sgp-dock-sheet-overlay" aria-hidden="true"></div>
+
+<!-- Sheet inferior "Más" (Bottom Drawer) -->
+<div id="sgpDockSheet" class="sgp-dock-sheet" role="dialog" aria-modal="true" aria-label="Más opciones de navegación">
+    <div class="dock-sheet-handle" aria-hidden="true"></div>
+    <div class="dock-sheet-header">
+        <h6>Más secciones</h6>
+    </div>
+    <nav class="dock-sheet-nav" aria-label="Navegación adicional">
+
+        <?php if ($role == 'Administrador'): ?>
+        <a href="<?= URLROOT ?>/asignaciones" class="dock-sheet-item" data-href="/asignaciones">
+            <span class="dock-sheet-icon"><i class="ti ti-link"></i></span>
+            <span class="dock-sheet-label">Asignaciones</span>
+        </a>
+        <a href="<?= URLROOT ?>/evaluaciones" class="dock-sheet-item" data-href="/evaluaciones">
+            <span class="dock-sheet-icon"><i class="ti ti-star"></i></span>
+            <span class="dock-sheet-label">Evaluaciones</span>
+        </a>
+        <a href="<?= URLROOT ?>/reportes" class="dock-sheet-item" data-href="/reportes">
+            <span class="dock-sheet-icon"><i class="ti ti-file-analytics"></i></span>
+            <span class="dock-sheet-label">Reportes</span>
+        </a>
+        <a href="<?= URLROOT ?>/analiticas" class="dock-sheet-item" data-href="/analiticas">
+            <span class="dock-sheet-icon"><i class="ti ti-chart-dots"></i></span>
+            <span class="dock-sheet-label">Analíticas</span>
+        </a>
+        <a href="<?= URLROOT ?>/backup" class="dock-sheet-item" data-href="/backup">
+            <span class="dock-sheet-icon"><i class="ti ti-database"></i></span>
+            <span class="dock-sheet-label">Respaldos</span>
+        </a>
+        <a href="<?= URLROOT ?>/bitacora" class="dock-sheet-item" data-href="/bitacora">
+            <span class="dock-sheet-icon"><i class="ti ti-clipboard-list"></i></span>
+            <span class="dock-sheet-label">Bitácora</span>
+        </a>
+        <a href="<?= URLROOT ?>/configuracion" class="dock-sheet-item" data-href="/configuracion">
+            <span class="dock-sheet-icon"><i class="ti ti-settings"></i></span>
+            <span class="dock-sheet-label">Configuración</span>
+        </a>
+        <a href="<?= URLROOT ?>/periodos" class="dock-sheet-item" data-href="/periodos">
+            <span class="dock-sheet-icon"><i class="ti ti-calendar-month"></i></span>
+            <span class="dock-sheet-label">Períodos</span>
+        </a>
+        <a href="<?= URLROOT ?>/actividades" class="dock-sheet-item" data-href="/actividades">
+            <span class="dock-sheet-icon"><i class="ti ti-briefcase"></i></span>
+            <span class="dock-sheet-label">Act. Extras</span>
+        </a>
+        <?php endif; ?>
+
+        <?php if ($role == 'Tutor'): ?>
+        <a href="<?= URLROOT ?>/tutor/puntualidad" class="dock-sheet-item" data-href="/tutor/puntualidad">
+            <span class="dock-sheet-icon"><i class="ti ti-clock-exclamation"></i></span>
+            <span class="dock-sheet-label">Puntualidad</span>
+        </a>
+        <a href="<?= URLROOT ?>/reportes" class="dock-sheet-item" data-href="/reportes">
+            <span class="dock-sheet-icon"><i class="ti ti-file-analytics"></i></span>
+            <span class="dock-sheet-label">Reportes</span>
+        </a>
+        <?php endif; ?>
+
+        <?php if ($role == 'Pasante'): ?>
+        <a href="<?= URLROOT ?>/pasante/analiticas" class="dock-sheet-item" data-href="/pasante/analiticas">
+            <span class="dock-sheet-icon"><i class="ti ti-chart-dots"></i></span>
+            <span class="dock-sheet-label">Mis Analíticas</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasante/misEvaluaciones" class="dock-sheet-item" data-href="/pasante/misEvaluaciones">
+            <span class="dock-sheet-icon"><i class="ti ti-star"></i></span>
+            <span class="dock-sheet-label">Mis Evaluaciones</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasante/constancia" class="dock-sheet-item" data-href="/pasante/constancia">
+            <span class="dock-sheet-icon"><i class="ti ti-file-certificate"></i></span>
+            <span class="dock-sheet-label">Mi Constancia</span>
+        </a>
+        <a href="<?= URLROOT ?>/perfil/ver" class="dock-sheet-item" data-href="/perfil">
+            <span class="dock-sheet-icon"><i class="ti ti-user-circle"></i></span>
+            <span class="dock-sheet-label">Mi Perfil</span>
+        </a>
+        <?php endif; ?>
+
+        <!-- Mi Perfil — visible para todos los roles en el sheet -->
+        <?php if ($role !== 'Pasante'): // Para pasante ya está en el dock principal ?>
+        <a href="<?= URLROOT ?>/perfil/ver" class="dock-sheet-item" data-href="/perfil/ver">
+            <span class="dock-sheet-icon"><i class="ti ti-user-circle"></i></span>
+            <span class="dock-sheet-label">Mi Perfil</span>
+        </a>
+        <?php endif; ?>
+
+    </nav>
+    <div class="dock-sheet-divider"></div>
+    <div style="padding: 4px 16px 8px;">
+        <button class="dock-sheet-logout" onclick="confirmLogout()">
+            <i class="ti ti-power"></i>
+            Cerrar Sesión
+        </button>
+    </div>
+</div>
+
+<!-- DOCK INFERIOR PRINCIPAL -->
+<nav id="sgpMobileDock" class="sgp-mobile-dock" role="navigation" aria-label="Navegación principal">
+    <div class="dock-indicator"></div>
+
+    <?php if ($role == 'Administrador'): ?>
+        <!-- ADMIN: Asistencias | Pasantes | [FAB: Inicio] | Usuarios | Más -->
+        <a href="<?= URLROOT ?>/asistencias" class="dock-item" data-href="/asistencias" title="Asistencias">
+            <i class="ti ti-calendar-stats"></i>
+            <span>Asistencia</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasantes" class="dock-item" data-href="/pasantes" title="Pasantes">
+            <i class="ti ti-users-group"></i>
+            <span>Pasantes</span>
+        </a>
+        <a href="<?= URLROOT ?>/admin" class="dock-fab-item dock-item" data-href="/admin" title="Inicio">
+            <div class="dock-fab"><i class="ti ti-home"></i></div>
+            <span>Inicio</span>
+        </a>
+        <a href="<?= URLROOT ?>/users" class="dock-item" data-href="/users" title="Usuarios">
+            <i class="ti ti-user-cog"></i>
+            <span>Usuarios</span>
+        </a>
+
+    <?php elseif ($role == 'Tutor'): ?>
+        <!-- TUTOR: Inicio | Mis Pasantes | [FAB: Asistencias] | Evaluaciones | Más -->
+        <a href="<?= URLROOT ?>/tutor" class="dock-item" data-href="/tutor" title="Inicio">
+            <i class="ti ti-home"></i>
+            <span>Inicio</span>
+        </a>
+        <a href="<?= URLROOT ?>/tutor/pasantes" class="dock-item" data-href="/tutor/pasantes" title="Mis Pasantes">
+            <i class="ti ti-users-group"></i>
+            <span>Pasantes</span>
+        </a>
+        <a href="<?= URLROOT ?>/asistencias" class="dock-item dock-fab-item" data-href="/asistencias" title="Asistencias">
+            <div class="dock-fab"><i class="ti ti-clock-check"></i></div>
+            <span>Asistencia</span>
+        </a>
+        <a href="<?= URLROOT ?>/evaluaciones" class="dock-item" data-href="/evaluaciones" title="Evaluaciones">
+            <i class="ti ti-star"></i>
+            <span>Evaluar</span>
+        </a>
+
+    <?php elseif ($role == 'Pasante'): ?>
+        <!-- PASANTE: Asistencia | Analíticas | [FAB: Inicio] | Evaluar | Más -->
+        <a href="<?= URLROOT ?>/pasante/asistencia" class="dock-item" data-href="/pasante/asistencia" title="Mi Asistencia">
+            <i class="ti ti-clock-check"></i>
+            <span>Asistencia</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasante/analiticas" class="dock-item" data-href="/pasante/analiticas" title="Mis Analíticas">
+            <i class="ti ti-chart-dots"></i>
+            <span>Analíticas</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasante/dashboard" class="dock-item dock-fab-item" data-href="/pasante/dashboard" title="Inicio">
+            <div class="dock-fab"><i class="ti ti-home"></i></div>
+            <span>Inicio</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasante/misEvaluaciones" class="dock-item" data-href="/pasante/misEvaluaciones" title="Mis Evaluaciones">
+            <i class="ti ti-star"></i>
+            <span>Evaluar</span>
+        </a>
+    <?php endif; ?>
+
+    <?php if ($role !== 'Pasante'): ?>
+    <!-- Botón "Más" para Admin y Tutor -->
+    <button id="dockMoreBtn" class="dock-item dock-more-btn" aria-label="Más opciones" aria-expanded="false" aria-controls="sgpDockSheet">
+        <i class="ti ti-dots-circle-horizontal"></i>
+        <span>Más</span>
+    </button>
+    <?php else: ?>
+    <!-- Botón "Más" para Pasante -->
+    <button id="dockMoreBtn" class="dock-item dock-more-btn" aria-label="Más opciones" aria-expanded="false" aria-controls="sgpDockSheet">
+        <i class="ti ti-dots-circle-horizontal"></i>
+        <span>Más</span>
+    </button>
+    <?php endif; ?>
+
+</nav>
+

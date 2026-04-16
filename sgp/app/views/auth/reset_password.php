@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
 </head>
 <body class="auth-wrapper">

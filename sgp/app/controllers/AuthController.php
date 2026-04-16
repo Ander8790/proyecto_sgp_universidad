@@ -32,37 +32,14 @@ class AuthController extends Controller
 
         $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 
-        // SGP-FIX-v2 [T8] Rate limiting por IP + email en BD
+        try {
+
+        // SGP-FIX-v2 [T8] Rate limiting simplificado por email
+        // Ya no penalizamos con 15 minutos de inactividad por IP.
+        // Si hay intentos, solo sirven para hacer trigger a la validación de estado.
         $ip    = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         $email = trim($_POST['email'] ?? '');
         $db    = Database::getInstance();
-
-        // 1. Verificar si la IP+email está actualmente bloqueada
-        $db->query(
-            'SELECT blocked_until FROM login_attempts
-             WHERE ip_address = :ip AND email = :email
-             LIMIT 1'
-        );
-        $db->bind(':ip',    $ip);
-        $db->bind(':email', $email);
-        $intento = $db->single();
-
-        if ($intento && !empty($intento->blocked_until) && strtotime($intento->blocked_until) > time()) {
-            $segundos = strtotime($intento->blocked_until) - time();
-            $minutos  = (int) ceil($segundos / 60);
-            $errorMsg = "Demasiados intentos fallidos. Cuenta bloqueada por {$minutos} minuto(s).";
-            
-            if ($isAjax) {
-                header('Content-Type: application/json');
-                echo json_encode([
-                    'success' => false,
-                    'message' => $errorMsg
-                ]);
-                exit;
-            }
-            $this->view('auth/login', ['error' => $errorMsg], false);
-            return;
-        }
 
         $email = Validator::email('email');
         $password = Validator::post('password');
@@ -95,37 +72,16 @@ class AuthController extends Controller
 
             // SGP-FIX-v2 [T8] Registrar intento fallido
             $db->query(
-                'INSERT INTO login_attempts (ip_address, email, attempts, last_attempt)
+                'INSERT INTO intentos_acceso (direccion_ip, correo, intentos, ultimo_intento)
                  VALUES (:ip, :email, 1, NOW())
                  ON DUPLICATE KEY UPDATE
-                     attempts     = attempts + 1,
-                     last_attempt = NOW()'
+                     intentos       = intentos + 1,
+                     ultimo_intento = NOW()'
             );
             $db->bind(':ip',    $ip);
             $db->bind(':email', $email);
             $db->execute();
 
-            // Bloquear si alcanza 5 intentos consecutivos
-            $db->query(
-                'SELECT attempts FROM login_attempts
-                 WHERE ip_address = :ip AND email = :email
-                 LIMIT 1'
-            );
-            $db->bind(':ip',    $ip);
-            $db->bind(':email', $email);
-            $fila = $db->single();
-
-            if ($fila && (int)$fila->attempts >= 5) {
-                $db->query(
-                    'UPDATE login_attempts
-                     SET blocked_until = DATE_ADD(NOW(), INTERVAL 15 MINUTE)
-                     WHERE ip_address = :ip AND email = :email'
-                );
-                $db->bind(':ip',    $ip);
-                $db->bind(':email', $email);
-                $db->execute();
-            }
-            
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $errorMsg]);
@@ -143,35 +99,34 @@ class AuthController extends Controller
 
             // SGP-FIX-v2 [T8] Registrar intento fallido
             $db->query(
-                'INSERT INTO login_attempts (ip_address, email, attempts, last_attempt)
+                'INSERT INTO intentos_acceso (direccion_ip, correo, intentos, ultimo_intento)
                  VALUES (:ip, :email, 1, NOW())
                  ON DUPLICATE KEY UPDATE
-                     attempts     = attempts + 1,
-                     last_attempt = NOW()'
+                     intentos       = intentos + 1,
+                     ultimo_intento = NOW()'
             );
             $db->bind(':ip',    $ip);
             $db->bind(':email', $email);
             $db->execute();
 
-            // Bloquear si alcanza 5 intentos consecutivos
+            // SGP Hard Lock: Bloquear si alcanza 5 intentos consecutivos (cuenta existente)
             $db->query(
-                'SELECT attempts FROM login_attempts
-                 WHERE ip_address = :ip AND email = :email
+                'SELECT intentos FROM intentos_acceso
+                 WHERE direccion_ip = :ip AND correo = :email
                  LIMIT 1'
             );
             $db->bind(':ip',    $ip);
             $db->bind(':email', $email);
             $fila = $db->single();
 
-            if ($fila && (int)$fila->attempts >= 5) {
-                $db->query(
-                    'UPDATE login_attempts
-                     SET blocked_until = DATE_ADD(NOW(), INTERVAL 15 MINUTE)
-                     WHERE ip_address = :ip AND email = :email'
-                );
-                $db->bind(':ip',    $ip);
-                $db->bind(':email', $email);
+            if ($fila && (int)$fila->intentos >= 5) {
+                // Hard Lock: Cambia el estado del usuario permanentemente hasta el reset.
+                $db->query("UPDATE usuarios SET estado = 'bloqueado' WHERE id = :id_usuario");
+                $db->bind(':id_usuario', $user['id']);
                 $db->execute();
+                
+                // Actualizar la variable local de usuario para el flujo posterior.
+                $user['estado'] = 'bloqueado';
             }
             
             if ($isAjax) {
@@ -185,6 +140,21 @@ class AuthController extends Controller
         }
 
         // 3. Verificar si la cuenta está activa (Estado Auditoría Nivel Crítico)
+        if (($user['estado'] ?? 'activo') === 'bloqueado') {
+            $errorMsg = 'Tu cuenta ha sido bloqueada por seguridad tras múltiples intentos fallidos.<br><br><a href="' . URLROOT . '/auth/recovery" style="color:#ffffff; font-weight:bold; text-decoration:underline;">➜ Recuperar mi cuenta ahora</a>';
+            
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $errorMsg]);
+                exit;
+            }
+            
+            // Pasamos raw_html = true por si el sistema lo renderiza
+            Session::setFlash('login_error', $errorMsg);
+            $this->view('auth/login', [], false);
+            return;
+        }
+        
         if (($user['estado'] ?? 'activo') === 'inactivo') {
             $errorMsg = 'Esta cuenta ha sido desactivada. Contacte al administrador.';
             
@@ -202,8 +172,8 @@ class AuthController extends Controller
         // ✨ LOGIN EXITOSO: Reset contador de intentos
         // SGP-FIX-v2 [T8] Limpiar intentos fallidos tras login exitoso
         $db->query(
-            'DELETE FROM login_attempts
-             WHERE ip_address = :ip AND email = :email'
+            'DELETE FROM intentos_acceso
+             WHERE direccion_ip = :ip AND correo = :email'
         );
         $db->bind(':ip',    $ip);
         $db->bind(':email', $email);
@@ -220,6 +190,7 @@ class AuthController extends Controller
 
         Session::set('requiere_cambio_clave', $user['requiere_cambio_clave'] ?? 0);
         Session::set('departamento_id', $user['departamento_id'] ?? null);
+        Session::set('user_avatar', $user['avatar'] ?? 'default.png');
         Session::set('last_activity', time());
 
         // Verificar si el perfil está completo
@@ -258,6 +229,18 @@ class AuthController extends Controller
         Session::setFlash('success', '¡Bienvenido, ' . $fullName . '!');
 
         $this->redirectByRole($user['role_id']);
+
+        } catch (\Throwable $e) {
+            error_log('[SGP-AUTH] login() DB error: ' . $e->getMessage());
+            $genericMsg = 'Error cargando el sistema. Intente de nuevo.';
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $genericMsg]);
+                exit;
+            }
+            $this->view('auth/login', ['error' => $genericMsg], false);
+            return;
+        }
     }
 
     /**
@@ -284,7 +267,7 @@ class AuthController extends Controller
 
         // Fallback: Datos de prueba si la BD está vacía
         if (empty($preguntas)) {
-            error_log("⚠️ ADVERTENCIA: No se encontraron preguntas en la BD. Usando datos de prueba.");
+            error_log('[SGP-AUTH] [WARN] No se encontraron preguntas en la BD. Usando datos de prueba.');
             $preguntas = [
                 ['id' => 1, 'pregunta' => '🔧 PRUEBA: ¿Nombre de tu primera mascota?'],
                 ['id' => 2, 'pregunta' => '🔧 PRUEBA: ¿Ciudad donde naciste?'],
@@ -430,16 +413,29 @@ class AuthController extends Controller
             header('Location: ' . URLROOT . '/auth/login?status=success');
             exit();
             
-        } catch (Exception $e) {
+        } catch (\Throwable $e) {
             // ============================================
             // ROLLBACK: REVERTIR TODO (ACID)
             // ============================================
             $userModel->rollBack();
-            
-            // Mostrar vista con error Y CON LAS PREGUNTAS
+            error_log('[SGP-AUTH] register() error: ' . $e->getMessage());
+
+            // Mensajes explícitos de validación se muestran al usuario.
+            // Errores internos (PDOException, etc.) muestran mensaje genérico.
+            $mensajesValidacion = [
+                'El correo ya existe',
+                'La cédula ya está registrada',
+                'Debes seleccionar 3 preguntas diferentes',
+                'Las respuestas de seguridad deben ser diferentes',
+                'Las respuestas deben tener al menos 3 caracteres',
+            ];
+            $errorMsg = in_array($e->getMessage(), $mensajesValidacion)
+                ? $e->getMessage()
+                : 'Error al procesar el registro. Intente de nuevo.';
+
             $this->view('auth/register', [
                 'questions' => $preguntas,
-                'error' => $e->getMessage()
+                'error' => $errorMsg
             ], false);
         }
     }
@@ -536,7 +532,7 @@ class AuthController extends Controller
                 Session::set('rec_token_expires', time() + 900); // 15 min para cambiar contraseña
                 $this->view('auth/reset_password', [], false);
             } else {
-                $this->view('auth/recovery_questions', ['questions' => $userAnswers, 'error' => 'Respuestas incorrectas'], false);
+                $this->view('auth/recovery_questions', ['questions' => $userAnswers, 'error' => 'Las respuestas de seguridad no coinciden. Verifíquelas e intente nuevamente.'], false);
             }
         }
 
@@ -555,6 +551,17 @@ class AuthController extends Controller
             }
 
             $pass = Validator::post('password');
+
+            // 🔒 Bloquear contraseña temporal como contraseña permanente
+            $userRec = $this->model('User')->findById($uid);
+            $cedula  = $userRec['cedula'] ?? '';
+            if (!empty($cedula) && $pass === 'Sgp.' . $cedula) {
+                $this->view('auth/reset_password', [
+                    'error' => 'No puedes usar tu contraseña temporal como nueva contraseña. Elige una contraseña personalizada.'
+                ], false);
+                return;
+            }
+
             $this->model('User')->updatePassword($uid, $pass);
 
             // Limpiar SOLO las variables de recovery, no destruir sesión entera
@@ -638,7 +645,20 @@ class AuthController extends Controller
             $this->view('auth/cambiar_password', ['error' => 'Las contraseñas no coinciden'], false);
             return;
         }
-        
+
+        // 🔒 Bloquear contraseña temporal como contraseña permanente
+        $cedula = $user['cedula'] ?? '';
+        if (!empty($cedula) && $newPassword === 'Sgp.' . $cedula) {
+            $errorMsg = 'No puedes usar tu contraseña temporal como contraseña permanente. Elige una contraseña personalizada.';
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $errorMsg]);
+                exit;
+            }
+            $this->view('auth/cambiar_password', ['error' => $errorMsg], false);
+            return;
+        }
+
         // Update password and clear flag
         if ($userModel->updatePassword($userId, $newPassword)) {
             Session::set('requiere_cambio_clave', 0);
@@ -698,6 +718,8 @@ class AuthController extends Controller
         // Aplicar cache control para prevenir botón atrás
         CacheControl::noCache();
         
+        $razon = $_GET['razon'] ?? '';
+        
         Session::start();
         
         // Registrar logout en bitácora
@@ -717,9 +739,15 @@ class AuthController extends Controller
         
         // Redirigir al login con mensaje
         Session::start(); // Reiniciar para el flash message
-        Session::setFlash('success', 'Sesión cerrada correctamente');
         
-        $this->redirect('/auth/login');
+        if ($razon === 'inactividad') {
+            Session::setFlash('inactividad', 'Tu sesión ha concluido automáticamente debido un tiempo prolongado de inactividad.');
+            session_write_close(); // Garantizar que el flash quede escrito antes del redirect
+            $this->redirect('/auth/login?razon=inactividad');
+        } else {
+            Session::setFlash('success', 'Sesión cerrada correctamente');
+            $this->redirect('/auth/login');
+        }
     }
 
     /**
@@ -815,71 +843,136 @@ class AuthController extends Controller
     }
 
     /**
-     * Solicitar ayuda al administrador para reseteo de credenciales (AJAX)
+     * Solicitar ayuda al administrador cuando el usuario olvida sus respuestas de seguridad (AJAX).
+     *
+     * FLUJO:
+     * 1. Validar que es una petición AJAX con email válido en sesión de recovery.
+     * 2. Rate-limit: 1 solicitud cada 24 h por usuario para evitar spam.
+     * 3. Obtener nombre + cédula del usuario desde datos_personales (JOIN).
+     * 4. Consultar TODOS los admins activos (role_id = 1).
+     * 5. Crear notificación tipo 'warning' para cada admin vía NotificationModel.
+     * 6. Devolver JSON de éxito/error al frontend.
      */
-    public function request_help() {
+    public function requestHelp(): void
+    {
         Session::start();
-        
-        // Verificar AJAX
-        if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || 
-            $_SERVER['HTTP_X_REQUESTED_WITH'] !== 'XMLHttpRequest') {
+
+        // ── Validar petición AJAX ─────────────────────────────────────────────
+        $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH'])
+                  && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
+
+        if (!$isAjax) {
             $this->redirect('/auth/login');
             return;
         }
-        
+
         header('Content-Type: application/json');
-        
+
         try {
-            $data = json_decode(file_get_contents('php://input'), true);
+            // ── Leer y validar el email del body JSON ─────────────────────────
+            $raw   = file_get_contents('php://input');
+            $data  = json_decode($raw, true);
             $email = trim($data['email'] ?? '');
-            
-            if (empty($email)) {
-                echo json_encode(['success' => false, 'message' => 'Email requerido']);
-                return;
-            }
-            
-            $db = Database::getInstance(); // SGP-FIX-v2 [6] aplicado
 
-            // Buscar usuario
-            $db->query("SELECT u.id, dp.nombres, dp.apellidos FROM usuarios u LEFT JOIN datos_personales dp ON dp.usuario_id = u.id WHERE u.correo = :email");
+            if (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                echo json_encode(['success' => false, 'message' => 'Correo inválido o no proporcionado.']);
+                exit;
+            }
+
+            $db = Database::getInstance();
+
+            // ── Obtener usuario con nombre y cédula (cedula está en `usuarios`, no en datos_personales) ──
+            $db->query("
+                SELECT u.id,
+                       u.correo,
+                       u.cedula,
+                       dp.nombres,
+                       dp.apellidos
+                FROM   usuarios u
+                LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
+                WHERE  u.correo = :email
+                LIMIT 1
+            ");
             $db->bind(':email', $email);
-            $user = $db->single();
-            
-            if (!$user) {
-                echo json_encode(['success' => false, 'message' => 'Usuario no encontrado']);
-                return;
-            }
-            
-            // Crear notificación para administradores
-            require_once APPROOT . '/models/NotificationModel.php';
-            $notificationModel = new NotificationModel($db);
-            $nombreC = trim(($user->nombres ?? 'Usuario') . ' ' . ($user->apellidos ?? ''));
+            $usuario = $db->single();
 
-            $db->query("SELECT id FROM usuarios WHERE rol_id = 1 AND estado = 'activo'");
+            if (!$usuario) {
+                echo json_encode(['success' => false, 'message' => 'Usuario no encontrado en el sistema.']);
+                exit;
+            }
+
+            $userId    = (int) $usuario->id;
+            $nombreC   = trim(($usuario->nombres ?? 'Usuario') . ' ' . ($usuario->apellidos ?? ''));
+            $cedulaC   = $usuario->cedula ?? 'N/D';
+
+            // ── Rate-limit: máximo 1 solicitud por usuario en las últimas 24h ─
+            $db->query("
+                SELECT COUNT(*) AS total
+                FROM   notificaciones
+                WHERE  tipo    = 'warning'
+                  AND  titulo  = 'Asistencia de Seguridad Requerida'
+                  AND  mensaje LIKE :patron
+                  AND  created_at >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ");
+            $db->bind(':patron', '%' . $cedulaC . '%');
+            $check = $db->single();
+
+            if ($check && (int)$check->total > 0) {
+                echo json_encode([
+                    'success' => false,
+                    'message' => 'Ya tienes una solicitud pendiente. El administrador la revisará pronto.'
+                ]);
+                exit;
+            }
+
+            // ── Obtener TODOS los administradores activos (rol_id = 1) ────────
+            $db->query("
+                SELECT id
+                FROM   usuarios
+                WHERE  rol_id = 1
+                  AND  estado  = 'activo'
+            ");
             $admins = $db->resultSet();
 
-            foreach ($admins as $admin) {
-                $notificationModel->create(
-                    $admin->id, 
-                    'solicitud_recovery', 
-                    'Solicitud de Recuperación',
-                    "El usuario {$nombreC} ({$email}) ha solicitado ayuda para recuperar su acceso al sistema.",
-                    URLROOT . '/users'
-                );
+            if (empty($admins)) {
+                // Sin admins activos: registrar en log pero responder éxito al usuario
+                error_log('[SGP-AUTH][requestHelp] No se encontraron administradores activos para notificar.');
+                echo json_encode([
+                    'success' => true,
+                    'message' => 'Solicitud registrada. Un administrador te contactará pronto.'
+                ]);
+                exit;
             }
-            
+
+            // ── Instanciar NotificationModel y disparar evento por cada admin ─
+            require_once APPROOT . '/models/NotificationModel.php';
+            $notifModel = new NotificationModel($db);
+
+            $titulo  = 'Asistencia de Seguridad Requerida';
+            $mensaje = "El usuario {$nombreC} (Cédula: {$cedulaC}) ha olvidado sus respuestas "
+                     . "de seguridad y solicita asistencia para restablecer su acceso. "
+                     . "Correo: {$email}.";
+            $url     = URLROOT . '/users';
+
+            foreach ($admins as $admin) {
+                $notifModel->create((int) $admin->id, 'warning', $titulo, $mensaje, $url);
+            }
+
             echo json_encode([
                 'success' => true,
-                'message' => 'Solicitud enviada correctamente'
+                'message' => 'Solicitud enviada correctamente.'
             ]);
-            
-        } catch (Exception $e) {
-            error_log("Error en request_help: " . $e->getMessage());
+
+        } catch (\Throwable $e) {
+            // Exponer el error real para diagnóstico (en producción considerar mensaje genérico)
+            error_log('[SGP-AUTH][requestHelp] Error: ' . $e->getMessage());
             echo json_encode([
                 'success' => false,
-                'message' => 'Error al procesar solicitud'
+                'message' => 'Error interno: ' . $e->getMessage()
             ]);
         }
+
+        exit;
     }
 
     protected function redirectByRole($roleId) {

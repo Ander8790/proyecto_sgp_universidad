@@ -77,20 +77,21 @@ class UserModel
          * BIEN: prepare() + bind() (lo que hacemos aquí)
          */
         $this->db->query("
-            SELECT 
-                u.id, 
-                u.correo, 
-                u.password, 
-                u.rol_id as role_id, 
+            SELECT
+                u.id,
+                u.correo,
+                u.password,
+                u.rol_id as role_id,
                 u.requiere_cambio_clave,
                 u.departamento_id,
                 u.estado,
+                u.avatar,
                 dp.nombres,
                 dp.apellidos,
                 COALESCE(CONCAT(dp.nombres, ' ', dp.apellidos), u.correo) as name
             FROM usuarios u
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
-            WHERE u.correo = :email 
+            WHERE u.correo = :email
             LIMIT 1
         ");
         
@@ -262,17 +263,22 @@ class UserModel
      */
     public function getSecurityQuestions(): array
     {
-        /**
-         * Query SIN LIMIT para traer todas las preguntas
-         * 
-         * ANTES: ORDER BY RAND() LIMIT 3 (aleatorio, solo 3)
-         * AHORA: ORDER BY id ASC (todas, ordenadas)
-         */
-        $this->db->query("SELECT * FROM preguntas_seguridad WHERE activa = 1 ORDER BY id ASC");
-        $results = $this->db->resultSet();
-        
-        // Devolver objetos PDO directamente (la vista espera objetos)
-        return $results ?: [];
+        try {
+            /**
+             * Query SIN LIMIT para traer todas las preguntas
+             * 
+             * ANTES: ORDER BY RAND() LIMIT 3 (aleatorio, solo 3)
+             * AHORA: ORDER BY id ASC (todas, ordenadas)
+             */
+            $this->db->query("SELECT * FROM preguntas_seguridad WHERE activa = 1 ORDER BY id ASC");
+            $results = $this->db->resultSet();
+            
+            // Devolver objetos PDO directamente (la vista espera objetos)
+            return $results ?: [];
+        } catch (\Throwable $e) {
+            error_log('[SGP] getSecurityQuestions falló: ' . $e->getMessage());
+            return [];
+        }
     }
 
     /**
@@ -365,7 +371,20 @@ class UserModel
      */
     public function updatePassword(int $userId, string $newPassword): bool
     {
-        $this->db->query("UPDATE usuarios SET password = :pass, requiere_cambio_clave = 0 WHERE id = :uid");
+        // SGP Hard Lock: Limpiar intentos fallidos previos
+        // FIX [Collation Err]: Consultar el correo primero en vez de SUB-QUERY
+        $this->db->query("SELECT correo FROM usuarios WHERE id = :uid");
+        $this->db->bind(':uid', $userId);
+        $uInfo = $this->db->single();
+        
+        if ($uInfo && !empty($uInfo->correo)) {
+            $this->db->query("DELETE FROM intentos_acceso WHERE correo = :correo");
+            $this->db->bind(':correo', $uInfo->correo);
+            $this->db->execute();
+        }
+
+        // Actualizar password y forzar estado activo (Auto-Recuperación)
+        $this->db->query("UPDATE usuarios SET password = :pass, requiere_cambio_clave = 0, estado = 'activo' WHERE id = :uid");
         $this->db->bind(':pass', password_hash($newPassword, PASSWORD_DEFAULT));
         $this->db->bind(':uid', $userId);
         return $this->db->execute();
@@ -617,14 +636,17 @@ class UserModel
     {
         $tempPassword = $this->generateTempPassword($data['cedula']);
         
+        $deptoId = !empty($data['departamento_id']) ? (int)$data['departamento_id'] : null;
+
         $this->db->query("
-            INSERT INTO usuarios (correo, password, rol_id, cedula, estado, requiere_cambio_clave) 
-            VALUES (:email, :pass, :role, :cedula, 'activo', 1)
+            INSERT INTO usuarios (correo, password, rol_id, cedula, departamento_id, estado, requiere_cambio_clave)
+            VALUES (:email, :pass, :role, :cedula, :depto, 'activo', 1)
         ");
         $this->db->bind(':email',  $data['correo']);
         $this->db->bind(':pass',   password_hash($tempPassword, PASSWORD_DEFAULT));
         $this->db->bind(':role',   $data['rol_id']);
         $this->db->bind(':cedula', $data['cedula']);
+        $this->db->bind(':depto',  $deptoId);
         
         return $this->db->execute();
     }
@@ -647,9 +669,21 @@ class UserModel
     {
         $tempPassword = $this->generateTempPassword($cedula);
         
+        // SGP Hard Lock: Limpieza manual de intentos ordenado por el Admin
+        // FIX [Collation Err]: Extraer correo primero para prevenir "Illegal mix of collations"
+        $this->db->query("SELECT correo FROM usuarios WHERE id = :uid");
+        $this->db->bind(':uid', $userId);
+        $uInfo = $this->db->single();
+        
+        if ($uInfo && !empty($uInfo->correo)) {
+            $this->db->query("DELETE FROM intentos_acceso WHERE correo = :correo");
+            $this->db->bind(':correo', $uInfo->correo);
+            $this->db->execute();
+        }
+        
         $this->db->query("
             UPDATE usuarios 
-            SET password = :pass, requiere_cambio_clave = 1 
+            SET password = :pass, requiere_cambio_clave = 1, estado = 'activo'
             WHERE id = :uid
         ");
         $this->db->bind(':pass', password_hash($tempPassword, PASSWORD_DEFAULT));
@@ -856,7 +890,22 @@ class UserModel
                 dp.cargo,
                 r.nombre AS rol_nombre,
                 d.nombre AS departamento,
-                dpas.institucion_procedencia AS institucion,
+                COALESCE(
+                    NULLIF(TRIM(
+                        CASE
+                            WHEN dpas.institucion_procedencia REGEXP '^[0-9]+$'
+                                 AND inst.nombre IS NOT NULL
+                                THEN inst.nombre
+                            ELSE dpas.institucion_procedencia
+                        END
+                    ), ''),
+                    'Sin especificar'
+                ) AS institucion,
+                inst.representante_nombre   AS inst_rep_nombre,
+                inst.representante_cargo    AS inst_rep_cargo,
+                inst.representante_correo   AS inst_rep_correo,
+                inst.representante_telefono AS inst_rep_telefono,
+                u.avatar,
                 COALESCE(dpas.horas_meta, 240) AS horas_requeridas,
                 dpas.fecha_inicio_pasantia AS fecha_inicio,
                 dpas.fecha_fin_estimada AS fecha_fin,
@@ -870,6 +919,9 @@ class UserModel
             LEFT JOIN roles r ON u.rol_id = r.id
             LEFT JOIN departamentos d ON u.departamento_id = d.id
             LEFT JOIN datos_pasante dpas ON u.id = dpas.usuario_id
+            LEFT JOIN instituciones inst
+                       ON dpas.institucion_procedencia REGEXP '^[0-9]+$'
+                      AND inst.id = CAST(dpas.institucion_procedencia AS UNSIGNED)
             LEFT JOIN datos_personales tutor_dp ON dpas.tutor_id = tutor_dp.usuario_id
             LEFT JOIN asignaciones asig ON u.id = asig.pasante_id AND asig.estado = 'activo'
             LEFT JOIN datos_personales tutor_asig_dp ON asig.tutor_id = tutor_asig_dp.usuario_id

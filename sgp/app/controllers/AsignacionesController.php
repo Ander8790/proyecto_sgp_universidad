@@ -60,6 +60,10 @@ class AsignacionesController extends Controller
         ");
         $tutores = $this->db->resultSet();
 
+        // Periodos académicos para el select del modal (Se filtran los que ya están Cerrados)
+        $this->db->query("SELECT id, nombre, estado FROM periodos_academicos WHERE LOWER(estado) IN ('activo', 'planificado') ORDER BY fecha_inicio DESC");
+        $periodos = $this->db->resultSet();
+
         // KPIs
         $activos    = count(array_filter($asignaciones, fn($a) => $a->estado_pasantia === 'Activo'));
         $pendientes = count(array_filter($asignaciones, fn($a) => in_array($a->estado_pasantia, ['Pendiente','Sin Asignar'])));
@@ -70,6 +74,7 @@ class AsignacionesController extends Controller
             'asignaciones' => $asignaciones,
             'departamentos'=> $departamentos,
             'tutores'      => $tutores,
+            'periodos'     => $periodos,
             'activos'      => $activos,
             'pendientes'   => $pendientes,
             'sinAsignar'   => $sinAsignar,
@@ -96,9 +101,10 @@ class AsignacionesController extends Controller
         $horasMeta      = (int)($_POST['horas_meta']      ?? 1440);
         $fechaInicio    = trim($_POST['fecha_inicio']     ?? '');
         $observaciones  = trim($_POST['observaciones']    ?? '');
+        $periodoId      = (int)($_POST['periodo_id']      ?? 0);
 
-        if (!$pasanteId || !$departamentoId || !$fechaInicio) {
-            echo json_encode(['success' => false, 'message' => 'Pasante, departamento y fecha de inicio son obligatorios.']);
+        if (!$pasanteId || !$departamentoId || !$fechaInicio || !$periodoId) {
+            echo json_encode(['success' => false, 'message' => 'Pasante, departamento, periodo y fecha de inicio son obligatorios.']);
             exit;
         }
 
@@ -122,7 +128,7 @@ class AsignacionesController extends Controller
         $tutorIdVal = $tutorId > 0 ? $tutorId : null;
         $autoRellenar = isset($_POST['auto_rellenar']) && $_POST['auto_rellenar'] == '1';
 
-        if ($this->asignacionModel->guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin, $observaciones)) {
+        if ($this->asignacionModel->guardar($pasanteId, $departamentoId, $tutorIdVal, $horasMeta, $fechaInicio, $fechaFin, $observaciones, $periodoId)) {
             
             // -------------------------------------------------------------
             // FASE 1: AUTO-RELLENADO PARA PASANTES TARDÍOS
@@ -174,7 +180,7 @@ class AsignacionesController extends Controller
             
             $notificationModel->create(
                 $pasanteId,
-                'asignacion_nueva',
+                'info',
                 'Nueva Asignación de Pasantía',
                 "Has sido asignado a {$deptNombre}. Fecha de inicio: " . date('d/m/Y', strtotime($fechaInicio)) . ".",
                 URLROOT . '/perfil'

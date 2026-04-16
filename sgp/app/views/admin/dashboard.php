@@ -7,6 +7,10 @@ $pendientesAsignar  = $data['pendientesAsignar']  ?? 0;
 $asistenciasHoy     = $data['asistenciasHoy']     ?? 0;
 $faltasHoy          = $data['faltasHoy']          ?? 0;
 $actividadReciente  = $data['actividadReciente']  ?? [];
+$alertas_pendientes = $data['alertas_pendientes'] ?? [];
+$departamentos      = $data['departamentos']      ?? [];
+$tutores            = $data['tutores']            ?? [];
+$periodos           = $data['periodos']           ?? [];
 ?>
 
 <style>
@@ -64,12 +68,25 @@ $actividadReciente  = $data['actividadReciente']  ?? [];
 .gauge-legend.active { display: flex; }
 .gauge-legend-chip { display: flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: #f8fafc; border: 1px solid #e2e8f0; color: #475569; }
 .gauge-legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* === MÓVIL (SGP Bento Mobile) === */
+@media (max-width: 991px) {
+    .admin-banner {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        padding: 24px 20px !important;
+        gap: 20px !important;
+    }
+    .admin-banner > div:first-child { 
+        display: none !important; /* Ocultar círculo decorativo */
+    }
+}
 </style>
 
 <div class="dashboard-bento">
     
     <!-- BANNER ESTANDARIZADO SGP -->
-    <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;">
+    <div class="admin-banner" style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;">
         <div style="position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:rgba(255,255,255,0.05);border-radius:50%;"></div>
         <div style="display:flex;align-items:center;gap:16px;z-index:1;">
             <div style="background:rgba(255,255,255,0.15);border-radius:14px;padding:14px;">
@@ -417,8 +434,10 @@ document.addEventListener("DOMContentLoaded", function () {
         const now = new Date();
         const dateStr = now.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         const timeStr = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
-        document.getElementById('currentDate').textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
-        document.getElementById('currentTime').textContent = timeStr.toUpperCase();
+        const d = document.getElementById('currentDate');
+        const t = document.getElementById('currentTime');
+        if (d) d.textContent = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
+        if (t) t.textContent = timeStr.toUpperCase();
     }
     updateDateTime(); setInterval(updateDateTime, 1000);
 

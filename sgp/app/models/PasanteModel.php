@@ -61,8 +61,10 @@ class PasanteModel
      *
      * @return array Lista de pasantes como objetos stdClass
      */
-    public function getAll(): array
+    public function getAll(int $periodoId = 0): array
     {
+        $periodoWhere = $periodoId > 0 ? 'AND (dpa.periodo_id = :periodo_id OR dpa.periodo_id IS NULL)' : '';
+
         $this->db->query("
             SELECT
                 u.id,
@@ -83,7 +85,9 @@ class PasanteModel
                 dpa.institucion_procedencia,
                 u.created_at                                             AS fecha_registro,
                 d.nombre                                                 AS departamento_nombre,
-                dpa.institucion_procedencia                              AS institucion_nombre,
+                COALESCE(inst.nombre, dpa.institucion_procedencia)       AS institucion_nombre,
+                inst.representante_nombre                                AS institucion_representante,
+                pa.nombre                                                AS periodo_nombre,
                 CASE
                     WHEN COALESCE(dpa.horas_meta, 1440) > 0
                     THEN ROUND(
@@ -95,11 +99,17 @@ class PasanteModel
             LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
-            WHERE u.rol_id = 3
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
+            WHERE u.rol_id = 3 {$periodoWhere}
             ORDER BY
                 FIELD(COALESCE(dpa.estado_pasantia, 'Sin Asignar'), 'Sin Asignar', 'Activo', 'Finalizado'),
                 IFNULL(dp.apellidos, u.correo) ASC
         ");
+
+        if ($periodoId > 0) {
+            $this->db->bind(':periodo_id', $periodoId);
+        }
 
         return $this->db->resultSet();
     }
@@ -133,7 +143,9 @@ class PasanteModel
                 dpa.institucion_procedencia,
                 u.created_at  AS fecha_registro,
                 d.nombre      AS departamento_nombre,
-                dpa.institucion_procedencia AS institucion_nombre,
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_nombre,
+                inst.representante_nombre AS institucion_representante,
+                pa.nombre AS periodo_nombre,
                 CASE
                     WHEN COALESCE(dpa.horas_meta, 1440) > 0
                     THEN ROUND(
@@ -145,6 +157,8 @@ class PasanteModel
             LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
             WHERE u.id = :uid AND u.rol_id = 3
             LIMIT 1
         ");

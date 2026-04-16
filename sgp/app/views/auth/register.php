@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/choices/choices.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/choices-sgp.css">
@@ -25,7 +26,7 @@
          * Definir constante URLROOT para uso en JavaScript
          * Necesario para notifications.js y otros scripts del sistema
          */
-        const URLROOT = '<?php echo URLROOT; ?>';
+        const URLROOT = <?php echo json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>; // [FIX-C3]
     </script>
     
     <!-- JAVASCRIPT EN HEAD - FUNCIONES ESPECÍFICAS DEL REGISTRO -->

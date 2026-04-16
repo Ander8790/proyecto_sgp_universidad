@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notifications.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/captcha.css">
@@ -22,15 +23,29 @@
          * Definir constante URLROOT para uso en JavaScript
          * Necesario para notifications.js y otros scripts del sistema
          */
-        const URLROOT = '<?php echo URLROOT; ?>';
+        const URLROOT = <?php echo json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>; // [FIX-C3]
     </script>
 </head>
 <body class="auth-wrapper">
-    <!-- ===== BOTÓN KIOSCO - TOP RIGHT ===== -->
+    <!-- ===== BOTÓN KIOSCO - TOP RIGHT (solo si está activo) ===== -->
+    <?php
+    $kioscoHabilitado = 1;
+    try {
+        $dbCfg = Database::getInstance();
+        $dbCfg->query("SELECT valor FROM configuracion WHERE clave = 'kiosco_activo' LIMIT 1");
+        $cfgRow = $dbCfg->single();
+        if ($cfgRow) $kioscoHabilitado = (int)$cfgRow->valor;
+    } catch (Exception $e) { /* asumir activo si no existe tabla */ }
+    ?>
+    <?php if ($kioscoHabilitado): ?>
     <a href="<?= URLROOT ?>/kiosco" class="kiosco-pill" target="_blank" rel="noopener noreferrer">
         <i class="ti ti-clock-check"></i>
-        <span>Marcar Asistencia</span>
+        <span class="kiosco-text">
+            <span>Marcar Asistencia</span>
+            <span class="kiosco-label-sub">Acceso al Kiosco Público</span>
+        </span>
     </a>
+    <?php endif; ?>
 
     <style>
     .kiosco-pill {
@@ -59,18 +74,21 @@
         color: white !important;
         text-decoration: none;
     }
-    /* Móvil: flujo normal, centrado */
+    /* Móvil: manejado por style.css (.kiosco-pill mobile) */
     @media (max-width: 768px) {
-        .kiosco-pill {
-            position: relative;
-            top: 0;
-            right: 0;
-            margin: 16px auto 0;
-            display: inline-flex;
-            font-size: 0.95rem;
-            padding: 12px 22px;
+        .kiosco-pill .kiosco-label-sub {
+            display: block;
         }
     }
+    .kiosco-label-sub {
+        display: none;
+        font-size: 0.75rem;
+        font-weight: 500;
+        opacity: 0.85;
+        margin-top: 1px;
+    }
+    /* Wrapper para texto multi-línea en móvil */
+    .kiosco-text { display: flex; flex-direction: column; }
     </style>
 
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
@@ -110,9 +128,9 @@
                 <label class="captcha-label">Código de Verificación</label>
                 <div class="captcha-container">
                     <div class="captcha-display">
-                        <img src="<?= URLROOT ?>/captcha/generate" 
-                             alt="CAPTCHA" 
-                             class="captcha-image" 
+                        <img src="<?= URLROOT ?>/captcha/generate?v=<?= time() ?>"
+                             alt="CAPTCHA"
+                             class="captcha-image"
                              id="captchaImage">
                     </div>
                     <button type="button" 
@@ -207,6 +225,9 @@
             }
         }
         
+        // Auto-renovación del CAPTCHA cada 4 min (CAPTCHA expira en 5 min en sesión)
+        setInterval(function() { refreshCaptcha(false); }, 240000);
+
         // Validación en tiempo real de email
         const emailInput = document.getElementById('email');
         emailInput.addEventListener('blur', function() {
@@ -335,6 +356,57 @@
         // Mostrar errores específicos (correo no existe, contraseña incorrecta)
         <?php if (Session::hasFlash('login_error')): ?>
             NotificationService.error('<?= addslashes(Session::getFlash('login_error')) ?>');
+        <?php endif; ?>
+
+        // ============================================
+        // ALERTA: INACTIVIDAD (Con recarga para Captcha)
+        // ============================================
+        <?php
+        // Detectar inactividad por flash (Ruta A: logout JS) O por URL param
+        // (Ruta B: checkInactivity server-side, Ruta C: PJAX 401 handler)
+        $mostrarInactividad = Session::hasFlash('inactividad')
+            || (($_GET['razon'] ?? '') === 'inactividad');
+        ?>
+        <?php if ($mostrarInactividad): ?>
+            Swal.fire({
+                icon: 'info',
+                title: 'Sesión Finalizada',
+                html: [
+                    '<div style="text-align:center;padding:4px 0 8px;">',
+                    '<div style="display:inline-flex;align-items:center;justify-content:center;',
+                    'width:56px;height:56px;border-radius:50%;',
+                    'background:linear-gradient(135deg,#dbeafe,#bfdbfe);margin-bottom:14px;">',
+                    '<i class="ti ti-clock-off" style="font-size:1.7rem;color:#2563eb;"></i>',
+                    '</div>',
+                    '<p style="color:#64748b;font-size:0.9rem;line-height:1.6;margin:0;">',
+                    'Tu sesión fue cerrada automáticamente<br>',
+                    '<strong style="color:#1e293b;">por inactividad prolongada</strong><br>',
+                    '<span style="font-size:0.8rem;color:#94a3b8;margin-top:6px;display:block;">',
+                    'Tus datos están protegidos. Puedes volver a iniciar sesión.',
+                    '</span>',
+                    '</p>',
+                    '</div>'
+                ].join(''),
+                confirmButtonColor: '#1d4ed8',
+                confirmButtonText: '<i class="ti ti-login" style="margin-right:5px;"></i> Okay, entendido',
+                customClass: {
+                    popup: 'sgp-swal-inactividad',
+                    confirmButton: 'sgp-swal-btn-confirm'
+                },
+                didOpen: () => {
+                    const popup = Swal.getPopup();
+                    if (popup) {
+                        popup.style.borderRadius = '20px';
+                        popup.style.padding = '32px 28px 28px';
+                        popup.style.boxShadow = '0 25px 60px rgba(0,0,0,0.18)';
+                    }
+                }
+            }).then(() => {
+                // Limpiar el param ?razon=inactividad de la URL antes de recargar
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+                window.location.reload();
+            });
         <?php endif; ?>
 
         // ============================================

@@ -16,6 +16,10 @@ class App
             if (file_exists('../app/controllers/' . $controllerName . '.php')) {
                 $this->controller = $controllerName;
                 unset($url[0]);
+            } else {
+                // Controlador no encontrado → 404
+                $this->renderError(404);
+                return;
             }
         }
 
@@ -27,6 +31,10 @@ class App
             if (method_exists($this->controller, $url[1])) {
                 $this->method = $url[1];
                 unset($url[1]);
+            } else {
+                // Método no encontrado → 404
+                $this->renderError(404);
+                return;
             }
         }
 
@@ -43,5 +51,22 @@ class App
             return explode('/', filter_var(rtrim($_GET['url'], '/'), FILTER_SANITIZE_URL));
         }
         return [];
+    }
+
+    /**
+     * Renderiza una página de error HTTP y termina la ejecución.
+     * @param int $code  Código HTTP (404, 403, 500…)
+     */
+    public static function renderError(int $code): void
+    {
+        if (!headers_sent()) {
+            http_response_code($code);
+        }
+        $view = APPROOT . '/views/errors/' . $code . '.php';
+        if (!file_exists($view)) {
+            $view = APPROOT . '/views/errors/error.php';
+        }
+        require $view;
+        exit;
     }
 }

@@ -7,6 +7,7 @@
 $asignaciones  = $data['asignaciones']  ?? [];
 $departamentos = $data['departamentos'] ?? [];
 $tutores       = $data['tutores']       ?? [];
+$periodos      = $data['periodos']      ?? [];
 $total         = $data['total']         ?? 0;
 $activos       = $data['activos']       ?? 0;
 $pendientes    = $data['pendientes']    ?? 0;
@@ -94,7 +95,7 @@ $estadoConfig = [
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
 
     <!-- ===== BANNER ===== -->
-    <div style="background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%); border-radius: 20px; padding: 32px 40px; margin-bottom: 28px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;">
+    <div class="asig-banner" style="background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%); border-radius: 20px; padding: 32px 40px; margin-bottom: 28px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: space-between;">
         <div style="position: absolute; top: -40px; right: -40px; width: 220px; height: 220px; background: rgba(255,255,255,0.04); border-radius: 50%;"></div>
         <div style="position: absolute; bottom: -60px; left: 30%; width: 160px; height: 160px; background: rgba(255,255,255,0.03); border-radius: 50%;"></div>
         <div>
@@ -114,7 +115,7 @@ $estadoConfig = [
                 </div>
             </div>
         </div>
-        <div style="display: flex; gap: 12px; z-index: 1;">
+        <div class="asig-banner-actions" style="display: flex; gap: 12px; z-index: 1;">
             <button onclick="abrirModalAsignacion()"
                 style="background: white; color: #162660; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; font-size: 0.95rem; box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: all 0.25s; z-index: 1; flex-shrink: 0;"
                 onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 24px rgba(0,0,0,0.3)'"
@@ -197,7 +198,7 @@ $estadoConfig = [
     </div>
 
     <!-- ===== TABLA DE ASIGNACIONES (Boxy SaaS) ===== -->
-    <div style="background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; border: 0;">
+    <div class="sgp-solo-desktop" style="background: white; border-radius: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); overflow: hidden; border: 0;">
         <div class="table-responsive">
             <table id="tablaAsignaciones" class="table table-hover align-middle mb-0" style="width: 100%; opacity: 0; transition: opacity 0.4s ease-in-out;">
                 <thead class="bg-light text-uppercase text-muted small fw-bold">
@@ -306,21 +307,99 @@ $estadoConfig = [
         </div>
     </div>
 
+    <!-- CARD VIEW — solo en móvil (< 992px) -->
+    <div class="sgp-solo-mobile gap-3 px-1 pb-3" id="cardsAsignaciones">
+    <?php foreach ($asignaciones as $a):
+        $estado    = $a->estado_pasantia ?? 'Sin Asignar';
+        $cfg       = $estadoConfig[$estado] ?? $estadoConfig['Sin Asignar'];
+        $hMeta     = (int)($a->horas_meta ?? 480);
+        $hCumpl    = (int)($a->horas_acumuladas ?? 0);
+        $progreso  = $hMeta > 0 ? round(($hCumpl / $hMeta) * 100) : 0;
+        $pColor    = $progreso >= 80 ? '#10b981' : ($progreso >= 50 ? '#f59e0b' : '#ef4444');
+        $iniciales = strtoupper(substr($a->nombres ?? '?', 0, 1) . substr($a->apellidos ?? '', 0, 1));
+        $nombre    = htmlspecialchars(($a->nombres ?? '') . ' ' . ($a->apellidos ?? ''));
+        $tutorNom  = trim(($a->tutor_nombres ?? '') . ' ' . ($a->tutor_apellidos ?? ''));
+        $tutorNom  = !empty(trim($tutorNom)) ? htmlspecialchars($tutorNom) : 'Sin tutor';
+    ?>
+    <div class="bca-card">
+
+        <!-- Encabezado: avatar + nombre + badge estado -->
+        <div class="bca-header">
+            <div class="bca-avatar"><?= $iniciales ?></div>
+            <div class="bca-info">
+                <span class="bca-nombre"><?= $nombre ?></span>
+                <span class="bca-cedula">C.I: <?= htmlspecialchars($a->cedula ?? '—') ?></span>
+            </div>
+            <span class="bca-badge"
+                  style="background:<?= $cfg['bg'] ?>; color:<?= $cfg['color'] ?>;">
+                <i class="ti <?= $cfg['icon'] ?>" style="font-size:0.7rem; margin-right:2px;"></i>
+                <?= htmlspecialchars($estado) ?>
+            </span>
+        </div>
+
+        <!-- Cuerpo: datos secundarios -->
+        <div class="bca-body">
+            <div class="bca-row">
+                <span class="bca-label">Tutor</span>
+                <span class="bca-value"><?= $tutorNom ?></span>
+            </div>
+            <div class="bca-row">
+                <span class="bca-label">Departamento</span>
+                <span class="bca-value"><?= htmlspecialchars($a->departamento_nombre ?? '—') ?></span>
+            </div>
+            <?php if (!empty($a->fecha_inicio_pasantia)): ?>
+            <div class="bca-row">
+                <span class="bca-label">Inicio</span>
+                <span class="bca-value"><?= date('d/m/Y', strtotime($a->fecha_inicio_pasantia)) ?><?php if (!empty($a->fecha_fin_estimada)): ?> — <?= date('d/m/Y', strtotime($a->fecha_fin_estimada)) ?><?php endif; ?></span>
+            </div>
+            <?php endif; ?>
+            <div class="bca-row">
+                <span class="bca-label">Progreso</span>
+                <div class="bca-progress-wrap">
+                    <div class="bca-progress-bar">
+                        <div class="bca-progress-fill" style="width:<?= $progreso ?>%; background:<?= $pColor ?>;"></div>
+                    </div>
+                    <span class="bca-progress-pct" style="color:<?= $pColor ?>;"><?= $progreso ?>%</span>
+                </div>
+            </div>
+            <div class="bca-row">
+                <span class="bca-label">Horas</span>
+                <span class="bca-value"><?= $hCumpl ?> / <?= $hMeta ?> hrs</span>
+            </div>
+        </div>
+
+        <!-- Acciones — mismas funciones JS que la tabla -->
+        <div class="bca-actions">
+            <button class="bca-btn bca-btn-view"
+                    onclick="verDetalleAsignacion(<?= (int)$a->pasante_id ?>)"
+                    title="Ver detalles">
+                <i class="ti ti-eye"></i> Ver
+            </button>
+            <?php if (in_array($estado, ['Sin Asignar', 'Pendiente'])):
+                $instAsig = htmlspecialchars($a->institucion_procedencia ?? 'No registrada'); ?>
+            <button class="bca-btn bca-btn-edit"
+                    onclick="editarAsignacion(<?= (int)$a->pasante_id ?>, '<?= addslashes($nombre) ?>', '<?= addslashes($a->cedula) ?>', '<?= addslashes($instAsig) ?>')"
+                    title="Editar asignación">
+                <i class="ti ti-pencil"></i> Editar
+            </button>
+            <?php endif; ?>
+            <?php if ($estado === 'Activo'): ?>
+            <button class="bca-btn bca-btn-fin"
+                    onclick="finalizarAsignacion(<?= (int)$a->pasante_id ?>, '<?= addslashes($nombre) ?>')"
+                    title="Finalizar pasantía">
+                <i class="ti ti-flag"></i> Finalizar
+            </button>
+            <?php endif; ?>
+        </div>
+
+    </div>
+    <?php endforeach; ?>
+    </div>
+
 </div><!-- /dashboard-container -->
 
 <!-- COMPONENTE: MODAL DE ASIGNACIONES -->
 <?php require APPROOT . '/views/inc/modal_asignacion.php'; ?>
-
-<!-- DataTables & Buttons Assets -->
-<link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.css">
-<script src="<?= URLROOT ?>/assets/libs/datatables/jquery.dataTables.min.js"></script>
-
-<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.dataTables.min.css">
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/pdfmake.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js"></script>
-<script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
 
 <script>
 // ── DataTables & Filtros ──────────────────────────────────
@@ -373,6 +452,17 @@ $(document).ready(function() {
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // SGP-FIX: recalcular columnas al pasar de móvil a desktop
+    var _dtAsigAdjusted = false;
+    window.addEventListener('resize', function () {
+        if (window.innerWidth >= 992 && !_dtAsigAdjusted) {
+            var _dt = $('#tablaAsignaciones').DataTable();
+            if (_dt) { _dt.columns.adjust().draw(false); }
+            _dtAsigAdjusted = true;
+        }
+        if (window.innerWidth < 992) { _dtAsigAdjusted = false; }
     });
 });
 

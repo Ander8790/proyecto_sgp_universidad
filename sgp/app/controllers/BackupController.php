@@ -117,7 +117,9 @@ class BackupController extends Controller
             $this->jsonResponse(true, 'Respaldo creado exitosamente: ' . $filename);
             
         } catch (Exception $e) {
-            $this->jsonResponse(false, 'Error: ' . $e->getMessage());
+            // [FIX-C2] Mensaje genérico al cliente — detalle solo en log
+            error_log('[SGP-BACKUP] create() Error: ' . $e->getMessage());
+            $this->jsonResponse(false, 'Error al crear el respaldo. Intente de nuevo.');
         }
     }
 
@@ -245,7 +247,9 @@ class BackupController extends Controller
                 $this->jsonResponse(false, 'No se pudo crear el backup de seguridad previo. Restauración cancelada.');
             }
         } catch (Exception $e) {
-            $this->jsonResponse(false, 'Error creando backup de seguridad: ' . $e->getMessage());
+            // [FIX-C2] Mensaje genérico — detalle solo en log
+            error_log('[SGP-BACKUP] restore() pre-backup Error: ' . $e->getMessage());
+            $this->jsonResponse(false, 'Error al crear el backup de seguridad previo. Restauración cancelada.');
         }
         
         try {
@@ -301,7 +305,9 @@ class BackupController extends Controller
             $this->jsonResponse(true, 'Base de datos restaurada exitosamente desde: ' . $filename);
             
         } catch (Exception $e) {
-            $this->jsonResponse(false, 'Error: ' . $e->getMessage());
+            // [FIX-C2] Mensaje genérico — detalle solo en log
+            error_log('[SGP-BACKUP] restore() Error: ' . $e->getMessage());
+            $this->jsonResponse(false, 'Error al restaurar la base de datos. Intente de nuevo.');
         }
     }
 

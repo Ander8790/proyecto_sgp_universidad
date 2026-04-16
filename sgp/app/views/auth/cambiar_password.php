@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
     
     <!-- ============================================ -->
@@ -18,7 +19,7 @@
          * Definir constante URLROOT para uso en JavaScript
          * Necesario para notifications.js y otros scripts del sistema
          */
-        const URLROOT = '<?php echo URLROOT; ?>';
+        const URLROOT = <?php echo json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>; // [FIX-C3]
     </script>
 </head>
 <body class="auth-wrapper">
@@ -174,7 +175,9 @@
             btn.disabled = true;
             
             const formData = new FormData(this);
-            
+            // [FIX-A3] Adjuntar token CSRF al FormData
+            formData.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
             fetch(this.action, {
                 method: 'POST',
                 body: formData,

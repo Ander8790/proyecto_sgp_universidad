@@ -12,12 +12,13 @@
  *   - rol_id == 1|2 (Admin/Tutor) → paso 4: solo departamento
  */
 
-$creadoPorAdmin = ($data['user']->requiere_cambio_clave ?? 1) == 1;
-$rolId          = (int)($data['user']->rol_id ?? 0);
-$userNombres    = htmlspecialchars($data['user']->nombres   ?? '');
-$userApellidos  = htmlspecialchars($data['user']->apellidos ?? '');
-$userCedula     = htmlspecialchars($data['user']->cedula    ?? 'No registrada');
-$userCorreo     = htmlspecialchars($data['user']->correo    ?? '');
+$creadoPorAdmin    = ($data['user']->requiere_cambio_clave ?? 1) == 1;
+$soloPasswordReset = !empty($data['solo_password_reset']);
+$rolId             = (int)($data['user']->rol_id ?? 0);
+$userNombres       = htmlspecialchars($data['user']->nombres   ?? '');
+$userApellidos     = htmlspecialchars($data['user']->apellidos ?? '');
+$userCedula        = htmlspecialchars($data['user']->cedula    ?? 'No registrada');
+$userCorreo        = htmlspecialchars($data['user']->correo    ?? '');
 
 // Estado inicial de los indicadores
 $si1Class = $creadoPorAdmin ? 'active' : 'completed';
@@ -39,12 +40,13 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
     <!-- Favicon -->
     <link rel="icon" type="image/png" href="<?= URLROOT ?>/img/favicon.png">
 
+    <script>const URLROOT = <?= json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>;</script>
+
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/flatpickr/flatpickr.min.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/flatpickr-sgp.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/choices/choices.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/choices-sgp.css">
 
@@ -183,6 +185,14 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
         .step.completed .step-number::after {
             content: '✓';
         }
+
+        /* ── Fecha Segmentada (Bento UI) ── */
+        .fn-container { width: 100%; }
+        .fn-input-wrapper { flex: 1; }
+        .fn-input-wrapper label {
+            display: block; font-size: 0.75rem; color: #6c757d; margin-bottom: 4px; text-align: center;
+        }
+
     </style>
 
     <script>
@@ -198,6 +208,53 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 icon.classList.replace('ti-eye-off', 'ti-eye');
             }
         };
+
+        // ── Lógica Fecha Nacimiento IMask ───────────────────────────
+        document.addEventListener('DOMContentLoaded', function() {
+            var maskElement = document.getElementById('fecha_nacimiento_mask');
+            var hiddenInput = document.getElementById('fecha_nacimiento');
+
+            if (!maskElement || !hiddenInput) return;
+
+            var dateMask = IMask(maskElement, {
+                mask: Date,
+                pattern: 'd / `m / `Y', // Format string for output
+                blocks: {
+                    d: { mask: IMask.MaskedRange, from: 1, to: 31, maxLength: 2 },
+                    m: { mask: IMask.MaskedRange, from: 1, to: 12, maxLength: 2 },
+                    Y: { mask: IMask.MaskedRange, from: 1930, to: new Date().getFullYear() - 10, maxLength: 4 }
+                },
+                format: function (date) {
+                    var day = date.getDate().toString().padStart(2, '0');
+                    var month = (date.getMonth() + 1).toString().padStart(2, '0');
+                    var year = date.getFullYear();
+                    return [day, month, year].join(' / ');
+                },
+                parse: function (str) {
+                    var parts = str.split(' / ');
+                    return new Date(parts[2], parts[1] - 1, parts[0]);
+                },
+                autofix: true,
+                lazy: false
+            });
+
+            dateMask.on('accept', function() {
+                hiddenInput.value = '';
+            });
+
+            dateMask.on('complete', function() {
+                var val = dateMask.unmaskedValue; 
+                if (val.length === 8) {
+                    var d = val.substring(0, 2);
+                    var m = val.substring(2, 4);
+                    var y = val.substring(4, 8);
+                    hiddenInput.value = y + '-' + m + '-' + d;
+                    
+                    var gen = document.getElementById('genero');
+                    if(gen) gen.focus();
+                }
+            });
+        });
 
         // ── Navegación genérica ─────────────────────────────────────
         function showStep(show, hide, fromId, toId) {
@@ -278,7 +335,12 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 return false;
             }
 
-            if (!fnac     || !fnac.value)             { NotificationService.warning('La Fecha de Nacimiento es obligatoria'); fnac && fnac.focus(); return false; }
+            if (!fnac     || !fnac.value)             { 
+                NotificationService.warning('La Fecha de Nacimiento es obligatoria y debe estar completa'); 
+                var dia = document.getElementById('fn_dia');
+                if (dia) dia.focus(); 
+                return false; 
+            }
             if (!genero   || !genero.value)           { NotificationService.warning('Selecciona tu género'); genero && genero.focus(); return false; }
             return true;
         };
@@ -292,10 +354,20 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 if (!pin || !/^[0-9]{4}$/.test(pin.value)) { NotificationService.warning('El PIN debe tener exactamente 4 dígitos numéricos.'); pin && pin.focus(); return false; }
                 if (!inst || !inst.value) { NotificationService.warning('Selecciona tu institución de procedencia.'); inst && inst.focus(); return false; }
             } else {
-                var dept = document.getElementById('departamento_id');
-                if (!dept || !dept.value) { NotificationService.warning('Selecciona tu departamento.'); dept && dept.focus(); return false; }
+                var cargo = document.getElementById('cargo');
+                var dept  = document.getElementById('departamento_id');
+                if (!cargo || !cargo.value.trim()) { NotificationService.warning('Indica tu cargo o puesto de trabajo.'); cargo && cargo.focus(); return false; }
+                if (!dept  || !dept.value)          { NotificationService.warning('Selecciona tu departamento.'); dept && dept.focus(); return false; }
             }
             return true;
+        };
+
+        // ── Submit desde paso 2 (modo solo restablecimiento de contraseña) ──
+        window.submitWizardPaso2 = function(btn) {
+            if (!window.validarPreguntasSeguridad()) return;
+            btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...';
+            btn.disabled = true;
+            document.getElementById('wizardForm').submit();
         };
 
         // ── Submit final ────────────────────────────────────────────
@@ -375,7 +447,7 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
         <div class="auth-header">
             <img src="<?= URLROOT ?>/img/logo.png" alt="SGP Logo" class="auth-logo">
             <h1 class="auth-title">Configuración de Seguridad</h1>
-            <p class="auth-subtitle">Completa tu perfil de seguridad en 4 sencillos pasos</p>
+            <p class="auth-subtitle"><?= $soloPasswordReset ? 'Actualiza tu contraseña y preguntas de seguridad' : 'Completa tu perfil de seguridad en 4 sencillos pasos' ?></p>
         </div>
 
         <!-- ── Indicador de 4 pasos ── -->
@@ -389,6 +461,7 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 <div class="step-number">2</div>
                 <div class="step-label">Seguridad</div>
             </div>
+            <?php if (!$soloPasswordReset): ?>
             <div class="step-divider"></div>
             <div class="step <?= $si3Class ?>" id="si-step3">
                 <div class="step-number">3</div>
@@ -399,6 +472,7 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 <div class="step-number">4</div>
                 <div class="step-label">Perfil</div>
             </div>
+            <?php endif; ?>
         </div>
 
         <?php if (Session::hasFlash('error')): ?>
@@ -416,6 +490,9 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
         <?php endif; ?>
 
         <form action="<?= URLROOT ?>/wizard/procesar" method="POST" id="wizardForm">
+            <?php if ($soloPasswordReset): ?>
+            <input type="hidden" name="solo_password_reset" value="1">
+            <?php endif; ?>
 
             <!-- ══════════════════════════════════════════════════════
                  PASO 1: CONTRASEÑA
@@ -519,9 +596,15 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                     <button type="button" class="btn-secondary" onclick="window.prevStep()" style="flex:1;">
                         <i class="ti ti-arrow-left" style="margin-right:8px;"></i>Atrás
                     </button>
+                    <?php if ($soloPasswordReset): ?>
+                    <button type="button" class="btn-primary" style="flex:1;" onclick="submitWizardPaso2(this)">
+                        <i class="ti ti-check" style="margin-right:8px;"></i>Finalizar y Entrar
+                    </button>
+                    <?php else: ?>
                     <button type="button" class="btn-primary" onclick="window.nextStep2()" style="flex:1;">
                         Siguiente <i class="ti ti-arrow-right" style="margin-left:8px;"></i>
                     </button>
+                    <?php endif; ?>
                 </div>
             </div>
 
@@ -567,24 +650,29 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 <div class="step3-grid">
                     <!-- Teléfono — ocupa columna completa -->
                     <div class="form-group full-col">
-                        <input type="tel" name="telefono" id="telefono" class="input-modern" placeholder=" " required inputmode="numeric" maxlength="12" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/^(\d{4})(\d)/, '$1-$2').slice(0, 12);">
-                        <label for="telefono" class="label-floating">
-                            <i class="ti ti-phone" style="margin-right:8px;font-size:18px;"></i>Teléfono *
-                        </label>
-                        <span class="password-hint" style="display:block;margin-top:6px;">
-                            Formato: 0414-1234567
-                        </span>
+                        <!-- Wrapper relativo solo al input — los iconos se anclan aquí -->
+                        <div style="position:relative;">
+                            <input type="tel" name="telefono" id="telefono" class="input-modern" placeholder=" " required inputmode="numeric" maxlength="12" style="padding-right:44px;" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/^(\d{4})(\d)/, '$1-$2').slice(0, 12);">
+                            <label for="telefono" class="label-floating">
+                                <i class="ti ti-phone" style="margin-right:8px;font-size:18px;"></i>Teléfono *
+                            </label>
+                            <i id="phone-icon-loading" class="ti ti-loader-2" style="display:none; position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:18px; color:#162660; pointer-events:none;"></i>
+                            <i id="phone-icon-ok"      class="ti ti-circle-check-filled" style="display:none; position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:20px; color:#10b981; pointer-events:none;"></i>
+                            <i id="phone-icon-error"   class="ti ti-circle-x-filled"     style="display:none; position:absolute; right:14px; top:50%; transform:translateY(-50%); font-size:20px; color:#ef4444; pointer-events:none;"></i>
+                        </div>
+                        <span class="password-hint" style="display:block; margin-top:6px;">Formato: 0414-1234567</span>
+                        <small id="phone-msg-error" style="display:none; color:#ef4444; font-size:12px; font-weight:600; margin-top:4px;">
+                            <i class="ti ti-alert-circle"></i> Este número ya está registrado en el sistema.
+                        </small>
                     </div>
 
-                    <!-- Fecha de Nacimiento -->
+                    <!-- Fecha de Nacimiento (3 Inputs Bento UI) -->
                     <div class="form-group">
-                        <label class="readonly-label" style="font-weight:600;color:#374151;">
+                        <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
                             <i class="ti ti-calendar" style="margin-right:6px;"></i>Fecha de Nacimiento *
                         </label>
-                        <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" class="input-modern" required
-                            min="1950-01-01"
-                            max="<?= date('Y-m-d', strtotime('-14 years')) ?>"
-                            style="padding:14px 16px;">
+                        <input type="text" id="fecha_nacimiento_mask" class="input-modern" placeholder="DD / MM / AAAA" inputmode="numeric" required>
+                        <input type="hidden" id="fecha_nacimiento" name="fecha_nacimiento" required>
                     </div>
 
                     <!-- Género -->
@@ -688,24 +776,61 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 </div>
 
                 <?php else: ?>
-                <!-- ── ADMIN / TUTOR: solo Departamento ──────────── -->
+                <!-- ── ADMIN / TUTOR: Cargo + Departamento ──────────── -->
+                <div class="form-group" style="margin-bottom:1.2rem;">
+                    <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
+                        <i class="ti ti-briefcase" style="margin-right:6px;"></i>Cargo / Puesto *
+                    </label>
+                    <input type="text" name="cargo" id="cargo" class="input-modern" required
+                        maxlength="100"
+                        placeholder="Ej: Jefe de Soporte, Profesor, Analista de Redes...">
+                </div>
                 <div class="form-group" style="margin-bottom:1.2rem;">
                     <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
                         <i class="ti ti-building-community" style="margin-right:6px;"></i>Departamento Asignado *
                     </label>
-                    <select name="departamento_id" id="departamento_id" class="input-modern" required style="cursor:pointer;">
-                        <option value="">Selecciona tu departamento...</option>
-                        <?php foreach ($data['departamentos'] as $depto): ?>
-                        <option value="<?= (int)$depto->id ?>">
-                            <?= htmlspecialchars($depto->nombre) ?>
-                            <?php if (!empty($depto->descripcion)): ?> — <?= htmlspecialchars($depto->descripcion) ?><?php endif; ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                    <?php if (empty($data['departamentos'])): ?>
-                    <p style="color:#f59e0b;font-size:0.8rem;margin-top:6px;">
-                        <i class="ti ti-alert-triangle"></i> No hay departamentos activos. Contacta al administrador.
-                    </p>
+                    <?php
+                        $deptoPreAsignado   = (int)($data['user']->departamento_id ?? 0);
+                        $deptoNombreVisible = '';
+                        if ($deptoPreAsignado) {
+                            foreach ($data['departamentos'] as $d) {
+                                if ((int)$d->id === $deptoPreAsignado) {
+                                    $deptoNombreVisible = $d->nombre;
+                                    break;
+                                }
+                            }
+                        }
+                    ?>
+                    <?php if ($deptoPreAsignado && $deptoNombreVisible): ?>
+                        <!-- Departamento ya asignado por el administrador → campo bloqueado -->
+                        <input type="hidden" name="departamento_id" id="departamento_id" value="<?= $deptoPreAsignado ?>">
+                        <div style="display:flex;align-items:center;gap:10px;padding:11px 14px;
+                                    background:#f0f7ff;border:1.5px solid #bfdbfe;border-radius:10px;">
+                            <i class="ti ti-lock" style="color:#2563eb;font-size:1rem;flex-shrink:0;"></i>
+                            <span style="font-weight:700;color:#1e40af;font-size:0.95rem;">
+                                <?= htmlspecialchars($deptoNombreVisible) ?>
+                            </span>
+                        </div>
+                        <p style="color:#2563eb;font-size:0.78rem;margin-top:5px;display:flex;align-items:center;gap:4px;">
+                            <i class="ti ti-info-circle"></i>
+                            Asignado por el administrador al momento del registro.
+                        </p>
+                    <?php else: ?>
+                        <!-- Sin departamento previo → selector normal -->
+                        <select name="departamento_id" id="departamento_id" class="input-modern" required style="cursor:pointer;">
+                            <option value="">Selecciona tu departamento...</option>
+                            <?php foreach ($data['departamentos'] as $depto): ?>
+                            <option value="<?= (int)$depto->id ?>">
+                                <?= htmlspecialchars($depto->nombre) ?>
+                                <?php if (!empty($depto->descripcion)): ?> — <?= htmlspecialchars($depto->descripcion) ?><?php endif; ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <?php if (empty($data['departamentos'])): ?>
+                        <p style="color:#f59e0b;font-size:0.8rem;margin-top:6px;">
+                            <i class="ti ti-alert-triangle"></i> No hay departamentos activos. Contacta al administrador.
+                        </p>
+                        <?php endif; ?>
                     <?php endif; ?>
                 </div>
                 <?php endif; ?>
@@ -734,41 +859,135 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
     <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
     <script src="<?= URLROOT ?>/js/notyf.min.js"></script>
     <script src="<?= URLROOT ?>/js/notification-service.js"></script>
-    <script src="<?= URLROOT ?>/assets/libs/flatpickr/flatpickr.min.js"></script>
-    <script src="<?= URLROOT ?>/assets/libs/flatpickr/flatpickr-es.js"></script>
-    <script src="<?= URLROOT ?>/js/flatpickr-init.js"></script>
     <script src="<?= URLROOT ?>/assets/libs/choices/choices.min.js"></script>
     <script src="<?= URLROOT ?>/js/choices-init.js"></script>
+    <script src="<?= URLROOT ?>/assets/libs/imask/imask.min.js"></script>
 
-    <!-- Tarea 3: Lógica para evitar preguntas duplicadas en tiempo real -->
+    <!-- Tarea 3: Lógica para evitar preguntas duplicadas — usa API de Choices.js -->
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const selects = document.querySelectorAll('.select-pregunta');
-        
-        function updateOptions() {
-            const selectedValues = Array.from(selects).map(s => s.value).filter(v => v !== "");
-            
-            selects.forEach(select => {
-                const options = select.querySelectorAll('option');
-                options.forEach(option => {
-                    if (option.value === "") return;
-                    
-                    // Si el valor está seleccionado en OTRO select, deshabilitarlo en este
-                    const isSelectedElsewhere = Array.from(selects).some(s => s !== select && s.value === option.value);
-                    option.disabled = isSelectedElsewhere;
-                    
-                    // Opcional: Ocultarlo visualmente si está deshabilitado
-                    option.style.display = isSelectedElsewhere ? 'none' : 'block';
+        // Esperar a que choices-init.js haya terminado de inicializar los selects
+        setTimeout(function() {
+            var ids = ['pregunta_1', 'pregunta_2', 'pregunta_3'];
+            var opcionesBase = null;
+            var actualizando  = false;
+
+            // Leer las opciones originales desde el <select> nativo (sigue en el DOM, oculto)
+            function leerOpciones() {
+                if (opcionesBase) return opcionesBase;
+                var el = document.getElementById('pregunta_1');
+                if (!el) return [];
+                opcionesBase = Array.from(el.options)
+                    .filter(function(o) { return o.value !== ''; })
+                    .map(function(o) { return { value: String(o.value), label: o.text }; });
+                return opcionesBase;
+            }
+
+            function sincronizar() {
+                if (actualizando) return;
+                actualizando = true;
+
+                var opts = leerOpciones();
+
+                // Mapa: valor → id del select que lo tiene seleccionado
+                var ocupados = {};
+                ids.forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el && el.value) ocupados[el.value] = id;
                 });
+
+                ids.forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (!el || !el.choicesInstance) return;
+
+                    var valorActual = el.value;
+
+                    var nuevas = opts.map(function(o) {
+                        return {
+                            value:    o.value,
+                            label:    o.label,
+                            disabled: !!(ocupados[o.value] && ocupados[o.value] !== id),
+                            selected: o.value === valorActual
+                        };
+                    });
+
+                    // Reemplazar lista en Choices.js sin perder la selección actual
+                    el.choicesInstance.setChoices(nuevas, 'value', 'label', true);
+                });
+
+                actualizando = false;
+            }
+
+            ids.forEach(function(id) {
+                var el = document.getElementById(id);
+                if (el) el.addEventListener('change', sincronizar);
             });
+
+            // Sincronizar al cargar por si hay valores precargados
+            sincronizar();
+        }, 100);
+    });
+    </script>
+
+    <!-- Inicialización JS de Flatpickr eliminada a favor de inputs numéricos segmentados -->
+
+    <!-- Validación asíncrona de teléfono único -->
+    <style>
+        @keyframes phone-spin { to { transform: translateY(-50%) rotate(360deg); } }
+        #phone-icon-loading { animation: phone-spin 0.65s linear infinite; }
+    </style>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const input    = document.getElementById('telefono');
+        const iconLoad = document.getElementById('phone-icon-loading');
+        const iconOk   = document.getElementById('phone-icon-ok');
+        const iconErr  = document.getElementById('phone-icon-error');
+        const msgErr   = document.getElementById('phone-msg-error');
+        const btnNext  = document.querySelector('button[onclick="window.nextStep3()"]');
+
+        if (!input) return;
+
+        let timer = null;
+
+        function setPhoneState(state) {
+            iconLoad.style.display = state === 'loading' ? 'block' : 'none';
+            iconOk.style.display   = state === 'ok'      ? 'block' : 'none';
+            iconErr.style.display  = state === 'error'   ? 'block' : 'none';
+            msgErr.style.display   = state === 'error'   ? 'block' : 'none';
+            input.classList.toggle('invalid', state === 'error');
+            input.classList.toggle('valid',   state === 'ok');
+            if (btnNext) btnNext.disabled = (state === 'error' || state === 'loading');
         }
 
-        selects.forEach(select => {
-            select.addEventListener('change', updateOptions);
-        });
+        input.addEventListener('input', function () {
+            clearTimeout(timer);
+            setPhoneState('idle');
 
-        // Ejecutar al inicio por si hay valores precargados
-        updateOptions();
+            const digits = this.value.replace(/[^0-9]/g, '');
+            if (digits.length !== 11) return;
+
+            setPhoneState('loading');
+
+            timer = setTimeout(() => {
+                const fd = new FormData();
+                fd.append('telefono', this.value);
+
+                fetch(URLROOT + '/wizard/checkPhone', {
+                    method: 'POST',
+                    body: fd,
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                })
+                .then(r => {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.json();
+                })
+                .then(data => setPhoneState(data.exists ? 'error' : 'ok'))
+                .catch(err => {
+                    setPhoneState('idle');
+                    console.warn('[SGP] checkPhone falló:', err);
+                });
+            }, 200);
+        });
     });
     </script>
 </body>

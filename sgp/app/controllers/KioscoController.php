@@ -25,7 +25,7 @@ class KioscoController extends Controller
         // ⚠️ NO Session::start() — El Kiosco es 100% independiente de cualquier sesión de administrador
         // ⚠️ NO AuthMiddleware — acceso público para pasantes
         $config  = require '../app/config/config.php';
-        $this->db = Database::getInstance(); // SGP-FIX-v2 [6/2.1] aplicado
+        $this->db = new Database($config['db']);
     }
 
     /**
@@ -162,15 +162,20 @@ class KioscoController extends Controller
         }
 
         // ── INSERT — Registrar asistencia ──────────────────────────
+        // Detectar retardo: hora_registro > 09:00:00 → es_retardo = 1
+        $horaActual = date('H:i:s');
+        $esRetardo  = ($horaActual > '09:00:00') ? 1 : 0;
+
         $this->db->query("
             INSERT INTO asistencias
-                (pasante_id, fecha, hora_registro, estado, metodo)
+                (pasante_id, fecha, hora_registro, estado, metodo, es_retardo, es_auto_fill)
             VALUES
-                (:pid, :fecha, :hora, 'Presente', 'Kiosco')
+                (:pid, :fecha, :hora, 'Presente', 'Kiosco', :retardo, 0)
         ");
-        $this->db->bind(':pid',   $pasanteId);
-        $this->db->bind(':fecha', $hoy);
-        $this->db->bind(':hora',  date('H:i:s'));
+        $this->db->bind(':pid',     $pasanteId);
+        $this->db->bind(':fecha',   $hoy);
+        $this->db->bind(':hora',    $horaActual);
+        $this->db->bind(':retardo', $esRetardo);
 
         $ok = $this->db->execute();
 

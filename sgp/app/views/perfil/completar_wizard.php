@@ -32,6 +32,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/bootstrap.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
     
     <!-- CSS Moderno para Preguntas de Seguridad -->
@@ -368,10 +369,11 @@
 
                 <div style="margin-bottom:1rem;">
                     <div class="form-group">
-                        <input type="date" name="fecha_nacimiento" class="input-modern" placeholder=" " required>
-                        <label class="label-floating">
-                            <i class="ti ti-calendar" style="margin-right: 8px; font-size: 18px;"></i>Fecha de Nacimiento
+                        <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
+                            <i class="ti ti-calendar" style="margin-right:6px;"></i>Fecha de Nacimiento *
                         </label>
+                        <input type="text" id="fecha_nacimiento_mask" class="input-modern" placeholder="DD / MM / AAAA" inputmode="numeric">
+                        <input type="hidden" id="fecha_nacimiento" name="fecha_nacimiento" required>
                     </div>
                 </div>
             </div>
@@ -427,284 +429,207 @@
         .input-hint { display: block; font-size: 11px; color: #6B7280; margin-top: 4px; }
     </style>
 
+    <script src="<?= URLROOT ?>/assets/libs/imask/imask.min.js"></script>
     <script src="<?= URLROOT ?>/js/validation.js"></script>
     <script>
         let currentStep = 1;
         const totalSteps = 3;
 
+        // ── IMask: Fecha de Nacimiento ──────────────────────────────
+        document.addEventListener('DOMContentLoaded', function () {
+            var maskEl    = document.getElementById('fecha_nacimiento_mask');
+            var hiddenEl  = document.getElementById('fecha_nacimiento');
+
+            if (!maskEl || !hiddenEl) return;
+
+            var dateMask = IMask(maskEl, {
+                mask: Date,
+                pattern: 'd / `m / `Y',
+                blocks: {
+                    d: { mask: IMask.MaskedRange, from: 1, to: 31, maxLength: 2 },
+                    m: { mask: IMask.MaskedRange, from: 1, to: 12, maxLength: 2 },
+                    Y: { mask: IMask.MaskedRange, from: 1930, to: new Date().getFullYear() - 10, maxLength: 4 }
+                },
+                format: function (date) {
+                    var d = date.getDate().toString().padStart(2, '0');
+                    var m = (date.getMonth() + 1).toString().padStart(2, '0');
+                    return [d, m, date.getFullYear()].join(' / ');
+                },
+                parse: function (str) {
+                    var p = str.split(' / ');
+                    return new Date(p[2], p[1] - 1, p[0]);
+                },
+                autofix: true,
+                lazy: true
+            });
+
+            dateMask.on('accept', function () { hiddenEl.value = ''; });
+
+            dateMask.on('complete', function () {
+                var v = dateMask.unmaskedValue;
+                if (v.length === 8) {
+                    hiddenEl.value = v.substring(4) + '-' + v.substring(2, 4) + '-' + v.substring(0, 2);
+                }
+            });
+        });
+
+        // ── Navegación de pasos ─────────────────────────────────────
         function changeStep(direction) {
-            if (direction === 1 && !validateStep(currentStep)) {
-                return;
-            }
-
-            currentStep += direction;
-            if (currentStep < 1) currentStep = 1;
-            if (currentStep > totalSteps) currentStep = totalSteps;
-
+            if (direction === 1 && !validateStep(currentStep)) return;
+            currentStep = Math.min(Math.max(currentStep + direction, 1), totalSteps);
             updateUI();
         }
 
+        // ── Validación por paso ─────────────────────────────────────
         function validateStep(step) {
-            const stepElement = document.querySelector(`.wizard-step[data-step="${step}"]`);
-            const inputs = stepElement.querySelectorAll('input[required], select[required], textarea[required]');
-            
-            for (let input of inputs) {
-                if (!input.value) {
-                    input.focus();
-                    return false;
-                }
-            }
-
             if (step === 1) {
-                const newPass = document.getElementById('new_password').value;
+                const newPass     = document.getElementById('new_password').value;
                 const confirmPass = document.getElementById('confirm_password').value;
-                
-                if (newPass !== confirmPass) {
-                    NotificationService.error('Las contraseñas no coinciden');
+                const currentPass = document.getElementById('current_password').value;
+
+                if (!currentPass) {
+                    NotificationService.error('Ingresa tu contraseña temporal');
+                    document.getElementById('current_password').focus();
                     return false;
                 }
-                
                 if (newPass.length < 8) {
                     NotificationService.error('La contraseña debe tener al menos 8 caracteres');
+                    document.getElementById('new_password').focus();
                     return false;
                 }
-
-                // Validación estricta usando validation.js
-                const validation = validatePasswordRequirements(newPass);
-                if (!validation.isValid) {
-                // Validación estricta usando validation.js
                 const validation = validatePasswordRequirements(newPass);
                 if (!validation.isValid) {
                     NotificationService.error(validation.message);
                     return false;
                 }
+                if (newPass !== confirmPass) {
+                    NotificationService.error('Las contraseñas no coinciden');
+                    document.getElementById('confirm_password').focus();
+                    return false;
+                }
+                return true;
             }
 
-            // VALIDACIÓN STEP 2: Preguntas de Seguridad
             if (step === 2) {
                 const q1 = document.getElementById('question_1').value;
                 const q2 = document.getElementById('question_2').value;
                 const q3 = document.getElementById('question_3').value;
-                
-                if (!q1 || !q2 || !q3) {
+
                 if (!q1 || !q2 || !q3) {
                     NotificationService.error('Debes seleccionar las 3 preguntas de seguridad');
                     return false;
                 }
-                
-                // Verificar que las respuestas no estén vacías
+
                 const a1 = document.getElementById('answer_1').value.trim();
                 const a2 = document.getElementById('answer_2').value.trim();
                 const a3 = document.getElementById('answer_3').value.trim();
-                
-                if (!a1 || !a2 || !a3) {
+
                 if (!a1 || !a2 || !a3) {
                     NotificationService.error('Debes responder las 3 preguntas de seguridad');
                     return false;
                 }
-                
-                // Verificar longitud mínima de respuestas (al menos 3 caracteres)
-                if (a1.length < 3 || a2.length < 3 || a3.length < 3) {
-                // Verificar longitud mínima de respuestas (al menos 3 caracteres)
                 if (a1.length < 3 || a2.length < 3 || a3.length < 3) {
                     NotificationService.error('Cada respuesta debe tener al menos 3 caracteres');
                     return false;
                 }
+                return true;
+            }
+
+            if (step === 3) {
+                const telefono = document.querySelector('[name="telefono"]');
+                const fnac     = document.getElementById('fecha_nacimiento');
+                const genero   = document.querySelector('[name="genero"]');
+
+                if (!telefono || !telefono.value.trim()) {
+                    NotificationService.error('El campo Teléfono es obligatorio');
+                    if (telefono) telefono.focus();
+                    return false;
+                }
+                if (!fnac || !fnac.value) {
+                    NotificationService.error('La Fecha de Nacimiento es obligatoria');
+                    document.getElementById('fecha_nacimiento_mask').focus();
+                    return false;
+                }
+                if (!genero || !genero.value) {
+                    NotificationService.error('El campo Género es obligatorio');
+                    if (genero) genero.focus();
+                    return false;
+                }
+                return true;
             }
 
             return true;
         }
 
+        // ── Actualizar UI del wizard ────────────────────────────────
         function updateUI() {
-            document.querySelectorAll('.wizard-step').forEach(step => {
-                step.classList.remove('active');
-            });
+            document.querySelectorAll('.wizard-step').forEach(s => s.classList.remove('active'));
             document.querySelector(`.wizard-step[data-step="${currentStep}"]`).classList.add('active');
 
-            document.querySelectorAll('.step').forEach((step, index) => {
-                step.classList.remove('active', 'completed');
-                if (index + 1 < currentStep) {
-                    step.classList.add('completed');
-                } else if (index + 1 === currentStep) {
-                    step.classList.add('active');
-                }
+            document.querySelectorAll('.step').forEach((s, i) => {
+                s.classList.remove('active', 'completed');
+                if (i + 1 < currentStep)      s.classList.add('completed');
+                else if (i + 1 === currentStep) s.classList.add('active');
             });
 
-            const progress = ((currentStep - 1) / (totalSteps - 1)) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('progressFill').style.width =
+                ((currentStep - 1) / (totalSteps - 1)) * 100 + '%';
 
-            document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'flex';
-            document.getElementById('nextBtn').style.display = currentStep === totalSteps ? 'none' : 'flex';
+            document.getElementById('prevBtn').style.display   = currentStep === 1          ? 'none' : 'flex';
+            document.getElementById('nextBtn').style.display   = currentStep === totalSteps ? 'none' : 'flex';
             document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'flex' : 'none';
         }
 
-        function togglePasswordVisibility(inputId, icon) {
-            const input = document.getElementById(inputId);
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('ti-eye');
-                icon.classList.add('ti-eye-off');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('ti-eye-off');
-                icon.classList.add('ti-eye');
-            }
-        }
-
-        document.getElementById('new_password').addEventListener('input', function() {
-            updatePasswordStrengthWithRequirements(this, document.getElementById('strengthBar'), document.getElementById('strengthText'));
+        // ── Fortaleza de contraseña ─────────────────────────────────
+        document.getElementById('new_password').addEventListener('input', function () {
+            updatePasswordStrengthWithRequirements(
+                this,
+                document.getElementById('strengthBar'),
+                document.getElementById('strengthText')
+            );
         });
 
-        document.getElementById('wizardForm').addEventListener('submit', function(e) {
+        // ── Submit ──────────────────────────────────────────────────
+        document.getElementById('wizardForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            
-            if (!validateStep(currentStep)) {
-                return;
-            }
-            
+            if (!validateStep(currentStep)) return;
+
             const btn = document.getElementById('submitBtn');
             if (typeof setLoading === 'function') {
                 setLoading(btn, true, 'Guardando...');
             } else {
-                // Fallback
-                btn.innerHTML = '<i class="ti ti-loader animate-spin"></i> Guardando...';
-                btn.disabled = true;
+                btn.innerHTML = '<i class="ti ti-loader"></i> Guardando...';
+                btn.disabled  = true;
             }
-            
             this.submit();
         });
 
-        /**
-         * VALIDACIÓN: Detectar Preguntas Duplicadas
-         * 
-         * PROPÓSITO:
-         * Evitar que el usuario seleccione la misma pregunta en múltiples selects.
-         * 
-         * FLUJO:
-         * 1. Obtener valores de los 3 selects
-         * 2. Comparar cada uno con los demás
-         * 3. Si hay duplicado, mostrar error y limpiar el select duplicado
-         * 
-         * RAZÓN TÉCNICA:
-         * Si permitimos duplicados, el usuario podría elegir 3 veces "¿Tu mascota?"
-         * y responder siempre "Firulais", haciendo la seguridad inútil.
-         */
+        // ── Preguntas duplicadas ────────────────────────────────────
         function validateDuplicateQuestions() {
             const q1 = document.getElementById('question_1').value;
             const q2 = document.getElementById('question_2').value;
             const q3 = document.getElementById('question_3').value;
-            
-            // Resetear errores
-            document.getElementById('error_question_1').style.display = 'none';
-            document.getElementById('error_question_2').style.display = 'none';
-            document.getElementById('error_question_3').style.display = 'none';
-            
+
+            ['error_question_1','error_question_2','error_question_3'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+
             let hasDuplicate = false;
-            
-            // Validar duplicados entre pregunta 1 y 2
-            if (q1 && q2 && q1 === q2) {
-                document.getElementById('error_question_2').style.display = 'block';
-                document.getElementById('question_2').value = '';
-                hasDuplicate = true;
-            }
-            
-            // Validar duplicados entre pregunta 1 y 3
-            if (q1 && q3 && q1 === q3) {
-                document.getElementById('error_question_3').style.display = 'block';
-                document.getElementById('question_3').value = '';
-                hasDuplicate = true;
-            }
-            
-            // Validar duplicados entre pregunta 2 y 3
-            if (q2 && q3 && q2 === q3) {
-                document.getElementById('error_question_3').style.display = 'block';
-                document.getElementById('question_3').value = '';
-                hasDuplicate = true;
-            }
-            
-            if (hasDuplicate) {
-                NotificationService.warning('Debes seleccionar 3 preguntas diferentes para mayor seguridad');
-            }
+
+            if (q1 && q2 && q1 === q2) { document.getElementById('error_question_2').style.display = 'block'; document.getElementById('question_2').value = ''; hasDuplicate = true; }
+            if (q1 && q3 && q1 === q3) { document.getElementById('error_question_3').style.display = 'block'; document.getElementById('question_3').value = ''; hasDuplicate = true; }
+            if (q2 && q3 && q2 === q3) { document.getElementById('error_question_3').style.display = 'block'; document.getElementById('question_3').value = ''; hasDuplicate = true; }
+
+            if (hasDuplicate) NotificationService.warning('Debes seleccionar 3 preguntas diferentes');
         }
 
-        /**
-         * SANITIZACIÓN: Limpiar Respuestas de Caracteres Peligrosos
-         * 
-         * PROPÓSITO:
-         * Eliminar caracteres especiales que podrían usarse para ataques XSS o SQL Injection.
-         * 
-         * FLUJO:
-         * 1. Capturar el valor del input en tiempo real (evento oninput)
-         * 2. Aplicar regex para eliminar caracteres no permitidos
-         * 3. Actualizar el valor del input con el texto limpio
-         * 
-         * CARACTERES PERMITIDOS:
-         * - Letras (a-z, A-Z)
-         * - Números (0-9)
-         * - Espacios
-         * - Letras con tildes (á, é, í, ó, ú, ñ)
-         * 
-         * CARACTERES BLOQUEADOS:
-         * - Símbolos especiales: < > / ; ' " ` ( ) { } [ ] = + - * & % $ # @ !
-         * 
-         * RAZÓN TÉCNICA:
-         * Aunque el backend también valida (password_hash), esta validación frontend
-         * mejora la UX mostrando el error inmediatamente y previene intentos básicos de XSS.
-         * 
-         * EJEMPLO:
-         * Usuario escribe: "Mi perro<script>alert('hack')</script>"
-         * Resultado sanitizado: "Mi perroscipt alerthackscript"
-         */
+        // ── Sanitizar respuestas ────────────────────────────────────
         function sanitizeAnswer(input) {
-            // Regex: Solo permite letras, números, espacios y caracteres latinos
             const sanitized = input.value.replace(/[^a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚüÜ]/g, '');
-            
-            // Si el valor cambió, actualizar el input y mostrar feedback visual
             if (input.value !== sanitized) {
                 input.value = sanitized;
-                
-                // Feedback visual temporal (borde rojo por 500ms)
                 input.style.borderColor = '#EF4444';
-                setTimeout(() => {
-                    input.style.borderColor = '#D1D5DB';
-                }, 500);
-        }
-        
-        /**
-         * Toggle Password Visibility
-         * 
-         * PROPÓSITO:
-         * Alternar entre mostrar/ocultar contraseña al hacer clic en el icono del ojo.
-         * 
-         * IMPORTANTE:
-         * Esta función se llama desde onclick="togglePasswordVisibility('id', this)"
-         * donde 'this' es el elemento <i> del icono.
-         * 
-         * @param {string} inputId - ID del campo de contraseña
-         * @param {HTMLElement} iconElement - Elemento del icono (this desde onclick)
-         */
-        function togglePasswordVisibility(inputId, iconElement) {
-            const input = document.getElementById(inputId);
-            
-            if (!input) {
-                console.error('❌ Input field not found:', inputId);
-                return;
-            }
-            
-            if (!iconElement) {
-                console.error('❌ Icon element not provided');
-                return;
-            }
-            
-            // Toggle input type
-            if (input.type === 'password') {
-                input.type = 'text';
-                iconElement.classList.remove('ti-eye');
-                iconElement.classList.add('ti-eye-off');
-            } else {
-                input.type = 'password';
-                iconElement.classList.remove('ti-eye-off');
-                iconElement.classList.add('ti-eye');
+                setTimeout(() => { input.style.borderColor = '#D1D5DB'; }, 500);
             }
         }
     </script>

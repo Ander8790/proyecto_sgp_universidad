@@ -14,8 +14,12 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/tabler-icons.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/notifications.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    <script>const URLROOT = <?php echo json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>;</script> <!-- [FIX-C3] -->
 </head>
+
 <body class="auth-wrapper">
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
     <div class="auth-card" style="position: relative;">
@@ -115,55 +119,141 @@
             const email = '<?= htmlspecialchars($_SESSION['rec_email'] ?? '', ENT_QUOTES) ?>';
             
             if (!email) {
-                NotificationService.error('No se pudo identificar tu correo');
+                NotificationService.error('No se pudo identificar tu correo. Inicia el proceso de recuperación de nuevo.');
                 return;
             }
+
+            // Leer CSRF token del meta tag inyectado globalmente
+            const csrfMeta  = document.querySelector('meta[name="csrf-token"]');
+            const csrfToken = csrfMeta ? csrfMeta.getAttribute('content') : '';
             
-            // Mostrar loading
+            // ── Modal de carga ────────────────────────────────────────────────
             Swal.fire({
                 title: 'Enviando solicitud...',
-                html: 'Por favor espera',
+                html:  '<div style="color:#475569; font-size:0.95rem; margin-top:6px;">Notificando al administrador</div>',
                 allowOutsideClick: false,
-                didOpen: () => {
-                    Swal.showLoading();
-                }
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
             });
             
-            // Enviar solicitud vía AJAX
-            fetch('<?= URLROOT ?>/auth/request-help', {
+            // ── Fetch con CSRF token ──────────────────────────────────────────
+            fetch('<?= URLROOT ?>/auth/requestHelp', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
+                    'Content-Type':     'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN':     csrfToken
                 },
                 body: JSON.stringify({ email: email })
             })
             .then(response => response.json())
             .then(data => {
-                Swal.close();
-                
                 if (data.success) {
-                    NotificationService.success('Solicitud enviada correctamente. Redirigiendo...');
-                    setTimeout(() => {
+                    // ── Modal de éxito — Bento UI Premium ────────────────────
+                    Swal.fire({
+                        icon:  'success',
+                        title: 'Solicitud Enviada',
+                        html: [
+                            '<div style="',
+                                'font-size: 0.97rem;',
+                                'color: #475569;',
+                                'line-height: 1.65;',
+                                'margin-top: 10px;',
+                                'padding: 0 4px;',
+                            '">',
+                                '<span style="',
+                                    'display: inline-flex;',
+                                    'align-items: center;',
+                                    'gap: 6px;',
+                                    'background: rgba(16, 185, 129, 0.08);',
+                                    'border: 1px solid rgba(16, 185, 129, 0.28);',
+                                    'border-radius: 10px;',
+                                    'padding: 7px 14px;',
+                                    'margin-bottom: 12px;',
+                                    'font-size: 0.85rem;',
+                                    'color: #059669;',
+                                    'font-weight: 600;',
+                                '">',
+                                    '✓ Administrador notificado',
+                                '</span>',
+                                '<br>',
+                                'Tu solicitud ha sido registrada exitosamente.',
+                                '<br>',
+                                '<span style="font-size:0.85rem; color:#94a3b8; margin-top:6px; display:block;">',
+                                    'Un administrador evaluará tu caso y restablecerá tu acceso a la brevedad.',
+                                '</span>',
+                            '</div>'
+                        ].join(''),
+
+                        confirmButtonText:  'Entendido',
+                        confirmButtonColor: '#1d4ed8',
+                        showCancelButton:   false,
+                        allowOutsideClick:  false,
+
+                        didOpen: function () {
+                            var popup = Swal.getPopup();
+                            if (!popup) return;
+                            popup.style.borderRadius   = '24px';
+                            popup.style.padding        = '34px 28px 28px';
+                            popup.style.boxShadow      = '0 25px 60px rgba(0,0,0,0.16), 0 8px 24px rgba(0,0,0,0.10)';
+                            popup.style.border         = '1px solid rgba(255,255,255,0.14)';
+                        }
+
+                    }).then(() => {
+                        // Redirigir al login al confirmar o cerrar
                         window.location.href = '<?= URLROOT ?>/auth/login';
-                    }, 2000);
+                    });
+
                 } else {
-                    NotificationService.error(data.message || 'Error al enviar solicitud');
+                    // ── Error del servidor (rate-limit, usuario no encontrado, etc.) ──
+                    Swal.fire({
+                        icon:               'warning',
+                        title:              'No se pudo enviar',
+                        text:               data.message || 'Error al procesar la solicitud.',
+                        confirmButtonText:  'Entendido',
+                        confirmButtonColor: '#1d4ed8',
+                        didOpen: function () {
+                            var popup = Swal.getPopup();
+                            if (popup) {
+                                popup.style.borderRadius = '20px';
+                                popup.style.padding      = '32px 28px 28px';
+                            }
+                        }
+                    });
                 }
             })
             .catch(error => {
-                Swal.close();
-                console.error('Error:', error);
-                NotificationService.error('Error de conexión. Intenta de nuevo.');
+                console.error('[SGP] Error en sendHelpRequest:', error);
+                Swal.fire({
+                    icon:               'error',
+                    title:              'Error de conexión',
+                    text:               'No se pudo conectar con el servidor. Verifica tu conexión e intenta de nuevo.',
+                    confirmButtonText:  'Cerrar',
+                    confirmButtonColor: '#1d4ed8',
+                    didOpen: function () {
+                        var popup = Swal.getPopup();
+                        if (popup) { popup.style.borderRadius = '20px'; }
+                    }
+                });
             });
         }
-        
-        // ============================================
-        // SWEETALERT: RESPUESTAS INCORRECTAS
-        // ============================================
-        <?php if (!empty($error)): ?>
-            NotificationService.error('<?= htmlspecialchars($error) ?>');
-        <?php endif; ?>
     </script>
+
+    <?php if (!empty($error)): ?>
+    <script>
+    // [SGP-FIX] Mismo mecanismo de alerta que el login (NotificationService.error)
+    // para coherencia visual en todo el flujo de autenticación.
+    document.addEventListener('DOMContentLoaded', function () {
+        // Restaurar botón de envío (no queda bloqueado tras el error del servidor)
+        const submitBtn = document.querySelector('button[type="submit"]');
+        if (submitBtn) {
+            submitBtn.disabled  = false;
+            submitBtn.innerHTML = 'Verificar <i class="ti ti-check" style="margin-left:8px;"></i>';
+        }
+        // Idéntico al error de credenciales del login
+        NotificationService.error('<?= htmlspecialchars($error, ENT_QUOTES) ?>');
+    });
+    </script>
+    <?php endif; ?>
 </body>
 </html>

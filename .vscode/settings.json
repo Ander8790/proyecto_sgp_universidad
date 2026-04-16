@@ -1,1 +1,29 @@
-{}
+{
+    "files.exclude": {
+        "**/vendor": true
+    },
+    /* ── Intelephense ────────────────────────────────────────────────── */
+    "intelephense.files.exclude": [
+        "**/vendor/**"
+    ],
+    "intelephense.diagnostics.undefinedFunctions": false,
+    "intelephense.diagnostics.undefinedMethods": false,
+    "intelephense.diagnostics.undefinedClassConstants": false,
+    "intelephense.diagnostics.undefinedTypes": false,
+    /* ── CSS: ignorar archivos minificados ───────────────────────────── */
+    "css.validate": false,
+    "less.validate": false,
+    /* ── Editor: sin formato automático en minificados ───────────────── */
+    "[css]": {
+        "editor.formatOnSave": false
+    },
+    "[javascript]": {
+        "editor.formatOnSave": false
+    },
+    /* ── Excluir minificados del análisis de CSS/JS ──────────────────── */
+    "files.associations": {
+        "*.min.css": "plaintext",
+        "*.min.js": "plaintext"
+    },
+    "CodeGPT.apiKey": "Anthropic"
+}

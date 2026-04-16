@@ -19,7 +19,67 @@ switch ($rol_id) {
 <div class="dashboard-bento">
     
     <?php if ($role == 'Administrador'): ?>
+
+    <!-- ===== BANNER BENTO SGP — Dashboard General ===== -->
+    <style>
+    @media (max-width: 991px) {
+        .dashboard-banner {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            padding: 24px 20px !important;
+            gap: 20px !important;
+        }
+        .dashboard-banner > div:first-child, .dashboard-banner > div:nth-child(2) {
+            display: none !important; /* Ocultar decoraciones en móvil */
+        }
+    }
+    </style>
+    <div class="dashboard-banner" style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:28px 36px;margin-bottom:4px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;">
+        <!-- Círculos decorativos -->
+        <div style="position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:rgba(255,255,255,0.05);border-radius:50%;pointer-events:none;"></div>
+        <div style="position:absolute;bottom:-40px;right:160px;width:130px;height:130px;background:rgba(255,255,255,0.04);border-radius:50%;pointer-events:none;"></div>
+        <!-- Izquierda: Título -->
+        <div style="display:flex;align-items:center;gap:14px;z-index:1;">
+            <div style="background:rgba(255,255,255,0.15);border-radius:14px;padding:12px;">
+                <i class="ti ti-layout-dashboard" style="font-size:28px;color:white;"></i>
+            </div>
+            <div>
+                <h1 style="color:white;font-size:1.7rem;font-weight:700;margin:0;line-height:1.1;">Panel de Control</h1>
+                <p style="color:rgba(255,255,255,0.75);margin:4px 0 0;font-size:0.85rem;">
+                    Bienvenido, <strong><?= htmlspecialchars(explode(' ', $user_name)[0]) ?></strong> · <?= $role ?>
+                </p>
+            </div>
+        </div>
+        <!-- Derecha: Reloj en tiempo real -->
+        <div style="z-index:1;">
+            <div style="background:rgba(0,0,0,0.12);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.1);border-radius:50px;padding:10px 22px;display:flex;align-items:center;gap:18px;color:white;">
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <i class="ti ti-calendar" style="color:rgba(255,255,255,0.8);font-size:1rem;"></i>
+                    <span id="dash-date" style="font-size:0.82rem;font-weight:500;"></span>
+                </div>
+                <div style="width:1px;height:20px;background:rgba(255,255,255,0.2);"></div>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <i class="ti ti-clock" style="color:rgba(255,255,255,0.8);font-size:1rem;"></i>
+                    <span id="dash-time" style="font-size:1rem;font-weight:700;font-variant-numeric:tabular-nums;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function(){
+            function tick(){
+                var n = new Date();
+                var d = n.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long'});
+                var t = n.toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true});
+                var de = document.getElementById('dash-date'); if(de) de.textContent = d.charAt(0).toUpperCase()+d.slice(1);
+                var te = document.getElementById('dash-time'); if(te) te.textContent = t.toUpperCase();
+            }
+            tick(); setInterval(tick,1000);
+        })();
+    </script>
+
     <!-- Fila 1: 4 KPIs -->
+
 
     <div class="card kpi-card slide-up" style="animation-delay: 0.1s;">
         <div class="kpi-header">
@@ -159,7 +219,11 @@ switch ($rol_id) {
 <script src="<?= URLROOT ?>/js/apexcharts.min.js"></script>
 <script>
 // Configuración de gráficos con paleta institucional
-document.addEventListener('DOMContentLoaded', function() {
+(function initDashboardCharts() {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(initDashboardCharts, 50);
+        return;
+    }
     
     // Gráfico de Barras - Nuevos pasantes por Mes (datos reales de la DB)
     const datosMensualesDB = <?= isset($datosMensuales) ? json_encode(array_values($datosMensuales)) : '[0,0,0,0,0,0,0,0,0,0,0,0]' ?>;
@@ -299,7 +363,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     const donutChart = new ApexCharts(document.querySelector('#chart-departamentos'), donutChartOptions);
     donutChart.render();
-});
+})();
 
 // Función de logout (mantener compatibilidad)
 function confirmLogout() {

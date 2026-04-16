@@ -443,7 +443,9 @@ document.getElementById('formSecurityQuestions').addEventListener('submit', func
     submitBtn.innerHTML = '<i class="ti ti-loader" style="animation: spin 1s linear infinite;"></i> Guardando...';
     
     const formData = new FormData(this);
-    
+    // [FIX-A3] Adjuntar token CSRF al FormData
+    formData.append('_csrf', document.querySelector('meta[name="csrf-token"]')?.content || '');
+
     fetch(this.action, {
         method: 'POST',
         body: formData

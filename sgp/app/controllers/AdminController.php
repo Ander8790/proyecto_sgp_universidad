@@ -51,6 +51,7 @@ class AdminController extends Controller
             'alertas_pendientes' => $this->dashboardModel->getAlertasPendientes(6),
             'departamentos'      => $this->dashboardModel->getDepartamentosParaAsignacion(),
             'tutores'            => $this->dashboardModel->getTutoresParaAsignacion(),
+            'periodos'           => $this->dashboardModel->getPeriodosAcademicos(),
             
             // ── NUEVO: DATA BRIDGE (Gráficas Dinámicas) ──
             'metricas_graficos' => [
@@ -62,5 +63,43 @@ class AdminController extends Controller
         ];
 
         $this->view('admin/dashboard', $data);
+    }
+
+    /**
+     * POST /admin/cierreDiario  (AJAX → JSON)
+     * Ejecuta el cierre diario de asistencias desde el panel web.
+     * Inserta 'Ausente/Sistema' en todos los días hábiles sin registro.
+     */
+    public function cierreDiario(): void
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido.']);
+            exit;
+        }
+
+        require_once APPROOT . '/scripts/cierre_diario.php';
+
+        $db  = Database::getInstance();
+        $res = ejecutarCierreDiario($db);
+
+        // Log en bitácora
+        $adminId = (int)Session::get('user_id');
+        $db->query("
+            INSERT INTO bitacora (usuario_id, accion, descripcion, ip)
+            VALUES (:uid, 'cierre_diario', :desc, :ip)
+        ");
+        $db->bind(':uid', $adminId);
+        $db->bind(':desc', "Cierre diario ejecutado: {$res['insertados']} registros insertados para {$res['pasantes']} pasantes.");
+        $db->bind(':ip',   $_SERVER['REMOTE_ADDR'] ?? 'N/A');
+        $db->execute();
+
+        echo json_encode([
+            'success'    => true,
+            'message'    => "✅ Cierre realizado: {$res['insertados']} registros de ausencia insertados para {$res['pasantes']} pasantes.",
+            'detalle'    => $res,
+        ]);
+        exit;
     }
 }

@@ -83,6 +83,8 @@
 /* ==================== BADGE DE NOTIFICACIONES ==================== */
 
 .notification-badge {
+    /* Oculto por defecto — JS lo muestra añadiendo la clase .badge-visible */
+    display: none;
     position: absolute;
     top: 4px;
     right: 4px;
@@ -92,18 +94,18 @@
     font-weight: 700;
     min-width: 20px;
     height: 20px;
-    display: flex;
     align-items: center;
     justify-content: center;
     border-radius: var(--badge-radius);
     padding: 0 6px;
-
-    /* Animaciones */
-    animation: badgePulse 2s ease-in-out infinite,
-        badgeRipple 2s ease-in-out infinite;
-
-    /* Sombra para visibilidad */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Visible solo cuando JS confirma que hay notificaciones */
+.notification-badge.badge-visible {
+    display: flex;
+    animation: badgePulse 2s ease-in-out infinite,
+               badgeRipple 2s ease-in-out infinite;
 }
 
 /* Badge sin animación cuando dropdown está abierto */

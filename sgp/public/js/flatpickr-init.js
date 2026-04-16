@@ -25,10 +25,8 @@
         disableMobile: true,        // siempre usar Flatpickr (nunca el nativo móvil)
         locale: 'es',               // español
         animate: true,
-        monthSelectorType: 'dropdown', // Permitir seleccionar el mes con un dropdown
+        monthSelectorType: 'dropdown', // selector de mes como dropdown
         showMonths: 1,
-        static: false,
-        appendTo: document.body,
         // Callback para mantener las clases CSS del input original
         onReady: function (selectedDates, dateStr, instance) {
             if (instance.altInput) {
