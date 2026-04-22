@@ -282,6 +282,11 @@
             actionsHtml += `<a href="${URLROOT}/users/exportPdf/${d.id}" target="_blank" class="sgp-btn-action btn btn-outline-danger fw-bold d-flex align-items-center justify-content-center gap-2" style="text-decoration:none; border: 1.5px solid currentColor !important;">
                 <i class="ti ti-file-type-pdf fs-5"></i> Descargar PDF
             </a>`;
+            if (typeof window.abrirModalEditarPasante === 'function') {
+                actionsHtml += `<button class="sgp-btn-action" style="background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;" onclick="SGPModal.cerrar('ver'); window.abrirModalEditarPasante(${d.id})">
+                    <i class="ti ti-edit"></i> Editar Datos
+                </button>`;
+            }
         }
         actionsHtml += `<button class="sgp-btn-action sgp-btn-close-action" onclick="SGPModal.cerrar('ver')">
             <i class="ti ti-x"></i> Cerrar

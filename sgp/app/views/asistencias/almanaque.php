@@ -5,6 +5,7 @@
  */
 
 $pasante           = $data['pasante']           ?? null;
+$instituciones     = $data['instituciones']      ?? [];
 $anio              = (int)($data['anio']         ?? date('Y'));
 $anios             = $data['anios']              ?? [$anio];
 $periodo           = $data['periodo']            ?? ['nombre' => null, 'estado' => null];
@@ -451,6 +452,166 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
         </a>
     </div>
 </div>
+
+<!-- ═══ DATOS PERSONALES ════════════════════════════════════════════════ -->
+<div style="background:#fff;border-radius:18px;border:1px solid #e2e8f0;padding:20px 24px;margin-bottom:16px;box-shadow:0 2px 16px rgba(15,23,42,.06);">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-id-badge-2" style="color:#2563eb;font-size:1.1rem;"></i>
+            <span style="font-weight:800;font-size:.92rem;color:#1e293b;">Datos Personales</span>
+        </div>
+        <button onclick="almAbrirEditar()" style="background:#eff6ff;color:#2563eb;border:1.5px solid #bfdbfe;border-radius:10px;padding:6px 14px;font-size:.78rem;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+            <i class="ti ti-edit"></i> Editar
+        </button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+        <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;">
+            <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-user" style="margin-right:3px;"></i>Nombres</div>
+            <div id="alm-dp-nombres" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($pasante->nombres ?? '—') ?></div>
+        </div>
+        <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;">
+            <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-user" style="margin-right:3px;"></i>Apellidos</div>
+            <div id="alm-dp-apellidos" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($pasante->apellidos ?? '—') ?></div>
+        </div>
+        <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;">
+            <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-id" style="margin-right:3px;"></i>Cédula</div>
+            <div style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($pasante->cedula ?? '—') ?></div>
+        </div>
+        <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;">
+            <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-phone" style="margin-right:3px;"></i>Teléfono</div>
+            <div id="alm-dp-telefono" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($pasante->telefono ?? 'No registrado') ?></div>
+        </div>
+        <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;grid-column:span 2;">
+            <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-map-pin" style="margin-right:3px;"></i>Dirección</div>
+            <div id="alm-dp-direccion" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($pasante->direccion ?? 'No registrada') ?></div>
+        </div>
+        <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;grid-column:span 2;">
+            <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-school" style="margin-right:3px;"></i>Institución de Procedencia</div>
+            <div id="alm-dp-institucion" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($instNombre) ?></div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL EDITAR DATOS PERSONALES (almanaque) -->
+<div id="almModalEditar" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:20px;width:90%;max-width:520px;max-height:90vh;overflow-y:auto;box-shadow:0 24px 60px rgba(15,23,42,.3);">
+        <div style="background:linear-gradient(135deg,#172554,#2563eb);border-radius:20px 20px 0 0;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <div style="color:#fff;font-weight:800;font-size:1.1rem;"><i class="ti ti-edit" style="margin-right:8px;"></i>Editar Datos Personales</div>
+                <div style="color:rgba(255,255,255,.7);font-size:.8rem;margin-top:3px;"><?= htmlspecialchars($nombre) ?></div>
+            </div>
+            <button onclick="almCerrarEditar()" style="background:rgba(255,255,255,.15);border:none;color:#fff;width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;"><i class="ti ti-x"></i></button>
+        </div>
+        <div style="padding:24px 28px;display:flex;flex-direction:column;gap:16px;">
+            <input type="hidden" id="alm-edit-id" value="<?= (int)($pasante->id ?? 0) ?>">
+            <div>
+                <label style="font-size:.78rem;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px;">Nombres</label>
+                <input type="text" id="alm-edit-nombres" placeholder="Nombres del pasante" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <div>
+                <label style="font-size:.78rem;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px;">Apellidos</label>
+                <input type="text" id="alm-edit-apellidos" placeholder="Apellidos del pasante" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <div>
+                <label style="font-size:.78rem;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px;">Teléfono</label>
+                <input type="text" id="alm-edit-telefono" placeholder="Teléfono de contacto" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <div>
+                <label style="font-size:.78rem;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px;">Dirección</label>
+                <input type="text" id="alm-edit-direccion" placeholder="Dirección de domicilio" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            </div>
+            <div>
+                <label style="font-size:.78rem;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px;">Institución de Procedencia</label>
+                <select id="alm-edit-institucion" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+                    <option value="">Seleccione una institución</option>
+                    <?php foreach ($instituciones as $inst): ?>
+                    <option value="<?= $inst->id ?>"><?= htmlspecialchars($inst->nombre) ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <button onclick="almGuardarDatos()" style="background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;border:none;padding:12px 20px;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 12px rgba(37,99,235,.3);transition:all .2s;margin-top:4px;" onmouseover="this.style.transform='translateY(-1px)'" onmouseout="this.style.transform='none'">
+                <i class="ti ti-device-floppy"></i> Guardar Cambios
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    var modal = document.getElementById('almModalEditar');
+
+    window.almAbrirEditar = async function() {
+        var pid = document.getElementById('alm-edit-id').value;
+        modal.style.display = 'flex';
+        try {
+            var resp = await fetch(URLROOT + '/pasantes/obtenerDatosPersonales/' + pid);
+            var json = await resp.json();
+            if (json.success) {
+                var d = json.data;
+                document.getElementById('alm-edit-nombres').value    = d.nombres    || '';
+                document.getElementById('alm-edit-apellidos').value  = d.apellidos  || '';
+                document.getElementById('alm-edit-telefono').value   = d.telefono   || '';
+                document.getElementById('alm-edit-direccion').value  = d.direccion  || '';
+                document.getElementById('alm-edit-institucion').value = d.institucion_procedencia || '';
+            }
+        } catch(e) {}
+    };
+
+    window.almCerrarEditar = function() {
+        modal.style.display = 'none';
+    };
+
+    window.almGuardarDatos = async function() {
+        var id        = document.getElementById('alm-edit-id').value;
+        var nombres   = document.getElementById('alm-edit-nombres').value.trim();
+        var apellidos = document.getElementById('alm-edit-apellidos').value.trim();
+        var telefono  = document.getElementById('alm-edit-telefono').value.trim();
+        var direccion = document.getElementById('alm-edit-direccion').value.trim();
+        var inst      = document.getElementById('alm-edit-institucion').value;
+
+        if (!nombres || !apellidos) {
+            Swal.fire('Atención', 'Nombres y apellidos son obligatorios', 'warning');
+            return;
+        }
+
+        var fd = new FormData();
+        fd.append('id', id);
+        fd.append('nombres', nombres);
+        fd.append('apellidos', apellidos);
+        fd.append('telefono', telefono);
+        fd.append('direccion', direccion);
+        fd.append('institucion', inst);
+
+        try {
+            var resp = await fetch(URLROOT + '/pasantes/actualizarDatos', {
+                method: 'POST', body: fd,
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            var json = await resp.json();
+            if (json.success) {
+                almCerrarEditar();
+                // Actualizar los campos visibles sin recargar
+                document.getElementById('alm-dp-nombres').textContent    = nombres;
+                document.getElementById('alm-dp-apellidos').textContent  = apellidos;
+                document.getElementById('alm-dp-telefono').textContent   = telefono || 'No registrado';
+                document.getElementById('alm-dp-direccion').textContent  = direccion || 'No registrada';
+                var selInst = document.getElementById('alm-edit-institucion');
+                var instLabel = selInst.options[selInst.selectedIndex]?.text || '—';
+                if (inst) document.getElementById('alm-dp-institucion').textContent = instLabel;
+                Swal.fire({ icon:'success', title:'¡Actualizado!', text: json.message, timer:1500, showConfirmButton:false });
+            } else {
+                Swal.fire('Error', json.message, 'error');
+            }
+        } catch(e) {
+            Swal.fire('Error', 'Error de conexión', 'error');
+        }
+    };
+
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) almCerrarEditar();
+    });
+})();
+</script>
 
 <!-- ═══ KPIs ═══════════════════════════════════════════════════════════ -->
 <div class="alm-kpis">

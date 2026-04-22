@@ -70,8 +70,14 @@ class AsistenciasController extends Controller
         $meses = ['01'=>'Enero','02'=>'Febrero','03'=>'Marzo','04'=>'Abril','05'=>'Mayo','06'=>'Junio','07'=>'Julio','08'=>'Agosto','09'=>'Septiembre','10'=>'Octubre','11'=>'Noviembre','12'=>'Diciembre'];
         $nombreMes  = $meses[$paramsUrl['mes']] ?? '';
         $anioActual = $paramsUrl['anio'];
-        $urlAnt     = URLROOT . "/asistencias?vista=mensual&mes=" . str_pad(($paramsUrl['mes']==1?12:$paramsUrl['mes']-1),2,'0',STR_PAD_LEFT) . "&anio=" . ($paramsUrl['mes']==1?$paramsUrl['anio']-1:$paramsUrl['anio']);
-        $urlSig     = URLROOT . "/asistencias?vista=mensual&mes=" . str_pad(($paramsUrl['mes']==12?1:$paramsUrl['mes']+1),2,'0',STR_PAD_LEFT) . "&anio=" . ($paramsUrl['mes']==12?$paramsUrl['anio']+1:$paramsUrl['anio']);
+        $mesNum     = (int)$paramsUrl['mes'];
+        $anioNum    = (int)$paramsUrl['anio'];
+        $mesAnt     = $mesNum === 1  ? 12 : $mesNum - 1;
+        $anioAnt    = $mesNum === 1  ? $anioNum - 1 : $anioNum;
+        $mesSig     = $mesNum === 12 ? 1  : $mesNum + 1;
+        $anioSig    = $mesNum === 12 ? $anioNum + 1 : $anioNum;
+        $urlAnt     = URLROOT . '/asistencias?vista=mensual&mes=' . str_pad($mesAnt, 2, '0', STR_PAD_LEFT) . '&anio=' . $anioAnt;
+        $urlSig     = URLROOT . '/asistencias?vista=mensual&mes=' . str_pad($mesSig, 2, '0', STR_PAD_LEFT) . '&anio=' . $anioSig;
 
         // KPIs Anuales (Inicialización)
         $historicoAnual   = 0;
@@ -119,11 +125,13 @@ class AsistenciasController extends Controller
                 a.metodo,
                 a.motivo_justificacion,
                 a.ruta_evidencia,
+                a.es_auto_fill,
                 u.id           AS pasante_id,
                 u.cedula,
                 dp.nombres,
                 dp.apellidos,
-                d.nombre       AS departamento_nombre
+                d.nombre       AS departamento_nombre,
+                a.es_retardo
             FROM asistencias a
             INNER JOIN usuarios          u   ON u.id          = a.pasante_id
             LEFT  JOIN datos_personales  dp  ON dp.usuario_id = u.id
@@ -270,7 +278,7 @@ class AsistenciasController extends Controller
         // PROCESADOR DE DATOS: VISTA MENSUAL
         // ==========================================
         $bentoMensual     = [];
-        $pasantesFaltas   = [];
+        $pasantesRetardos = [];
         $healthIndex      = 100;
         $totalEventos     = 0;
         $chartSemanasJson = "[]";
@@ -287,7 +295,8 @@ class AsistenciasController extends Controller
 
             foreach($registrosLista as $reg) {
                 $depto = $reg->departamento_nombre ?? 'Sin Asignar';
-                $pid = $reg->pasante_id ?? 'P'.$reg->id;
+                $pid        = $reg->pasante_id ?? 'P'.$reg->id;
+                $pasanteId  = (int)($reg->pasante_id ?? 0); // ID numérico real para el modal
                 
                 if(!isset($bentoMensual[$depto])) {
                     $bentoMensual[$depto] = [];
@@ -302,12 +311,14 @@ class AsistenciasController extends Controller
                     $nombreDisplay = ucwords(strtolower($rawNombres . ' ' . $rawApellidos));
 
                     $bentoMensual[$depto][$pid] = [
-                        'nombre'   => $nombreDisplay,
-                        'cedula'   => $reg->cedula ?? '',
-                        'iniciales'=> $iniciales,
+                        'nombre'      => $nombreDisplay,
+                        'cedula'      => $reg->cedula ?? '',
+                        'iniciales'   => $iniciales,
+                        'pasante_id'  => $pasanteId, // ID real para el endpoint de detalle
                         'presentes'   => 0,
                         'ausentes'    => 0,
                         'justificados'=> 0,
+                        'retardos'    => 0,
                         'history'     => []
                     ];
                 }
@@ -322,29 +333,34 @@ class AsistenciasController extends Controller
                     $bentoMensual[$depto][$pid]['justificados']++;
                     array_unshift($bentoMensual[$depto][$pid]['history'], 'justificado');
                 }
+                if((int)($reg->es_retardo ?? 0) === 1) {
+                    $bentoMensual[$depto][$pid]['retardos']++;
+                }
                 if(count($bentoMensual[$depto][$pid]['history']) > 5) {
                     array_pop($bentoMensual[$depto][$pid]['history']);
                 }
             }
 
+            $pasantesRetardos = [];
             foreach($bentoMensual as $depto => &$pasantesObj) {
                 foreach($pasantesObj as $pid => &$rm) {
                     $totalAsistencias += $rm['presentes'];
                     $totalFaltasGlobal += $rm['ausentes'];
                     $totalJustificadosGlobal += $rm['justificados'];
-                    if($rm['ausentes'] > 0) {
-                        $pasantesFaltas[] = [
-                            'nombre' => $rm['nombre'], 
-                            'depto' => $depto, 
-                            'faltas' => $rm['ausentes'], 
+                    if($rm['retardos'] > 0) {
+                        $pasantesRetardos[] = [
+                            'id'        => (int)($rm['pasante_id'] ?? 0), // ID numérico real
+                            'nombre'    => $rm['nombre'], 
+                            'depto'     => $depto, 
+                            'retardos'  => $rm['retardos'], 
                             'iniciales' => $rm['iniciales']
                         ];
                     }
                 }
             }
-            usort($pasantesFaltas, function($a, $b) { return $b['faltas'] <=> $a['faltas']; });
-            
-            $pasantesFaltas = array_slice($pasantesFaltas, 0, 3);
+            usort($pasantesRetardos, function($a, $b) { return $b['retardos'] <=> $a['retardos']; });
+            // No hacemos slice aquí, lo haremos en la vista con paginación JS si es necesario, 
+            // o pasamos todo el histórico. El usuario pidió historial con paginación.
             $totalEventos = $totalAsistencias + $totalFaltasGlobal + $totalJustificadosGlobal;
             $healthIndex = $totalEventos > 0 ? round(($totalAsistencias / $totalEventos) * 100) : 100;
 
@@ -411,24 +427,72 @@ class AsistenciasController extends Controller
                 ];
             }
 
-            // ===== JS DATA: Calendario =====
-            $calendarioJS = [];
-            $daysJS = [];
-            $numDays = (int)date('t', strtotime($fechaInicio));
-            for($i=1; $i<=$numDays; $i++) { $daysJS[] = $i; }
+            // ===== FERIADOS DEL MES =====
+            $feriadosMes = $this->asistenciaModel->getFeriadosEnRango($fechaInicio, $fechaFin);
+            // Convertir a mapa dia => nombre para fácil acceso en vista
+            $feriadosDia = [];
+            foreach ($feriadosMes as $fecha => $desc) {
+                $feriadosDia[(int)date('j', strtotime($fecha))] = $desc;
+            }
 
-            foreach($registrosLista as $reg) {
-                $d = (int)date('j', strtotime($reg->fecha));
-                $est = strtolower($reg->estado);
-                $code = 'em';
-                if(strpos($est, 'presente') !== false) $code = 'p';
-                elseif(strpos($est, 'ausente') !== false) $code = 'a';
-                elseif(strpos($est, 'justificado') !== false) $code = 'j';
-                
-                // Si ya hay un registro (p.ej. presente), no lo sobreescribimos con 'em'
-                if(!isset($calendarioJS[$d]) || $code !== 'em') {
-                    $calendarioJS[$d] = $code;
+            // ===== JS DATA: Calendario heatmap por día × departamento =====
+            $daysJS  = [];
+            $numDays = (int)date('t', strtotime($fechaInicio));
+            for ($i = 1; $i <= $numDays; $i++) { $daysJS[] = $i; }
+
+            // calPorDia['Todos'][7] = ['p'=>13,'a'=>2,'j'=>1]
+            // calPorDia['RRHH'][7]  = ['p'=>4,'a'=>1,'j'=>0]
+            $calPorDia = ['Todos' => []];
+            foreach ($registrosLista as $reg) {
+                $dia   = (int)date('j', strtotime($reg->fecha));
+                $depto = $reg->departamento_nombre ?? 'Sin Asignar';
+                $est   = strtolower($reg->estado ?? '');
+                $key   = str_contains($est, 'presente') ? 'p' : (str_contains($est, 'ausente') ? 'a' : 'j');
+
+                if (!isset($calPorDia['Todos'][$dia])) $calPorDia['Todos'][$dia] = ['p'=>0,'a'=>0,'j'=>0];
+                $calPorDia['Todos'][$dia][$key]++;
+
+                if (!isset($calPorDia[$depto][$dia])) $calPorDia[$depto][$dia] = ['p'=>0,'a'=>0,'j'=>0];
+                $calPorDia[$depto][$dia][$key]++;
+            }
+
+            // ===== % POR PASANTE (para ranking riesgo/top) =====
+            $pctPorPasante = [];
+            foreach ($bentoMensual as $depto => $pasantes) {
+                foreach ($pasantes as $pid => $rm) {
+                    $total = $rm['presentes'] + $rm['ausentes'] + $rm['justificados'];
+                    $pctPorPasante[] = [
+                        'id'      => $pid,
+                        'nombre'  => $rm['nombre'],
+                        'iniciales'=> $rm['iniciales'],
+                        'depto'   => $depto,
+                        'p'       => $rm['presentes'],
+                        'a'       => $rm['ausentes'],
+                        'j'       => $rm['justificados'],
+                        'total'   => $total,
+                        'pct'     => $total > 0 ? round(($rm['presentes'] + $rm['justificados']) / $total * 100) : 0,
+                    ];
                 }
+            }
+            usort($pctPorPasante, fn($a,$b) => $b['pct'] <=> $a['pct']);
+
+            // ===== AUSENCIAS DEL MES (para panel retroactivo) =====
+            $ausenciasMes = [];
+            foreach ($registrosLista as $reg) {
+                if (strtolower($reg->estado ?? '') === 'ausente') {
+                    $ausenciasMes[] = $reg;
+                }
+            }
+            // Orden cronológico ascendente para la tabla
+            usort($ausenciasMes, fn($a,$b) => strcmp($a->fecha, $b->fecha));
+
+            // Legado — mantener compatibilidad con código que aún use $calendarioJS
+            $calendarioJS = [];
+            foreach ($calPorDia['Todos'] as $dia => $cnt) {
+                $total = $cnt['p'] + $cnt['a'] + $cnt['j'];
+                if ($total === 0) { $calendarioJS[$dia] = 'em'; continue; }
+                $pct = ($cnt['p'] + $cnt['j']) / $total * 100;
+                $calendarioJS[$dia] = $pct >= 85 ? 'p' : ($pct >= 60 ? 'j' : 'a');
             }
         }
 
@@ -453,7 +517,7 @@ class AsistenciasController extends Controller
             'datosSemanales'=> $datosSemanales,
             'navSemana'     => $navSemana,
             'bentoMensual'  => $bentoMensual,
-            'pasantesFaltas'=> $pasantesFaltas,
+            'pasantesRetardos'=> $pasantesRetardos,
             'healthIndex'   => $healthIndex,
             'totalEventosMensual'=> $totalEventos,
             'chartSemanasJson' => $chartSemanasJson,
@@ -468,7 +532,11 @@ class AsistenciasController extends Controller
             'urlSig' => $urlSig,
             'historicoAnual' => $historicoAnual,
             'finalizadosAnual' => $finalizadosAnual,
-            'enCursoAnual' => $enCursoAnual
+            'enCursoAnual' => $enCursoAnual,
+            'calPorDia'    => $calPorDia    ?? [],
+            'feriadosDia'  => $feriadosDia  ?? [],
+            'pctPorPasante'=> $pctPorPasante ?? [],
+            'ausenciasMes' => $ausenciasMes  ?? [],
         ]);
     }
 
@@ -924,7 +992,9 @@ class AsistenciasController extends Controller
         // ── Registros del mes para este pasante ──────────────────
         $this->db->query("
             SELECT fecha,
+                   hora_registro,
                    estado,
+                   metodo,
                    COALESCE(es_retardo,  0) AS es_retardo,
                    COALESCE(es_auto_fill, 0) AS es_auto_fill
             FROM   asistencias
@@ -947,6 +1017,8 @@ class AsistenciasController extends Controller
         foreach ($registros as $reg) {
             $datosGrid[$reg->fecha] = [
                 'estado'       => $reg->estado,
+                'hora'         => $reg->hora_registro,
+                'metodo'       => $reg->metodo,
                 'es_retardo'   => (int)$reg->es_retardo,
                 'es_auto_fill' => (int)$reg->es_auto_fill,
             ];
@@ -1002,8 +1074,11 @@ class AsistenciasController extends Controller
                 u.cedula,
                 dp.nombres,
                 dp.apellidos,
+                dp.telefono,
+                dp.direccion,
                 d.nombre        AS departamento,
                 COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_nombre,
+                dpa.institucion_procedencia,
                 dpa.estado_pasantia,
                 dpa.horas_acumuladas,
                 COALESCE(dpa.horas_meta, 1440) AS horas_meta,
@@ -1278,6 +1353,10 @@ class AsistenciasController extends Controller
         $this->db->bind(':pid', $pasanteId);
         $evaluaciones = $this->db->resultSet();
 
+        // Instituciones para el select del modal editar
+        $this->db->query("SELECT id, nombre FROM instituciones ORDER BY nombre ASC");
+        $instituciones = $this->db->resultSet();
+
         $this->view('asistencias/almanaque', [
             'title'            => 'Almanaque — ' . trim(($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? '')),
             'pasante'          => $pasante,
@@ -1297,6 +1376,7 @@ class AsistenciasController extends Controller
             'pctTiempo'        => $pctTiempo,
             'justificaciones'  => $justificaciones,
             'evaluaciones'     => $evaluaciones,
+            'instituciones'    => $instituciones,
         ]);
     }
 }

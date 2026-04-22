@@ -1237,8 +1237,8 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 dep.nombre                                              AS departamento,
                 inst.nombre                                             AS institucion,
                 dpa.estado_pasantia,
-                dpa.fecha_inicio,
-                dpa.fecha_fin,
+                dpa.fecha_inicio_pasantia                               AS fecha_inicio,
+                dpa.fecha_fin_estimada                                  AS fecha_fin,
                 COUNT(a.id)                                             AS total_dias,
                 SUM(CASE WHEN a.estado = 'Presente'    THEN 1 ELSE 0 END) AS presentes,
                 SUM(CASE WHEN a.estado = 'Ausente'     THEN 1 ELSE 0 END) AS ausentes,
@@ -1253,7 +1253,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             WHERE u.rol_id = 3
             GROUP BY u.id, u.cedula, dp.nombres, dp.apellidos,
                      dep.nombre, inst.nombre, dpa.estado_pasantia,
-                     dpa.fecha_inicio, dpa.fecha_fin
+                     dpa.fecha_inicio_pasantia, dpa.fecha_fin_estimada
             ORDER BY dep.nombre ASC, dp.apellidos ASC, dp.nombres ASC
         ");
         $this->db->bind(':anio', $anio);
@@ -1521,5 +1521,165 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
         $nombreArchivo = ($tipo === 'culminacion' ? 'Carta_Culminacion' : 'Constancia_Servicio')
             . '_' . ($pasante->cedula ?? $pasanteId);
         $this->pdf->renderDomPdf($html, $nombreArchivo, false);
+    }
+
+    // ══════════════════════════════════════════════════════════════
+    // VISTA ANUAL — PDF Individual y Exportaciones Excel
+    // ══════════════════════════════════════════════════════════════
+
+    /**
+     * GET /reportes/pdfIndividual?id=X&download=0|1
+     * PDF de kardex individual desde la vista anual (alias de pdfKardex).
+     */
+    public function pdfIndividual(): void
+    {
+        $pasanteId = (int)($_GET['id'] ?? 0);
+        if (!$pasanteId) {
+            App::renderError(404);
+            return;
+        }
+        // Reutilizar la lógica del kardex
+        $this->pdfKardex($pasanteId);
+    }
+
+    /**
+     * GET /reportes/exportarExcel?id=X
+     * Descarga CSV de asistencias de un pasante individual.
+     */
+    public function exportarExcel(): void
+    {
+        $pasanteId = (int)($_GET['id'] ?? 0);
+        if (!$pasanteId) {
+            App::renderError(404);
+            return;
+        }
+
+        // Datos del pasante
+        $this->db->query("
+            SELECT dp.nombres, dp.apellidos, u.cedula
+            FROM   usuarios u
+            JOIN   datos_personales dp ON dp.usuario_id = u.id
+            WHERE  u.id = :pid AND u.rol_id = 3
+            LIMIT  1
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $pasante = $this->db->single();
+
+        if (!$pasante) {
+            App::renderError(404);
+            return;
+        }
+
+        // Asistencias
+        $this->db->query("
+            SELECT fecha, estado, hora_entrada, hora_salida, observacion
+            FROM   asistencias
+            WHERE  pasante_id = :pid
+            ORDER  BY fecha DESC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $registros = $this->db->resultSet();
+
+        $nombre   = trim(($pasante->apellidos ?? '') . ', ' . ($pasante->nombres ?? ''));
+        $filename = 'Asistencias_' . ($pasante->cedula ?? $pasanteId) . '_' . date('Ymd') . '.csv';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-store, no-cache');
+
+        $out = fopen('php://output', 'w');
+        fputs($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['Pasante', 'Cédula', 'Fecha', 'Estado', 'Hora Entrada', 'Hora Salida', 'Observación'], ';');
+
+        foreach ($registros as $r) {
+            fputcsv($out, [
+                $nombre,
+                $pasante->cedula ?? '—',
+                $r->fecha         ?? '',
+                $r->estado        ?? '',
+                $r->hora_entrada  ?? '',
+                $r->hora_salida   ?? '',
+                $r->observacion   ?? '',
+            ], ';');
+        }
+        fclose($out);
+        exit;
+    }
+
+    /**
+     * GET /reportes/excelAnual?anio=YYYY
+     * Descarga CSV con nómina global de pasantes del año.
+     */
+    public function excelAnual(): void
+    {
+        $anio = (int)($_GET['anio'] ?? date('Y'));
+
+        $this->db->query("
+            SELECT
+                u.cedula,
+                dp.nombres,
+                dp.apellidos,
+                dep.nombre                                              AS departamento,
+                COALESCE(inst.nombre, dpa.institucion_procedencia, 'N/D') AS institucion,
+                dpa.estado_pasantia,
+                dpa.fecha_inicio_pasantia                               AS fecha_inicio,
+                dpa.fecha_fin_estimada                                  AS fecha_fin,
+                COUNT(a.id)                                             AS total_dias,
+                SUM(CASE WHEN a.estado = 'Presente'    THEN 1 ELSE 0 END) AS presentes,
+                SUM(CASE WHEN a.estado = 'Ausente'     THEN 1 ELSE 0 END) AS ausentes,
+                SUM(CASE WHEN a.estado = 'Justificado' THEN 1 ELSE 0 END) AS justificados
+            FROM usuarios u
+            JOIN datos_personales dp   ON dp.usuario_id   = u.id
+            JOIN datos_pasante    dpa  ON dpa.usuario_id  = u.id
+            LEFT JOIN departamentos dep  ON dep.id = dpa.departamento_asignado_id
+            LEFT JOIN instituciones inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN asistencias   a    ON a.pasante_id  = u.id
+                                        AND YEAR(a.fecha) = :anio
+            WHERE u.rol_id = 3
+            GROUP BY u.id, u.cedula, dp.nombres, dp.apellidos,
+                     dep.nombre, inst.nombre, dpa.institucion_procedencia, dpa.estado_pasantia,
+                     dpa.fecha_inicio_pasantia, dpa.fecha_fin_estimada
+            ORDER BY dep.nombre ASC, dp.apellidos ASC, dp.nombres ASC
+        ");
+        $this->db->bind(':anio', $anio);
+        $pasantes = $this->db->resultSet();
+
+        $filename = 'Nomina_Pasantes_' . $anio . '_' . date('Ymd') . '.csv';
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: no-store, no-cache');
+
+        $out = fopen('php://output', 'w');
+        fputs($out, "\xEF\xBB\xBF");
+        fputcsv($out, [
+            'N°', 'Cédula', 'Apellidos', 'Nombres', 'Departamento',
+            'Institución', 'Estado', 'F. Inicio', 'F. Fin',
+            'Total Días', 'Presentes', 'Ausentes', 'Justificados', '% Asistencia'
+        ], ';');
+
+        foreach ($pasantes as $i => $p) {
+            $total = (int)($p->total_dias ?? 0);
+            $pres  = (int)($p->presentes  ?? 0);
+            $pct   = $total > 0 ? round(($pres / $total) * 100) : 0;
+            fputcsv($out, [
+                $i + 1,
+                $p->cedula           ?? '—',
+                $p->apellidos        ?? '',
+                $p->nombres          ?? '',
+                $p->departamento     ?? 'Sin asignar',
+                $p->institucion      ?? 'N/D',
+                $p->estado_pasantia  ?? '',
+                $p->fecha_inicio     ?? '',
+                $p->fecha_fin        ?? '',
+                $total,
+                $pres,
+                (int)($p->ausentes   ?? 0),
+                (int)($p->justificados ?? 0),
+                $pct . '%',
+            ], ';');
+        }
+        fclose($out);
+        exit;
     }
 }
