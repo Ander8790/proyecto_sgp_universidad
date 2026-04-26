@@ -88,7 +88,7 @@
     position: absolute;
     top: 16px;
     right: 16px;
-    background: rgba(255, 255, 255, 0.15);
+    background: #dc2626;
     border: none;
     color: #fff;
     width: 32px;
@@ -101,11 +101,13 @@
     font-size: 1.1rem;
     z-index: 2;
     transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.4);
 }
 
 .sgp-modal-close:hover {
-    background: rgba(255, 255, 255, 0.25);
+    background: #b91c1c;
     transform: scale(1.1);
+    box-shadow: 0 4px 14px rgba(220, 38, 38, 0.55);
 }
 
 /* ─── BODY ─── */
@@ -396,25 +398,26 @@
 
 /* ─── ACTION BUTTONS ─── */
 .sgp-modal-actions {
-    display: flex;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
     padding: 0 28px 24px;
 }
 
 .sgp-btn-action {
-    flex: 1;
-    padding: 12px;
+    padding: 11px 10px;
     border-radius: 14px;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     border: none;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 7px;
     transition: all 0.2s;
     font-family: inherit;
+    white-space: nowrap;
 }
 
 .sgp-btn-reset-pin {
@@ -427,13 +430,10 @@
     box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
 }
 
-.sgp-btn-close-action {
-    background: #f1f5f9;
-    color: #475569;
-}
-
-.sgp-btn-close-action:hover {
-    background: #e2e8f0;
+/* Botón único o último impar → ancho completo */
+.sgp-modal-actions > :only-child,
+.sgp-modal-actions > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
 }
 
 /* ─── SKELETON LOADING ─── */
@@ -558,6 +558,6 @@
 
     .sgp-modal-actions {
         padding: 0 20px 20px;
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 }

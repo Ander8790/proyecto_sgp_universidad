@@ -25,18 +25,17 @@
     max-height: 90vh;
     display: flex;
     flex-direction: column;
-    overflow: hidden; /* Clip de esquinas redondeadas sin matar el scroll */
+    overflow: hidden;
     box-shadow: 0 32px 80px rgba(15,23,42,0.3);
     animation: slideUp 0.3s ease;
 }
-/* Header: fijo, nunca hace scroll */
 .modal-head {
     background: linear-gradient(135deg, #172554 0%, #1e3a8a 50%, #2563eb 100%);
     padding: 28px 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    flex-shrink: 0; /* No se encoge — se queda fijo arriba */
+    flex-shrink: 0;
     color: white;
 }
 .modal-head h2 { font-size:1.3rem; font-weight:700; margin:0; color:white !important; }
@@ -56,10 +55,9 @@
 }
 .btn-close-modal:hover { background: rgba(255,255,255,0.35); }
 .btn-close-modal i { color: white !important; }
-/* Body: ocupa el espacio restante y hace scroll */
 .modal-body {
     padding: 28px 32px;
-    overflow-y: auto; /* Este es el que scrollea */
+    overflow-y: auto;
     flex: 1;
 }
 
@@ -143,8 +141,8 @@
 
 /* AJUSTE MAESTRO: Forzar que el select flote sobre el modal sin estirarlo */
 #modalCambiarEstado .modal-box,
-#modalCambiarEstado .modal-body { 
-    overflow: visible !important; 
+#modalCambiarEstado .modal-body {
+    overflow: visible !important;
 }
 
 /* Recuperar bordes redondos de la cabecera azul */
@@ -166,6 +164,8 @@
     background-color: #ffffff !important;
     border-radius: 0 0 12px 12px !important;
     box-shadow: 0px 10px 15px rgba(0,0,0,0.1) !important;
+}
+
 /* Buscador inteligente y filtros */
 .search-input-wrapper {
     background-color: #f8fafc;
@@ -211,15 +211,15 @@
 <?php
 // Extraer Departamentos e Instituciones únicas para los filtros
 $departamentos = [];
-$instituciones = [];
+$filtro_inst_nombres = [];
 foreach($pasantes as $p) {
     if(!empty($p->departamento_nombre)) $departamentos[$p->departamento_nombre] = true;
-    if(!empty($p->institucion_nombre)) $instituciones[$p->institucion_nombre] = true;
+    if(!empty($p->institucion_nombre)) $filtro_inst_nombres[$p->institucion_nombre] = true;
 }
 $departamentos = array_keys($departamentos);
-$instituciones = array_keys($instituciones);
+$filtro_inst_nombres = array_keys($filtro_inst_nombres);
 sort($departamentos);
-sort($instituciones);
+sort($filtro_inst_nombres);
 ?>
 
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
@@ -242,7 +242,6 @@ sort($instituciones);
             </div>
         </div>
         <div class="pasantes-banner-actions" style="display:flex; z-index:1; align-items:center;">
-            <!-- Contenedor Glassmorphism para el botón -->
             <div style="background: rgba(0, 0, 0, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; padding: 6px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
                 <button onclick="SGPModal.buscar({rol: 3})" style="background:white;color:#1e3a8a;border:none;padding:12px 24px;border-radius:10px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:0.95rem;transition:all 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                     <i class="ti ti-search" style="font-size: 1.1rem;"></i> Consulta Rápida
@@ -256,19 +255,19 @@ sort($instituciones);
     <div class="kpi-pasantes-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-bottom:28px;">
         <?php
         $kpis = [
-            ['label' => 'Total Pasantes',  'val' => $total,      'color' => '#2563eb', 'boxShadow' => 'rgba(37,99,235,0.15)', 'icon' => 'ti-users',        'sub' => 'registrados'],
-            ['label' => 'En Curso',        'val' => $enCurso,    'color' => '#10b981', 'boxShadow' => 'rgba(16,185,129,0.15)', 'icon' => 'ti-player-play',  'sub' => 'pasantías activas'],
-            ['label' => 'Pendientes',      'val' => $pendientes, 'color' => '#f59e0b', 'boxShadow' => 'rgba(245,158,11,0.15)', 'icon' => 'ti-clock',        'sub' => 'por formalizar'],
-            ['label' => 'Culminados',      'val' => $culminados, 'color' => '#8b5cf6', 'boxShadow' => 'rgba(139,92,246,0.15)', 'icon' => 'ti-medal',        'sub' => 'este período'],
+            ['label' => 'Total Pasantes',  'val' => $total,      'color' => '#2563eb', 'boxShadow' => 'rgba(37,99,235,0.15)', 'icon' => 'ti-users',        'sub' => 'registrados', 'filtro' => ''],
+            ['label' => 'En Curso',        'val' => $enCurso,    'color' => '#10b981', 'boxShadow' => 'rgba(16,185,129,0.15)', 'icon' => 'ti-player-play',  'sub' => 'pasantías activas', 'filtro' => 'Activo'],
+            ['label' => 'Pendientes',      'val' => $pendientes, 'color' => '#f59e0b', 'boxShadow' => 'rgba(245,158,11,0.15)', 'icon' => 'ti-clock',        'sub' => 'por formalizar', 'filtro' => 'Pendiente'],
+            ['label' => 'Culminados',      'val' => $culminados, 'color' => '#8b5cf6', 'boxShadow' => 'rgba(139,92,246,0.15)', 'icon' => 'ti-medal',        'sub' => 'este período', 'filtro' => 'Finalizado'],
         ];
         foreach ($kpis as $k): ?>
-        <div style="background:white;border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid <?= $k['color'] ?>;transition:all 0.3s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 25px <?= $k['boxShadow'] ?>'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+        <div style="background:white;border-radius:16px;padding:22px;box-shadow:0 2px 12px rgba(0,0,0,0.06);border-left:4px solid <?= $k['color'] ?>;transition:all 0.3s;<?= $k['filtro'] ? 'cursor:pointer;' : '' ?>" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 25px <?= $k['boxShadow'] ?>'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'" <?= $k['filtro'] ? "onclick=\"filtrarEstadoKPI('{$k['filtro']}')\" title=\"Ver {$k['label']}\"" : '' ?>>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                 <p style="color:#64748b;font-size:0.82rem;margin:0 0 8px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;"><?= $k['label'] ?></p>
                 <i class="ti <?= $k['icon'] ?>" style="color:<?= $k['color'] ?>;font-size:1.4rem;opacity:0.7;"></i>
             </div>
             <h2 style="font-size:2.4rem;font-weight:800;color:<?= $k['color'] ?>;margin:0;" data-kpi-value="<?= $k['val'] ?>">0</h2>
-            <p style="color:#94a3b8;font-size:0.8rem;margin:4px 0 0;"><?= $k['sub'] ?></p>
+            <p style="color:#94a3b8;font-size:0.8rem;margin:4px 0 0;"><?= $k['sub'] ?><?= $k['filtro'] ? ' <span style="font-size:0.7rem;opacity:0.7;">↗ ver</span>' : '' ?></p>
         </div>
         <?php endforeach; ?>
     </div>
@@ -279,7 +278,7 @@ sort($instituciones);
             <p style="font-size: 0.9rem; font-weight: 700; color: #64748b; margin: 0; display:flex; align-items:center; gap:6px;">
                 <i class="ti ti-filter" style="font-size:1.1rem; color:#2563eb;"></i> Filtros:
             </p>
-            
+
             <select id="filterDepto" class="form-input" style="width: 200px; padding: 8px 12px; border-radius: 10px; font-weight: 600; color: #334155; height: 42px;" onchange="aplicarFiltrosPasantes()">
                 <option value="">Cualquier Departamento</option>
                 <?php foreach($departamentos as $d): ?>
@@ -289,19 +288,19 @@ sort($instituciones);
 
             <select id="filterInst" class="form-input" style="width: 220px; padding: 8px 12px; border-radius: 10px; font-weight: 600; color: #334155; height: 42px;" onchange="aplicarFiltrosPasantes()">
                 <option value="">Cualquier Institución</option>
-                <?php foreach($instituciones as $i): ?>
+                <?php foreach($filtro_inst_nombres as $i): ?>
                 <option value="<?= htmlspecialchars($i) ?>"><?= htmlspecialchars($i) ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
-        
+
         <!-- Buscador Inteligente -->
         <div style="flex: 0 1 300px; min-width: 200px;">
             <div style="position: relative; width: 100%;">
                 <i class="ti ti-search" style="position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: #1D4ED8; font-size: 1.2rem; z-index: 2; pointer-events: none;"></i>
-                <input type="text" id="customSearchPasantes" placeholder="Buscar pasante, cédula..." 
+                <input type="text" id="customSearchPasantes" placeholder="Buscar pasante, cédula..."
                        style="width: 100%; height: 42px; padding: 0 16px 0 48px; border: 1.5px solid #DDE2F0; border-radius: 50px; background: white; color: #0D1424; font-weight: 600; font-size: 0.88rem; outline: none; transition: all 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.02);"
-                       onfocus="this.style.borderColor='#1D4ED8'; this.style.boxShadow='0 0 0 4px rgba(29, 78, 216, 0.07)'" 
+                       onfocus="this.style.borderColor='#1D4ED8'; this.style.boxShadow='0 0 0 4px rgba(29, 78, 216, 0.07)'"
                        onblur="this.style.borderColor='#DDE2F0'; this.style.boxShadow='0 2px 5px rgba(0,0,0,0.02)'">
             </div>
         </div>
@@ -320,9 +319,6 @@ sort($instituciones);
         <div style="padding:60px;text-align:center;color:#94a3b8;">
             <i class="ti ti-users-off" style="font-size:3rem;display:block;margin-bottom:12px;"></i>
             <p style="font-size:1rem;font-weight:600;">No hay pasantes registrados aún.</p>
-            <button onclick="abrirModal()" style="background:#2563eb;color:white;border:none;padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer;margin-top:8px;">
-                <i class="ti ti-plus"></i> Agregar el primero
-            </button>
         </div>
         <?php else: ?>
         <!-- TABLA — solo en pantallas grandes (≥ 992px) -->
@@ -346,7 +342,6 @@ sort($instituciones);
                     $estado   = $p->estado_pasantia ?? 'Pendiente';
                     $horasAcum = (int)($p->horas_acumuladas ?? 0);
                     $horasMeta = (int)($p->horas_meta ?? 1440);
-                    // Días: 1 día = 8h
                     $diasAcum = (int)ceil($horasAcum / 8);
                     $diasTotal= (int)ceil($horasMeta / 8);
                     $pct = $horasMeta > 0 ? min(100, round(($horasAcum / $horasMeta) * 100)) : 0;
@@ -374,7 +369,15 @@ sort($instituciones);
                         <span class="dt-cell-truncate" title="<?= $inst ?>"><?= $inst ?></span>
                         <?php if($instRep): ?><div style="font-size:0.7rem; color:#94a3b8; margin-top:2px; line-height:1;"><i class="ti ti-user" style="font-size:0.7rem;"></i> Rep: <?= $instRep ?></div><?php endif; ?>
                     </td>
-                    <td class="px-4 py-3 text-muted"><?= $depto ?></td>
+                    <td class="px-4 py-3 text-muted">
+                        <?php if ($depto === 'Sin asignar'): ?>
+                            <span onclick="cambiarEstado('<?= UrlSecurity::encrypt($p->id) ?>', '<?= addslashes($nombres) ?>')" title="Sin departamento – clic para gestionar" style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#ea580c;border:1.5px dashed #fb923c;border-radius:8px;padding:3px 10px;font-size:0.8rem;font-weight:700;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.background='#ea580c';this.style.color='white'" onmouseout="this.style.background='#fff7ed';this.style.color='#ea580c'">
+                                <i class="ti ti-map-pin-off" style="font-size:0.85rem;"></i> Sin asignar
+                            </span>
+                        <?php else: ?>
+                            <?= $depto ?>
+                        <?php endif; ?>
+                    </td>
                     <td class="px-4 py-3">
                         <div class="progress-wrap">
                             <div class="progress-label">
@@ -387,7 +390,10 @@ sort($instituciones);
                         </div>
                     </td>
                     <td class="px-4 py-3">
-                        <span class="badge badge-<?= strtolower($estado) ?>" style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;">
+                        <?php $esAccion = in_array($estado, ['Pendiente','Sin asignar']); ?>
+                        <span class="badge badge-<?= strtolower($estado) ?>" style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;<?= $esAccion ? 'cursor:pointer;border:1.5px dashed currentColor;' : '' ?>"
+                              <?= $esAccion ? "onclick=\"cambiarEstado('" . UrlSecurity::encrypt($p->id) . "', '" . addslashes($nombres) . "')\" title=\"Clic para cambiar estado\"" : '' ?>>
+                            <?= $esAccion ? '<i class="ti ti-click" style="font-size:0.75rem;margin-right:2px;"></i>' : '' ?>
                             <?= $estado ?>
                         </span>
                     </td>
@@ -396,11 +402,17 @@ sort($instituciones);
                             <button onclick="SGPModal.verUsuario(<?= $p->id ?>)" class="btn-action btn-view" title="Ver perfil">
                                 <i class="ti ti-eye"></i>
                             </button>
-                            <button onclick="abrirModalEditar(<?= $p->id ?>)" class="btn-action btn-edit" title="Editar Pasante">
+                            <a href="<?= URLROOT ?>/asistencias/almanaque/<?= $p->id ?>" class="btn-action" style="color:#0ea5e9;background:#e0f2fe;text-decoration:none;" title="Ver Almanaque">
+                                <i class="ti ti-calendar-stats"></i>
+                            </a>
+                            <button onclick="window.abrirModalEditarPasante(<?= $p->id ?>)" class="btn-action btn-edit" title="Editar Datos Personales">
                                 <i class="ti ti-edit"></i>
                             </button>
                             <button onclick="cambiarEstado('<?= UrlSecurity::encrypt($p->id) ?>', '<?= $nombres ?>')" class="btn-action btn-config" title="Cambiar Estado">
                                 <i class="ti ti-settings"></i>
+                            </button>
+                            <button onclick="confirmarEliminarPasante(<?= $p->id ?>, '<?= addslashes($nombres) ?>', '<?= addslashes($cedula) ?>')" class="btn-action" style="color:#dc2626;background:#fef2f2;" title="Eliminar Pasante">
+                                <i class="ti ti-trash"></i>
                             </button>
                         </div>
                     </td>
@@ -434,22 +446,22 @@ sort($instituciones);
             $inicial = strtoupper(substr($p->nombres ?? 'P', 0, 1));
             $pctColor = $pct >= 80 ? '#10b981' : ($pct >= 50 ? '#f59e0b' : '#ef4444');
         ?>
-        <div class="bento-card-pasante mobile-card-item" data-depto="<?= htmlspecialchars($depto, ENT_QUOTES, 'UTF-8') ?>" data-inst="<?= htmlspecialchars($inst, ENT_QUOTES, 'UTF-8') ?>" data-search="<?= htmlspecialchars(strtolower($nombres . ' ' . $cedula), ENT_QUOTES, 'UTF-8') ?>">
+        <div class="bento-card-pasante mobile-card-item" data-depto="<?= htmlspecialchars($depto, ENT_QUOTES, 'UTF-8') ?>" data-inst="<?= htmlspecialchars($inst, ENT_QUOTES, 'UTF-8') ?>" data-search="<?= htmlspecialchars(strtolower($nombres . ' ' . $cedula), ENT_QUOTES, 'UTF-8') ?>" data-estado="<?= htmlspecialchars(strtolower($estado), ENT_QUOTES, 'UTF-8') ?>">
 
-            <!-- Encabezado: avatar + nombre + badge estado -->
             <div class="bcp-header">
                 <div class="bcp-avatar"><?= $inicial ?></div>
                 <div class="bcp-info">
                     <span class="bcp-nombre"><?= $nombres ?></span>
                     <span class="bcp-cedula">C.I: <?= $cedula ?></span>
                 </div>
-                <span class="bcp-badge"
-                      style="background:<?= $cfg['bg'] ?>; color:<?= $cfg['color'] ?>;">
+                <?php $esAccionM = in_array($estado, ['Pendiente','Sin asignar']); ?>
+                <span class="bcp-badge" style="background:<?= $cfg['bg'] ?>; color:<?= $cfg['color'] ?>;<?= $esAccionM ? 'cursor:pointer;border:1.5px dashed currentColor;' : '' ?>"
+                      <?= $esAccionM ? "onclick=\"cambiarEstado('" . UrlSecurity::encrypt($p->id) . "', '" . addslashes($nombres) . "')\" title=\"Clic para gestionar\"" : '' ?>>
+                    <?= $esAccionM ? '<i class="ti ti-click" style="font-size:0.72rem;margin-right:2px;"></i>' : '' ?>
                     <?= $estado ?>
                 </span>
             </div>
 
-            <!-- Cuerpo: datos secundarios -->
             <div class="bcp-body">
                 <div class="bcp-row">
                     <span class="bcp-label">Institución</span>
@@ -460,7 +472,15 @@ sort($instituciones);
                 </div>
                 <div class="bcp-row">
                     <span class="bcp-label">Departamento</span>
-                    <span class="bcp-value"><?= $depto ?></span>
+                    <span class="bcp-value">
+                        <?php if ($depto === 'Sin asignar'): ?>
+                            <span onclick="cambiarEstado('<?= UrlSecurity::encrypt($p->id) ?>', '<?= addslashes($nombres) ?>')" style="display:inline-flex;align-items:center;gap:3px;background:#fff7ed;color:#ea580c;border:1.5px dashed #fb923c;border-radius:7px;padding:2px 8px;font-size:0.78rem;font-weight:700;cursor:pointer;" title="Clic para gestionar">
+                                <i class="ti ti-map-pin-off" style="font-size:0.8rem;"></i> Sin asignar
+                            </span>
+                        <?php else: ?>
+                            <?= $depto ?>
+                        <?php endif; ?>
+                    </span>
                 </div>
                 <div class="bcp-row">
                     <span class="bcp-label">Progreso</span>
@@ -476,15 +496,17 @@ sort($instituciones);
                 </div>
             </div>
 
-            <!-- Acciones — mismas funciones JS que la tabla -->
             <div class="bcp-actions">
                 <button class="bcp-btn bcp-btn-outline"
                         onclick="SGPModal.verUsuario(<?= $p->id ?>)"
                         title="Ver perfil">
                     <i class="ti ti-eye"></i> Ver
                 </button>
+                <a href="<?= URLROOT ?>/asistencias/almanaque/<?= $p->id ?>" class="bcp-btn bcp-btn-outline" style="color:#0ea5e9;border-color:#0ea5e9;text-decoration:none;" title="Almanaque">
+                    <i class="ti ti-calendar-stats"></i> Almanaque
+                </a>
                 <button class="bcp-btn bcp-btn-primary"
-                        onclick="abrirModalEditar(<?= $p->id ?>)"
+                        onclick="window.abrirModalEditarPasante(<?= $p->id ?>)"
                         title="Editar pasante">
                     <i class="ti ti-edit"></i> Editar
                 </button>
@@ -492,6 +514,11 @@ sort($instituciones);
                         onclick="cambiarEstado('<?= UrlSecurity::encrypt($p->id) ?>', '<?= $nombres ?>')"
                         title="Cambiar estado">
                     <i class="ti ti-settings"></i>
+                </button>
+                <button class="bcp-btn bcp-btn-icon" style="color:#dc2626;border-color:#fecaca;background:#fef2f2;"
+                        onclick="confirmarEliminarPasante(<?= $p->id ?>, '<?= addslashes($nombres) ?>', '<?= addslashes($cedula) ?>')"
+                        title="Eliminar pasante">
+                    <i class="ti ti-trash"></i>
                 </button>
             </div>
 
@@ -503,9 +530,10 @@ sort($instituciones);
 
 </div><!-- /dashboard-container -->
 
-
-
-<!-- Modal de Asignación eliminado (VULN-04) — La funcionalidad vive en /asignaciones -->
+<!-- Formulario oculto para eliminar pasante -->
+<form id="formEliminarPasante" method="POST" style="display:none;">
+    <?php echo CsrfHelper::field(); ?>
+</form>
 
 <!-- ======= MODAL: CAMBIAR ESTADO PREMIUM ======= -->
 <div id="modalCambiarEstado" class="modal-overlay">
@@ -519,7 +547,7 @@ sort($instituciones);
         </div>
         <div class="modal-body" style="padding: 30px 40px 40px;">
             <input type="hidden" id="inp-pasante-id">
-            
+
             <div class="form-group" style="margin-bottom: 25px;">
                 <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Nuevo Estado</label>
                 <select class="form-input no-choices" id="inp-nuevo-estado">
@@ -537,14 +565,74 @@ sort($instituciones);
     </div>
 </div>
 
+<!-- ======= MODAL: EDITAR DATOS PERSONALES ======= -->
+<div id="modalEditarPasante" class="modal-overlay">
+    <div class="modal-box" style="max-width: 520px;">
+        <div class="modal-head">
+            <div>
+                <h2><i class="ti ti-edit" style="margin-right:8px;"></i>Editar Datos Personales</h2>
+                <p>Modificar información básica del pasante</p>
+            </div>
+            <button class="btn-close-modal" onclick="cerrarModalEditarPasante()"><i class="ti ti-x"></i></button>
+        </div>
+        <div class="modal-body" style="padding: 20px 30px 30px;">
+            <input type="hidden" id="edit-pasante-id">
+
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Nombres</label>
+                <input type="text" class="form-input" id="edit-nombres" placeholder="Nombres del pasante" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Apellidos</label>
+                <input type="text" class="form-input" id="edit-apellidos" placeholder="Apellidos del pasante" required>
+            </div>
+            <div class="form-group" style="margin-bottom: 15px;">
+                <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Teléfono</label>
+                <input type="text" class="form-input" id="edit-telefono" placeholder="Teléfono de contacto">
+            </div>
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Institución de Procedencia</label>
+                <select class="form-input no-choices" id="edit-institucion">
+                    <option value="">Seleccione una institución</option>
+                    <?php if(!empty($instituciones)): foreach($instituciones as $inst): ?>
+                        <option value="<?= $inst->id ?>"><?= htmlspecialchars($inst->nombre) ?></option>
+                    <?php endforeach; endif; ?>
+                </select>
+            </div>
+
+            <button class="btn-submit" onclick="guardarDatosPasante()" style="padding: 12px 20px; font-size: 0.9rem; width: 100%; display: flex; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+                <i class="ti ti-device-floppy"></i> Guardar Cambios
+            </button>
+        </div>
+    </div>
+</div>
+
 <script>
+// ── Filtrar por estado desde KPI card ──
+function filtrarEstadoKPI(estado) {
+    // DataTable
+    if ($.fn.DataTable && $.fn.DataTable.isDataTable('#tablaPasantes')) {
+        var dt = $('#tablaPasantes').DataTable();
+        dt.column(5).search('^' + $.fn.dataTable.util.escapeRegex(estado) + '$', true, false).draw();
+    }
+    // Mobile cards
+    document.querySelectorAll('.mobile-card-item').forEach(function(card) {
+        var cardEstado = (card.getAttribute('data-estado') || '').toLowerCase();
+        card.style.display = (cardEstado === estado.toLowerCase()) ? '' : 'none';
+    });
+    // Scroll a la tabla
+    setTimeout(function() {
+        var el = document.querySelector('.table-responsive') || document.getElementById('cardsPasantes');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 150);
+}
+
 // ── Filtros y Búsqueda General ──
 function aplicarFiltrosPasantes() {
     var depto = document.getElementById('filterDepto') ? document.getElementById('filterDepto').value : '';
     var inst = document.getElementById('filterInst') ? document.getElementById('filterInst').value : '';
     var search = document.getElementById('customSearchPasantes') ? document.getElementById('customSearchPasantes').value : '';
 
-    // 1. Filtrar DataTable (Desktop)
     if ($.fn.DataTable.isDataTable('#tablaPasantes')) {
         var dt = $('#tablaPasantes').DataTable();
         dt.column(3).search(depto ? '^' + $.fn.dataTable.util.escapeRegex(depto) + '$' : '', true, false);
@@ -553,7 +641,6 @@ function aplicarFiltrosPasantes() {
         dt.draw();
     }
 
-    // 2. Filtrar Mobile Cards (Bento)
     search = search.toLowerCase();
     depto = depto.toLowerCase();
     inst = inst.toLowerCase();
@@ -567,31 +654,91 @@ function aplicarFiltrosPasantes() {
         var matchInst = (inst === '' || cardInst === inst);
         var matchSearch = (search === '' || cardSearch.includes(search));
 
-        if (matchDepto && matchInst && matchSearch) {
-            card.style.display = '';
-        } else {
-            card.style.display = 'none';
-        }
+        card.style.display = (matchDepto && matchInst && matchSearch) ? '' : 'none';
     });
 }
 
-// ── Editar Asignación (redirige al módulo de Asignaciones) ──
-function abrirModalEditar(pasanteId) {
-    window.location.href = URLROOT + '/asignaciones?editar=' + pasanteId;
+// ── Editar Datos Personales (modal inline) ──
+window.abrirModalEditarPasante = async function(pasanteId) {
+    try {
+        Swal.fire({ title: 'Cargando datos...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        const resp = await fetch(URLROOT + '/pasantes/obtenerDatosPersonales/' + pasanteId);
+        const json = await resp.json();
+        Swal.close();
+
+        if (json.success) {
+            const data = json.data;
+            document.getElementById('edit-pasante-id').value = pasanteId;
+            document.getElementById('edit-nombres').value = data.nombres || '';
+            document.getElementById('edit-apellidos').value = data.apellidos || '';
+            document.getElementById('edit-telefono').value = data.telefono || '';
+            document.getElementById('edit-institucion').value = data.institucion_id || '';
+            document.getElementById('modalEditarPasante').classList.add('active');
+        } else {
+            Swal.fire('Error', json.message, 'error');
+        }
+    } catch (e) {
+        Swal.close();
+        Swal.fire('Error', 'Error de conexión', 'error');
+    }
+};
+
+function cerrarModalEditarPasante() {
+    document.getElementById('modalEditarPasante').classList.remove('active');
 }
 
-// Variable global para Choices.js
+async function guardarDatosPasante() {
+    const pasanteId = document.getElementById('edit-pasante-id').value;
+    const nombres   = document.getElementById('edit-nombres').value.trim();
+    const apellidos = document.getElementById('edit-apellidos').value.trim();
+    const telefono  = document.getElementById('edit-telefono').value.trim();
+    const instId    = document.getElementById('edit-institucion').value;
+
+    if (!nombres || !apellidos) {
+        Swal.fire('Campos requeridos', 'Nombres y apellidos son obligatorios.', 'warning');
+        return;
+    }
+
+    try {
+        const fd = new FormData();
+        fd.append('id', pasanteId);
+        fd.append('nombres', nombres);
+        fd.append('apellidos', apellidos);
+        fd.append('telefono', telefono);
+        fd.append('institucion_id', instId);
+
+        const resp = await fetch(URLROOT + '/pasantes/actualizarDatos', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const json = await resp.json();
+
+        if (json.success) {
+            cerrarModalEditarPasante();
+            if (typeof NotificationService !== 'undefined') {
+                NotificationService.success('Datos actualizados', json.message || 'Cambios guardados.');
+            } else {
+                await Swal.fire({ icon: 'success', title: 'Actualizado', text: json.message, confirmButtonColor: '#2563eb' });
+            }
+            window.location.reload();
+        } else {
+            Swal.fire('Error', json.message || 'No se pudieron guardar los cambios.', 'error');
+        }
+    } catch (e) {
+        Swal.fire('Error de conexión', 'Intenta de nuevo.', 'error');
+    }
+}
+
+// Variable global para Choices.js del modal de estado
 let choicesEstado = null;
 
 // ── Cambiar Estado del Pasante (MODAL PREMIUM) ──
 function cambiarEstado(pasanteId, nombre) {
     document.getElementById('inp-pasante-id').value = pasanteId;
     document.getElementById('txt-nombre-pasante').textContent = 'Pasante: ' + (nombre || 'Seleccionado');
-    
-    // Abrir modal
     document.getElementById('modalCambiarEstado').classList.add('active');
 
-    // Inicializar Choices si no existe
     const select = document.getElementById('inp-nuevo-estado');
     if (!choicesEstado) {
         choicesEstado = new Choices(select, {
@@ -615,14 +762,13 @@ async function confirmarCambioEstado() {
         var fd = new FormData();
         fd.append('pasante_id', pasanteId);
         fd.append('estado', nuevoEstado);
-        
-        // Mostrar cargando con Notyf si existe o SweetAlert
+
         const resp = await fetch(URLROOT + '/pasantes/cambiarEstado', {
             method: 'POST',
             body: fd,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
-        
+
         var json = await resp.json();
         if (json.success) {
             cerrarModalEstado();
@@ -640,6 +786,44 @@ async function confirmarCambioEstado() {
     }
 }
 
+// ── Eliminación permanente de pasante (doble confirmación) ──
+function confirmarEliminarPasante(id, nombre, cedula) {
+    Swal.fire({
+        title: 'Eliminar pasante',
+        html: `<p style="color:#475569;font-size:.95rem;line-height:1.6;">
+                 Vas a eliminar permanentemente a <strong>${nombre}</strong><br>
+                 <span style="font-size:.85rem;color:#64748b;">C.I: ${cedula}</span>
+               </p>
+               <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:.83rem;color:#b91c1c;margin-top:12px;text-align:left;">
+                 <strong>Se eliminarán todos sus registros:</strong><br>
+                 Asistencias · Evaluaciones · Datos académicos · Cuenta de usuario
+               </div>`,
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        Swal.fire({
+            title: 'Confirmación final',
+            html: '<p style="color:#475569;font-size:.9rem;">Escribe <strong style="color:#dc2626;">ELIMINAR</strong> para confirmar la eliminación permanente:</p>',
+            input: 'text',
+            inputPlaceholder: 'ELIMINAR',
+            showCancelButton: true,
+            confirmButtonText: 'Eliminar definitivamente',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+            inputValidator: v => v !== 'ELIMINAR' ? 'Escribe exactamente: ELIMINAR' : null
+        }).then(r2 => {
+            if (!r2.isConfirmed) return;
+            var form = document.getElementById('formEliminarPasante');
+            form.action = URLROOT + '/pasantes/eliminar/' + id;
+            form.submit();
+        });
+    });
+}
+
 $(document).ready(function() {
     var $tablaPasantes = $('#tablaPasantes');
     if ($tablaPasantes.length && !$.fn.DataTable.isDataTable($tablaPasantes)) {
@@ -652,13 +836,13 @@ $(document).ready(function() {
             responsive: true,
             dom: '<"top"f>rt<"bottom"ip><"clear">',
             columnDefs: [
-                { responsivePriority: 1, targets: 0 },   // Nombre
-                { responsivePriority: 2, targets: -1 },  // Acciones
-                { responsivePriority: 3, targets: 5 },   // Estado
-                { responsivePriority: 4, targets: 4 },   // Progreso
-                { responsivePriority: 8, targets: 3 },   // Departamento
-                { responsivePriority: 9, targets: 2 },   // Institución
-                { responsivePriority: 10, targets: 1 },  // Cédula
+                { responsivePriority: 1, targets: 0 },
+                { responsivePriority: 2, targets: -1 },
+                { responsivePriority: 3, targets: 5 },
+                { responsivePriority: 4, targets: 4 },
+                { responsivePriority: 8, targets: 3 },
+                { responsivePriority: 9, targets: 2 },
+                { responsivePriority: 10, targets: 1 },
                 { orderable: false, targets: 6 }
             ],
             initComplete: function(settings, json) {
@@ -669,7 +853,6 @@ $(document).ready(function() {
         $tablaPasantes.DataTable().draw(false);
     }
 
-    // SGP-FIX: recalcular columnas al pasar de móvil a desktop
     var _dtPasAdjusted = false;
     window.addEventListener('resize', function () {
         if (window.innerWidth >= 992 && !_dtPasAdjusted) {
@@ -680,13 +863,11 @@ $(document).ready(function() {
         if (window.innerWidth < 992) { _dtPasAdjusted = false; }
     });
 
-    // Binding Search Input
     var searchInput = document.getElementById('customSearchPasantes');
     if (searchInput) {
         searchInput.addEventListener('input', aplicarFiltrosPasantes);
     }
-    
-    // Animate Bento KPI Values
+
     document.querySelectorAll('[data-kpi-value]').forEach(function(el) {
         var target = parseInt(el.getAttribute('data-kpi-value')) || 0;
         var current = 0;
@@ -699,7 +880,6 @@ $(document).ready(function() {
             }
             el.textContent = current;
         }, 40);
-        
         if (target === 0) el.textContent = 0;
     });
 });

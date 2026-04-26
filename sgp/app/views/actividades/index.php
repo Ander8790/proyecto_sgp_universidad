@@ -1,885 +1,422 @@
 <?php
 /**
- * Vista: Actividades Extras — Lista principal
- * URL: /actividades  —  Cargada por ActividadesController::index()
+ * Vista: Actividades Extras — Hub Central
  */
-$actividades      = $data['actividades']      ?? [];
-$kpiTotal         = $data['kpiTotal']         ?? 0;
-$kpiActivas       = $data['kpiActivas']       ?? 0;
-$kpiFinalizadas   = $data['kpiFinalizadas']   ?? 0;
-$kpiParticipantes = $data['kpiParticipantes'] ?? 0;
-$instituciones    = $data['instituciones']    ?? [];
-$supervisores     = $data['supervisores']     ?? [];
-
-// ── Datos para gráfico ApexCharts ──────────────────────────────
-$distCount = [
-    'Servicio Comunitario' => 0,
-    'Pasantía Corta'       => 0,
-    'Mantenimiento'        => 0,
-    'Otro'                 => 0,
-];
-foreach ($actividades as $a) {
-    $tipo = $a->tipo ?? 'Otro';
-    if (isset($distCount[$tipo])) $distCount[$tipo]++;
-    else $distCount['Otro']++;
-}
-$jsLabels = json_encode(array_keys($distCount));
-$jsSeries = json_encode(array_values($distCount));
-
-// ── Auto-abrir modal aliados si viene de instituciones.php ──────
-$abrirAliados = isset($_GET['aliados']);
+$previewInstituciones = $data['previewInstituciones'] ?? [];
+$previewPasantes      = $data['previewPasantes']      ?? [];
+$previewActividades   = $data['previewActividades']   ?? [];
+$distribucionTipos    = $data['distribucionTipos']    ?? [];
+$kpiCortosActivos     = $data['kpiCortosActivos']     ?? 0;
+$kpiPasantesCortos    = $data['kpiPasantesCortos']    ?? 0;
+$kpiActividadesCom    = $data['kpiActividadesCom']    ?? 0;
+$kpiInstituciones     = $data['kpiInstituciones']     ?? 0;
+$periodoCortoActivo   = $data['periodoCortoActivo']   ?? null;
 ?>
-
 <style>
-/* ══════════════════════════════════════════════════════════════
-   ACTIVIDADES EXTRAS — BENTO PREMIUM UI
-   Coherente con configuracion/index.php
-   ══════════════════════════════════════════════════════════════ */
+@keyframes hub-fadeUp { from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)} }
+@keyframes hub-pulse  { 0%,100%{opacity:1}50%{opacity:.5} }
 
-/* ── Keyframes ─────────────────────────────────────────────── */
-@keyframes act-fadeIn  { from{opacity:0}to{opacity:1} }
-@keyframes act-slideUp { from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1} }
-@keyframes act-pulse   { 0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.8} }
+.hub-grid-3 { display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:24px; }
+.hub-grid-2 { display:grid;grid-template-columns:repeat(2,1fr);gap:20px;margin-bottom:24px; }
+.hub-card   { background:white;border-radius:20px;padding:22px;box-shadow:0 4px 20px rgba(0,0,0,0.05);border:1px solid rgba(0,0,0,0.05);animation:hub-fadeUp .4s ease both; }
 
-/* ── BENTO GRID (12 columnas) ──────────────────────────────── */
-.act-bento-grid {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 22px;
-    margin-bottom: 22px;
-}
-.acg-3  { grid-column: span 3;  }
-.acg-4  { grid-column: span 4;  }
-.acg-5  { grid-column: span 5;  }
-.acg-6  { grid-column: span 6;  }
-.acg-7  { grid-column: span 7;  }
-.acg-12 { grid-column: span 12; }
+/* KPI */
+.hub-kpi { display:flex;justify-content:space-between;align-items:center;border-radius:16px;padding:22px;background:white;box-shadow:0 2px 12px rgba(0,0,0,0.06);transition:all .3s cubic-bezier(.4,0,.2,1); }
+.hub-kpi:hover { transform:translateY(-4px); }
 
-/* ── CFG-CARD base (idéntico a configuracion) ───────────────── */
-.act-card {
-    background: white;
-    border-radius: 20px;
-    padding: 24px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
-    border: 1px solid rgba(0,0,0,0.05);
-    display: flex;
-    flex-direction: column;
-    min-width: 0;
-    transition: transform .25s ease, box-shadow .25s ease;
+/* Nav buttons glass */
+.hub-nav-btn {
+    display:flex;align-items:center;gap:12px;
+    background:rgba(255,255,255,0.12);
+    border:1px solid rgba(255,255,255,0.25);
+    backdrop-filter:blur(12px);
+    color:white;padding:12px 22px;border-radius:12px;
+    font-weight:700;font-size:.88rem;cursor:pointer;
+    transition:all .2s;text-decoration:none;
 }
-.act-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 28px rgba(0,0,0,0.07);
-}
+.hub-nav-btn:hover { background:rgba(255,255,255,0.22);color:white;transform:translateY(-2px); }
+.hub-nav-btn i { font-size:1.2rem; }
 
-/* ── KPI CARDS — Vertical (igual a configuracion) ───────────── */
-.act-kpi-icon {
-    width: 46px; height: 46px; border-radius: 13px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; margin-bottom: 14px;
-}
-.act-kpi-value { font-size: 2rem; font-weight: 800; line-height: 1; margin-bottom: 5px; }
-.act-kpi-label { font-size: 0.8rem; color: #64748b; font-weight: 500; }
+/* Preview cards */
+.prev-item { display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f8fafc; }
+.prev-item:last-child { border-bottom:none; }
+.prev-avatar { width:36px;height:36px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:1rem; }
+.prev-name  { font-weight:700;color:#1e293b;font-size:.85rem; }
+.prev-sub   { font-size:.73rem;color:#94a3b8;margin-top:2px; }
+.prev-more  { display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#172554,#2563eb);color:white;padding:8px 16px;border-radius:9px;font-size:.8rem;font-weight:700;text-decoration:none;margin-top:14px;transition:all .2s; }
+.prev-more:hover { opacity:.9;color:white; }
 
-/* ── CARD HEADER (idéntico a configuracion) ────────────────── */
-.act-card-hdr {
-    display: flex; align-items: center;
-    justify-content: space-between;
-    margin-bottom: 18px; padding-bottom: 14px;
-    border-bottom: 1px solid #f1f5f9;
-}
-.act-card-title { display: flex; align-items: center; gap: 10px; font-size: .95rem; font-weight: 700; color: #1e293b; }
-.act-icon-box { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-.act-badge { font-size: .72rem; padding: 3px 10px; border-radius: 20px; font-weight: 700; }
+/* Período badge */
+.per-badge-activo { display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#059669;border-radius:100px;padding:5px 14px;font-size:.78rem;font-weight:700; }
+.per-badge-none   { display:inline-flex;align-items:center;gap:6px;background:#fef2f2;color:#ef4444;border-radius:100px;padding:5px 14px;font-size:.78rem;font-weight:700; }
 
-/* ── GALERÍA de actividades ────────────────────────────────── */
-.act-gallery-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 20px; }
-.act-gallery-card {
-    background: white; border-radius: 20px;
-    border: 1px solid #f1f5f9; border-left-width: 6px;
-    display: flex; flex-direction: column;
-    transition: all .3s ease; overflow: hidden;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
-}
-.act-gallery-card:hover { transform: translateY(-4px); box-shadow: 0 12px 25px rgba(0,0,0,0.08); }
-.act-gallery-head { padding: 18px 20px 14px; }
-.act-gallery-head h5 { margin: 0 0 10px; font-size: .95rem; font-weight: 700; color: #0f172a; }
-.act-badge-estado {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 12px; border-radius: 20px;
-    font-size: .72rem; font-weight: 700;
-}
-.act-pulsing-dot { width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block; animation:act-pulse 1.5s infinite; }
-.act-gallery-body { padding: 0 20px 14px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; }
-.act-info-row { display: flex; align-items: center; gap: 8px; color: #475569; font-size: .82rem; font-weight: 500; }
-.act-info-row.hl { background: #f8fafc; padding: 7px 10px; border-radius: 8px; border: 1px solid #e2e8f0; }
-.act-gallery-foot { padding: 14px 20px; border-top: 1px solid #f1f5f9; background: #fafafa; display: flex; gap: 10px; }
-.btn-ver-act {
-    flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px;
-    background: linear-gradient(135deg,#172554 0%,#2563eb 100%);
-    color: white; border: none; padding: 9px 14px; border-radius: 10px;
-    font-weight: 600; font-size: .85rem; text-decoration: none; transition: transform .2s,box-shadow .2s;
-}
-.btn-ver-act:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(37,99,235,.3); color:white; }
+/* Donut chart container */
+.donut-wrap { display:flex;align-items:center;gap:20px; }
+.donut-legend { display:flex;flex-direction:column;gap:8px;flex:1; }
+.donut-leg-item { display:flex;align-items:center;gap:8px;font-size:.8rem; }
+.donut-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
 
-/* ── Feed ──────────────────────────────────────────────────── */
-.act-feed-list { flex:1; overflow-y:auto; max-height:250px; }
-.act-feed-item { display:flex; gap:12px; padding:10px 0; border-bottom:1px solid #f8fafc; align-items:flex-start; }
-.act-feed-item:last-child { border-bottom:none; }
-.act-feed-avatar { width:36px; height:36px; border-radius:10px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.9rem; }
-.act-feed-name { font-size:.85rem; font-weight:600; color:#334155; margin:0; }
-.act-feed-date { font-size:.73rem; color:#94a3b8; margin-top:2px; }
-
-/* ── Quick Buttons ─────────────────────────────────────────── */
-.act-quick-btn {
-    display:flex; align-items:center; gap:12px; padding:11px 14px;
-    border-radius:12px; border:1.5px solid #f1f5f9; cursor:pointer;
-    background:#f8fafc; transition:all .2s; text-decoration:none;
-    color:#1e293b; font-weight:600; font-size:.875rem; width:100%; text-align:left;
-}
-.act-quick-btn:hover { border-color:#2563eb; background:#eff6ff; color:#2563eb; transform:translateX(4px); }
-.act-quick-icon { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:1.05rem; }
-
-/* ── Filter chips ──────────────────────────────────────────── */
-.act-chip {
-    padding:6px 14px; border-radius:20px; border:1.5px solid #e2e8f0;
-    font-size:.78rem; font-weight:700; cursor:pointer;
-    background:white; color:#64748b; transition:all .2s;
-}
-.act-chip:hover  { border-color:#2563eb; color:#2563eb; }
-.act-chip.active { background:linear-gradient(135deg,#172554,#2563eb); color:white; border-color:transparent; }
-
-/* ── Search ────────────────────────────────────────────────── */
-.act-search-wrap { position:relative; }
-.act-search-wrap i { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; pointer-events:none; }
-.act-search-wrap input {
-    padding:10px 14px 10px 40px; border-radius:12px;
-    border:2px solid #e2e8f0; font-size:.85rem; width:220px;
-    outline:none; transition:border-color .3s; background:#f8fafc; font-family:inherit;
-}
-.act-search-wrap input:focus { border-color:#2563eb; background:white; }
-
-/* ── Empty State ───────────────────────────────────────────── */
-.act-empty { border-radius:20px; padding:60px 20px; text-align:center; border:1px dashed #cbd5e1; }
-
-/* ══════════════════════════════════════════════════════════════
-   MODALES — sistema unificado
-   ══════════════════════════════════════════════════════════════ */
-.modal-overlay {
-    display:none; position:fixed; inset:0;
-    background:rgba(15,23,42,.7); backdrop-filter:blur(6px);
-    z-index:9999; align-items:center; justify-content:center;
-    animation:act-fadeIn .2s ease;
-}
-.modal-overlay.active { display:flex; }
-.modal-box {
-    background:white; border-radius:24px;
-    width:90%; max-width:560px; max-height:92vh;
-    display:flex; flex-direction:column; overflow:hidden;
-    box-shadow:0 32px 80px rgba(15,23,42,.3); animation:act-slideUp .3s ease;
-}
-.modal-head {
-    background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);
-    padding:26px 30px; display:flex; justify-content:space-between;
-    align-items:center; flex-shrink:0;
-}
-.modal-head h2 { font-size:1.2rem; font-weight:700; margin:0; color:white !important; }
-.modal-head p  { font-size:.83rem; margin:3px 0 0; color:rgba(255,255,255,.8) !important; }
-.btn-cls-modal {
-    background:rgba(255,255,255,.2); border:none; color:white;
-    width:34px; height:34px; border-radius:50%; cursor:pointer;
-    font-size:1rem; display:flex; align-items:center; justify-content:center; transition:background .2s;
-}
-.btn-cls-modal:hover { background:rgba(255,255,255,.35); }
-.modal-bd { padding:24px 28px; overflow-y:auto; flex:1; }
-
-/* ── Form fields (mismo estilo configuracion) ──────────────── */
-.f-group { margin-bottom:16px; }
-.f-label {
-    display:block; font-size:.78rem; font-weight:700; color:#374151;
-    margin-bottom:7px; text-transform:uppercase; letter-spacing:.5px;
-}
-.f-input {
-    width:100%; padding:11px 14px; border:2px solid #e5e7eb; border-radius:11px;
-    font-size:.9rem; color:#1e293b; transition:border-color .2s;
-    box-sizing:border-box; background:#fafafa; font-family:inherit;
-}
-.f-input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 4px rgba(79,70,229,.1); background:white; }
-.f-btn-primary {
-    width:100%; padding:12px; border:none; border-radius:11px; cursor:pointer;
-    background:linear-gradient(135deg,#172554,#2563eb);
-    color:white; font-size:.9rem; font-weight:700;
-    display:flex; align-items:center; justify-content:center; gap:8px;
-    transition:all .2s; box-shadow:0 4px 12px rgba(37,99,235,.25); font-family:inherit;
-}
-.f-btn-primary:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(37,99,235,.35); }
-.f-btn-cancel {
-    flex:1; padding:11px; background:#f1f5f9; color:#475569;
-    border:2px solid #e2e8f0; border-radius:11px; font-size:.88rem;
-    font-weight:600; cursor:pointer; transition:all .2s; font-family:inherit;
-}
-.f-btn-cancel:hover { background:#e2e8f0; }
-
-/* ══════════════════════════════════════════════════════════════
-   MODAL ALIADOS — panel grande (2 columnas)
-   ══════════════════════════════════════════════════════════════ */
-.modal-aliados-box {
-    background:white; border-radius:24px;
-    width:95%; max-width:900px; max-height:92vh;
-    display:flex; flex-direction:column; overflow:hidden;
-    box-shadow:0 32px 80px rgba(15,23,42,.3); animation:act-slideUp .3s ease;
-}
-.modal-aliados-body {
-    display:grid; grid-template-columns:1fr 320px;
-    gap:24px; padding:24px 28px; overflow:hidden; flex:1;
+@media(max-width:1024px){ .hub-grid-3{grid-template-columns:1fr 1fr;} }
+@media(max-width:640px) {
+    .hub-grid-3 { grid-template-columns:1fr; }
+    .hub-grid-2 { grid-template-columns:1fr; }
 }
 
-/* Lista instituciones (cfg-list-item style) */
-.inst-list-item {
-    display:flex; align-items:center; gap:12px;
-    padding:10px 0; border-bottom:1px solid #f8fafc;
-}
-.inst-list-item:last-child { border-bottom:none; }
-.inst-avatar {
-    width:38px; height:38px; border-radius:10px; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center;
-}
-.inst-name { font-weight:700; color:#1e293b; font-size:.875rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.inst-sub  { font-size:.74rem; color:#94a3b8; margin-top:2px; }
+/* ── KPIs responsivos ── */
+@media(max-width:767px) {
+    /* Wrapper general */
+    div[style*="max-width:1600px"] { padding: 10px !important; }
 
-/* Badges tipo */
-.badge-tipo { font-size:.68rem; padding:2px 8px; border-radius:100px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; }
-.tipo-univ  { background:#eff6ff; color:#2563eb; }
-.tipo-inst  { background:#f5f3ff; color:#7c3aed; }
-.tipo-col   { background:#fffbeb; color:#d97706; }
-.tipo-otro  { background:#f0fdf4; color:#059669; }
+    /* Banner compacto */
+    .hub-banner-wrap {
+        padding: 16px 14px !important;
+        margin-bottom: 14px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 12px !important;
+    }
+    /* Ocultar botones de texto del banner — se sustituyen por iconos */
+    .hub-nav-btn span { display: none !important; }
+    .hub-nav-btn { padding: 9px 12px !important; }
+    .hub-nav-btn i { font-size: 1.1rem !important; margin: 0 !important; }
 
-/* Badges estado */
-.inst-badge-estado { font-size:.68rem; padding:2px 8px; border-radius:100px; font-weight:700; text-transform:uppercase; }
-.badge-activo   { background:#dcfce7; color:#059669; }
-.badge-inactivo { background:#fee2e2; color:#dc2626; }
+    /* KPI grid: 2 columnas en móvil */
+    .hub-kpi-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+        margin-bottom: 14px !important;
+    }
+    .hub-kpi {
+        padding: 14px 12px !important;
+        border-radius: 14px !important;
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 10px !important;
+    }
+    .hub-kpi > div:first-child { width: 100% !important; }
+    .hub-kpi p:first-child {
+        font-size: 0.62rem !important;
+        letter-spacing: 0.3px !important;
+        margin-bottom: 4px !important;
+        white-space: normal !important;
+        line-height: 1.2 !important;
+    }
+    .hub-kpi h2 { font-size: 1.75rem !important; }
+    .hub-kpi p:last-child { font-size: 0.62rem !important; }
+    /* Icono KPI: más pequeño y alineado abajo */
+    .hub-kpi > div:last-child {
+        width: 36px !important; height: 36px !important;
+        border-radius: 9px !important;
+        font-size: 1.1rem !important;
+        align-self: flex-end !important;
+        margin-top: -28px !important;
+    }
 
-/* Botones toggle */
-.btn-toggle-inst {
-    padding:5px 10px; border-radius:8px; font-size:.75rem; font-weight:700;
-    border:1.5px solid transparent; cursor:pointer; transition:all .18s;
-    display:inline-flex; align-items:center; gap:4px; flex-shrink:0;
-}
-.btn-toggle-inst.act   { background:#fef2f2; color:#dc2626; border-color:#fecaca; }
-.btn-toggle-inst.act:hover   { background:#dc2626; color:white; border-color:#dc2626; }
-.btn-toggle-inst.inact { background:#f0fdf4; color:#059669; border-color:#bbf7d0; }
-.btn-toggle-inst.inact:hover { background:#059669; color:white; border-color:#059669; }
+    /* Preview cards en 1 columna */
+    .hub-grid-3 { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .hub-grid-2 { grid-template-columns: 1fr !important; gap: 12px !important; }
+    .hub-card { padding: 14px !important; border-radius: 14px !important; }
 
-/* Separador panel derecho */
-.modal-panel-sep { border-left:2px dashed #e2e8f0; padding-left:24px; }
-
-/* ── Responsive ─────────────────────────────────────────────── */
-@media (max-width:1200px) {
-    .acg-3  { grid-column: span 6; }
-    .acg-7  { grid-column: span 12; }
-    .acg-5  { grid-column: span 12; }
-    .act-gallery-grid { grid-template-columns: repeat(2,1fr); }
-}
-@media (max-width:900px)  {
-    .modal-aliados-body { grid-template-columns: 1fr !important; padding:20px; }
-    .modal-panel-sep    { border-left:none; border-top:2px dashed #e2e8f0; padding-left:0; padding-top:20px; }
-}
-@media (max-width:768px)  {
-    .acg-6  { grid-column: span 12; }
-    .acg-3  { grid-column: span 6;  }
-    .act-gallery-grid { grid-template-columns: 1fr; }
-}
-@media (max-width:480px)  {
-    .acg-3  { grid-column: span 12; }
+    /* Donut: apilar verticalmente */
+    .donut-wrap { flex-direction: column !important; align-items: center !important; gap: 14px !important; }
 }
 </style>
 
-<div style="width:100%;max-width:1600px;margin:0 auto;padding:20px;" id="actividades-pjax-container">
+<div style="width:100%;max-width:1600px;margin:0 auto;padding:20px;">
 
-    <!-- ══════════════════════════════════════════════════════
-         BANNER PREMIUM
-         ══════════════════════════════════════════════════════ -->
-    <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;box-shadow:0 10px 25px rgba(30,58,138,.2);flex-wrap:wrap;gap:20px;">
-        <div style="position:absolute;top:-30px;right:-30px;width:200px;height:200px;background:radial-gradient(circle,rgba(255,255,255,.1) 0%,rgba(255,255,255,0) 70%);border-radius:50%;pointer-events:none;"></div>
-        <div style="position:absolute;bottom:-40px;left:120px;width:160px;height:160px;background:radial-gradient(circle,rgba(255,255,255,.06) 0%,rgba(255,255,255,0) 70%);border-radius:50%;pointer-events:none;"></div>
-        <div style="display:flex;align-items:center;gap:20px;z-index:1;">
-            <div style="background:rgba(255,255,255,.2);backdrop-filter:blur(10px);border-radius:16px;width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
-                <i class="ti ti-briefcase" style="font-size:2rem;color:white;"></i>
-            </div>
-            <div>
-                <h1 style="color:white;font-size:2rem;font-weight:700;margin:0;letter-spacing:-.5px;">Actividades Extras</h1>
-                <p style="color:rgba(255,255,255,.8);margin:4px 0 0;font-size:1rem;">
-                    <i class="ti ti-school"></i> <?= count($instituciones) ?> institución<?= count($instituciones) !== 1 ? 'es' : '' ?>
-                    &nbsp;·&nbsp;
-                    <i class="ti ti-briefcase"></i> <?= $kpiTotal ?> proyecto<?= $kpiTotal !== 1 ? 's' : '' ?>
-                </p>
-            </div>
+<!-- ══ BANNER ══════════════════════════════════════════════════ -->
+<div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">
+    <div style="position:absolute;top:-40px;right:-40px;width:220px;height:220px;background:rgba(255,255,255,0.04);border-radius:50%;pointer-events:none;"></div>
+    <div style="display:flex;align-items:center;gap:16px;z-index:1;">
+        <div style="background:rgba(255,255,255,0.15);border-radius:14px;padding:14px;">
+            <i class="ti ti-stack-2" style="font-size:32px;color:white;"></i>
         </div>
-        <div style="z-index:1;">
-            <button data-bs-toggle="modal" data-bs-target="#modalNuevaActividad"
-                style="background:rgba(255,255,255,.15);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.3);color:white;padding:12px 24px;border-radius:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:.95rem;transition:all .3s;"
-                onmouseover="this.style.background='rgba(255,255,255,.25)';this.style.transform='translateY(-2px)'"
-                onmouseout="this.style.background='rgba(255,255,255,.15)';this.style.transform='none'">
-                <i class="ti ti-plus"></i> Nueva Actividad
-            </button>
+        <div>
+            <h1 style="color:white;font-size:1.75rem;font-weight:800;margin:0;line-height:1.1;">Actividades Extras</h1>
+            <p style="color:rgba(255,255,255,0.7);margin:5px 0 0;font-size:.88rem;">
+                Módulo independiente · Pasantías Cortas &amp; Servicio Comunitario
+            </p>
         </div>
     </div>
+    <!-- Botones de navegación glass -->
+    <div style="display:flex;gap:12px;z-index:1;flex-wrap:wrap;">
+        <a href="<?= URLROOT ?>/actividades/instituciones" class="hub-nav-btn">
+            <i class="ti ti-building-bank"></i> Instituciones
+        </a>
+        <a href="<?= URLROOT ?>/actividades/pasantias" class="hub-nav-btn">
+            <i class="ti ti-user-star"></i> Pasantías Cortas
+        </a>
+        <a href="<?= URLROOT ?>/actividades/servicio" class="hub-nav-btn">
+            <i class="ti ti-hearts"></i> Servicio Comunitario
+        </a>
+    </div>
+</div>
 
-    <!-- ══════════════════════════════════════════════════════
-         KPI CARDS — vertical (estilo configuracion)
-         ══════════════════════════════════════════════════════ -->
-    <div class="act-bento-grid" style="margin-bottom:22px;">
-        <?php
-        $kpiItems = [
-            ['label' => 'Total Proyectos',   'val' => $kpiTotal,         'color' => '#7c3aed', 'icon' => 'ti-folder',    'bg' => '#f5f3ff'],
-            ['label' => 'Proyectos Activos', 'val' => $kpiActivas,       'color' => '#059669', 'icon' => 'ti-activity',  'bg' => '#f0fdf4'],
-            ['label' => 'Finalizadas',       'val' => $kpiFinalizadas,   'color' => '#64748b', 'icon' => 'ti-checkbox',  'bg' => '#f8fafc'],
-            ['label' => 'Participantes',     'val' => $kpiParticipantes, 'color' => '#2563eb', 'icon' => 'ti-users',     'bg' => '#eff6ff'],
-        ];
-        foreach ($kpiItems as $k): ?>
-        <div class="act-card acg-3" style="border-left:4px solid <?= $k['color'] ?>;cursor:default;">
-            <div class="act-kpi-icon" style="background:<?= $k['bg'] ?>;color:<?= $k['color'] ?>;">
-                <i class="ti <?= $k['icon'] ?>"></i>
+<div class="hub-kpi-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+    <div class="hub-kpi" style="border-left:4px solid #2563eb;"
+         onmouseover="this.style.boxShadow='0 12px 25px rgba(37,99,235,0.2)'"
+         onmouseout="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+        <div>
+            <p style="color:#64748b;font-size:.78rem;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Pasantes Cortos Activos</p>
+            <h2 style="font-size:2.2rem;font-weight:800;color:#2563eb;margin:0;line-height:1;"><?= $kpiCortosActivos ?></h2>
+            <p style="color:#94a3b8;font-size:.72rem;margin:3px 0 0;"><?= $kpiPasantesCortos ?> total registrados</p>
+        </div>
+        <div style="background:#eff6ff;color:#2563eb;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;"><i class="ti ti-user-check"></i></div>
+    </div>
+    <div class="hub-kpi" style="border-left:4px solid #059669;"
+         onmouseover="this.style.boxShadow='0 12px 25px rgba(5,150,105,0.2)'"
+         onmouseout="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+        <div>
+            <p style="color:#64748b;font-size:.78rem;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Actividades SC</p>
+            <h2 style="font-size:2.2rem;font-weight:800;color:#059669;margin:0;line-height:1;"><?= $kpiActividadesCom ?></h2>
+        </div>
+        <div style="background:#f0fdf4;color:#059669;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;"><i class="ti ti-hearts"></i></div>
+    </div>
+    <div class="hub-kpi" style="border-left:4px solid #7c3aed;"
+         onmouseover="this.style.boxShadow='0 12px 25px rgba(124,58,237,0.2)'"
+         onmouseout="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+        <div>
+            <p style="color:#64748b;font-size:.78rem;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Instituciones Aliadas</p>
+            <h2 style="font-size:2.2rem;font-weight:800;color:#7c3aed;margin:0;line-height:1;"><?= $kpiInstituciones ?></h2>
+        </div>
+        <div style="background:#fdf4ff;color:#7c3aed;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;"><i class="ti ti-building-bank"></i></div>
+    </div>
+    <div class="hub-kpi" style="border-left:4px solid #d97706;"
+         onmouseover="this.style.boxShadow='0 12px 25px rgba(217,119,6,0.2)'"
+         onmouseout="this.style.boxShadow='0 2px 12px rgba(0,0,0,0.06)'">
+        <div>
+            <p style="color:#64748b;font-size:.78rem;margin:0 0 6px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;">Período Corto</p>
+            <?php if ($periodoCortoActivo): ?>
+                <div class="per-badge-activo"><span style="width:7px;height:7px;background:#10b981;border-radius:50%;animation:hub-pulse 2s infinite;"></span><?= htmlspecialchars($periodoCortoActivo->nombre) ?></div>
+            <?php else: ?>
+                <div class="per-badge-none"><i class="ti ti-alert-circle"></i> Sin período activo</div>
+            <?php endif; ?>
+        </div>
+        <div style="background:#fffbeb;color:#d97706;width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;"><i class="ti ti-calendar-event"></i></div>
+    </div>
+</div>
+
+<!-- ══ PREVIEW GRID ═════════════════════════════════════════════ -->
+<div class="hub-grid-3">
+
+    <!-- Card Instituciones -->
+    <div class="hub-card" style="animation-delay:.05s">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-building-bank" style="color:#2563eb;"></i>
+                </div>
+                <span style="font-weight:700;color:#1e293b;font-size:.9rem;">Instituciones Aliadas</span>
             </div>
-            <div class="act-kpi-value" style="color:<?= $k['color'] ?>;"><?= $k['val'] ?></div>
-            <div class="act-kpi-label"><?= $k['label'] ?></div>
+            <span style="background:#eff6ff;color:#2563eb;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;"><?= $kpiInstituciones ?> total</span>
+        </div>
+        <?php if (empty($previewInstituciones)): ?>
+        <div style="text-align:center;padding:30px 10px;color:#94a3b8;font-size:.85rem;">Sin instituciones registradas</div>
+        <?php else: ?>
+        <?php foreach ($previewInstituciones as $inst): ?>
+        <div class="prev-item">
+            <div class="prev-avatar" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">
+                <i class="ti ti-building-factory-2" style="color:white;font-size:.9rem;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div class="prev-name"><?= htmlspecialchars($inst->nombre) ?></div>
+                <div class="prev-sub"><?= htmlspecialchars($inst->tipo) ?><?= $inst->contacto ? ' · ' . htmlspecialchars($inst->contacto) : '' ?></div>
+            </div>
         </div>
         <?php endforeach; ?>
+        <?php endif; ?>
+        <a href="<?= URLROOT ?>/actividades/instituciones" class="prev-more">Ver todas <i class="ti ti-arrow-right"></i></a>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════
-         BENTO GRID — Widgets
-         ══════════════════════════════════════════════════════ -->
-    <div class="act-bento-grid">
-
-        <!-- ── Distribución por Tipo (Chart) ─────────────────── -->
-        <div class="act-card acg-7">
-            <div class="act-card-hdr">
-                <div class="act-card-title">
-                    <div class="act-icon-box" style="background:#eff6ff;">
-                        <i class="ti ti-chart-pie" style="font-size:1.1rem;color:#2563eb;"></i>
-                    </div>
-                    <div>
-                        <div>Distribución por Tipo</div>
-                        <div style="font-size:.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Proyectos según categoría</div>
-                    </div>
+    <!-- Card Pasantes Cortos -->
+    <div class="hub-card" style="animation-delay:.1s">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-user-star" style="color:#2563eb;"></i>
                 </div>
-                <span class="act-badge" style="background:#eff6ff;color:#2563eb;"><?= $kpiTotal ?> total</span>
+                <span style="font-weight:700;color:#1e293b;font-size:.9rem;">Pasantías Cortas</span>
             </div>
-            <div style="flex:1;display:flex;align-items:center;justify-content:center;min-height:210px;">
-                <?php if ($kpiTotal > 0): ?>
-                    <div id="chart-actividades" style="width:100%;"></div>
-                <?php else: ?>
-                    <div style="text-align:center;color:#94a3b8;padding:30px 0;">
-                        <i class="ti ti-chart-arrows-vertical" style="font-size:3rem;opacity:.3;display:block;margin-bottom:12px;"></i>
-                        <span style="font-size:.88rem;font-weight:600;">Sin datos suficientes</span>
-                        <p style="font-size:.78rem;margin:4px 0 0;color:#cbd5e1;">Crea actividades para ver estadísticas</p>
+            <span style="background:#dcfce7;color:#059669;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;"><?= $kpiCortosActivos ?> activos</span>
+        </div>
+        <?php if (empty($previewPasantes)): ?>
+        <div style="text-align:center;padding:30px 10px;color:#94a3b8;font-size:.85rem;">Sin pasantes registrados</div>
+        <?php else: ?>
+        <?php foreach ($previewPasantes as $pc):
+            $hMeta = max(1,(int)($pc->horas_meta??480));
+            $hAcum = (int)($pc->horas_acumuladas??0);
+            $pct   = min(100,round($hAcum/$hMeta*100));
+        ?>
+        <div class="prev-item">
+            <div class="prev-avatar" style="background:linear-gradient(135deg,#1e40af,#6366f1);">
+                <span style="color:white;font-weight:700;font-size:.78rem;"><?= strtoupper(substr($pc->nombres??'?',0,1).substr($pc->apellidos??'',0,1)) ?></span>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div class="prev-name"><?= htmlspecialchars(($pc->nombres??'').' '.($pc->apellidos??'')) ?></div>
+                <div style="display:flex;align-items:center;gap:6px;margin-top:4px;">
+                    <div style="flex:1;height:5px;background:#f1f5f9;border-radius:3px;overflow:hidden;">
+                        <div style="width:<?= $pct ?>%;height:100%;background:linear-gradient(90deg,#2563eb,#10b981);border-radius:3px;"></div>
                     </div>
-                <?php endif; ?>
+                    <span style="font-size:.7rem;font-weight:700;color:#64748b;"><?= $pct ?>%</span>
+                </div>
             </div>
         </div>
+        <?php endforeach; ?>
+        <?php endif; ?>
+        <a href="<?= URLROOT ?>/actividades/pasantias" class="prev-more">Ver todos <i class="ti ti-arrow-right"></i></a>
+    </div>
 
-        <!-- ── Actividad Reciente (Feed) ────────────────────── -->
-        <div class="act-card acg-5">
-            <div class="act-card-hdr">
-                <div class="act-card-title">
-                    <div class="act-icon-box" style="background:#fff7ed;">
-                        <i class="ti ti-history" style="font-size:1.1rem;color:#f59e0b;"></i>
-                    </div>
-                    <div>
-                        <div>Actividad Reciente</div>
-                        <div style="font-size:.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Últimos proyectos</div>
-                    </div>
+    <!-- Card Servicio Comunitario + Donut -->
+    <div class="hub-card" style="animation-delay:.15s">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid #f1f5f9;">
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div style="width:34px;height:34px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-hearts" style="color:#059669;"></i>
                 </div>
+                <span style="font-weight:700;color:#1e293b;font-size:.9rem;">Servicio Comunitario</span>
             </div>
-            <div class="act-feed-list">
-                <?php if (empty($actividades)): ?>
-                    <div style="text-align:center;padding:36px 20px;color:#94a3b8;">
-                        <i class="ti ti-history" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:.4;"></i>
-                        <p style="margin:0;font-size:.88rem;">No hay actividad reciente</p>
-                    </div>
-                <?php else: ?>
-                    <?php
-                    $feedColors = ['#6366f1','#10b981','#f59e0b','#3b82f6','#ec4899'];
-                    foreach (array_slice($actividades, 0, 6) as $idx => $act):
-                        $clr = $feedColors[$idx % count($feedColors)];
-                        $ec  = $act->estado === 'Activa' ? '#10b981' : '#94a3b8';
-                    ?>
-                    <div class="act-feed-item">
-                        <div class="act-feed-avatar" style="background:<?= $clr ?>18;color:<?= $clr ?>;">
-                            <i class="ti ti-briefcase"></i>
-                        </div>
-                        <div style="flex:1;min-width:0;">
-                            <p class="act-feed-name"><?= htmlspecialchars($act->nombre) ?></p>
-                            <div style="display:flex;align-items:center;gap:8px;margin-top:3px;">
-                                <span style="font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:10px;background:<?= $ec ?>18;color:<?= $ec ?>;"><?= $act->estado ?></span>
-                                <span class="act-feed-date"><?= date('d/m/Y', strtotime($act->fecha_inicio ?? 'now')) ?></span>
-                            </div>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
+            <span style="background:#f0fdf4;color:#059669;font-size:.7rem;font-weight:700;padding:3px 10px;border-radius:20px;"><?= $kpiActividadesCom ?> actividades</span>
+        </div>
+        <?php if (empty($previewActividades)): ?>
+        <div style="text-align:center;padding:24px 10px;color:#94a3b8;font-size:.85rem;">Sin actividades registradas</div>
+        <?php else: ?>
+        <?php foreach ($previewActividades as $act): ?>
+        <div class="prev-item">
+            <div class="prev-avatar" style="background:<?= $act->estado === 'Activa' ? '#dcfce7' : '#f1f5f9' ?>;">
+                <i class="ti ti-heart" style="color:<?= $act->estado === 'Activa' ? '#059669' : '#94a3b8' ?>;font-size:.9rem;"></i>
+            </div>
+            <div style="flex:1;min-width:0;">
+                <div class="prev-name"><?= htmlspecialchars($act->nombre) ?></div>
+                <div class="prev-sub"><?= (int)$act->total_participantes ?> participantes · <?= date('d/m/Y',strtotime($act->fecha_inicio)) ?></div>
             </div>
         </div>
+        <?php endforeach; ?>
+        <?php endif; ?>
+        <a href="<?= URLROOT ?>/actividades/servicio" class="prev-more">Ver todas <i class="ti ti-arrow-right"></i></a>
+    </div>
+</div>
 
-        <!-- ── Acciones Rápidas ──────────────────────────────── -->
-        <div class="act-card acg-6">
-            <div class="act-card-hdr">
-                <div class="act-card-title">
-                    <div class="act-icon-box" style="background:#f0fdf4;">
-                        <i class="ti ti-rocket" style="font-size:1.1rem;color:#059669;"></i>
-                    </div>
-                    <div>
-                        <div>Acciones Rápidas</div>
-                        <div style="font-size:.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Gestión central</div>
-                    </div>
-                </div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:9px;flex:1;">
-                <button data-bs-toggle="modal" data-bs-target="#modalNuevaActividad" class="act-quick-btn">
-                    <div class="act-quick-icon" style="background:linear-gradient(135deg,#172554,#2563eb);color:white;"><i class="ti ti-plus"></i></div>
-                    <div style="flex:1;"><div>Nueva Actividad</div><div style="font-size:.74rem;color:#94a3b8;font-weight:400;">Registrar proyecto</div></div>
-                    <i class="ti ti-chevron-right" style="color:#94a3b8;"></i>
-                </button>
-                <button onclick="abrirModalAliados()" class="act-quick-btn">
-                    <div class="act-quick-icon" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;"><i class="ti ti-school"></i></div>
-                    <div style="flex:1;"><div>Gestionar Aliados</div><div style="font-size:.74rem;color:#94a3b8;font-weight:400;">Instituciones universitarias</div></div>
-                    <i class="ti ti-chevron-right" style="color:#94a3b8;"></i>
-                </button>
-                <a href="<?= URLROOT ?>/reportes/actividades" class="act-quick-btn">
-                    <div class="act-quick-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:white;"><i class="ti ti-file-report"></i></div>
-                    <div style="flex:1;"><div>Generar Reporte</div><div style="font-size:.74rem;color:#94a3b8;font-weight:400;">Exportar estadísticas</div></div>
-                    <i class="ti ti-chevron-right" style="color:#94a3b8;"></i>
-                </a>
-            </div>
+<!-- ══ DONUT CHART + INFO PERÍODO ══════════════════════════════ -->
+<div class="hub-grid-2">
+
+    <!-- Distribución por tipo (donut) -->
+    <div class="hub-card" style="animation-delay:.2s">
+        <div style="font-size:.85rem;font-weight:700;color:#1e293b;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-chart-donut" style="color:#7c3aed;"></i> Distribución de Actividades por Tipo
         </div>
-
-        <!-- ── Aliados Universitarios ────────────────────────── -->
-        <div class="act-card acg-6">
-            <div class="act-card-hdr">
-                <div class="act-card-title">
-                    <div class="act-icon-box" style="background:#faf5ff;">
-                        <i class="ti ti-school" style="font-size:1.1rem;color:#7c3aed;"></i>
-                    </div>
-                    <div>
-                        <div>Aliados Universitarios</div>
-                        <div style="font-size:.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Origen de participantes</div>
-                    </div>
-                </div>
-                <span class="act-badge" style="background:#faf5ff;color:#7c3aed;"><?= count($instituciones) ?> aliado<?= count($instituciones)!==1?'s':'' ?></span>
-            </div>
-
-            <div style="flex:1;overflow-y:auto;max-height:200px;margin-bottom:14px;">
-                <?php if (empty($instituciones)): ?>
-                    <div style="text-align:center;padding:28px 20px;color:#94a3b8;">
-                        <i class="ti ti-school" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:.4;"></i>
-                        <p style="margin:0;font-size:.88rem;">No hay aliados registrados</p>
-                    </div>
-                <?php else: ?>
-                    <?php foreach (array_slice($instituciones, 0, 5) as $inst): ?>
-                    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #f8fafc;">
-                        <div style="width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,#1e40af,#3b82f6);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                            <i class="ti ti-building-factory-2" style="font-size:.9rem;color:white;"></i>
-                        </div>
-                        <div style="flex:1;min-width:0;">
-                            <div style="font-weight:700;color:#1e293b;font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($inst->nombre) ?></div>
-                            <?php if (!empty($inst->tipo)): ?>
-                            <div style="font-size:.72rem;color:#94a3b8;"><?= htmlspecialchars($inst->tipo) ?></div>
-                            <?php endif; ?>
-                        </div>
-                    </div>
-                    <?php endforeach; ?>
-                    <?php if (count($instituciones) > 5): ?>
-                    <div style="text-align:center;padding:7px 0;font-size:.78rem;color:#94a3b8;font-weight:600;">+<?= count($instituciones)-5 ?> más</div>
-                    <?php endif; ?>
-                <?php endif; ?>
-            </div>
-
-            <button onclick="abrirModalAliados()"
-               style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px;background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:white;border-radius:10px;font-weight:700;font-size:.875rem;border:none;cursor:pointer;transition:all .2s;box-shadow:0 4px 12px rgba(124,58,237,.25);width:100%;"
-               onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 20px rgba(124,58,237,.35)'"
-               onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 12px rgba(124,58,237,.25)'">
-                <i class="ti ti-settings-2"></i> Gestionar Aliados
-            </button>
+        <div class="donut-wrap">
+            <canvas id="donutChart" width="140" height="140" style="flex-shrink:0;"></canvas>
+            <div class="donut-legend" id="donutLegend"></div>
         </div>
     </div>
 
-    <!-- ══════════════════════════════════════════════════════
-         EXPLORAR ACTIVIDADES — Galería premium
-         ══════════════════════════════════════════════════════ -->
-    <div style="background:white;border-radius:20px;padding:24px;box-shadow:0 4px 20px rgba(0,0,0,0.04);border:1px solid rgba(0,0,0,0.05);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap;gap:14px;">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#172554,#2563eb);display:flex;align-items:center;justify-content:center;">
-                    <i class="ti ti-layout-grid" style="font-size:1.1rem;color:white;"></i>
-                </div>
-                <div>
-                    <h2 style="font-size:1.1rem;font-weight:800;color:#0f172a;margin:0;">Explorar Actividades</h2>
-                    <span style="font-size:.78rem;color:#94a3b8;"><?= count($actividades) ?> proyecto<?= count($actividades)!==1?'s':'' ?> registrado<?= count($actividades)!==1?'s':'' ?></span>
-                </div>
+    <!-- Info período activo corto -->
+    <div class="hub-card" style="animation-delay:.25s;display:flex;flex-direction:column;justify-content:space-between;">
+        <div style="font-size:.85rem;font-weight:700;color:#1e293b;margin-bottom:18px;display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-calendar-stats" style="color:#d97706;"></i> Estado del Período Corto
+        </div>
+        <?php if ($periodoCortoActivo): ?>
+        <?php
+            $pInicio = new DateTime($periodoCortoActivo->fecha_inicio ?? 'today');
+            $pFin    = new DateTime($periodoCortoActivo->fecha_fin    ?? 'today');
+            $hoy     = new DateTime();
+            $totalD  = max(1, $pFin->diff($pInicio)->days);
+            $transD  = max(0, min($totalD, $hoy->diff($pInicio)->days));
+            if ($hoy < $pInicio) $transD = 0;
+            if ($hoy > $pFin)    $transD = $totalD;
+            $ppct = round($transD / $totalD * 100);
+        ?>
+        <div style="background:linear-gradient(135deg,#172554,#1e3a8a);border-radius:14px;padding:20px;color:white;">
+            <div style="font-size:.72rem;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Período Activo</div>
+            <div style="font-size:1.1rem;font-weight:800;margin-bottom:14px;"><?= htmlspecialchars($periodoCortoActivo->nombre) ?></div>
+            <div style="background:rgba(255,255,255,.15);border-radius:100px;height:8px;margin-bottom:8px;overflow:hidden;">
+                <div style="width:<?= $ppct ?>%;height:100%;background:linear-gradient(90deg,#34d399,#10b981);border-radius:100px;transition:width 1s ease;"></div>
             </div>
-            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-                <div class="act-search-wrap">
-                    <i class="ti ti-search"></i>
-                    <input type="text" id="busqActividad" placeholder="Buscar proyecto..." oninput="filtrarActividades()">
-                </div>
-                <div style="display:flex;gap:6px;">
-                    <button class="act-chip active" data-tipo="" onclick="setChip(this)">Todos</button>
-                    <button class="act-chip" data-tipo="Servicio Comunitario" onclick="setChip(this)">S. Comunitario</button>
-                    <button class="act-chip" data-tipo="Pasantía Corta" onclick="setChip(this)">Pasantía</button>
-                </div>
+            <div style="display:flex;justify-content:space-between;font-size:.75rem;color:rgba(255,255,255,.7);">
+                <span><?= date('d/m/Y', strtotime($periodoCortoActivo->fecha_inicio)) ?></span>
+                <span style="font-weight:700;color:white;"><?= $ppct ?>% transcurrido</span>
+                <span><?= date('d/m/Y', strtotime($periodoCortoActivo->fecha_fin)) ?></span>
             </div>
         </div>
-
-        <?php if (empty($actividades)): ?>
-        <div class="act-empty">
-            <i class="ti ti-briefcase-off" style="font-size:4rem;color:#94a3b8;margin-bottom:16px;display:inline-block;"></i>
-            <h3 style="font-size:1.4rem;color:#1e293b;font-weight:700;margin-bottom:8px;">No hay actividades registradas</h3>
-            <p style="color:#64748b;margin-bottom:24px;">Crea la primera actividad para comenzar a gestionar proyectos.</p>
-            <button data-bs-toggle="modal" data-bs-target="#modalNuevaActividad"
-                style="background:linear-gradient(135deg,#172554,#2563eb);color:white;border:none;padding:12px 28px;border-radius:10px;font-weight:600;cursor:pointer;font-size:.95rem;display:inline-flex;align-items:center;gap:8px;">
-                <i class="ti ti-plus"></i> Nueva Actividad
-            </button>
+        <div style="margin-top:14px;display:flex;gap:10px;">
+            <div style="flex:1;background:#f8fafc;border-radius:12px;padding:12px;text-align:center;">
+                <div style="font-size:1.4rem;font-weight:800;color:#2563eb;"><?= $transD ?></div>
+                <div style="font-size:.72rem;color:#94a3b8;font-weight:600;">Días transcurridos</div>
+            </div>
+            <div style="flex:1;background:#f8fafc;border-radius:12px;padding:12px;text-align:center;">
+                <div style="font-size:1.4rem;font-weight:800;color:#059669;"><?= max(0,$totalD-$transD) ?></div>
+                <div style="font-size:.72rem;color:#94a3b8;font-weight:600;">Días restantes</div>
+            </div>
+            <div style="flex:1;background:#f8fafc;border-radius:12px;padding:12px;text-align:center;">
+                <div style="font-size:1.4rem;font-weight:800;color:#7c3aed;"><?= $kpiCortosActivos ?></div>
+                <div style="font-size:.72rem;color:#94a3b8;font-weight:600;">Pasantes activos</div>
+            </div>
         </div>
         <?php else: ?>
-        <div class="act-gallery-grid" id="actividadesGrid">
-            <?php foreach ($actividades as $act):
-                $esActiva     = $act->estado === 'Activa';
-                $borderClr    = $esActiva ? '#10b981' : '#94a3b8';
-                $headBg       = $esActiva ? 'rgba(16,185,129,0.05)' : 'rgba(100,116,139,0.04)';
-                $estadoBg     = $esActiva ? '#ecfdf5' : '#f1f5f9';
-                $estadoTxt    = $esActiva ? '#065f46' : '#475569';
-                $estadoBorder = $esActiva ? '#10b981' : '#94a3b8';
-                $nPart        = (int)($act->total_participantes ?? 0);
-            ?>
-            <div class="act-gallery-card"
-                 data-tipo="<?= htmlspecialchars($act->tipo) ?>"
-                 data-nombre="<?= htmlspecialchars($act->nombre) ?>"
-                 style="border-left-color:<?= $borderClr ?>;">
-                <div class="act-gallery-head" style="background:<?= $headBg ?>;">
-                    <h5><?= htmlspecialchars($act->nombre) ?></h5>
-                    <span class="act-badge-estado" style="background:<?= $estadoBg ?>;color:<?= $estadoTxt ?>;border:1px solid <?= $estadoBorder ?>;">
-                        <?php if ($esActiva): ?><span class="act-pulsing-dot"></span><?php endif; ?>
-                        <?= $act->estado ?>
-                    </span>
-                </div>
-                <div class="act-gallery-body">
-                    <div class="act-info-row hl">
-                        <i class="ti ti-building"></i>
-                        <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"><?= htmlspecialchars($act->institucion_nombre ?? 'Sin Institución') ?></span>
-                    </div>
-                    <div class="act-info-row">
-                        <i class="ti ti-tag"></i>
-                        <span style="font-size:.78rem;"><?= htmlspecialchars($act->tipo ?? '—') ?></span>
-                    </div>
-                    <div style="margin-top:auto;display:flex;align-items:center;gap:6px;">
-                        <i class="ti ti-users" style="color:#64748b;font-size:.95rem;"></i>
-                        <span style="font-size:.85rem;font-weight:700;color:#1e293b;"><?= $nPart ?> participante<?= $nPart!==1?'s':'' ?></span>
-                    </div>
-                </div>
-                <div class="act-gallery-foot">
-                    <a href="<?= URLROOT ?>/actividades/ver/<?= $act->id ?>" class="btn-ver-act">
-                        Ver Detalles <i class="ti ti-arrow-right"></i>
-                    </a>
-                </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:20px;">
+            <div style="width:60px;height:60px;background:#fef9c3;border-radius:16px;display:flex;align-items:center;justify-content:center;">
+                <i class="ti ti-calendar-off" style="font-size:2rem;color:#d97706;"></i>
             </div>
-            <?php endforeach; ?>
+            <div style="text-align:center;">
+                <div style="font-weight:700;color:#1e293b;margin-bottom:4px;">Sin período corto activo</div>
+                <div style="font-size:.8rem;color:#94a3b8;">Ve a Configuración → Períodos para crear uno de tipo "Corto"</div>
+            </div>
+            <a href="<?= URLROOT ?>/periodos" style="display:inline-flex;align-items:center;gap:6px;background:linear-gradient(135deg,#172554,#2563eb);color:white;padding:9px 18px;border-radius:10px;font-size:.82rem;font-weight:700;text-decoration:none;">
+                <i class="ti ti-settings"></i> Ir a Configuración
+            </a>
         </div>
         <?php endif; ?>
     </div>
+</div>
 
 </div>
 
-<!-- ════════════════════════════════════════════════════════════
-     MODAL: Gestionar Aliados Universitarios (PANEL GRANDE)
-     ════════════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modalAliados">
-    <div class="modal-aliados-box">
-        <!-- Header -->
-        <div class="modal-head">
-            <div>
-                <h2><i class="ti ti-school" style="margin-right:8px;"></i>Aliados Universitarios</h2>
-                <p>Gestión de instituciones que envían participantes al ISP</p>
-            </div>
-            <button class="btn-cls-modal" onclick="cerrarModalAliados()"><i class="ti ti-x"></i></button>
-        </div>
-        <!-- Body: dos columnas -->
-        <div class="modal-aliados-body">
-
-            <!-- ── COLUMNA IZQUIERDA: Lista ───────────────────── -->
-            <div style="display:flex;flex-direction:column;min-height:0;">
-                <!-- Sub-header lista -->
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
-                    <div>
-                        <h4 style="margin:0;font-size:.95rem;font-weight:800;color:#1e293b;">Instituciones Registradas</h4>
-                        <span style="font-size:.78rem;color:#94a3b8;" id="instCount"><?= count($instituciones) ?> aliado<?= count($instituciones)!==1?'s':'' ?></span>
-                    </div>
-                    <span style="font-size:.72rem;padding:4px 10px;border-radius:20px;background:#eff6ff;color:#2563eb;font-weight:700;"><?= count($instituciones) ?> total</span>
-                </div>
-
-                <!-- Lista scrollable -->
-                <div id="aliadosList" style="flex:1;overflow-y:auto;max-height:360px;border:1px solid #f1f5f9;border-radius:14px;padding:8px 14px;">
-                    <?php if (empty($instituciones)): ?>
-                    <div style="text-align:center;padding:50px 20px;color:#94a3b8;">
-                        <i class="ti ti-school" style="font-size:3rem;display:block;margin-bottom:12px;opacity:.4;"></i>
-                        <p style="margin:0;font-size:.9rem;font-weight:600;">No hay instituciones registradas</p>
-                        <p style="margin:4px 0 0;font-size:.78rem;">Usa el formulario para agregar la primera</p>
-                    </div>
-                    <?php else: ?>
-                        <?php foreach ($instituciones as $inst):
-                            $tipoCls = match($inst->tipo ?? '') {
-                                'Universidad'    => 'tipo-univ',
-                                'Instituto'      => 'tipo-inst',
-                                'Colegio Técnico'=> 'tipo-col',
-                                default          => 'tipo-otro',
-                            };
-                            $esActiva = (bool)($inst->activo ?? 1);
-                        ?>
-                        <div class="inst-list-item" id="rowInst_<?= $inst->id ?>">
-                            <div class="inst-avatar" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">
-                                <i class="ti ti-building-factory-2" style="font-size:.95rem;color:white;"></i>
-                            </div>
-                            <div style="flex:1;min-width:0;">
-                                <div class="inst-name"><?= htmlspecialchars($inst->nombre) ?></div>
-                                <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-                                    <span class="badge-tipo <?= $tipoCls ?>"><?= htmlspecialchars($inst->tipo ?? 'Otro') ?></span>
-                                    <span class="inst-badge-estado <?= $esActiva ? 'badge-activo' : 'badge-inactivo' ?>" id="badgeInst_<?= $inst->id ?>"><?= $esActiva ? 'Activa' : 'Inactiva' ?></span>
-                                </div>
-                            </div>
-                            <?php if (!empty($inst->contacto)): ?>
-                            <span style="font-size:.75rem;color:#64748b;white-space:nowrap;display:none;" class="d-md-block"><?= htmlspecialchars($inst->contacto) ?></span>
-                            <?php endif; ?>
-                            <button class="btn-toggle-inst <?= $esActiva ? 'act' : 'inact' ?>"
-                                    id="btnToggle_<?= $inst->id ?>"
-                                    onclick="toggleInstitucion(<?= $inst->id ?>, <?= $esActiva ? 1 : 0 ?>)">
-                                <i class="ti <?= $esActiva ? 'ti-eye-off' : 'ti-eye' ?>"></i>
-                                <?= $esActiva ? 'Desactivar' : 'Activar' ?>
-                            </button>
-                        </div>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- ── COLUMNA DERECHA: Formulario agregar ──────── -->
-            <div class="modal-panel-sep">
-                <!-- Título -->
-                <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;">
-                    <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#7c3aed,#8b5cf6);display:flex;align-items:center;justify-content:center;">
-                        <i class="ti ti-circle-plus" style="font-size:1rem;color:white;"></i>
-                    </div>
-                    <div>
-                        <h4 style="margin:0;font-size:.95rem;font-weight:800;color:#1e293b;">Nueva Institución</h4>
-                        <span style="font-size:.75rem;color:#94a3b8;">Registrar aliado universitario</span>
-                    </div>
-                </div>
-
-                <form id="formNuevaInstitucion" method="POST" action="<?= URLROOT ?>/actividades/crearInstitucion" onsubmit="submitInstitucion(event)">
-                    <?= Session::generateCsrfToken() ?>
-
-                    <div class="f-group">
-                        <label class="f-label">Nombre *</label>
-                        <input type="text" name="nombre" class="f-input" placeholder="Ej. Universidad de Oriente" required>
-                    </div>
-
-                    <div class="f-group">
-                        <label class="f-label">Tipo *</label>
-                        <select name="tipo" class="f-input" required>
-                            <option value="Universidad">Universidad</option>
-                            <option value="Instituto">Instituto</option>
-                            <option value="Colegio Técnico">Colegio Técnico</option>
-                            <option value="Otro">Otro</option>
-                        </select>
-                    </div>
-
-                    <div class="f-group">
-                        <label class="f-label">Persona de Contacto</label>
-                        <input type="text" name="contacto" class="f-input" placeholder="Ej. Prof. María González">
-                    </div>
-
-                    <div class="f-group">
-                        <label class="f-label">Teléfono</label>
-                        <input type="text" name="telefono" class="f-input" placeholder="Ej. 0286-1234567">
-                    </div>
-
-                    <div style="border-top:1px solid #f1f5f9;margin:18px 0;"></div>
-                    <div style="display:flex;gap:10px;">
-                        <button type="button" class="f-btn-cancel" onclick="cerrarModalAliados()">Cancelar</button>
-                        <button type="submit" class="f-btn-primary" style="flex:2;" id="btnCrearInst">
-                            <i class="ti ti-circle-plus"></i> Agregar
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Info box -->
-                <div style="margin-top:16px;background:#f8fafc;border-radius:10px;padding:11px 13px;display:flex;align-items:flex-start;gap:8px;">
-                    <i class="ti ti-info-circle" style="color:#64748b;font-size:1rem;flex-shrink:0;margin-top:1px;"></i>
-                    <span style="font-size:.76rem;color:#64748b;line-height:1.5;">Las instituciones activas pueden ser seleccionadas al crear nuevas actividades.</span>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- ════════════════════════════════════════════════════════════
-     SCRIPTS
-     ════════════════════════════════════════════════════════════ -->
 <script>
-const URLROOT_ACT = '<?= URLROOT ?>';
-const SGP = { openModalAsignar() { new bootstrap.Modal(document.getElementById('modalNuevaActividad')).show(); } };
+(function() {
+    // Donut chart con Canvas API puro (sin dependencias)
+    const tipos = <?= json_encode(array_map(fn($t) => ['tipo' => $t->tipo, 'total' => (int)$t->total], $distribucionTipos)) ?>;
+    const colors = ['#2563eb','#059669','#7c3aed','#d97706','#ef4444','#0891b2'];
+    const canvas  = document.getElementById('donutChart');
+    if (!canvas || tipos.length === 0) return;
+    const ctx  = canvas.getContext('2d');
+    const cx   = 70, cy = 70, r = 55, ri = 32;
+    const total = tipos.reduce((s, t) => s + t.total, 0) || 1;
 
-/* ── Modal Aliados ─────────────────────────────────────────── */
-function abrirModalAliados()  { document.getElementById('modalAliados').classList.add('active'); }
-function cerrarModalAliados() { document.getElementById('modalAliados').classList.remove('active'); }
-document.getElementById('modalAliados').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('active');
-});
-
-<?php if ($abrirAliados): ?>
-document.addEventListener('DOMContentLoaded', () => setTimeout(abrirModalAliados, 300));
-<?php endif; ?>
-
-/* ── Submit Nueva Institución (AJAX) ───────────────────────── */
-async function submitInstitucion(e) {
-    e.preventDefault();
-    const form = e.target;
-    const btn  = document.getElementById('btnCrearInst');
-    btn.disabled = true;
-    btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin .8s linear infinite"></i> Guardando...';
-
-    try {
-        const res  = await fetch(form.action, { method:'POST', body: new FormData(form), headers:{'X-Requested-With':'XMLHttpRequest'} });
-        const text = await res.text();
-        let data;
-        try { data = JSON.parse(text); } catch { data = null; }
-
-        if (data && data.success) {
-            agregarInstALista(data.institucion ?? { id: Date.now(), nombre: form.nombre.value, tipo: form.tipo.value, activo: 1 });
-            form.reset();
-            if (typeof NotificationService !== 'undefined') NotificationService.success('Institución registrada exitosamente');
-        } else {
-            // Fallback: recargar y reabrir modal
-            window.location.href = URLROOT_ACT + '/actividades?aliados=1';
-        }
-    } catch(err) {
-        window.location.href = URLROOT_ACT + '/actividades?aliados=1';
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="ti ti-circle-plus"></i> Agregar';
-    }
-}
-
-/* ── Agregar institución al DOM sin reload ─────────────────── */
-function agregarInstALista(inst) {
-    const list = document.getElementById('aliadosList');
-    // Quitar estado vacío si existe
-    const emptyEl = list.querySelector('[style*="opacity:.4"]');
-    if (emptyEl) emptyEl.closest('div[style*="text-align"]')?.remove();
-
-    const div = document.createElement('div');
-    div.className = 'inst-list-item';
-    div.id = `rowInst_${inst.id}`;
-    div.innerHTML = `
-        <div class="inst-avatar" style="background:linear-gradient(135deg,#1e40af,#3b82f6);">
-            <i class="ti ti-building-factory-2" style="font-size:.95rem;color:white;"></i>
-        </div>
-        <div style="flex:1;min-width:0;">
-            <div class="inst-name">${escHtml(inst.nombre)}</div>
-            <div style="display:flex;align-items:center;gap:6px;margin-top:3px;">
-                <span class="badge-tipo tipo-otro">${escHtml(inst.tipo ?? 'Otro')}</span>
-                <span class="inst-badge-estado badge-activo" id="badgeInst_${inst.id}">Activa</span>
-            </div>
-        </div>
-        <button class="btn-toggle-inst act" id="btnToggle_${inst.id}" onclick="toggleInstitucion(${inst.id}, 1)">
-            <i class="ti ti-eye-off"></i> Desactivar
-        </button>`;
-    list.appendChild(div);
-
-    // Actualizar contador
-    const spans = document.querySelectorAll('#instCount, [id^="instCount"]');
-    spans.forEach(s => {
-        const n = list.querySelectorAll('.inst-list-item').length;
-        s.textContent = `${n} aliado${n !== 1 ? 's' : ''}`;
+    let startAngle = -Math.PI / 2;
+    tipos.forEach((t, i) => {
+        const slice = (t.total / total) * 2 * Math.PI;
+        ctx.beginPath();
+        ctx.moveTo(cx, cy);
+        ctx.arc(cx, cy, r, startAngle, startAngle + slice);
+        ctx.closePath();
+        ctx.fillStyle = colors[i % colors.length];
+        ctx.fill();
+        startAngle += slice;
     });
-}
-function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-/* ── Toggle estado institución (AJAX) ──────────────────────── */
-const CSRF_TOKEN_ACT = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-window.toggleInstitucion = async function(id, activo) {
-    const btn = document.getElementById(`btnToggle_${id}`);
-    const badge = document.getElementById(`badgeInst_${id}`);
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; }
-    try {
-        const res  = await fetch(`${URLROOT_ACT}/actividades/toggleInstitucion`, {
-            method:'POST',
-            headers:{'Content-Type':'application/x-www-form-urlencoded','X-CSRF-TOKEN':CSRF_TOKEN_ACT,'X-Requested-With':'XMLHttpRequest'},
-            body: new URLSearchParams({id}).toString()
-        });
-        const data = await res.json();
-        if (data.success) {
-            if (data.activo) {
-                badge.textContent = 'Activa';
-                badge.className   = 'inst-badge-estado badge-activo';
-                btn.className     = 'btn-toggle-inst act';
-                btn.innerHTML     = '<i class="ti ti-eye-off"></i> Desactivar';
-                btn.setAttribute('onclick', `toggleInstitucion(${id}, 1)`);
-            } else {
-                badge.textContent = 'Inactiva';
-                badge.className   = 'inst-badge-estado badge-inactivo';
-                btn.className     = 'btn-toggle-inst inact';
-                btn.innerHTML     = '<i class="ti ti-eye"></i> Activar';
-                btn.setAttribute('onclick', `toggleInstitucion(${id}, 0)`);
-            }
-            if (typeof NotificationService !== 'undefined') NotificationService.success(data.message);
-        } else {
-            if (typeof NotificationService !== 'undefined') NotificationService.error(data.message || 'Error al cambiar estado.');
-        }
-    } catch(err) {
-        if (typeof NotificationService !== 'undefined') NotificationService.error('Error de conexión.');
-    } finally {
-        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+    // Hueco central
+    ctx.beginPath();
+    ctx.arc(cx, cy, ri, 0, 2 * Math.PI);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+
+    // Texto central
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(total, cx, cy);
+
+    // Leyenda
+    const leg = document.getElementById('donutLegend');
+    if (leg) {
+        leg.innerHTML = tipos.map((t, i) =>
+            `<div class="donut-leg-item">
+                <div class="donut-dot" style="background:${colors[i % colors.length]}"></div>
+                <span style="color:#64748b;">${t.tipo}</span>
+                <span style="font-weight:700;color:#1e293b;margin-left:auto;">${t.total}</span>
+             </div>`
+        ).join('');
     }
-};
-
-/* ── ApexCharts ────────────────────────────────────────────── */
-(function initCharts() {
-    if (typeof ApexCharts === 'undefined') { setTimeout(initCharts, 200); return; }
-    const chartEl = document.getElementById('chart-actividades');
-    if (!chartEl) return;
-    const series = <?= $jsSeries ?>;
-    const labels = <?= $jsLabels ?>;
-    if (series.reduce((a, b) => a + b, 0) === 0) return;
-    new ApexCharts(chartEl, {
-        series, labels,
-        chart: { type:'donut', height:230, fontFamily:'Inter,sans-serif', toolbar:{show:false} },
-        colors: ['#6366f1','#3b82f6','#f59e0b','#10b981'],
-        stroke: { show:false },
-        plotOptions: { pie: { donut: { size:'72%', labels: { show:true, total: { show:true, label:'Total', fontSize:'12px', fontWeight:600, color:'#94a3b8', formatter: () => '<?= $kpiTotal ?>' } } } } },
-        dataLabels: { enabled:false },
-        legend: { position:'bottom', fontSize:'11px', markers:{radius:12} },
-        tooltip: { y: { formatter: v => v + ' actividades' } }
-    }).render();
 })();
-
-/* ── Filtros galería ───────────────────────────────────────── */
-function setChip(el) {
-    document.querySelectorAll('.act-chip').forEach(c => c.classList.remove('active'));
-    el.classList.add('active');
-    filtrarActividades();
-}
-function filtrarActividades() {
-    const tipo = document.querySelector('.act-chip.active')?.dataset.tipo ?? '';
-    const txt  = (document.getElementById('busqActividad')?.value ?? '').toLowerCase();
-    document.querySelectorAll('.act-gallery-card').forEach(c => {
-        const matchT = !tipo || c.dataset.tipo === tipo;
-        const matchX = !txt  || c.dataset.nombre.toLowerCase().includes(txt);
-        c.style.display = (matchT && matchX) ? 'flex' : 'none';
-    });
-}
-
-/* ── Spin keyframe ─────────────────────────────────────────── */
-const ss = document.createElement('style');
-ss.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
-document.head.appendChild(ss);
 </script>

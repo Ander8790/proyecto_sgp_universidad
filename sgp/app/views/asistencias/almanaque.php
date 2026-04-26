@@ -423,21 +423,49 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
         </style>
         <?php endif; ?>
 
-        <?php if (count($anios) > 1): ?>
-        <!-- Select de año — solo si hay registros en múltiples años -->
-        <form method="GET" style="display:flex;align-items:center;">
-            <select name="anio" onchange="this.form.submit()"
-                    style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.25);
-                           color:#fff;border-radius:10px;padding:8px 14px;font-size:.85rem;
-                           font-weight:700;cursor:pointer;appearance:none;text-align:center;"
-                    title="Cambiar año de visualización">
-                <?php foreach (array_reverse($anios) as $a): ?>
-                <option value="<?= $a ?>" <?= $a === $anio ? 'selected' : '' ?> style="background:#1e3a8a;">
-                    <?= $a ?>
-                </option>
-                <?php endforeach; ?>
-            </select>
-        </form>
+        <?php if (count($anios) > 1):
+            sort($anios); // garantizar ASC
+            $idxActual = array_search($anio, $anios);
+            $anioAnt   = ($idxActual !== false && $idxActual > 0)                    ? $anios[$idxActual - 1] : null;
+            $anioSig   = ($idxActual !== false && $idxActual < count($anios) - 1)    ? $anios[$idxActual + 1] : null;
+        ?>
+        <!-- Navegador de año — reemplaza el select nativo por pill coherente con el badge de período -->
+        <div style="display:flex;align-items:center;gap:2px;background:rgba(255,255,255,.12);
+                    border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:5px 8px;">
+            <?php if ($anioAnt): ?>
+            <a href="?anio=<?= $anioAnt ?>" data-no-pjax
+               title="Ver <?= $anioAnt ?>"
+               style="color:rgba(255,255,255,.8);text-decoration:none;padding:3px 7px;
+                      border-radius:8px;font-size:.85rem;line-height:1;transition:background .15s;"
+               onmouseover="this.style.background='rgba(255,255,255,.18)'"
+               onmouseout="this.style.background='transparent'">
+                <i class="ti ti-chevron-left"></i>
+            </a>
+            <?php else: ?>
+            <span style="color:rgba(255,255,255,.25);padding:3px 7px;font-size:.85rem;line-height:1;">
+                <i class="ti ti-chevron-left"></i>
+            </span>
+            <?php endif; ?>
+
+            <span style="color:#fff;font-size:.8rem;font-weight:700;padding:0 6px;white-space:nowrap;">
+                <i class="ti ti-calendar" style="font-size:.75rem;opacity:.65;margin-right:3px;"></i><?= $anio ?>
+            </span>
+
+            <?php if ($anioSig): ?>
+            <a href="?anio=<?= $anioSig ?>" data-no-pjax
+               title="Ver <?= $anioSig ?>"
+               style="color:rgba(255,255,255,.8);text-decoration:none;padding:3px 7px;
+                      border-radius:8px;font-size:.85rem;line-height:1;transition:background .15s;"
+               onmouseover="this.style.background='rgba(255,255,255,.18)'"
+               onmouseout="this.style.background='transparent'">
+                <i class="ti ti-chevron-right"></i>
+            </a>
+            <?php else: ?>
+            <span style="color:rgba(255,255,255,.25);padding:3px 7px;font-size:.85rem;line-height:1;">
+                <i class="ti ti-chevron-right"></i>
+            </span>
+            <?php endif; ?>
+        </div>
         <?php endif; ?>
 
         <a href="<?= URLROOT ?>/asistencias"
@@ -482,10 +510,6 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
             <div id="alm-dp-telefono" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($pasante->telefono ?? 'No registrado') ?></div>
         </div>
         <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;grid-column:span 2;">
-            <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-map-pin" style="margin-right:3px;"></i>Dirección</div>
-            <div id="alm-dp-direccion" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($pasante->direccion ?? 'No registrada') ?></div>
-        </div>
-        <div style="background:#f8fafc;border-radius:12px;padding:12px 14px;border:1px solid #f1f5f9;grid-column:span 2;">
             <div style="font-size:.65rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;"><i class="ti ti-school" style="margin-right:3px;"></i>Institución de Procedencia</div>
             <div id="alm-dp-institucion" style="font-weight:700;color:#1e293b;font-size:.85rem;"><?= htmlspecialchars($instNombre) ?></div>
         </div>
@@ -517,10 +541,6 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
                 <input type="text" id="alm-edit-telefono" placeholder="Teléfono de contacto" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
             </div>
             <div>
-                <label style="font-size:.78rem;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px;">Dirección</label>
-                <input type="text" id="alm-edit-direccion" placeholder="Dirección de domicilio" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
-            </div>
-            <div>
                 <label style="font-size:.78rem;font-weight:700;color:#1e3a8a;display:block;margin-bottom:6px;">Institución de Procedencia</label>
                 <select id="alm-edit-institucion" style="width:100%;padding:10px 14px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.88rem;outline:none;transition:border .2s;box-sizing:border-box;" onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
                     <option value="">Seleccione una institución</option>
@@ -548,11 +568,10 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
             var json = await resp.json();
             if (json.success) {
                 var d = json.data;
-                document.getElementById('alm-edit-nombres').value    = d.nombres    || '';
-                document.getElementById('alm-edit-apellidos').value  = d.apellidos  || '';
-                document.getElementById('alm-edit-telefono').value   = d.telefono   || '';
-                document.getElementById('alm-edit-direccion').value  = d.direccion  || '';
-                document.getElementById('alm-edit-institucion').value = d.institucion_procedencia || '';
+                document.getElementById('alm-edit-nombres').value    = d.nombres   || '';
+                document.getElementById('alm-edit-apellidos').value  = d.apellidos || '';
+                document.getElementById('alm-edit-telefono').value   = d.telefono  || '';
+                document.getElementById('alm-edit-institucion').value = d.institucion_id || '';
             }
         } catch(e) {}
     };
@@ -566,7 +585,6 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
         var nombres   = document.getElementById('alm-edit-nombres').value.trim();
         var apellidos = document.getElementById('alm-edit-apellidos').value.trim();
         var telefono  = document.getElementById('alm-edit-telefono').value.trim();
-        var direccion = document.getElementById('alm-edit-direccion').value.trim();
         var inst      = document.getElementById('alm-edit-institucion').value;
 
         if (!nombres || !apellidos) {
@@ -579,7 +597,6 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
         fd.append('nombres', nombres);
         fd.append('apellidos', apellidos);
         fd.append('telefono', telefono);
-        fd.append('direccion', direccion);
         fd.append('institucion', inst);
 
         try {
@@ -594,7 +611,6 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
                 document.getElementById('alm-dp-nombres').textContent    = nombres;
                 document.getElementById('alm-dp-apellidos').textContent  = apellidos;
                 document.getElementById('alm-dp-telefono').textContent   = telefono || 'No registrado';
-                document.getElementById('alm-dp-direccion').textContent  = direccion || 'No registrada';
                 var selInst = document.getElementById('alm-edit-institucion');
                 var instLabel = selInst.options[selInst.selectedIndex]?.text || '—';
                 if (inst) document.getElementById('alm-dp-institucion').textContent = instLabel;

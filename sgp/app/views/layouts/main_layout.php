@@ -45,6 +45,13 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/topbar.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/loading.css">
 
+    <!-- ══ SGP TIP — Tooltip de ayuda en línea (global) ══ -->
+    <style>
+    .sgp-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#3b82f6;color:#fff;font-size:9px;font-weight:800;cursor:help;position:relative;vertical-align:middle;margin-left:5px;flex-shrink:0;line-height:1;font-style:normal;font-family:inherit;text-transform:none;letter-spacing:normal;user-select:none;}
+    .sgp-tip:hover{background:#1d4ed8;}
+    .sgp-tip-popup{display:none;position:fixed;background:#0f172a;color:#f8fafc;padding:8px 12px;border-radius:9px;font-size:.73rem;font-weight:500;line-height:1.45;width:220px;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.3);pointer-events:none;opacity:0;transition:opacity .15s;text-transform:none;letter-spacing:normal;}
+    </style>
+
     <!-- Scripts Core (JQuery debe cargar ANTES del contenido por si las vistas inyectan scripts) -->
     <script src="<?= URLROOT ?>/js/jquery.min.js"></script>
     <script src="<?= URLROOT ?>/js/sweetalert2.min.js"></script>
@@ -63,8 +70,8 @@
 
     <!-- Global JavaScript Constants -->
     <script>
-        // Exponer constantes de PHP al entorno JavaScript
-        const URLROOT = <?= json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>; // [FIX-C3]
+        // PJAX-safe: usar var+guard para evitar SyntaxError si execInlineScripts lo re-ejecuta
+        if (typeof URLROOT === 'undefined') { var URLROOT = <?= json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>; }
     </script>
 </head>
 
@@ -78,6 +85,16 @@
 
         <!-- Content Wrapper -->
         <div class="content-wrapper">
+            <?php
+            // Capturar flashes ANTES de include la vista (la vista puede consumirlos también)
+            $sgpFlashTypes     = ['success', 'error', 'warning', 'info'];
+            $sgpPendingFlashes = [];
+            foreach ($sgpFlashTypes as $_fType) {
+                if (Session::hasFlash($_fType)) {
+                    $sgpPendingFlashes[] = ['type' => $_fType, 'msg' => Session::getFlash($_fType)];
+                }
+            }
+            ?>
             <!-- PJAX: Este contenedor es el target de la navegación fluida -->
             <div id="sgp-content" style="transition: opacity 0.18s ease;">
                 <?php
@@ -259,30 +276,74 @@
         window.resetButton = resetButton;
     </script>
 
-    <!-- ===== FLASH MESSAGES CENTRALIZADOS =====
-         Consume todos los flashes pendientes en sesión y los muestra como toast.
-         Las vistas NO necesitan bloques <script> propios para flashes estándar.
-         Los flashes consumidos aquí ya no estarán disponibles para las vistas.
+    <!-- ===== FLASH MESSAGES — SweetAlert2 Toast =====
+         $sgpPendingFlashes fue capturado ANTES del require $content para que
+         la vista no consuma los flashes antes que el layout los pueda mostrar.
     -->
-    <?php
-    $sgpFlashTypes = ['success' => '¡Éxito!', 'error' => 'Error', 'warning' => 'Atención', 'info' => 'Información'];
-    $sgpPendingFlashes = [];
-    foreach ($sgpFlashTypes as $fType => $fDefaultTitle) {
-        if (Session::hasFlash($fType)) {
-            $sgpPendingFlashes[] = ['type' => $fType, 'msg' => Session::getFlash($fType)];
-        }
-    }
-    if (!empty($sgpPendingFlashes)):
-        ?>
-        <script>
-            // [FIX-UI] Despachar flashes centralizados desde Session vía main_layout
-            document.addEventListener('DOMContentLoaded', function () {
-                if (typeof NotificationService === 'undefined') return;
-                <?php foreach ($sgpPendingFlashes as $flash): ?>
-                    NotificationService.<?= $flash['type'] ?>(<?= json_encode($flash['msg'], JSON_UNESCAPED_UNICODE) ?>);
-                <?php endforeach; ?>
+    <!-- ══ SGP TIP — lógica JS del tooltip (global) ══ -->
+    <script>
+    (function(){
+        var popup = document.createElement('div');
+        popup.className = 'sgp-tip-popup';
+        document.body.appendChild(popup);
+        document.addEventListener('mouseover', function(e){
+            var tip = e.target.closest ? e.target.closest('.sgp-tip') : null;
+            if (!tip) return;
+            var text = tip.getAttribute('data-tip');
+            if (!text) return;
+            popup.textContent = text;
+            popup.style.display = 'block';
+            popup.style.opacity = '0';
+            var rect = tip.getBoundingClientRect();
+            var pw = popup.offsetWidth, ph = popup.offsetHeight;
+            var top = rect.top - ph - 8;
+            if (top < 8) top = rect.bottom + 8;
+            var left = rect.left + rect.width / 2 - pw / 2;
+            if (left < 8) left = 8;
+            if (left + pw > window.innerWidth - 8) left = window.innerWidth - 8 - pw;
+            popup.style.top = top + 'px';
+            popup.style.left = left + 'px';
+            popup.style.opacity = '1';
+        });
+        document.addEventListener('mouseout', function(e){
+            var tip = e.target.closest ? e.target.closest('.sgp-tip') : null;
+            if (!tip) return;
+            popup.style.opacity = '0';
+            setTimeout(function(){ if(popup.style.opacity==='0') popup.style.display='none'; }, 180);
+        });
+    })();
+    </script>
+
+    <?php if (!empty($sgpPendingFlashes)): ?>
+    <script>
+    (function(){
+        var flashes = <?= json_encode($sgpPendingFlashes, JSON_UNESCAPED_UNICODE) ?>;
+        var iconMap  = { success:'success', error:'error', warning:'warning', info:'info' };
+        var colorMap = { success:'#10b981', error:'#ef4444', warning:'#f59e0b', info:'#3b82f6' };
+        function showFlash(f) {
+            if (typeof Swal === 'undefined') return;
+            Swal.fire({
+                toast: true,
+                position: 'top-end',
+                icon: iconMap[f.type] || 'info',
+                title: f.msg,
+                showConfirmButton: false,
+                timer: 4500,
+                timerProgressBar: true,
+                customClass: { popup: 'sgp-swal-toast' },
+                didOpen: function(toast) {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
             });
-        </script>
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function(){ flashes.forEach(showFlash); });
+        } else {
+            flashes.forEach(showFlash);
+        }
+    })();
+    </script>
     <?php endif; ?>
 
     <!-- =====================================================================

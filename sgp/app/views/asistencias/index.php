@@ -721,7 +721,7 @@ table.dataTable tbody tr:hover {
             </div>
 
             <!-- ── FLATPICKR + AJAX PJAX ── -->
-            <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/plugins/weekSelect/weekSelect.js"></script>
+            <script src="<?= URLROOT ?>/assets/libs/flatpickr/plugins/weekSelect.js"></script>
             <script>
                 function cargarSemanaAjax(url) {
                     const contenedor = document.getElementById('contenedor-tarjetas-semanales');
@@ -949,745 +949,1272 @@ table.dataTable tbody tr:hover {
 
         <?php elseif ($vistaActual === 'mensual'): ?>
             <?php
-            // ==========================================
-            // 1. MOTOR DE DATOS (PHP -> JS)
-            // ==========================================
-            $pasantesParaJS = [];
-            $resumenDeptosJS = [];
-            $colores = ['#2563eb','#059669','#d97706','#7c3aed','#0284c7','#dc2626'];
-            $colorIdx = 0;
+            // ── Variables de la vista mensual (todo viene del controlador) ──
+            $calPorDia     = $data['calPorDia']     ?? ['Todos' => []];
+            $feriadosDia   = $data['feriadosDia']   ?? [];
+            $pctPorPasante = $data['pctPorPasante'] ?? [];
+            $ausenciasMes  = $data['ausenciasMes']  ?? [];
+            $urlAnt        = $data['urlAnt']        ?? '#';
+            $urlSig        = $data['urlSig']        ?? '#';
+            $mesActual     = (int)($paramsUrl['mes']  ?? date('n'));
+            $anioActual    = (int)($paramsUrl['anio'] ?? date('Y'));
+            $numDays       = cal_days_in_month(CAL_GREGORIAN, $mesActual, $anioActual);
+            $primerDow     = (int)(new DateTime(sprintf('%04d-%02d-01', $anioActual, $mesActual)))->format('N'); // 1=Lun
+            $hoyDia        = (date('n') == $mesActual && date('Y') == $anioActual) ? (int)date('j') : -1;
+            $deptosDisp    = array_keys($calPorDia); // incluye 'Todos'
 
-            $agrupado = [];
-            $kpiPresentes = 0; $kpiFaltas = 0; $kpiJustificados = 0;
+            // Ranking riesgo vs top
+            $pasantesRiesgo = array_filter($pctPorPasante, fn($p) => $p['pct'] < 75);
+            $pasantesTop    = array_slice($pctPorPasante, 0, 5);
 
-            if(!empty($registrosLista)) {
-                foreach($registrosLista as $reg) {
-                    $pid = is_array($reg) ? ($reg['pasante_id'] ?? 'P'.($reg['id']??0)) : ($reg->pasante_id ?? 'P'.($reg->id??0));
-                    $nom = is_array($reg) ? ($reg['nombres'] ?? '') : ($reg->nombres ?? '');
-                    $ape = is_array($reg) ? ($reg['apellidos'] ?? '') : ($reg->apellidos ?? '');
-                    $ced = is_array($reg) ? ($reg['cedula'] ?? '') : ($reg->cedula ?? '');
-                    $dep = is_array($reg) ? ($reg['departamento_nombre'] ?? 'General') : ($reg->departamento_nombre ?? 'General');
-                    $est = is_array($reg) ? ($reg['estado'] ?? '') : ($reg->estado ?? '');
+            // Nombres de días y meses
+            $diasNombreCorto = ['', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+            $mesesNombresEs  = [1=>'Enero',2=>'Febrero',3=>'Marzo',4=>'Abril',5=>'Mayo',
+                                6=>'Junio',7=>'Julio',8=>'Agosto',9=>'Septiembre',
+                                10=>'Octubre',11=>'Noviembre',12=>'Diciembre'];
 
-                    if(!isset($agrupado[$pid])) {
-                        $agrupado[$pid] = ['n' => trim($ape.', '.$nom), 'ci' => $ced, 'd' => $dep, 'p' => 0, 'f' => 0, 'j' => 0];
+            // Serializar datos para JS — con protección ante json_encode() false
+            // (ocurre cuando la BD devuelve strings con encoding inválido/latin-1)
+            $jFlags = JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP | JSON_UNESCAPED_UNICODE;
+
+            // Limpiar calPorDia de caracteres inválidos para JSON
+            $calPorDiaClean = json_decode(
+                json_encode($calPorDia, JSON_HEX_TAG | JSON_HEX_AMP),
+                true
+            ) ?? [];
+
+            $mesDataJS = json_encode([
+                'anio'     => $anioActual,
+                'mes'      => $mesActual,
+                'numDays'  => $numDays,
+                'primerDow'=> $primerDow,
+                'hoyDia'   => $hoyDia,
+                'feriados' => $feriadosDia,
+                'deptos'   => $calPorDiaClean,
+            ], JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+            if ($mesDataJS === false) {
+                $mesDataJS = json_encode([
+                    'anio'=>$anioActual,'mes'=>$mesActual,'numDays'=>$numDays,
+                    'primerDow'=>$primerDow,'hoyDia'=>$hoyDia,'feriados'=>[],'deptos'=>[]
+                ]);
+            }
+
+            $ausenciasJS = json_encode(array_map(fn($r) => [
+                'id'         => (int)($r->id ?? 0),
+                'pasante_id' => (int)($r->pasante_id ?? 0),
+                'nombre'     => mb_convert_encoding(trim(($r->apellidos ?? '') . ', ' . ($r->nombres ?? '')), 'UTF-8', 'UTF-8'),
+                'depto'      => mb_convert_encoding($r->departamento_nombre ?? '', 'UTF-8', 'UTF-8'),
+                'fecha'      => $r->fecha ?? '',
+                'auto_fill'  => (int)($r->es_auto_fill ?? 0),
+                'metodo'     => $r->metodo ?? '',
+            ], $ausenciasMes), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+            if ($ausenciasJS === false) { $ausenciasJS = '[]'; }
+            // ── Alias para la vista ──
+            $resumenDeptosJS = $data['resumenDeptosJS'] ?? [];
+            if (!function_exists('getFriendlyName')) {
+                function getFriendlyName($str, $variant = 'card') {
+                    $u = mb_strtoupper(trim($str), 'UTF-8');
+                    // Mapeo específico según el contexto
+                    if ($variant === 'cal') {
+                        if (str_contains($u, 'ATENCION AL USUARIO')) return 'Atención U.';
+                        if (str_contains($u, 'SOPORTE T')) return 'Soporte T.';
+                        if (str_contains($u, 'REDES')) return 'Redes T.';
+                        if (str_contains($u, 'REPARACIONES')) return 'Reparaciones E.';
+                    } else {
+                        // Variante 'card' (Tarjetas)
+                        if (str_contains($u, 'REDES')) return 'Redes T.';
+                        if (str_contains($u, 'REPARACIONES')) return 'Reparaciones E.';
+                        // Los demás retornan el nombre completo (o casi)
+                        if (str_contains($u, 'ATENCION AL USUARIO')) return 'Atención al Usuario';
+                        if (str_contains($u, 'SOPORTE T')) return 'Soporte Técnico';
                     }
-                    $s = strtolower($est);
-                    if(strpos($s, 'presente') !== false) { $agrupado[$pid]['p']++; $kpiPresentes++; }
-                    elseif(strpos($s, 'ausente') !== false) { $agrupado[$pid]['f']++; $kpiFaltas++; }
-                    else { $agrupado[$pid]['j']++; $kpiJustificados++; }
-                }
-            }
-
-            foreach ($agrupado as $pid => $d) {
-                $parts = explode(',', $d['n']);
-                $ini = strtoupper(substr(trim($parts[1] ?? 'P'), 0, 1) . substr(trim($parts[0] ?? 'A'), 0, 1));
-                if(strlen(trim($ini)) < 2) $ini = substr($d['n'], 0, 2);
-                
-                $pasantesParaJS[] = [
-                    'id' => $pid, 'n' => $d['n'], 'ci' => $d['ci'], 'd' => $d['d'],
-                    'p' => $d['p'], 'f' => $d['f'], 'j' => $d['j'],
-                    'av' => $ini, 'c' => $colores[$colorIdx % count($colores)]
-                ];
-                
-                if (!isset($resumenDeptosJS[$d['d']])) { $resumenDeptosJS[$d['d']] = ['p'=>0, 'f'=>0, 'j'=>0, 't'=>0]; }
-                $resumenDeptosJS[$d['d']]['p'] += $d['p'];
-                $resumenDeptosJS[$d['d']]['f'] += $d['f'];
-                $resumenDeptosJS[$d['d']]['j'] += $d['j'];
-                $resumenDeptosJS[$d['d']]['t'] += ($d['p'] + $d['f'] + $d['j']);
-                $colorIdx++;
-            }
-
-            // Identificar los que no han marcado NADA en todo el mes
-            $sinMarcarMes = [];
-            foreach ($agrupado as $pid => $d) {
-                if (($d['p'] + $d['f'] + $d['j']) === 0) {
-                    $sinMarcarMes[] = (object) [
-                        'nombres' => $d['n'],
-                        'cedula' => $d['ci'],
-                        'departamento_nombre' => $d['d']
-                    ];
-                }
-            }
-
-            // Calendario Dinámico
-            $mesActual = (int)($paramsUrl['mes'] ?? date('n'));
-            $anioActual = (int)($paramsUrl['anio'] ?? date('Y'));
-            $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $mesActual, $anioActual);
-            
-            $mesesNombres = [1=>'Enero',2=>'Febrero',3=>'Marzo',4=>'Abril',5=>'Mayo',6=>'Junio',7=>'Julio',8=>'Agosto',9=>'Septiembre',10=>'Octubre',11=>'Noviembre',12=>'Diciembre'];
-            $nombreMes = $mesesNombres[$mesActual] ?? date('M');
-            
-            $calendarioJS = [];
-            $daysJS = [];
-            for ($i = 1; $i <= $diasEnMes; $i++) {
-                $fechaStr = sprintf('%04d-%02d-%02d', $anioActual, $mesActual, $i);
-                $diaSemana = date('N', strtotime($fechaStr));
-                if ($diaSemana <= 5) { // Lunes a Viernes
-                    // Por simplicidad, ponemos 'P' si hubo asistencias globales ese día, 
-                    // o 'A'/'J' dependiendo de una lógica. Como es el calendario global del mes, 
-                    // podemos colorearlo verde ('p') si hay registros.
-                    $tieneRegistros = false;
-                    if(!empty($registrosLista)) {
-                        foreach($registrosLista as $reg) {
-                            $f = is_array($reg) ? ($reg['fecha'] ?? '') : ($reg->fecha ?? '');
-                            if(strpos($f, $fechaStr) === 0) { $tieneRegistros = true; break; }
-                        }
-                    }
-                    if($tieneRegistros) {
-                        $calendarioJS[$i] = 'p';
-                        $daysJS[] = $i;
-                    } elseif ($i < date('j') && $mesActual == date('n') && $anioActual == date('Y')) {
-                        $calendarioJS[$i] = 'a'; // Pasado sin registros
-                        $daysJS[] = $i;
-                    }
-                }
-            }
-            // Navegación Mes/Año
-            $mesAnt = $mesActual - 1; $anioAnt = $anioActual;
-            if ($mesAnt < 1) { $mesAnt = 12; $anioAnt--; }
-            $mesSig = $mesActual + 1; $anioSig = $anioActual;
-            if ($mesSig > 12) { $mesSig = 1; $anioSig++; }
-
-            $urlAnt = URLROOT . "/asistencias?vista=mensual&mes=$mesAnt&anio=$anioAnt";
-            $urlSig = URLROOT . "/asistencias?vista=mensual&mes=$mesSig&anio=$anioSig";
-            
-            // Datos para Chart.js
-            $chartLabels = $chartSemanasJson ?? '[]';
-            $chartData   = $chartPctsJson ?? '[]';
-            ?>
-
-            <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-            <style>
-            .claude-replica {
-                /* Design Tokens exactos del código original */
-                --bg: #f1f4f9; --surface: #ffffff; --surface-2: #f7f9fc; --surface-3: #eef1f7;
-                --border: rgba(15,23,60,0.07); --border-hover: rgba(15,23,60,0.14); --border-focus: #2563eb;
-                --ink: #0f1538; --ink-2: #5a6180; --ink-3: #9ba3be; --ink-4: #c5cade;
-                --blue: #2563eb; --blue-dim: rgba(37,99,235,0.08); --blue-mid: rgba(37,99,235,0.15); --blue-glow: rgba(37,99,235,0.20);
-                --green: #059669; --green-dim: rgba(5,150,105,0.09); --green-mid: rgba(5,150,105,0.18);
-                --amber: #d97706; --amber-dim: rgba(217,119,6,0.09); --amber-mid: rgba(217,119,6,0.18);
-                --red: #dc2626; --red-dim: rgba(220,38,38,0.08); --red-mid: rgba(220,38,38,0.16);
-                --violet: #7c3aed; --violet-dim: rgba(124,58,237,0.08);
-                --sky: #0284c7; --sky-dim: rgba(2,132,199,0.08);
-                --r: 10px; --r-lg: 16px; --r-xl: 22px; --gap: 14px;
-                --font: 'Plus Jakarta Sans', sans-serif; --mono: 'JetBrains Mono', monospace;
-                --shadow-sm: 0 1px 3px rgba(15,23,60,0.06), 0 1px 2px rgba(15,23,60,0.04);
-                --shadow-md: 0 4px 12px rgba(15,23,60,0.08), 0 2px 4px rgba(15,23,60,0.04);
-                --shadow-lg: 0 10px 30px rgba(15,23,60,0.10), 0 4px 8px rgba(15,23,60,0.05);
-                --shadow-xl: 0 24px 48px rgba(15,23,60,0.14), 0 8px 16px rgba(15,23,60,0.06);
-
-                font-family: var(--font); background: var(--bg); color: var(--ink);
-                padding: 28px; border-radius: 20px; margin-top: 15px; box-sizing: border-box; font-size: 14px;
-                overflow-x: auto;
-            }
-            .claude-replica * { box-sizing: border-box; font-family: inherit; }
-            
-            /* Scrollbar CSS original */
-            .claude-replica ::-webkit-scrollbar { width: 5px; height: 5px; }
-            .claude-replica ::-webkit-scrollbar-track { background: transparent; }
-            .claude-replica ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 99px; }
-            .claude-replica ::-webkit-scrollbar-thumb:hover { background: var(--ink-3); }
-
-            /* Action Bar Original */
-            .claude-replica .action-bar { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; flex-wrap: wrap; }
-            .claude-replica .search-box { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r); padding: 7px 12px; flex: 1; min-width: 260px; transition: border-color 0.15s, box-shadow 0.15s; box-shadow: var(--shadow-sm); }
-            .claude-replica .search-box:focus-within { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--blue-dim); }
-            .claude-replica .search-box svg { color: var(--ink-3); flex-shrink: 0; width: 14px; height: 14px; }
-            .claude-replica .search-input { flex: 1; background: transparent; border: none; outline: none; color: var(--ink); font-size: 13px; font-family: var(--font); width: 100%;}
-            .claude-replica .search-input::placeholder { color: var(--ink-3); }
-            .claude-replica .sep { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
-            
-            .claude-replica .chip-row { display: flex; align-items: center; gap: 6px; }
-            .claude-replica .chip { display: flex; align-items: center; gap: 5px; padding: 5px 11px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--ink-2); border: 1px solid var(--border); background: var(--surface); cursor: pointer; transition: all 0.15s; font-family: var(--font); box-shadow: var(--shadow-sm); white-space: nowrap; }
-            .claude-replica .chip:hover { border-color: var(--border-hover); color: var(--ink); }
-            .claude-replica .chip.active-green { background: var(--green-dim); border-color: var(--green-mid); color: var(--green); }
-            .claude-replica .chip.active-red   { background: var(--red-dim);   border-color: var(--red-mid);   color: var(--red); }
-            .claude-replica .chip.active-blue  { background: var(--blue-dim);  border-color: var(--blue-mid);  color: var(--blue); }
-            .claude-replica .chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
-            
-            .claude-replica .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 15px; border-radius: var(--r); font-size: 12px; font-weight: 700; cursor: pointer; border: none; font-family: var(--font); transition: all 0.18s; white-space: nowrap; }
-            .claude-replica .btn svg { width: 13px; height: 13px; }
-            .claude-replica .btn-ghost { background: var(--surface); color: var(--ink-2); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
-            .claude-replica .btn-ghost:hover { background: var(--surface-2); color: var(--ink); border-color: var(--border-hover); }
-            .claude-replica .btn-danger { background: var(--red-dim); color: var(--red); border: 1px solid var(--red-mid); }
-            .claude-replica .btn-danger:hover { background: var(--red-mid); }
-
-            /* BENTO GRID EXACTO */
-            .claude-replica .bento { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: minmax(56px, auto); gap: var(--gap); }
-            .claude-replica .tile { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; box-shadow: var(--shadow-sm); transition: box-shadow 0.2s, border-color 0.2s; position: relative; display: flex; flex-direction: column; }
-            .claude-replica .tile:hover { box-shadow: var(--shadow-md); border-color: var(--border-hover); }
-
-            /* LOS SPANS QUE HACEN LA MAGIA */
-            .claude-replica .t-calendar { grid-column: span 3; grid-row: span 4; }
-            .claude-replica .t-absent   { grid-column: span 9; grid-row: span 4; }
-            .claude-replica .t-table    { grid-column: span 12; grid-row: span 7; }
-
-            /* TILE HEADER */
-            .claude-replica .tile-head { padding: 16px 18px 12px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-            .claude-replica .tile-title { font-size: 13px; font-weight: 700; color: var(--ink); display: flex; align-items: center; gap: 8px; margin:0;}
-            .claude-replica .tile-icon { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
-            .claude-replica .tile-badge { padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 700; font-family: var(--mono); }
-            .claude-replica .tile-btn { padding: 4px 10px; border-radius: 7px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-2); font-family: var(--font); transition: all 0.15s; display: flex; align-items: center; gap: 4px; }
-            .claude-replica .tile-btn:hover { background: var(--surface-3); color: var(--ink); border-color: var(--border-hover); }
-
-
-            /* CALENDARIO */
-            .claude-replica .cal-wrap { padding: 10px 14px 14px; flex: 1; }
-            .claude-replica .cal-dow-row { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; margin-bottom: 5px; }
-            .claude-replica .cal-dow { text-align: center; font-size: 9px; font-weight: 700; color: var(--ink-4); text-transform: uppercase; letter-spacing: 0.5px; }
-            .claude-replica .cal-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 4px; }
-            .claude-replica .cal-cell { aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; font-family: var(--mono); cursor: default; transition: transform 0.15s, box-shadow 0.15s; position: relative; }
-            .claude-replica .cal-cell:hover { transform: scale(1.15); z-index: 5; box-shadow: var(--shadow-md); }
-            .claude-replica .cal-cell.p  { background: var(--green-dim);  color: var(--green); border: 1px solid var(--green-mid); }
-            .claude-replica .cal-cell.a  { background: var(--red-dim);    color: var(--red);   border: 1px solid var(--red-mid); }
-            .claude-replica .cal-cell.j  { background: var(--amber-dim);  color: var(--amber); border: 1px solid var(--amber-mid); }
-            .claude-replica .cal-cell.em { background: var(--surface-2);  color: var(--ink-4); border: 1px solid var(--border); }
-            .claude-replica .cal-cell.today { box-shadow: 0 0 0 2px var(--blue); }
-            .claude-replica .cal-legend { display: flex; gap: 12px; margin-top: 12px; justify-content: center; }
-            .claude-replica .cal-li { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--ink-3); font-weight: 600; }
-            .claude-replica .cal-li-dot { width: 7px; height: 7px; border-radius: 2px; }
-
-            /* MINI TABLES (Marcaron Hoy / Sin Marcar) */
-            .claude-replica .mini-table-wrap { overflow-x: auto; overflow-y: auto; max-height: 100%; flex: 1; }
-            .claude-replica .mini-table { width: 100%; border-collapse: collapse; }
-            .claude-replica .mini-table th { padding: 8px 16px; font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.5px; text-align: left; background: var(--surface-2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; }
-            .claude-replica .mini-table td { padding: 9px 16px; font-size: 12px; color: var(--ink); border-bottom: 1px solid var(--border); vertical-align: middle; }
-            .claude-replica .mini-table tbody tr:hover td { background: var(--surface-2); }
-            .claude-replica .mini-table tbody tr:last-child td { border-bottom: none; }
-            .claude-replica .person-cell { display: flex; align-items: center; gap: 8px; }
-            .claude-replica .av { width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; flex-shrink: 0; }
-            .claude-replica .pn { font-size: 12px; font-weight: 600; color: var(--ink); margin:0;}
-            .claude-replica .pid { font-size: 10px; color: var(--ink-3); font-family: var(--mono); margin:0;}
-            .claude-replica .pill { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 10px; font-weight: 700; }
-            .claude-replica .pill-green  { background: var(--green-dim);  color: var(--green); }
-            .claude-replica .pill-red    { background: var(--red-dim);    color: var(--red); }
-            .claude-replica .pill-amber  { background: var(--amber-dim);  color: var(--amber); }
-            .claude-replica .pill-blue   { background: var(--blue-dim);   color: var(--blue); }
-            .claude-replica .pill-violet { background: var(--violet-dim); color: var(--violet); }
-            .claude-replica .pill-sky    { background: var(--sky-dim);    color: var(--sky); }
-
-
-            /* MASTER TABLE */
-            .claude-replica .master-wrap { overflow-x: auto; overflow-y: auto; max-height: 370px; flex: 1; }
-            .claude-replica .master-table { width: 100%; border-collapse: collapse; min-width: 680px; }
-            .claude-replica .master-table th { padding: 9px 16px; font-size: 10px; font-weight: 700; color: var(--ink-3); text-transform: uppercase; letter-spacing: 0.5px; text-align: left; background: var(--surface-2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 2; cursor: pointer; user-select: none; transition: color 0.15s; }
-            .claude-replica .master-table th:hover { color: var(--blue); }
-            .claude-replica .master-table td { padding: 10px 16px; font-size: 12px; color: var(--ink); border-bottom: 1px solid var(--border); vertical-align: middle; }
-            .claude-replica .master-table tbody tr:hover td { background: var(--blue-dim); }
-            .claude-replica .master-table tbody tr:last-child td { border-bottom: none; }
-            .claude-replica .pct-cell { display: flex; align-items: center; gap: 8px; }
-            .claude-replica .pct-bar { flex: 1; height: 5px; background: var(--surface-3); border-radius: 99px; overflow: hidden; min-width: 40px; }
-            .claude-replica .pct-fill { height: 100%; border-radius: 99px; width: 0; transition: width 1s cubic-bezier(0.16,1,0.3,1); }
-            .claude-replica .pct-val { font-family: var(--mono); font-size: 11px; font-weight: 700; min-width: 34px; text-align: right; flex-shrink: 0; }
-            .claude-replica .status-chip { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 7px; font-size: 10px; font-weight: 700; }
-            .claude-replica .status-chip::before { content: ''; width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-            .claude-replica .s-ok   { background: var(--green-dim); color: var(--green); }
-            .claude-replica .s-ok::before   { background: var(--green); }
-            .claude-replica .s-warn { background: var(--amber-dim); color: var(--amber); }
-            .claude-replica .s-warn::before { background: var(--amber); }
-            .claude-replica .s-crit { background: var(--red-dim);   color: var(--red); }
-            .claude-replica .s-crit::before { background: var(--red); }
-
-            /* ANIMATIONS */
-            @keyframes reveal { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-            .claude-replica .rv { opacity:0; animation: reveal 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
-            .claude-replica .d1{animation-delay:0.04s} .claude-replica .d2{animation-delay:0.08s} .claude-replica .d3{animation-delay:0.12s} .claude-replica .d4{animation-delay:0.16s} .claude-replica .d5{animation-delay:0.20s} .claude-replica .d6{animation-delay:0.24s} .claude-replica .d7{animation-delay:0.28s} .claude-replica .d8{animation-delay:0.32s}
-            
-            /* MODALS EXTRAIDOS DE CLAUDE */
-            .claude-overlay { display: none; position: fixed; inset: 0; background: rgba(15,23,60,0.45); backdrop-filter: blur(6px); z-index: 1000; align-items: center; justify-content: center; }
-            .claude-overlay.open { display: flex; animation: fadein 0.2s ease; }
-            @keyframes fadein { from{opacity:0} to{opacity:1} }
-            .claude-modal-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); width: 90%; max-width: 460px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: var(--shadow-xl); animation: slideup 0.25s cubic-bezier(0.16,1,0.3,1); }
-            @keyframes slideup { from { transform: translateY(18px); opacity:0; } to { transform: translateY(0); opacity:1; } }
-            @media (max-width: 900px) {
-                .claude-replica .bento { grid-template-columns: 1fr; }
-                .claude-replica .t-calendar, .claude-replica .t-absent, .claude-replica .t-table {
-                    grid-column: span 1 !important;
-                    grid-row: span 1 !important;
-                }
-            }
-            @media (max-width: 600px) {
-                .claude-replica { padding: 14px; }
-                [style*="grid-template-columns:repeat(4"] {
-                    grid-template-columns: repeat(2, 1fr) !important;
-                }
-            }
-            </style>
-
-            <div class="claude-replica">
-                
-                <div class="action-bar rv d1">
-                    <div class="search-box">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input class="search-input" id="searchInput" type="text" placeholder="Buscar pasante, cédula o departamento…">
-                    </div>
-                    <div class="sep"></div>
                     
-                    <div class="nav-month-pill" style="display:flex;align-items:center;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:2px;gap:2px;box-shadow:var(--shadow-sm);">
-                        <a href="<?= $urlAnt ?>" class="tile-btn" style="border:none;background:transparent;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></a>
-                        <span style="font-size:12px;font-weight:700;padding:0 8px;color:var(--ink);"><?= $nombreMes ?> <?= $anioActual ?></span>
-                        <a href="<?= $urlSig ?>" class="tile-btn" style="border:none;background:transparent;"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></a>
-                    </div>
+                    // Fallback a acrónimo si es muy largo y no está en el mapa
+                    if (mb_strlen($str, 'UTF-8') > 15) {
+                        $words = explode(' ', str_replace([' y ', ' DE ', ' LA '], [' ', ' ', ' '], mb_strtoupper($str, 'UTF-8')));
+                        $acr = '';
+                        foreach ($words as $w) {
+                            $w = trim($w);
+                            if (mb_strlen($w, 'UTF-8') >= 2) $acr .= mb_substr($w, 0, 1, 'UTF-8');
+                        }
+                        return $acr ?: $str;
+                    }
+                    return $str;
+                }
+            }
+            ?>
+<style>
+/* ══ MENSUAL BENTO v3 ══════════════════════════════════════════════ */
+.men-card { background:#fff; border-radius:var(--alm-radius,18px); box-shadow:var(--alm-shadow,0 2px 16px rgba(15,23,42,.07)); border:1px solid var(--alm-border,#e2e8f0); padding:18px 20px; display:flex; flex-direction:column; }
+.men-card-title { font-size:.76rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.6px; display:flex; align-items:center; gap:6px; margin-bottom:12px; }
+/* Grids principales */
+.men-bento-top { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:14px; margin-bottom:14px; }
+.men-bento-bottom { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:14px; margin-bottom:14px; }
+@media(max-width:1100px){ .men-bento-top { grid-template-columns:1fr 1fr; } .men-bento-bottom { grid-template-columns:1fr; } }
+@media(max-width:700px)  { .men-bento-top { grid-template-columns:1fr; } }
+/* Nav mes — igual que alm-mm-mobile-controls */
+.men-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; padding:0 2px; }
+.men-nav-btn { background:transparent; border:1px solid #e2e8f0; border-radius:10px; padding:6px 14px; font-weight:700; color:#475569; font-size:.82rem; text-decoration:none; display:inline-flex; align-items:center; transition:all .12s; }
+.men-nav-btn:hover { background:#f1f5f9; border-color:#cbd5e1; }
+.men-nav-title { font-size:.95rem; font-weight:800; color:#1e3a8a; text-transform:uppercase; letter-spacing:.5px; }
+/* Pills dept */
+.men-dept-pills { display:flex; gap:5px; flex-wrap:wrap; margin-bottom:10px; }
+.men-dept-pill { padding:3px 11px; border-radius:20px; font-size:.68rem; font-weight:700; cursor:pointer; border:2px solid #e2e8f0; background:#f8fafc; color:#475569; transition:all .12s; user-select:none; }
+.men-dept-pill.active { background:#2563eb; border-color:#2563eb; color:#fff; }
+.men-dept-pill:hover:not(.active){ border-color:#2563eb; color:#2563eb; }
+/* Filtros mini (riesgo/top) */
+.men-filter-pills { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:10px; }
+.men-filter-pill { padding:2px 9px; border-radius:20px; font-size:.63rem; font-weight:700; cursor:pointer; border:1.5px solid #e2e8f0; background:#f8fafc; color:#64748b; transition:all .1s; user-select:none; }
+.men-filter-pill.active { background:#1e293b; border-color:#1e293b; color:#fff; }
+/* Calendario 5 col — idéntico a .alm-mm-days-* */
+.men-cal-header { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; margin-bottom:8px; }
+.men-cal-dow { text-align:center; font-size:.7rem; font-weight:700; color:#94a3b8; padding:3px 0; }
+.men-cal-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:4px; }
+/* Celdas — colores sólidos con texto blanco, igual que .alm-cell */
+.men-cell { aspect-ratio:1; border-radius:6px; display:flex; align-items:center; justify-content:center; font-size:.75rem; font-weight:700; cursor:default; transition:transform .1s; }
+.men-cell:not(.is-empty):not(.future):hover { transform:scale(1.15); z-index:10; box-shadow:0 2px 6px rgba(0,0,0,.15); cursor:pointer; }
+.men-cell.is-empty  { background:transparent; color:transparent; cursor:default; }
+.men-cell.future    { background:#ffffff; color:#cbd5e1; font-weight:600; border:1px solid #e2e8f0; }
+.men-cell.feriado   { background:#f59e0b; color:#fff; }
+.men-cell.verde     { background:#16a34a; color:#fff; }
+.men-cell.amarillo  { background:#d97706; color:#fff; }
+.men-cell.rojo      { background:#dc2626; color:#fff; }
+.men-cell.sin-dato  { background:#e2e8f0; color:#64748b; }
+.men-cell.hoy       { outline:2px solid #2563eb; outline-offset:2px; }
+/* Leyenda — igual que .alm-legend */
+.men-legend { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:18px; font-size:.75rem; color:#64748b; }
+.men-legend-item { display:flex; align-items:center; gap:5px; font-weight:600; }
+.men-legend-dot { width:12px; height:12px; border-radius:3px; flex-shrink:0; }
+/* Col2 depto bars */
+.men-depto-bar  { height:5px; border-radius:20px; background:#e2e8f0; overflow:hidden; margin:2px 0 1px; }
+.men-depto-fill { height:100%; border-radius:20px; transition:width .8s ease; }
+/* Col3 radar */
+.men-pasante-row { display:flex; align-items:center; gap:7px; padding:5px 0; border-bottom:1px solid #f1f5f9; }
+.men-pasante-row:last-child { border-bottom:none; }
+.men-av { width:28px; height:28px; border-radius:7px; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:.63rem; font-weight:800; color:#fff; }
+.men-pct-badge { padding:2px 7px; border-radius:20px; font-size:.63rem; font-weight:800; margin-left:auto; flex-shrink:0; }
+.men-radar-scroll { flex:1; min-height:0; max-height:380px; overflow-y:auto; scrollbar-width:thin; padding-right:4px; margin-top:4px; }
+/* Botones de paginación miniatura para cards */
+.men-card-nav { display:flex; align-items:center; gap:4px; }
+.men-card-btn { width:24px; height:24px; border-radius:6px; display:flex; align-items:center; justify-content:center; background:#f1f5f9; border:1px solid #e2e8f0; color:#64748b; cursor:pointer; transition:all .2s; font-size:.8rem; }
+.men-card-btn:hover:not(:disabled) { background:#e2e8f0; color:#1e293b; }
+.men-card-btn:disabled { opacity:.4; cursor:not-allowed; }
+/* S4 */
+.men-aus-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+.men-aus-table th { padding:6px 10px; font-size:.62rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:.4px; border-bottom:2px solid #f1f5f9; text-align:left; white-space:nowrap; }
+.men-aus-table td { padding:6px 10px; border-bottom:1px solid #f8fafc; vertical-align:middle; }
+.men-aus-table tr:hover td { background:#f8fafc; }
+.men-aus-table tr.procesada td { opacity:.35; }
+.men-aus-table tr.pag-hidden { display:none; }
+/* Acciones bulk siempre visibles */
+.men-bulk-actions { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 14px; background:#f8fafc; border-radius:10px; border:1px solid #e2e8f0; margin-bottom:10px; }
+.men-bulk-btn { border:none; padding:5px 14px; border-radius:8px; font-weight:700; font-size:.72rem; cursor:pointer; display:inline-flex; align-items:center; gap:4px; transition:opacity .15s; }
+.men-bulk-btn:disabled { opacity:.4; cursor:default; }
+/* Paginador */
+.men-pager { display:flex; align-items:center; gap:7px; justify-content:flex-end; margin-top:8px; font-size:.72rem; color:#64748b; font-weight:600; }
+.men-pager button { background:#f1f5f9; border:1px solid #e2e8f0; border-radius:7px; padding:3px 10px; cursor:pointer; font-weight:700; font-size:.72rem; color:#475569; display:inline-flex; align-items:center; gap:3px; transition:background .1s; }
+.men-pager button:hover:not([disabled]){ background:#e2e8f0; }
+.men-pager button[disabled]{ opacity:.35; cursor:default; }
+/* Tooltip */
+#menTooltip { position:fixed; z-index:9999; pointer-events:none; background:#1e293b; color:#f8fafc; border-radius:9px; padding:7px 12px; font-size:.74rem; line-height:1.5; box-shadow:0 8px 24px rgba(0,0,0,.3); opacity:0; transition:opacity .1s; max-width:200px; white-space:pre-line; }
+#menTooltip.show { opacity:1; }
+@keyframes men-reveal { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+.men-reveal { animation:men-reveal .28s ease forwards; }
+</style>
 
-                    <div class="sep"></div>
-                    <div class="chip-row">
-                        <button class="chip active-blue" id="fAll" onclick="setChip('all',this)"><span class="chip-dot" style="background:var(--blue)"></span> Todos</button>
-                        <button class="chip" id="fOk" onclick="setChip('ok',this)"><span class="chip-dot" style="background:var(--green)"></span> Sin faltas</button>
-                        <button class="chip" id="fCrit" onclick="setChip('crit',this)"><span class="chip-dot" style="background:var(--red)"></span> Con faltas</button>
-                    </div>
-                    <button class="btn btn-ghost" style="margin-left:auto" onclick="doExport()">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Exportar CSV
-                    </button>
-                </div>
+<div id="menBentoWrapper">
+<div id="menTooltip"></div>
 
+<!-- ══ BENTO ══ -->
+<!-- BENTO TOP ROW -->
+<div class="men-bento-top">
+
+    <!-- Card 1: Calendario 5-col — estilo almanaque exacto -->
+    <div class="men-card" style="padding:24px 28px;">
+        <!-- Título grupo + días laborables (encabezado del wrapper almanaque) -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <div style="font-size:1rem;font-weight:700;color:#1e293b;display:flex;align-items:center;gap:8px;">
+                <i class="ti ti-calendar-stats" style="color:#2563eb;font-size:1.1rem;"></i>
+                Calendario de Asistencia
                 <?php
-                $totDias = $kpiPresentes + $kpiFaltas + $kpiJustificados;
+                $diasLaborablesDelMes = 0;
+                for ($dd = 1; $dd <= $numDays; $dd++) {
+                    $dow = (int)(new DateTime(sprintf('%04d-%02d-%02d',$anioActual,$mesActual,$dd)))->format('N');
+                    if ($dow <= 5 && !isset($feriadosDia[$dd])) $diasLaborablesDelMes++;
+                }
                 ?>
-                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;" class="rv d2">
-                    <div style="background:#fff;border-radius:14px;border-left:4px solid #2563eb;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
-                        <div style="font-size:22px;font-weight:800;color:#1e293b;" id="kpiTotalDias"><?= $totDias ?></div>
-                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Dias registrados</div>
+                <span style="font-size:.75rem;color:#94a3b8;font-weight:500;"><?= $diasLaborablesDelMes ?> días laborables</span>
+            </div>
+        </div>
+        <!-- Nav mes — idéntico a alm-mm-mobile-controls -->
+        <div class="men-nav">
+            <button onclick="cargarMesAjax('<?= $urlAnt ?>')" class="men-nav-btn" style="background:#f8fafc;" title="Mes anterior">
+                <i class="ti ti-chevron-left"></i>
+            </button>
+            <span class="men-nav-title" id="menNavLabel"><?= $mesesNombresEs[$mesActual] ?> <?= $anioActual ?></span>
+            <button onclick="cargarMesAjax('<?= $urlSig ?>')" class="men-nav-btn" style="background:#f8fafc;" title="Mes siguiente">
+                <i class="ti ti-chevron-right"></i>
+            </button>
+        </div>
+        <!-- Pills depto debajo del nav -->
+        <div class="men-dept-pills">
+            <?php foreach ($deptosDisp as $dept): ?>
+            <button class="men-dept-pill <?= $dept === 'Todos' ? 'active' : '' ?>" title="<?= htmlspecialchars($dept) ?>"
+                    onclick="menFiltrarDepto(this, <?= htmlspecialchars(json_encode($dept), ENT_QUOTES, 'UTF-8') ?>)">
+                <?= htmlspecialchars(getFriendlyName($dept, 'cal')) ?>
+            </button>
+            <?php endforeach; ?>
+        </div>
+        <!-- Días L M M J V — igual que alm-mm-days-header -->
+        <div class="men-cal-header">
+            <div class="men-cal-dow">L</div>
+            <div class="men-cal-dow">M</div>
+            <div class="men-cal-dow">M</div>
+            <div class="men-cal-dow">J</div>
+            <div class="men-cal-dow">V</div>
+        </div>
+        <div class="men-cal-grid" id="menCalGrid"></div>
+        <!-- Leyenda — igual que .alm-legend -->
+        <div class="men-legend">
+            <span style="color:#94a3b8;">Leyenda:</span>
+            <div class="men-legend-item"><div class="men-legend-dot" style="background:#16a34a;"></div>&ge;85%</div>
+            <div class="men-legend-item"><div class="men-legend-dot" style="background:#d97706;"></div>60&ndash;84%</div>
+            <div class="men-legend-item"><div class="men-legend-dot" style="background:#dc2626;"></div>&lt;60%</div>
+            <div class="men-legend-item"><div class="men-legend-dot" style="background:#f59e0b;"></div>Feriado</div>
+            <div class="men-legend-item"><div class="men-legend-dot" style="background:#e2e8f0;"></div>Sin registro</div>
+        </div>
+    </div>
+
+    <!-- Card 2: Donut radial + Depto breakdown -->
+        <?php
+        $hi = count($pctPorPasante) > 0
+            ? (int)round(array_sum(array_column($pctPorPasante, 'pct')) / count($pctPorPasante))
+            : 0;
+        $hiColor = $hi >= 85 ? '#16a34a' : ($hi >= 60 ? '#d97706' : '#dc2626');
+        $hiLabel = $hi >= 85 ? 'Excelente' : ($hi >= 60 ? 'Regular' : 'Cr&iacute;tico');
+        // Datos para donut por depto
+        $coloresDepto = ['#2563eb','#059669','#d97706','#7c3aed','#0284c7','#dc2626','#0891b2','#0f766e'];
+        $deptoDonut = [];
+        $ciD = 0;
+        if (!empty($resumenDeptosJS)) {
+            foreach ($resumenDeptosJS as $dep => $d) {
+                $tot = ($d['p'] ?? 0) + ($d['f'] ?? $d['a'] ?? 0) + ($d['j'] ?? 0);
+                $pp  = $tot > 0 ? round((($d['p'] ?? 0) + ($d['j'] ?? 0)) / $tot * 100) : 0;
+                $deptoDonut[] = ['label' => $dep, 'pct' => $pp, 'color' => $coloresDepto[$ciD % count($coloresDepto)]];
+                $ciD++;
+            }
+        }
+        $donutJS = json_encode($deptoDonut, JSON_HEX_TAG | JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_AMP);
+        if ($donutJS === false) { $donutJS = '[]'; }
+        ?>
+        <div class="men-card" style="text-align:center;">
+            <div class="men-card-title" style="justify-content:center;"><i class="ti ti-chart-donut" style="color:<?= $hiColor ?>;"></i> Asistencia global</div>
+            <!-- ApexCharts Radial Bar (Apple Watch style) -->
+            <div id="radialAppleWatch" style="margin:0 auto; display:flex; justify-content:center; align-items:center;"></div>
+            <span style="background:<?= $hiColor ?>18;color:<?= $hiColor ?>;font-size:.65rem;font-weight:800;padding:2px 10px;border-radius:20px;"><?= $hiLabel ?></span>
+            <!-- Leyenda depto donut -->
+            <div id="menDonutLey" style="margin-top:10px;text-align:left;display:flex;flex-direction:column;gap:4px;"></div>
+        </div>
+
+        <!-- MAYOR RETARDO (Reemplazo de En Riesgo) -->
+        <div class="men-card" style="flex:1; display:flex; flex-direction:column;">
+            <div class="men-card-title" style="margin-bottom:6px; justify-content:space-between;">
+                <span><i class="ti ti-clock-stop" style="color:#f59e0b;"></i> Retardos del mes</span>
+                <div class="men-card-nav">
+                    <button class="men-card-btn" onclick="menPaginarRetardos(-1)" id="btnRetAnt" title="Anterior"><i class="ti ti-chevron-left"></i></button>
+                    <button class="men-card-btn" onclick="menPaginarRetardos(1)" id="btnRetSig" title="Siguiente"><i class="ti ti-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="men-filter-pills" id="menRetardoPills">
+                <button class="men-filter-pill active" data-dep="Todos" title="Todos" onclick="menFiltrarRetardos(this)">Todos</button>
+                <?php foreach (array_unique(array_column($pctPorPasante, 'depto')) as $dp): ?>
+                <button class="men-filter-pill" data-dep="<?= htmlspecialchars($dp) ?>" title="<?= htmlspecialchars($dp) ?>" onclick="menFiltrarRetardos(this)"><?= htmlspecialchars(getFriendlyName($dp, 'card')) ?></button>
+                <?php endforeach; ?>
+            </div>
+            <div class="men-radar-scroll" id="menRetardoList">
+                <?php if (empty($pasantesRetardos)): ?>
+                <div style="text-align:center;padding:24px 8px;color:#94a3b8;">
+                    <i class="ti ti-circle-check" style="font-size:1.6rem;display:block;margin-bottom:4px;color:#16a34a;opacity:.5;"></i>
+                    <p style="margin:0;font-size:.72rem;font-weight:600;">Sin retardos registrados</p>
+                </div>
+                <?php else: foreach ($pasantesRetardos as $idx => $p): ?>
+                <div class="men-pasante-row men-ret-row" data-dep="<?= htmlspecialchars($p['depto']) ?>" data-idx="<?= $idx ?>" style="display:<?= $idx < 5 ? 'flex' : 'none' ?>;">
+                    <div class="men-av" style="background:#f59e0b;"><?= htmlspecialchars($p['iniciales']) ?></div>
+                    <div style="min-width:0;flex:1;">
+                        <div style="font-size:.73rem;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($p['nombre']) ?></div>
+                        <div style="font-size:.59rem;color:#94a3b8;"><?= htmlspecialchars($p['depto']) ?></div>
                     </div>
-                    <div style="background:#fff;border-radius:14px;border-left:4px solid <?= $healthIndex >= 90 ? '#059669' : ($healthIndex >= 75 ? '#d97706' : '#dc2626') ?>;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
-                        <div style="font-size:22px;font-weight:800;color:#1e293b;" id="kpiHealthPct"><?= $healthIndex ?>%</div>
-                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Indice de Salud</div>
-                    </div>
-                    <div style="background:#fff;border-radius:14px;border-left:4px solid #059669;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
-                        <div style="font-size:22px;font-weight:800;color:#059669;" id="kpiPresentes"><?= $kpiPresentes ?></div>
-                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Presentes</div>
-                    </div>
-                    <div style="background:#fff;border-radius:14px;border-left:4px solid #dc2626;padding:16px 18px;box-shadow:0 1px 6px rgba(30,58,138,0.07);">
-                        <div style="font-size:22px;font-weight:800;color:#dc2626;" id="kpiFaltas"><?= $kpiFaltas ?></div>
-                        <div style="font-size:11px;color:#64748b;font-weight:600;margin-top:3px;">Faltas</div>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button class="men-card-btn" style="width:28px;height:28px;background:#fff7ed;color:#f59e0b;border-color:#ffedd5;" 
+                                onclick="menVerDetalleRetardos(
+                                    <?= (int)($p['id'] ?? 0) ?>,
+                                    '<?= addslashes($p['nombre']) ?>',
+                                    '<?= addslashes($p['iniciales']) ?>',
+                                    '<?= addslashes($p['depto']) ?>',
+                                    <?= (int)$p['retardos'] ?>
+                                )" title="Ver historial de retardos">
+                            <i class="ti ti-eye"></i>
+                        </button>
+                        <span class="men-pct-badge" style="background:#fff7ed;color:#9a3412;"><?= $p['retardos'] ?> retarco<?= $p['retardos'] != 1 ? 's' : '' ?></span>
                     </div>
                 </div>
+                <?php endforeach; endif; ?>
+            </div>
+        </div>
+</div><!-- /men-bento-top -->
 
-                <div class="bento">
+<!-- BENTO BOTTOM ROW -->
+<div class="men-bento-bottom">
+        <!-- POR DEPARTAMENTO -->
+        <div class="men-card" style="flex:1;">
+            <div class="men-card-title"><i class="ti ti-building" style="color:#0891b2;"></i> Por departamento</div>
+            <p style="font-size:.62rem;color:#94a3b8;margin-top:-6px;margin-bottom:12px;">Promedio de asistencia grupal por equipo.</p>
+            <div id="menDeptoChart" style="min-height: 250px; width: 100%; margin-top: 10px;"></div>
+        </div>
 
-                    <div class="tile t-calendar rv d3">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--sky-dim)">📅</div> <?= $nombreMes ?> <?= $anioActual ?></div>
-                        </div>
-                        <div class="cal-wrap">
-                            <div class="cal-dow-row">
-                                <div class="cal-dow">L</div><div class="cal-dow">M</div>
-                                <div class="cal-dow">M</div><div class="cal-dow">J</div>
-                                <div class="cal-dow">V</div>
-                            </div>
-                            <div class="cal-grid" id="calGrid"></div>
-                            <div class="cal-legend">
-                                <div class="cal-li"><div class="cal-li-dot" style="background:var(--green)"></div>Pres.</div>
-                                <div class="cal-li"><div class="cal-li-dot" style="background:var(--red)"></div>Falta</div>
-                                <div class="cal-li"><div class="cal-li-dot" style="background:var(--amber)"></div>Just.</div>
-                            </div>
+        <!-- MEJOR ASISTENCIA -->
+        <div class="men-card" style="flex:1; display:flex; flex-direction:column;">
+            <div class="men-card-title" style="margin-bottom:6px; justify-content:space-between;">
+                <span><i class="ti ti-trophy" style="color:#d97706;"></i> Mejor asistencia</span>
+                <div class="men-card-nav">
+                    <button class="men-card-btn" onclick="menPaginarTop(-1)" id="btnTopAnt" title="Anterior"><i class="ti ti-chevron-left"></i></button>
+                    <button class="men-card-btn" onclick="menPaginarTop(1)" id="btnTopSig" title="Siguiente"><i class="ti ti-chevron-right"></i></button>
+                </div>
+            </div>
+            <div class="men-filter-pills" id="menTopPills">
+                <button class="men-filter-pill active" data-dep="Todos" title="Todos" onclick="menFiltrarTop(this)">Todos</button>
+                <?php foreach (array_unique(array_column($pctPorPasante, 'depto')) as $dp): ?>
+                <button class="men-filter-pill" data-dep="<?= htmlspecialchars($dp) ?>" title="<?= htmlspecialchars($dp) ?>" onclick="menFiltrarTop(this)"><?= htmlspecialchars(getFriendlyName($dp, 'card')) ?></button>
+                <?php endforeach; ?>
+            </div>
+            <div class="men-radar-scroll" id="menTopList">
+                <?php
+                if (empty($pctPorPasante)): ?>
+                <div style="text-align:center;padding:16px 8px;color:#94a3b8;">
+                    <i class="ti ti-ghost" style="font-size:1.4rem;display:block;margin-bottom:4px;opacity:.3;"></i>
+                    <p style="margin:0;font-size:.72rem;">Sin registros</p>
+                </div>
+                <?php else:
+                foreach ($pctPorPasante as $i5 => $p):
+                    // Determinar color según porcentaje
+                    $c5 = $p['pct'] >= 85 ? '#16a34a' : ($p['pct'] >= 60 ? '#d97706' : '#dc2626');
+                ?>
+                <div class="men-pasante-row men-top-row men-reveal" data-dep="<?= htmlspecialchars($p['depto']) ?>" data-idx="<?= $i5 ?>" style="display:<?= $i5 < 5 ? 'flex' : 'none' ?>;">
+                    <div style="width:15px;font-size:.58rem;font-weight:900;color:#94a3b8;text-align:center;flex-shrink:0;"><?= $i5 + 1 ?></div>
+                    <div class="men-av" style="background:<?= $c5 ?>;"><?= htmlspecialchars($p['iniciales']) ?></div>
+                    <div style="min-width:0;flex:1;">
+                        <div style="font-size:.73rem;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($p['nombre']) ?></div>
+                        <div style="font-size:.59rem;color:#94a3b8;"><?= htmlspecialchars($p['depto']) ?></div>
+                    </div>
+                    <span class="men-pct-badge" style="background:<?= $c5 ?>15;color:<?= $c5 ?>;"><?= $p['pct'] ?>%</span>
+                </div>
+                <?php endforeach; endif; ?>
+            </div>
+        </div>
+</div><!-- /men-bento-bottom -->
+
+<!-- ══ S4: Inasistencias paginadas ══ -->
+<div class="men-card" id="panelInasistencias">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;background:#f8fafc;padding:12px 16px;border-radius:12px;border:1px solid #e2e8f0;">
+        <div class="men-card-title" style="margin-bottom:0;display:flex;align-items:center;gap:8px;">
+            <i class="ti ti-calendar-x" style="color:#dc2626;"></i>
+            Inasistencias del mes
+            <span id="menAusBadge" style="background:#fee2e2;color:#dc2626;font-size:.58rem;padding:2px 8px;border-radius:20px;font-weight:700;text-transform:none;letter-spacing:0;"><?= count($ausenciasMes) ?></span>
+        </div>
+        
+        <!-- Controles Masivos Integrados -->
+        <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:#475569;font-weight:700;cursor:pointer;user-select:none;background:white;padding:6px 12px;border-radius:8px;border:1px solid #cbd5e1;transition:all .2s;" onmouseover="this.style.borderColor='#94a3b8'" onmouseout="this.style.borderColor='#cbd5e1'">
+                <input type="checkbox" id="menChkTodos" onchange="menSelTodos(this)" style="width:16px;height:16px;accent-color:#2563eb;cursor:pointer;"> 
+                <span>Seleccionar todos</span>
+            </label>
+
+            <div class="men-bulk-actions" style="display:flex;align-items:center;gap:8px;opacity:0.5;pointer-events:none;transition:all .3s;" id="menBulkContainer">
+                <span style="font-size:.7rem;color:#64748b;font-weight:700;background:#e2e8f0;padding:4px 10px;border-radius:20px;"><span id="menBulkCount">0</span> selec.</span>
+                <button class="men-bulk-btn" id="menBtnPresente" onclick="window.menMarcarMasivoConConfirmacion('Presente')"
+                    style="background:#16a34a;color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 4px rgba(22,163,74,.2);transition:all .2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 6px rgba(22,163,74,.3)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 4px rgba(22,163,74,.2)'">
+                    <i class="ti ti-user-check" style="font-size:1rem;"></i> Marcar Presente
+                </button>
+                <button class="men-bulk-btn" id="menBtnJustificado" onclick="window.menMarcarMasivoConConfirmacion('Justificado')"
+                    style="background:#2563eb;color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 2px 4px rgba(37,99,235,.2);transition:all .2s;" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 6px rgba(37,99,235,.3)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 2px 4px rgba(37,99,235,.2)'">
+                    <i class="ti ti-file-check" style="font-size:1rem;"></i> Marcar Justificado
+                </button>
+            </div>
+        </div>
+    </div>
+    <?php if (empty($ausenciasMes)): ?>
+    <div style="text-align:center;padding:28px 20px;color:#94a3b8;">
+        <i class="ti ti-circle-check" style="font-size:2.2rem;display:block;margin-bottom:8px;color:#16a34a;opacity:.4;"></i>
+        <p style="margin:0;font-weight:600;font-size:.84rem;">Sin inasistencias en <?= $mesesNombresEs[$mesActual] ?></p>
+    </div>
+    <?php else: ?>
+    <div style="overflow-x:auto;">
+    <table class="men-aus-table" id="menAusTable">
+        <thead><tr>
+            <th style="width:28px;"></th>
+            <th>Pasante</th><th>Departamento</th><th>Fecha</th><th>Origen</th>
+            <th style="text-align:center;">Acciones</th>
+        </tr></thead>
+        <tbody>
+        <?php
+        $diasEs2  = [1=>'Lun',2=>'Mar',3=>'Mie',4=>'Jue',5=>'Vie',6=>'Sab',7=>'Dom'];
+        $mesesEs2 = ['01'=>'Ene','02'=>'Feb','03'=>'Mar','04'=>'Abr','05'=>'May','06'=>'Jun',
+                     '07'=>'Jul','08'=>'Ago','09'=>'Sep','10'=>'Oct','11'=>'Nov','12'=>'Dic'];
+        foreach ($ausenciasMes as $reg):
+            $nombre  = trim(($reg->apellidos ?? '') . ', ' . ($reg->nombres ?? ''));
+            $ini2    = strtoupper(substr($reg->nombres ?? 'P',0,1) . substr($reg->apellidos ?? 'A',0,1));
+            $fechaS  = $reg->fecha ?? '';
+            $dowN    = (int)(new DateTime($fechaS))->format('N');
+            $diaN    = (int)date('j', strtotime($fechaS));
+            $mesN    = date('m', strtotime($fechaS));
+            $fechaFmt= ($diasEs2[$dowN] ?? '') . ' ' . $diaN . ' ' . ($mesesEs2[$mesN] ?? '');
+            $isAuto  = (int)($reg->es_auto_fill ?? 0);
+            $rowId   = 'men-aus-' . (int)($reg->id ?? 0);
+        ?>
+        <tr id="<?= $rowId ?>" class="men-aus-tr" data-pid="<?= (int)($reg->pasante_id ?? 0) ?>" data-fecha="<?= htmlspecialchars($fechaS) ?>">
+            <td><input type="checkbox" class="men-aus-chk" onchange="menActualizarBulk()"></td>
+            <td>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#dc2626,#f87171);display:flex;align-items:center;justify-content:center;color:#fff;font-size:.62rem;font-weight:800;flex-shrink:0;"><?= htmlspecialchars($ini2) ?></div>
+                    <div>
+                        <div style="font-weight:700;color:#1e293b;font-size:.76rem;white-space:nowrap;"><?= htmlspecialchars($nombre) ?></div>
+                        <div style="font-size:.61rem;color:#94a3b8;"><?= htmlspecialchars($reg->cedula ?? '') ?></div>
+                    </div>
+                </div>
+            </td>
+            <td style="color:#64748b;font-size:.73rem;white-space:nowrap;"><?= htmlspecialchars($reg->departamento_nombre ?? '') ?></td>
+            <td><span style="font-weight:700;color:#1e293b;font-size:.73rem;"><?= $fechaFmt ?></span></td>
+            <td>
+                <?php if ($isAuto): ?>
+                <span style="background:#f0f9ff;color:#0369a1;font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:2px;"><i class="ti ti-robot"></i> Auto</span>
+                <?php else: ?>
+                <span style="background:#fef3c7;color:#92400e;font-size:.62rem;font-weight:800;padding:2px 7px;border-radius:20px;display:inline-flex;align-items:center;gap:2px;"><i class="ti ti-pencil"></i> Manual</span>
+                <?php endif; ?>
+            </td>
+            <td style="text-align:center;white-space:nowrap;">
+                <button onclick="window.menMarcarUnoConConfirmacion(this,'Presente')" data-pid="<?= (int)($reg->pasante_id ?? 0) ?>" data-fecha="<?= htmlspecialchars($fechaS) ?>"
+                    style="background:#dcfce7;color:#15803d;border:none;padding:3px 9px;border-radius:6px;font-size:.65rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:3px;margin-right:3px;transition:all .2s;" onmouseover="this.style.background='#bbf7d0'" onmouseout="this.style.background='#dcfce7'">
+                    <i class="ti ti-user-check"></i> Presente
+                </button>
+                <button onclick="window.menMarcarUnoConConfirmacion(this,'Justificado')" data-pid="<?= (int)($reg->pasante_id ?? 0) ?>" data-fecha="<?= htmlspecialchars($fechaS) ?>"
+                    style="background:#dbeafe;color:#1d4ed8;border:none;padding:3px 9px;border-radius:6px;font-size:.65rem;font-weight:800;cursor:pointer;display:inline-flex;align-items:center;gap:3px;transition:all .2s;" onmouseover="this.style.background='#bfdbfe'" onmouseout="this.style.background='#dbeafe'">
+                    <i class="ti ti-file-check"></i> Justificado
+                </button>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+        </tbody>
+    </table>
+    </div>
+    <div class="men-pager" id="menPager">
+        <span id="menPagInfo" style="flex:1;font-size:.7rem;color:#94a3b8;"></span>
+        <button id="menPagPrev" onclick="menCambiarPag(-1)" disabled><i class="ti ti-chevron-left"></i> Ant.</button>
+        <button id="menPagNext" onclick="menCambiarPag(1)">Sig. <i class="ti ti-chevron-right"></i></button>
+    </div>
+    <?php endif; ?>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   AJAX PJAX — Navegación mensual sin recarga de página
+   ═══════════════════════════════════════════════════ */
+window.cargarMesAjax = function(url) {
+    if (!url || url === '#') return;
+
+    // Indicador visual
+    var calGrid = document.getElementById('menCalGrid');
+    var label   = document.getElementById('menNavLabel');
+    if (calGrid) calGrid.style.opacity = '0.3';
+    if (label)   label.style.opacity   = '0.5';
+
+    fetch(url)
+        .then(function(res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.text();
+        })
+        .then(function(html) {
+            var parser      = new DOMParser();
+            var doc         = parser.parseFromString(html, 'text/html');
+            var newWrapper  = doc.getElementById('menBentoWrapper');
+            var curWrapper  = document.getElementById('menBentoWrapper');
+
+            if (!newWrapper || !curWrapper) {
+                window.location.href = url;
+                return;
+            }
+
+            // Clonar el nuevo contenido SIN los <script> para insertar primero el HTML
+            var clone = newWrapper.cloneNode(true);
+            var scripts = Array.from(clone.querySelectorAll('script'));
+            scripts.forEach(function(s) { s.parentNode.removeChild(s); });
+
+            curWrapper.innerHTML = clone.innerHTML;
+
+            // Actualizar URL
+            window.history.pushState({ path: url }, '', url);
+
+            // Re-ejecutar scripts del bloque mensual (IIFE + lógica de calendario)
+            var srcScripts = newWrapper.querySelectorAll('script');
+            srcScripts.forEach(function(s) {
+                var ns = document.createElement('script');
+                ns.textContent = s.textContent;
+                document.body.appendChild(ns);
+            });
+        })
+        .catch(function(err) {
+            console.error('[SGP-AJAX] Error cargando mes:', err);
+            window.location.href = url;
+        });
+};
+
+(function(){
+'use strict';
+const MES    = <?= $mesDataJS ?? '{}' ?>;
+const DONUT  = <?= !empty($donutJS) ? $donutJS : '[]' ?>;
+const DEPTOS_DATA = <?= json_encode($resumenDeptosJS ?? []) ?>;
+const DEPTOS_COLORS = <?= json_encode($coloresDepto ?? []) ?>;
+const URL_RM = '<?= URLROOT ?>/asistencias/registro_manual';
+const grid   = document.getElementById('menCalGrid');
+const tip    = document.getElementById('menTooltip');
+
+/* ── Donut SVG radial (Apple Watch ApexChart) ── */
+(function buildApexDonut() {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(buildApexDonut, 100);
+        return;
+    }
+    var cont = document.getElementById('radialAppleWatch');
+    var ley = document.getElementById('menDonutLey');
+    if (!cont || !DONUT.length) return;
+    
+    var sData = [], cData = [], lData = [];
+    DONUT.forEach(function(d){
+        sData.push(d.pct);
+        cData.push(d.color);
+        lData.push(d.label);
+        
+        var row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:.62rem;font-weight:700;color:#475569;';
+        row.innerHTML = '<div style="width:8px;height:8px;border-radius:2px;flex-shrink:0;background:'+d.color+';"></div>'
+                      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.label + '</span>'
+                      + '<span style="color:'+d.color+';font-weight:800;">' + d.pct + '%</span>';
+        if (ley) ley.appendChild(row);
+    });
+
+    var options = {
+        series: sData, 
+        chart: {
+            height: 300,
+            type: 'radialBar',
+            animations: {
+                enabled: true, easing: 'easeinout', speed: 800,
+                animateGradually: { enabled: true, delay: 150 },
+                dynamicAnimation: { enabled: true, speed: 350 }
+            }
+        },
+        plotOptions: {
+            radialBar: {
+                hollow: { margin: 15, size: '35%', background: 'transparent' },
+                track: { show: true, background: '#f1f5f9', strokeWidth: '100%', opacity: 1, margin: 10 },
+                dataLabels: {
+                    show: true,
+                    name: { offsetY: 22, show: true, color: '#94a3b8', fontSize: '11px', fontWeight: 700 },
+                    value: { offsetY: -6, color: '<?= $hiColor ?>', fontSize: '32px', fontWeight: '900', show: true },
+                    total: {
+                        show: true,
+                        label: 'GLOBAL',
+                        color: '#94a3b8',
+                        formatter: function (w) { return "<?= $hi ?>%"; }
+                    }
+                }
+            }
+        },
+        stroke: { lineCap: 'round' },
+        colors: cData,
+        labels: lData,
+    };
+    new ApexCharts(cont, options).render();
+})();
+
+/* ── Gráfico ApexCharts Por Departamento ── */
+(function buildApexDepto() {
+    if (typeof ApexCharts === 'undefined') {
+        setTimeout(buildApexDepto, 100);
+        return;
+    }
+    var cont = document.getElementById('menDeptoChart');
+    if (!cont || Object.keys(DEPTOS_DATA).length === 0) {
+        if(cont) cont.innerHTML = '<p style="color:#94a3b8;font-size:.75rem;text-align:center;padding:30px 0;">Sin datos este mes</p>';
+        return;
+    }
+
+    let seriesData = [];
+    let categories = [];
+    let colors = [];
+    let i = 0;
+    
+    // Sort array by attendance percentage (descending)
+    let sortedDeptos = Object.keys(DEPTOS_DATA).map(dep => {
+        let d = DEPTOS_DATA[dep];
+        let tot = (d.p || 0) + (d.f || d.a || 0) + (d.j || 0);
+        let pct = tot > 0 ? Math.round(((d.p || 0) + (d.j || 0)) / tot * 100) : 0;
+        return { dep, pct, d };
+    }).sort((a, b) => b.pct - a.pct);
+
+    sortedDeptos.forEach(item => {
+        seriesData.push({
+            x: item.dep,
+            y: item.pct,
+            p: item.d.p || 0,
+            a: item.d.f || item.d.a || 0,
+            j: item.d.j || 0
+        });
+        categories.push(item.dep);
+        colors.push(DEPTOS_COLORS[i % DEPTOS_COLORS.length]);
+        i++;
+    });
+    
+    var options = {
+        series: [{ name: 'Asistencia', data: seriesData }],
+        chart: {
+            type: 'bar',
+            height: Math.max(250, categories.length * 45),
+            toolbar: { show: false },
+            parentHeightOffset: 0,
+            animations: { enabled: true, dynamicAnimation: { speed: 400 } },
+            events: {
+                dataPointSelection: function(event, chartContext, config) {
+                    let dep = categories[config.dataPointIndex];
+                    let pills = document.querySelectorAll('.men-dept-pill');
+                    pills.forEach(p => {
+                        if (p.textContent.trim() === dep) {
+                            window.menFiltrarDepto(p, dep);
+                            p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                        }
+                    });
+                }
+            }
+        },
+        plotOptions: {
+            bar: {
+                borderRadius: 6,
+                horizontal: true,
+                distributed: true,
+                dataLabels: { position: 'center' },
+                barHeight: '70%'
+            }
+        },
+        colors: colors,
+        dataLabels: {
+            enabled: true,
+            textAnchor: 'middle',
+            style: { colors: ['#ffffff'], fontSize: '11px', fontFamily: 'inherit', fontWeight: 800 },
+            formatter: function (val, opt) { return val + "%" },
+            dropShadow: { enabled: true, top: 1, left: 1, blur: 1, opacity: 0.3 }
+        },
+        xaxis: {
+            categories: categories,
+            labels: { show: false },
+            axisBorder: { show: false },
+            axisTicks: { show: false },
+            max: 100
+        },
+        yaxis: {
+            labels: {
+                style: { fontWeight: 700, fontSize: '11px', fontFamily: 'inherit', colors: '#475569' },
+                maxWidth: 130,
+                formatter: function (val) {
+                    return val.length > 18 ? val.substring(0, 18) + '...' : val;
+                }
+            }
+        },
+        grid: { show: false, padding: { top: 0, right: 20, bottom: 0, left: 10 } },
+        tooltip: {
+            theme: 'light',
+            custom: function({series, seriesIndex, dataPointIndex, w}) {
+                let data = w.config.series[seriesIndex].data[dataPointIndex];
+                let color = w.config.colors[dataPointIndex];
+                return `<div style="padding: 12px 16px; border-radius: 10px; font-family: inherit; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #f1f5f9;">
+                    <strong style="color: #1e293b; font-size: 0.8rem;">${data.x}</strong><br/>
+                    <div style="font-size: 1.5rem; font-weight: 900; color: ${color}; line-height: 1.2; margin: 4px 0;">${data.y}%</div>
+                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">
+                        <span style="color:#16a34a">${data.p} Pres</span> &middot; 
+                        <span style="color:#dc2626">${data.a} Aus</span> &middot; 
+                        <span style="color:#2563eb">${data.j} Just</span>
+                    </div>
+                </div>`;
+            }
+        },
+        legend: { show: false },
+        states: {
+            hover: { filter: { type: 'darken', value: 0.9 } }
+        }
+    };
+    new ApexCharts(cont, options).render();
+})();
+
+/* ── Calendario 5 columnas (solo L-V) ── */
+function getColor(d, dep) {
+    if (MES.feriados[d] !== undefined) return 'feriado';
+    var data = (MES.deptos[dep] || {})[d];
+    if (!data) return null;
+    var tot = data.p + data.a + data.j;
+    if (tot === 0) return null;
+    var pct = (data.p + data.j) / tot * 100;
+    return pct >= 85 ? 'verde' : (pct >= 60 ? 'amarillo' : 'rojo');
+}
+
+function renderCal(dep) {
+    grid.innerHTML = '';
+    // Calcular el DOW del primer día (1=Lun..5=Vie, 6=Sab,7=Dom)
+    // En 5 columnas: el offset es (DOW-1) para L-V, ignorar si cae sab/dom
+    var primerDowLV = MES.primerDow <= 5 ? MES.primerDow - 1 : 0;
+    for (var i = 0; i < primerDowLV; i++) {
+        var b = document.createElement('div'); b.className = 'men-cell is-empty'; grid.appendChild(b);
+    }
+    for (var d = 1; d <= MES.numDays; d++) {
+        var dt  = new Date(MES.anio, MES.mes - 1, d);
+        var dow = dt.getDay() === 0 ? 7 : dt.getDay(); // 1=Lun..7=Dom
+        if (dow >= 6) continue; // Saltar sáb y dom
+        var cell = document.createElement('div');
+        cell.className = 'men-cell';
+        cell.textContent = d;
+        if (MES.hoyDia > 0 && d > MES.hoyDia) {
+            cell.classList.add('future');
+        } else {
+            var color = getColor(d, dep);
+            cell.classList.add(color || 'sin-dato');
+            if (color) {
+                (function(dia){
+                    cell.addEventListener('mouseenter', function(e){
+                        var fer  = MES.feriados[dia];
+                        var dat  = (MES.deptos[dep] || {})[dia];
+                        var txt  = '';
+                        if (fer) { txt = 'Feriado: ' + fer; }
+                        else if (dat) {
+                            var tot = dat.p + dat.a + dat.j;
+                            var pct = tot > 0 ? Math.round((dat.p + dat.j) / tot * 100) : 0;
+                            txt = pct + '% asistencia\n' + dat.p + ' pres. · ' + dat.a + ' aus. · ' + dat.j + ' just.';
+                        }
+                        tip.textContent = txt; tip.classList.add('show'); posT(e);
+                    });
+                    cell.addEventListener('mousemove', function(e){ posT(e); });
+                    cell.addEventListener('mouseleave', function(){ tip.classList.remove('show'); });
+                })(d);
+            }
+        }
+        if (d === MES.hoyDia) cell.classList.add('hoy');
+        grid.appendChild(cell);
+    }
+}
+
+function posT(e) {
+    var x = e.clientX + 14, y = e.clientY - 10;
+    tip.style.left = (x + tip.offsetWidth > window.innerWidth ? x - tip.offsetWidth - 28 : x) + 'px';
+    tip.style.top  = y + 'px';
+}
+
+window.menFiltrarDepto = function(btn, dep) {
+    document.querySelectorAll('.men-dept-pill').forEach(function(p){ p.classList.remove('active'); });
+    btn.classList.add('active');
+    renderCal(dep);
+};
+renderCal('Todos');
+
+/* ── Filtros En riesgo ── */
+function menFiltrarLista(listId, dep) {
+    var rows = document.querySelectorAll('#' + listId + ' .men-pasante-row');
+    var count = 0;
+    rows.forEach(function(r){
+        var show = dep === 'Todos' || r.dataset.dep === dep;
+        r.style.display = show ? '' : 'none';
+        if (show) count++;
+    });
+    return count;
+}
+
+/* ── Paginación y Filtros para Tarjetas (Retardos y Top) ── */
+let currentRetPage = 0;
+let currentTopPage = 0;
+const PAGE_SIZE = 5;
+
+window.menFiltrarRetardos = function(btn) {
+    document.querySelectorAll('#menRetardoPills .men-filter-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    currentRetPage = 0;
+    actualizarVistaRetardos();
+};
+
+window.menPaginarRetardos = function(dir) {
+    currentRetPage += dir;
+    actualizarVistaRetardos();
+};
+
+window.actualizarVistaRetardos = function() {
+    const pillEl = document.querySelector('#menRetardoPills .men-filter-pill.active');
+    if (!pillEl) return; // Guard: solo en vista mensual
+    const dep = pillEl.dataset.dep;
+    const allRows = document.querySelectorAll('.men-ret-row');
+    const filteredRows = Array.from(allRows).filter(r => dep === 'Todos' || r.dataset.dep === dep);
+    const totalFiltered = filteredRows.length;
+
+    if (currentRetPage < 0) currentRetPage = 0;
+    const maxPage = Math.ceil(totalFiltered / PAGE_SIZE) - 1;
+    if (currentRetPage > maxPage && maxPage >= 0) currentRetPage = maxPage;
+
+    allRows.forEach(r => r.style.display = 'none');
+    filteredRows.slice(currentRetPage * PAGE_SIZE, (currentRetPage + 1) * PAGE_SIZE).forEach(r => r.style.display = 'flex');
+
+    const btnAnt = document.getElementById('btnRetAnt');
+    const btnSig = document.getElementById('btnRetSig');
+    if (btnAnt) btnAnt.disabled = currentRetPage <= 0;
+    if (btnSig) btnSig.disabled = currentRetPage >= maxPage || totalFiltered === 0;
+};
+
+window.menFiltrarTop = function(btn) {
+    document.querySelectorAll('#menTopPills .men-filter-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    currentTopPage = 0;
+    actualizarVistaTop();
+};
+
+window.menPaginarTop = function(dir) {
+    currentTopPage += dir;
+    actualizarVistaTop();
+};
+
+window.actualizarVistaTop = function() {
+    const pillEl = document.querySelector('#menTopPills .men-filter-pill.active');
+    if (!pillEl) return; // Guard: solo en vista mensual
+    const dep = pillEl.dataset.dep;
+    const allRows = document.querySelectorAll('.men-top-row');
+    const filteredRows = Array.from(allRows).filter(r => dep === 'Todos' || r.dataset.dep === dep);
+    const totalFiltered = filteredRows.length;
+
+    if (currentTopPage < 0) currentTopPage = 0;
+    const maxPage = Math.ceil(totalFiltered / PAGE_SIZE) - 1;
+    if (currentTopPage > maxPage && maxPage >= 0) currentTopPage = maxPage;
+
+    allRows.forEach(r => r.style.display = 'none');
+    filteredRows.slice(currentTopPage * PAGE_SIZE, (currentTopPage + 1) * PAGE_SIZE).forEach((r, idx) => {
+        r.style.display = 'flex';
+        const rankEl = r.querySelector('[style*="width:15px"]');
+        if (rankEl) rankEl.textContent = (currentTopPage * PAGE_SIZE) + idx + 1;
+    });
+
+    const btnAnt = document.getElementById('btnTopAnt');
+    const btnSig = document.getElementById('btnTopSig');
+    if (btnAnt) btnAnt.disabled = currentTopPage <= 0;
+    if (btnSig) btnSig.disabled = currentTopPage >= maxPage || totalFiltered === 0;
+};
+
+window.menVerDetalleRetardos = function(pid, nombre, iniciales, depto, totalRetardos) {
+    const mesAnio  = '<?= $anioActual ?>-<?= sprintf("%02d", $mesActual) ?>';
+    const mesLabel = '<?= $mesesNombresEs[$mesActual] ?? '' ?> <?= $anioActual ?>';
+    iniciales      = iniciales || nombre.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+    depto          = depto     || '';
+    totalRetardos  = totalRetardos || 0;
+
+    // --- Loading state premium ---
+    Swal.fire({
+        html: `
+        <div style="padding:8px 0;">
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+                <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.1rem;flex-shrink:0;box-shadow:0 4px 12px rgba(245,158,11,.35);">${iniciales}</div>
+                <div style="text-align:left;">
+                    <div style="font-size:.95rem;font-weight:800;color:#1e293b;">${nombre}</div>
+                    <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;">${depto}</div>
+                </div>
+            </div>
+            <div style="text-align:center;padding:24px 0;color:#94a3b8;"><div class="swal2-loading" style="margin:0 auto;"></div><p style="margin-top:10px;font-size:.8rem;">Cargando historial...</p></div>
+        </div>`,
+        showConfirmButton: false,
+        allowOutsideClick: false,
+        width: '480px',
+        padding: '24px',
+        customClass: { popup: 'rounded-4' }
+    });
+
+    fetch('<?= URLROOT ?>/asistencias/obtenerResumenMensual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `pasante_id=${pid}&mes_anio=${mesAnio}`
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (!res.success) throw new Error(res.message);
+
+        const retardos = [];
+        for (const fecha in res.datos) {
+            if (res.datos[fecha].es_retardo === 1) {
+                retardos.push({ fecha, ...res.datos[fecha] });
+            }
+        }
+
+        if (retardos.length === 0) {
+            Swal.fire({
+                html: `
+                <div style="padding:8px 0;">
+                    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;">
+                        <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.1rem;flex-shrink:0;box-shadow:0 4px 12px rgba(245,158,11,.35);">${iniciales}</div>
+                        <div style="text-align:left;">
+                            <div style="font-size:.95rem;font-weight:800;color:#1e293b;">${nombre}</div>
+                            <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;">${depto}</div>
                         </div>
                     </div>
-
-                    <div class="tile t-absent rv d4">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--red-dim)">✗</div> Sin Marcar Este Mes</div>
-                            <div class="tile-actions">
-                                <span class="tile-badge" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red-mid)"><?= count($sinMarcarMes ?? []) ?> pasantes</span>
-                                <button class="tile-btn" onclick="abrirModalManual()"><svg width="11" height="11" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Registrar</button>
-                            </div>
-                        </div>
-                        <div class="mini-table-wrap">
-                            <table class="mini-table">
-                                <thead><tr><th>Pasante</th><th>Departamento</th><th>Accion</th></tr></thead>
-                                <tbody>
-                                    <?php if(!empty($sinMarcarMes)): foreach(array_slice($sinMarcarMes, 0, 8) as $p):
-                                        $nom = trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''));
-                                        $ini = strtoupper(substr($p->nombres ?? 'P', 0, 1) . substr($p->apellidos ?? 'A', 0, 1));
-                                    ?>
-                                    <tr>
-                                        <td><div class="person-cell"><div class="av" style="background:var(--red)"><?= htmlspecialchars($ini) ?></div><div><div class="pn"><?= htmlspecialchars($nom) ?></div><div class="pid">V-<?= $p->cedula ?? '' ?></div></div></div></td>
-                                        <td style="font-size:11px;color:var(--ink-2)"><?= htmlspecialchars($p->departamento_nombre ?? 'General') ?></td>
-                                        <td><button class="tile-btn" onclick="abrirModalManual('<?= $p->cedula ?>', '<?= htmlspecialchars($nom) ?>')">+ Reg.</button></td>
-                                    </tr>
-                                    <?php endforeach; else: ?>
-                                    <tr><td colspan="3" style="text-align:center;padding:22px;font-size:11px;color:var(--ink-3);">Todos los pasantes tienen registros este mes.</td></tr>
-                                    <?php endif; ?>
-                                </tbody>
-                            </table>
-                        </div>
+                    <div style="text-align:center;padding:20px;">
+                        <i class="ti ti-circle-check" style="font-size:2.5rem;color:#10b981;display:block;margin-bottom:8px;"></i>
+                        <p style="color:#475569;font-size:.85rem;font-weight:600;margin:0;">Sin retardos confirmados este mes.</p>
                     </div>
+                </div>`,
+                confirmButtonText: 'Cerrar',
+                confirmButtonColor: '#1e293b',
+                width: '440px',
+                padding: '24px',
+                customClass: { popup: 'rounded-4' }
+            });
+            return;
+        }
 
-                    <div class="tile t-table rv d5">
-                        <div class="tile-head">
-                            <div class="tile-title"><div class="tile-icon" style="background:var(--sky-dim)">📋</div> Tabla Maestra</div>
-                            <div class="tile-actions">
-                                <span id="tableCount" style="font-size:11px;color:var(--ink-3);">0 registros</span>
-                                <button class="tile-btn" onclick="doExport()">CSV</button>
-                            </div>
-                        </div>
-                        <div class="master-wrap">
-                            <table class="master-table" id="mTable">
-                                <thead>
-                                    <tr>
-                                        <th onclick="sortBy(0)">Pasante &updownarrow;</th>
-                                        <th onclick="sortBy(1)">Departamento &updownarrow;</th>
-                                        <th onclick="sortBy(2)" style="text-align:center">Presentes &updownarrow;</th>
-                                        <th onclick="sortBy(3)" style="text-align:center">Faltas &updownarrow;</th>
-                                        <th onclick="sortBy(4)" style="text-align:center">Justif. &updownarrow;</th>
-                                        <th onclick="sortBy(5)">% Asistencia &updownarrow;</th>
-                                        <th>Estado</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="mTbody"></tbody>
-                            </table>
-                        </div>
-                    </div>
+        // --- Construir filas de la tabla ---
+        let filas = '';
+        retardos.forEach(r => {
+            const dt      = new Date(r.fecha + 'T00:00:00');
+            const dateStr = dt.toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' });
+            const hora    = r.hora_registro ? r.hora_registro.substring(0, 5) : '--:--';
+            const isKiosko = (r.metodo || '').toLowerCase().includes('kiosk') || (r.metodo || '').toLowerCase().includes('kiosco');
+            const metodoBadge = isKiosko
+                ? `<span style="display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#2563eb;padding:2px 8px;border-radius:20px;font-size:.67rem;font-weight:700;"><i class="ti ti-device-imac"></i> Kiosco</span>`
+                : `<span style="display:inline-flex;align-items:center;gap:4px;background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:20px;font-size:.67rem;font-weight:700;"><i class="ti ti-pencil"></i> Manual</span>`;
 
+            filas += `
+                <tr style="border-bottom:1px solid #f1f5f9;transition:background .12s;" onmouseover="this.style.background='#fafafa'" onmouseout="this.style.background='transparent'">
+                    <td style="padding:10px 12px;font-size:.78rem;font-weight:700;color:#1e293b;white-space:nowrap;">${dateStr}</td>
+                    <td style="padding:10px 12px;">
+                        <span style="background:linear-gradient(135deg,#fff7ed,#ffedd5);color:#c2410c;font-weight:800;font-size:.78rem;padding:3px 10px;border-radius:8px;display:inline-block;font-family:monospace;letter-spacing:.5px;">${hora}</span>
+                    </td>
+                    <td style="padding:10px 12px;">${metodoBadge}</td>
+                </tr>`;
+        });
+
+        const html = `
+        <div style="padding:4px 0;">
+
+            <!-- Identidad del pasante -->
+            <div style="display:flex;align-items:center;gap:14px;padding-bottom:16px;border-bottom:1px solid #f1f5f9;margin-bottom:14px;">
+                <div style="width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#f59e0b,#d97706);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:1.1rem;flex-shrink:0;box-shadow:0 4px 12px rgba(245,158,11,.35);">${iniciales}</div>
+                <div style="text-align:left;flex:1;min-width:0;">
+                    <div style="font-size:.95rem;font-weight:800;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${nombre}</div>
+                    <div style="font-size:.72rem;color:#94a3b8;margin-top:2px;">${depto}</div>
+                </div>
+                <div style="display:flex;flex-direction:column;align-items:center;gap:2px;flex-shrink:0;">
+                    <span style="font-size:1.4rem;font-weight:900;color:#f59e0b;line-height:1;">${retardos.length}</span>
+                    <span style="font-size:.6rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;">retardo${retardos.length !== 1 ? 's' : ''}</span>
                 </div>
             </div>
 
-            <script>
-            const DB = <?= json_encode($pasantesParaJS ?? []) ?>;
-            const DEPTOS = <?= json_encode($resumenDeptosJS ?? (object)[]) ?>;
+            <!-- Mes label -->
+            <div style="font-size:.65rem;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px;">
+                <i class="ti ti-calendar" style="margin-right:4px;"></i>${mesLabel}
+            </div>
 
-            const CAL = <?= json_encode($calendarioJS ?? (object)[]) ?>;
-            const DAYS = <?= json_encode($daysJS ?? []) ?>;
+            <!-- Tabla -->
+            <div style="max-height:280px;overflow-y:auto;border-radius:10px;border:1px solid #f1f5f9;">
+                <table style="width:100%;border-collapse:collapse;">
+                    <thead>
+                        <tr style="background:#fafafa;position:sticky;top:0;">
+                            <th style="padding:8px 12px;font-size:.63rem;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:1px solid #f1f5f9;">Fecha</th>
+                            <th style="padding:8px 12px;font-size:.63rem;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:1px solid #f1f5f9;">Hora</th>
+                            <th style="padding:8px 12px;font-size:.63rem;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;text-align:left;border-bottom:1px solid #f1f5f9;">Método</th>
+                        </tr>
+                    </thead>
+                    <tbody>${filas}</tbody>
+                </table>
+            </div>
+        </div>`;
 
-            window.addEventListener('DOMContentLoaded', () => {
-                buildCal();
-                buildTable(DB);
-                setTimeout(animBars, 500);
+        Swal.fire({
+            html: html,
+            confirmButtonText: '<i class="ti ti-x" style="margin-right:4px;"></i> Cerrar',
+            confirmButtonColor: '#1e293b',
+            width: '480px',
+            padding: '24px 28px',
+            customClass: { popup: 'rounded-4', confirmButton: 'rounded-3' },
+            showClass: { popup: 'animate__animated animate__fadeInDown animate__faster' }
+        });
+    })
+    .catch(err => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: err.message || 'No se pudo cargar el detalle de retardos.',
+            confirmButtonColor: '#1e293b'
+        });
+    });
+};
+
+// Inicializar badges
+(function(){
+    var rn = document.querySelectorAll('#menRiesgoList .men-pasante-row').length;
+    var rb = document.getElementById('menRiesgoBadge');
+    if (rb) rb.textContent = rn + ' pasante' + (rn !== 1 ? 's' : '');
+    var tn = document.querySelectorAll('#menTopList .men-pasante-row').length;
+    var tb = document.getElementById('menTopBadge');
+    if (tb) tb.textContent = 'top ' + tn;
+})();
+
+/* ── Paginación S4 ── */
+var PAG_SIZE = 8, menPage = 0, menTrs = [];
+(function initPag(){
+    var t = document.getElementById('menAusTable');
+    if (!t) return;
+    menTrs = Array.from(t.querySelectorAll('tbody tr.men-aus-tr'));
+    menRenderPag();
+})();
+
+function menRenderPag() {
+    var active = menTrs.filter(function(r){ return !r.classList.contains('procesada'); });
+    var total  = active.length;
+    var pages  = Math.max(1, Math.ceil(total / PAG_SIZE));
+    if (menPage >= pages) menPage = pages - 1;
+    menTrs.forEach(function(r){ r.classList.add('pag-hidden'); });
+    active.slice(menPage * PAG_SIZE, menPage * PAG_SIZE + PAG_SIZE).forEach(function(r){ r.classList.remove('pag-hidden'); });
+    var info = document.getElementById('menPagInfo');
+    if (info) info.textContent = 'Pág. ' + (menPage + 1) + ' / ' + pages + ' — ' + total + ' pendientes';
+    var prev = document.getElementById('menPagPrev');
+    var next = document.getElementById('menPagNext');
+    if (prev) prev.disabled = menPage === 0;
+    if (next) next.disabled = menPage >= pages - 1;
+}
+window.menCambiarPag = function(dir) { menPage += dir; menRenderPag(); };
+
+/* ── Bulk (botones siempre visibles) ── */
+window.menActualizarBulk = function() {
+    var sel   = document.querySelectorAll('.men-aus-chk:checked').length;
+    document.getElementById('menBulkCount').textContent = sel;
+    var hasAny = sel > 0;
+    
+    var container = document.getElementById('menBulkContainer');
+    if (container) {
+        if (hasAny) {
+            container.style.opacity = '1';
+            container.style.pointerEvents = 'auto';
+        } else {
+            container.style.opacity = '0.5';
+            container.style.pointerEvents = 'none';
+        }
+    }
+
+    var bp = document.getElementById('menBtnPresente');
+    var bj = document.getElementById('menBtnJustificado');
+    if (bp) bp.disabled = !hasAny;
+    if (bj) bj.disabled = !hasAny;
+    var total = document.querySelectorAll('.men-aus-chk:not([disabled])').length;
+    document.getElementById('menChkTodos').checked = sel === total && total > 0;
+};
+
+window.menSelTodos = function(chk) {
+    document.querySelectorAll('.men-aus-chk:not([disabled])').forEach(function(c){ c.checked = chk.checked; });
+    menActualizarBulk();
+};
+
+function menPost(pid, fecha, estado) {
+    var fd = new FormData();
+    fd.append('pasante_id', pid); fd.append('fecha', fecha); fd.append('estado', estado);
+    return fetch(URL_RM, { method:'POST', body:fd }).then(function(r){ return r.json(); });
+}
+
+function marcarFila(rowId, estado) {
+    var tr = document.getElementById(rowId);
+    if (!tr) return;
+    tr.classList.add('procesada');
+    var chk = tr.querySelector('.men-aus-chk');
+    if (chk) { chk.checked = false; chk.disabled = true; }
+    var color = estado === 'Presente' ? '#16a34a' : '#2563eb';
+    var bg    = estado === 'Presente' ? '#dcfce7' : '#dbeafe';
+    var ico   = estado === 'Presente' ? 'ti-check' : 'ti-file-check';
+    tr.querySelector('td:last-child').innerHTML = '<span style="background:' + bg + ';color:' + color + ';font-size:.65rem;font-weight:800;padding:3px 9px;border-radius:6px;display:inline-flex;align-items:center;gap:3px;"><i class="ti ' + ico + '"></i> ' + estado + '</span>';
+    var badge = document.getElementById('menAusBadge');
+    if (badge) badge.textContent = document.querySelectorAll('#menAusTable tbody tr.men-aus-tr:not(.procesada)').length;
+    menRenderPag();
+}
+
+window.menMarcarUnoConConfirmacion = async function(btn, estado) {
+    let motivo = '';
+    
+    if (estado === 'Justificado') {
+        const { value: text, isConfirmed } = await Swal.fire({
+            title: '<i class="ti ti-file-check" style="color:#2563eb;font-size:2rem;margin-bottom:8px;display:block;"></i> Justificar Inasistencia',
+            text: 'Ingrese el motivo de la justificación:',
+            input: 'textarea',
+            inputPlaceholder: 'Ej. Reposo médico, permiso especial...',
+            inputAttributes: {
+                'aria-label': 'Motivo de la justificación',
+                'maxlength': '255',
+                'style': 'height: 100px; resize: none;'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Justificar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#64748b',
+            inputValidator: (value) => {
+                if (!value || value.trim().length < 5) {
+                    return 'Debe ingresar un motivo válido (mínimo 5 caracteres)';
+                }
+            }
+        });
+        if (!isConfirmed) return;
+        motivo = text.trim();
+    } else {
+        const { isConfirmed } = await Swal.fire({
+            title: '¿Marcar como Presente?',
+            text: 'Esta acción registrará la asistencia manual para este día.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, marcar presente',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#16a34a',
+            cancelButtonColor: '#64748b'
+        });
+        if (!isConfirmed) return;
+    }
+
+    btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>...';
+    var tr = btn.closest('tr');
+    
+    var fd = new FormData();
+    fd.append('pasante_id', btn.dataset.pid); 
+    fd.append('fecha', btn.dataset.fecha); 
+    fd.append('estado', estado);
+    if (motivo) fd.append('observacion', motivo);
+
+    fetch(URL_RM, { method:'POST', body:fd })
+    .then(r => r.json())
+    .then(res => {
+        if (res.success) { 
+            marcarFila(tr.id, estado); 
+            menActualizarBulk(); 
+            Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: 'Registro actualizado correctamente.',
+                timer: 1500,
+                showConfirmButton: false
             });
+        }
+        else { 
+            btn.disabled = false; 
+            btn.innerHTML = estado === 'Presente' ? '<i class="ti ti-user-check"></i> Presente' : '<i class="ti ti-file-check"></i> Justificado'; 
+            Swal.fire('Error', res.message || 'Error al guardar.', 'error'); 
+        }
+    })
+    .catch(err => {
+        btn.disabled = false; 
+        btn.innerHTML = estado === 'Presente' ? '<i class="ti ti-user-check"></i> Presente' : '<i class="ti ti-file-check"></i> Justificado'; 
+        Swal.fire('Error', 'Error de conexión', 'error');
+    });
+};
 
-            // Motor de Filtros
-            let activeChip = 'all';
-            function setChip(type, btn) {
-                activeChip = type;
-                document.querySelectorAll('.claude-replica .chip-row .chip').forEach(c => c.className = 'chip');
-                btn.className = 'chip ' + (type==='all'?'active-blue':type==='ok'?'active-green':'active-red');
-                applyFilters();
-            }
-            function applyFilters() {
-                const q = document.getElementById('searchInput').value.toLowerCase();
-                const res = DB.filter(r => {
-                    const mQ = !q || r.n.toLowerCase().includes(q) || r.ci.includes(q) || r.d.toLowerCase().includes(q);
-                    const mS = activeChip==='all'||(activeChip==='ok'&&r.f===0)||(activeChip==='crit'&&r.f>0);
-                    return mQ&&mS;
-                });
-                buildTable(res);
-            }
-            document.getElementById('searchInput').addEventListener('input', applyFilters);
+window.menMarcarMasivoConConfirmacion = async function(estado) {
+    var chks = Array.from(document.querySelectorAll('.men-aus-chk:checked'));
+    if (!chks.length) return;
+    
+    let motivo = '';
 
-            // Dona y Barras
-            function animarDonutYBarras() {
-                let tp=0, tf=0, tj=0;
-                DB.forEach(r => { tp+=r.p; tf+=r.f; tj+=r.j; });
-                const tot = tp+tf+tj; 
-                const pctP = tot > 0 ? Math.round((tp/tot)*100) : 0;
-                const pctF = tot > 0 ? Math.round((tf/tot)*100) : 0;
-                const pctJ = tot > 0 ? Math.round((tj/tot)*100) : 0;
-
-                const circ = 376;
-                const fill = document.getElementById('donutFill');
-                const lbl  = document.getElementById('donutPct');
-                
-                setTimeout(() => {
-                    fill.style.strokeDashoffset = circ - (circ * pctP / 100);
-                    fill.style.stroke = pctP >= 90 ? 'var(--green)' : pctP >= 75 ? 'var(--amber)' : 'var(--red)';
-                }, 300);
-                
-                let c = 0;
-                const t = setInterval(() => { c = Math.min(c+2, pctP); lbl.textContent = c+'%'; if(c>=pctP)clearInterval(t); }, 25);
-
-                document.getElementById('hpFill').setAttribute('data-w', pctP); document.getElementById('hpVal').innerText = pctP+'%';
-                document.getElementById('hjFill').setAttribute('data-w', pctJ); document.getElementById('hjVal').innerText = pctJ+'%';
-                document.getElementById('hfFill').setAttribute('data-w', pctF); document.getElementById('hfVal').innerText = pctF+'%';
-            }
-
-            function animBars() {
-                document.querySelectorAll('.claude-replica [data-w]').forEach(el => { el.style.width = el.getAttribute('data-w')+'%'; });
-            }
-
-            // Calendario
-            function buildCal() {
-                const g = document.getElementById('calGrid');
-                DAYS.forEach((d,i) => {
-                    const cell = document.createElement('div');
-                    cell.className = 'cal-cell ' + (CAL[d] || 'em') + (d===7?' today':'');
-                    cell.textContent = d;
-                    cell.style.animationDelay = (i*25)+'ms';
-                    g.appendChild(cell);
-                });
-            }
-
-            // Alertas
-            function buildAlerts(data) {
-                const g = document.getElementById('alertList'); g.innerHTML = '';
-                const sorted = [...data].sort((a,b) => b.f - a.f).filter(x => x.f > 0).slice(0,3);
-                document.getElementById('alertCountBadge').innerText = sorted.length + ' faltas';
-                if(sorted.length === 0) {
-                    g.innerHTML = '<div class="alert-item" style="opacity:.35;pointer-events:none;"><div class="al-avatar" style="background:var(--surface-3);color:var(--ink-3)">-</div><div class="al-info"><div class="al-name" style="color:var(--ink-3)">Sin más alertas</div><div class="al-dept">Todos al día ✓</div></div></div>';
-                    return;
-                }
-                sorted.forEach(r => {
-                    g.innerHTML += `
-                        <div class="alert-item" onclick="verPasante('${r.n}')">
-                            <div class="al-avatar" style="background:${r.c}">${r.av}</div>
-                            <div class="al-info">
-                                <div class="al-name">${r.n}</div>
-                                <div class="al-dept">${r.d}</div>
-                            </div>
-                            <span class="al-badge">${r.f} falta(s)</span>
-                        </div>`;
-                });
-            }
-
-            // Departamentos
-            function buildDepts() {
-                const g = document.getElementById('deptGrid'); let i=0;
-                for (const [nm, v] of Object.entries(DEPTOS)) {
-                    if(v.t === 0) continue;
-                    const pP = Math.round(v.p/v.t*100), fP = Math.round(v.f/v.t*100), jP = Math.round(v.j/v.t*100);
-                    const el = document.createElement('div');
-                    el.className = 'dept-card'; el.style.animationDelay = (i*50)+'ms';
-                    el.innerHTML = `
-                        <div class="dc-head">
-                            <span class="dc-name">${nm}</span>
-                            <span class="dc-count">${v.t} marcajes</span>
-                        </div>
-                        <div class="dc-bar-wrap">
-                            <div class="dc-seg" style="background:var(--green);width:0" data-w="${pP}"></div>
-                            <div class="dc-seg" style="background:var(--amber);width:0" data-w="${jP}"></div>
-                            <div class="dc-seg" style="background:var(--red);width:0"   data-w="${fP}"></div>
-                        </div>
-                        <div class="dc-stats">
-                            <div class="dc-stat"><span class="dc-dot" style="background:var(--green)"></span>${v.p} pres</div>
-                            <div class="dc-stat"><span class="dc-dot" style="background:var(--amber)"></span>${v.j} just</div>
-                            <div class="dc-stat"><span class="dc-dot" style="background:var(--red)"></span>${v.f} falt</div>
-                        </div>`;
-                    g.appendChild(el); i++;
+    if (estado === 'Justificado') {
+        const { value: text, isConfirmed } = await Swal.fire({
+            title: `<i class="ti ti-file-check" style="color:#2563eb;font-size:2rem;margin-bottom:8px;display:block;"></i> Justificar Masivamente`,
+            html: `Se justificarán <b>${chks.length}</b> inasistencias.<br>Ingrese el motivo general:`,
+            input: 'textarea',
+            inputPlaceholder: 'Ej. Permiso colectivo, reposo...',
+            inputAttributes: {
+                'aria-label': 'Motivo de la justificación',
+                'maxlength': '255',
+                'style': 'height: 100px; resize: none;'
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Justificar Todos',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#2563eb',
+            cancelButtonColor: '#64748b',
+            inputValidator: (value) => {
+                if (!value || value.trim().length < 5) {
+                    return 'Debe ingresar un motivo válido (mínimo 5 caracteres)';
                 }
             }
+        });
+        if (!isConfirmed) return;
+        motivo = text.trim();
+    } else {
+        const { isConfirmed } = await Swal.fire({
+            title: `¿Marcar ${chks.length} registros como Presente?`,
+            text: 'Esta acción no se puede deshacer.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, marcar todos',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#16a34a',
+            cancelButtonColor: '#64748b'
+        });
+        if (!isConfirmed) return;
+    }
 
-            // Top List
-            function buildTop() {
-                const g = document.getElementById('topList'); g.innerHTML = '';
-                const sorted = [...DB].sort((a,b) => {
-                    const pA = (a.p+a.f+a.j)>0 ? a.p/(a.p+a.f+a.j) : 0;
-                    const pB = (b.p+b.f+b.j)>0 ? b.p/(b.p+b.f+b.j) : 0;
-                    return pB - pA;
-                });
-                const rnk = ['gold','silver','bronze'];
-                const sym = ['①','②','③'];
-                sorted.slice(0,6).forEach((r,i) => {
-                    const tot = r.p+r.f+r.j, pct = tot>0 ? Math.round(r.p/tot*100) : 0;
-                    const col = pct>=90?'var(--green)':pct>=75?'var(--amber)':'var(--red)';
-                    const el = document.createElement('div');
-                    el.className = 'top-item';
-                    el.style.cursor = 'pointer';
-                    el.onclick = () => verPasante(r.n);
-                    el.innerHTML = `
-                        <span class="top-rank ${i<3?rnk[i]:''}">${i<3?sym[i]:i+1}</span>
-                        <div class="top-av" style="background:${r.c}">${r.av}</div>
-                        <div class="top-info">
-                            <div class="top-name">${r.n.split(' ').slice(0,2).join(' ')}</div>
-                            <div class="top-dept">${r.d}</div>
-                        </div>
-                        <div class="top-bar"><div class="top-bar-fill" data-w="${pct}" style="background:${col}"></div></div>
-                        <span class="top-pct" style="color:${col}">${pct}%</span>`;
-                    g.appendChild(el);
-                });
-            }
+    Swal.fire({
+        title: 'Procesando...',
+        html: `Procesando <b id="swal-progreso">0</b> de ${chks.length} registros`,
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
 
-            // Tabla Maestra
-            function buildTable(data) {
-                const tbody = document.getElementById('mTbody');
-                tbody.innerHTML = '';
-                document.getElementById('tableCount').textContent = data.length+' registros';
-                data.forEach(r => {
-                    const tot = r.p+r.f+r.j, pct = tot>0 ? Math.round(r.p/tot*100) : 0;
-                    const bc = pct>=90?'var(--green)':pct>=75?'var(--amber)':'var(--red)';
-                    const sc = r.f===0?'s-ok':pct>=80?'s-warn':'s-crit';
-                    const st = r.f===0?'Perfecto':pct>=80?'Regular':'Crítico';
-                    const tr = document.createElement('tr');
-                    tr.style.cursor = 'pointer';
-                    tr.onclick = () => abrirModalManual(r.ci, r.n); // Opcional: abrir modal registro
-                    tr.innerHTML = `
-                        <td><div class="person-cell"><div class="av" style="background:${r.c}">${r.av}</div><div><div class="pn">${r.n}</div><div class="pid">V-${r.ci}</div></div></div></td>
-                        <td style="color:var(--ink-2);font-size:11px">${r.d}</td>
-                        <td style="text-align:center;font-family:var(--mono);font-weight:700;color:var(--green)">${r.p}</td>
-                        <td style="text-align:center;font-family:var(--mono);font-weight:700;color:${r.f>0?'var(--red)':'var(--ink-3)'}">${r.f||'—'}</td>
-                        <td style="text-align:center;font-family:var(--mono);font-weight:700;color:${r.j>0?'var(--amber)':'var(--ink-3)'}">${r.j||'—'}</td>
-                        <td><div class="pct-cell"><div class="pct-bar"><div class="pct-fill" data-w="${pct}" style="background:${bc}"></div></div><span class="pct-val" style="color:${bc}">${pct}%</span></div></td>
-                        <td><span class="status-chip ${sc}">${st}</span></td>`;
-                    tbody.appendChild(tr);
-                });
-                setTimeout(animBars, 80);
-            }
+    let completados = 0;
+    let errores = 0;
 
-            let sCol=-1, sAsc=true;
-            function sortBy(col) {
-                if(sCol===col) sAsc=!sAsc; else{sCol=col;sAsc=true;}
-                const keys=['n','d','p','f','j'];
-                const q = document.getElementById('searchInput').value.toLowerCase();
-                const res = DB.filter(r => {
-                    const mQ = !q || r.n.toLowerCase().includes(q)||r.ci.includes(q)||r.d.toLowerCase().includes(q);
-                    const mS = activeChip==='all'||(activeChip==='ok'&&r.f===0)||(activeChip==='crit'&&r.f>0);
-                    return mQ&&mS;
-                });
-                res.sort((a,b)=>{
-                    if(col===5){const pa=a.p/(a.p+a.f+a.j),pb=b.p/(b.p+b.f+b.j);return sAsc?pa-pb:pb-pa;}
-                    const va=a[keys[col]]??0,vb=b[keys[col]]??0;
-                    return typeof va==='string'?(sAsc?va.localeCompare(vb,'es'):vb.localeCompare(va,'es')):(sAsc?va-vb:vb-va);
-                });
-                buildTable(res);
-            }
+    async function next(i) {
+        if (i >= chks.length) { 
+            menActualizarBulk(); 
+            Swal.fire({
+                icon: errores > 0 ? 'warning' : 'success',
+                title: 'Proceso completado',
+                text: `${completados} exitosos, ${errores} errores.`,
+                confirmButtonColor: '#2563eb'
+            });
+            return; 
+        }
+        var tr = chks[i].closest('tr');
+        if (tr.classList.contains('procesada')) { next(i+1); return; }
+        
+        var fd = new FormData();
+        fd.append('pasante_id', tr.dataset.pid); 
+        fd.append('fecha', tr.dataset.fecha); 
+        fd.append('estado', estado);
+        if (motivo) fd.append('observacion', motivo);
 
-            function doExport() {
-                let csv = 'Nombre,Cédula,Departamento,Presentes,Faltas,Justificados,%\n';
-                DB.forEach(r => {
-                    const tot = r.p + r.f + r.j, pct = tot > 0 ? Math.round(r.p / tot * 100) : 0;
-                    csv += `"${r.n}","${r.ci}","${r.d}",${r.p},${r.f},${r.j},${pct}%\n`;
-                });
-                const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `asistencias_<?= strtolower($nombreMes) ?>_<?= $anioActual ?>.csv`;
-                a.click();
+        try {
+            let r = await fetch(URL_RM, { method:'POST', body:fd });
+            let res = await r.json();
+            if (res.success) {
+                marcarFila(tr.id, estado);
+                completados++;
+            } else {
+                errores++;
             }
+        } catch(e) {
+            errores++;
+        }
+        
+        let pro = document.getElementById('swal-progreso');
+        if (pro) pro.textContent = completados + errores;
+        
+        next(i+1);
+    }
+    next(0);
+};
+})();
+</script>
+</div><!-- /#menBentoWrapper -->
 
-            function enviarNotificacionesMasivas() {
-                Swal.fire({
-                    title: '¿Enviar notificaciones?',
-                    text: 'Se enviará un recordatorio a los pasantes con faltas este mes.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#2563eb',
-                    cancelButtonColor: '#94a3b8',
-                    confirmButtonText: 'Sí, enviar',
-                    cancelButtonText: 'Cancelar'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Swal.fire('Enviado', 'Las notificaciones han sido puestas en cola.', 'success');
-                    }
-                });
-            }
 
-            // --- Lógica de Modal Manual ---
-            function abrirModalManual(cedula = '', nombre = '') {
-                const modal = document.getElementById('modal-manual');
-                modal.style.display = 'flex';
-                if(cedula && nombre) {
-                    document.getElementById('buscadorPasante').value = nombre;
-                    document.getElementById('manual-pasante-id').value = cedula; // Usamos CI como ID en este flujo simplificado
-                    document.getElementById('btnLimpiarPasante').style.display = 'flex';
-                }
-            }
-            function cerrarModal() {
-                document.getElementById('modal-manual').style.display = 'none';
-                document.getElementById('form-manual').reset();
-                document.getElementById('btnLimpiarPasante').style.display = 'none';
-                document.getElementById('div-motivo').style.display = 'none';
-            }
-            function toggleMotivo(val) {
-                document.getElementById('div-motivo').style.display = (val === 'Justificado') ? 'block' : 'none';
-            }
-            function enviarManual(e) {
-                e.preventDefault();
-                const fd = new FormData(e.target);
-                fetch('<?= URLROOT ?>/asistencias/registro_manual', { method: 'POST', body: fd })
-                .then(r => r.json())
-                .then(data => {
-                    if(data.success) {
-                        Swal.fire('Éxito', data.message, 'success').then(() => location.reload());
-                    } else {
-                        Swal.fire('Error', data.message, 'error');
-                    }
-                });
-            }
-
-            // Búsqueda de pasantes en el modal
-            const searchInputModal = document.getElementById('buscadorPasante');
-            const resultsDiv = document.getElementById('resultadosPasante');
-            const clearBtn = document.getElementById('btnLimpiarPasante');
-
-            if(searchInputModal) {
-                searchInputModal.addEventListener('input', (e) => {
-                    const q = e.target.value.toLowerCase();
-                    if(q.length < 2) { resultsDiv.style.display = 'none'; return; }
-                    
-                    const matches = DB.filter(p => p.n.toLowerCase().includes(q) || p.ci.includes(q));
-                    resultsDiv.innerHTML = '';
-                    if(matches.length > 0) {
-                        matches.forEach(p => {
-                            const div = document.createElement('div');
-                            div.className = 'dropdown-item p-2 cursor-pointer';
-                            div.style.cursor = 'pointer';
-                            div.innerHTML = `<strong>${p.n}</strong> <small class="text-muted">V-${p.ci}</small>`;
-                            div.onclick = () => {
-                                searchInputModal.value = p.n;
-                                document.getElementById('manual-pasante-id').value = p.ci; // CI acting as ID
-                                resultsDiv.style.display = 'none';
-                                clearBtn.style.display = 'flex';
-                            };
-                            resultsDiv.appendChild(div);
-                        });
-                        resultsDiv.style.display = 'block';
-                    } else {
-                        resultsDiv.style.display = 'none';
-                    }
-                });
-            }
-            if(clearBtn) {
-                clearBtn.onclick = () => {
-                    searchInputModal.value = '';
-                    document.getElementById('manual-pasante-id').value = '';
-                    clearBtn.style.display = 'none';
-                    resultsDiv.style.display = 'none';
-                };
-            }
-
-            // --- Funciones de Auditoría y Navegación ---
-            function verPasante(nombre) {
-                const search = document.getElementById('searchInput');
-                search.value = nombre;
-                applyFilters();
-                // Scroll suave a la tabla
-                document.getElementById('mTable').scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
-
-            function abrirModalDetalle(cedula, id_pasante = 0) {
-                const btnAlmanaque = document.getElementById('btnModalAlmanaque');
-                if (btnAlmanaque) {
-                    if (id_pasante > 0) {
-                        btnAlmanaque.href = '<?= URLROOT ?>/asistencias/almanaque/' + id_pasante;
-                        btnAlmanaque.style.display = 'flex';
-                    } else {
-                        btnAlmanaque.style.display = 'none';
-                    }
-                }
-
-                const p = DB.find(x => x.ci === cedula);
-                if(!p) return;
-
-                document.getElementById('detalle-avatar').textContent = p.av;
-                document.getElementById('detalle-nombre').textContent = p.n;
-                document.getElementById('detalle-cedula').textContent = 'V-' + p.ci;
-                document.getElementById('detalle-depto').textContent = p.d;
-                document.getElementById('detalle-estado').textContent = (p.f === 0) ? 'Óptimo' : 'Irregular';
-                document.getElementById('detalle-estado').className = (p.f === 0) ? 'text-success' : 'text-danger';
-                
-                // Estos campos son ficticios/acumulativos para el mes en este bento, 
-                // en un sistema real se buscarían los registros específicos del día.
-                document.getElementById('detalle-hora').textContent = 'Acumulado Mes';
-                document.getElementById('detalle-metodo').textContent = 'Consolidado';
-
-                document.getElementById('modal-detalle').classList.add('active');
-            }
-
-            function cerrarModalDetalle() {
-                document.getElementById('modal-detalle').classList.remove('active');
-            }
-            
-            </script>
 
         <?php elseif ($vistaActual === 'anual'): ?>
             <?php 
@@ -1697,8 +2224,8 @@ table.dataTable tbody tr:hover {
              */
             ?>
             <!-- Fuentes Premium -->
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+            <!-- Fuentes locales -->
+            <link rel="stylesheet" href="<?= URLROOT ?>/css/fonts.css">
             
             <style>
             :root {
@@ -1727,7 +2254,7 @@ table.dataTable tbody tr:hover {
                 border: 1px solid var(--p-border);
                 border-radius: var(--p-radius);
                 padding: 24px;
-                transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+                transition: box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s;
                 position: relative;
                 overflow: hidden;
                 display: flex;
@@ -1736,11 +2263,233 @@ table.dataTable tbody tr:hover {
                 text-align: center;
                 box-shadow: var(--p-shadow);
             }
-            .p-card:hover {
-                transform: translateY(-8px);
-                box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            .muro-item:hover .p-card {
+                box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
                 border-color: var(--p-blue);
             }
+
+            /* ── Flip 3D ── */
+            .flip-wrapper {
+                perspective: 1200px;
+                width: 100%;
+            }
+            .flip-inner {
+                width: 100%;
+                display: grid;
+                transform-style: preserve-3d;
+                transition: transform 0.65s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            .flip-inner.is-flipped {
+                transform: rotateY(180deg);
+            }
+            .flip-front, .flip-back {
+                grid-area: 1 / 1;
+                backface-visibility: hidden;
+                -webkit-backface-visibility: hidden;
+                min-width: 0;
+            }
+            .flip-back {
+                transform: rotateY(180deg);
+                border-radius: var(--p-radius);
+                overflow: hidden;
+                cursor: pointer;
+            }
+
+            /* Toda la card frontal es cliceable */
+            .flip-front.p-card { cursor: pointer; }
+
+            /* Separador + pill "Ver carnet" */
+            .flip-hint-sep {
+                width: 100%;
+                margin-top: auto;
+                padding-top: 14px;
+                border-top: 1px solid var(--p-border);
+                display: flex;
+                justify-content: center;
+            }
+            .flip-hint {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+                font-size: 0.75rem;
+                font-weight: 700;
+                color: var(--p-blue);
+                background: var(--p-blue-dim);
+                border: 1.5px solid rgba(29,78,216,0.18);
+                padding: 5px 16px;
+                border-radius: 50px;
+                letter-spacing: 0.3px;
+                transition: all 0.22s;
+            }
+            .flip-front.p-card:hover .flip-hint {
+                background: var(--p-blue);
+                color: white;
+                box-shadow: 0 4px 14px rgba(29,78,216,0.28);
+            }
+
+            /* ── Carnet (reverso) ── */
+            .p-carnet {
+                background: linear-gradient(160deg, #0a0f1e 0%, #0f1f4a 55%, #1D4ED8 100%);
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                padding: 18px 16px 16px;
+                position: relative;
+                gap: 0;
+            }
+            .p-carnet::before {
+                content: '';
+                position: absolute;
+                top: -50px; right: -50px;
+                width: 200px; height: 200px;
+                border-radius: 50%;
+                background: rgba(29,78,216,0.2);
+                pointer-events: none;
+            }
+            .p-carnet::after {
+                content: '';
+                position: absolute;
+                bottom: -35px; left: -35px;
+                width: 160px; height: 160px;
+                border-radius: 50%;
+                background: rgba(255,255,255,0.04);
+                pointer-events: none;
+            }
+            .pc-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                width: 100%;
+                margin-bottom: 12px;
+                position: relative; z-index: 1;
+            }
+            .pc-logo {
+                height: 26px; width: auto;
+                filter: brightness(0) invert(1);
+                opacity: 0.85;
+            }
+            .pc-sys-label {
+                font-size: 0.58rem;
+                font-weight: 700;
+                color: rgba(255,255,255,0.45);
+                letter-spacing: 1px;
+                text-transform: uppercase;
+            }
+            .pc-photo-wrap { margin-bottom: 8px; position: relative; z-index: 1; }
+            .pc-photo-img {
+                width: 72px; height: 72px;
+                border-radius: 50%;
+                border: 3px solid rgba(255,255,255,0.3);
+                object-fit: cover;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+            }
+            .pc-photo-init {
+                width: 72px; height: 72px;
+                border-radius: 50%;
+                border: 3px solid rgba(255,255,255,0.25);
+                background: linear-gradient(135deg, #1D4ED8, #7C3AED);
+                color: white;
+                font-size: 1.5rem;
+                font-weight: 800;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+            }
+            .pc-fullname {
+                font-size: 0.9rem;
+                font-weight: 800;
+                color: white;
+                text-align: center;
+                line-height: 1.2;
+                margin-bottom: 5px;
+                max-width: 100%;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                position: relative; z-index: 1;
+            }
+            .pc-role-badge {
+                font-size: 0.58rem;
+                font-weight: 800;
+                letter-spacing: 2px;
+                color: rgba(255,255,255,0.5);
+                background: rgba(255,255,255,0.08);
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 20px;
+                padding: 2px 10px;
+                margin-bottom: 10px;
+                position: relative; z-index: 1;
+            }
+            .pc-data {
+                width: 100%;
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                margin-bottom: 12px;
+                background: rgba(255,255,255,0.06);
+                border: 1px solid rgba(255,255,255,0.09);
+                border-radius: 10px;
+                padding: 8px 10px;
+                position: relative; z-index: 1;
+            }
+            .pc-row { display: flex; align-items: flex-start; gap: 7px; min-width: 0; }
+            .pc-icon { color: rgba(255,255,255,0.4); font-size: 0.8rem; flex-shrink: 0; margin-top: 1px; }
+            .pc-val {
+                font-size: 0.7rem;
+                color: rgba(255,255,255,0.82);
+                font-weight: 600;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                min-width: 0;
+            }
+            .pc-actions {
+                display: flex;
+                gap: 7px;
+                width: 100%;
+                position: relative; z-index: 1;
+            }
+            .pc-btn {
+                flex: 1; height: 34px;
+                border-radius: 9px;
+                border: none;
+                font-size: 0.75rem;
+                font-weight: 700;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 5px;
+                transition: all 0.2s;
+            }
+            .pc-btn-pdf {
+                background: rgba(220,38,38,0.15);
+                color: #fca5a5;
+                border: 1px solid rgba(220,38,38,0.3);
+            }
+            .pc-btn-pdf:hover { background: #dc2626; color: white; }
+            .pc-btn-xls {
+                background: rgba(21,128,61,0.15);
+                color: #86efac;
+                border: 1px solid rgba(21,128,61,0.3);
+            }
+            .pc-btn-xls:hover { background: #15803d; color: white; }
+
+            /* Botón cerrar carnet */
+            .pc-close-btn {
+                width: 22px; height: 22px;
+                border-radius: 50%;
+                border: 1px solid rgba(255,255,255,0.2);
+                background: rgba(255,255,255,0.1);
+                color: rgba(255,255,255,0.6);
+                font-size: 0.7rem;
+                cursor: pointer;
+                display: flex; align-items: center; justify-content: center;
+                transition: all 0.2s;
+                flex-shrink: 0;
+            }
+            .pc-close-btn:hover { background: rgba(255,255,255,0.25); color: white; }
 
             /* Status Badge */
             .p-badge {
@@ -1847,11 +2596,17 @@ table.dataTable tbody tr:hover {
                     $pid = $reg->pasante_id ?? 'P'.$reg->id;
                     if(!isset($resumenTotal[$pid])) {
                         $resumenTotal[$pid] = [
-                            'nombre' => trim(($reg->apellidos ?? '') . ', ' . ($reg->nombres ?? '')),
-                            'cedula' => $reg->cedula ?? '',
+                            'nombre'       => trim(($reg->apellidos ?? '') . ', ' . ($reg->nombres ?? '')),
+                            'nombres'      => $reg->nombres ?? '',
+                            'apellidos'    => $reg->apellidos ?? '',
+                            'cedula'       => $reg->cedula ?? '',
                             'departamento' => $reg->departamento_nombre ?? 'General',
-                            'presentes' => 0,
-                            'faltas' => 0
+                            'avatar'         => $reg->avatar ?? 'default.png',
+                            'institucion'    => $reg->institucion_nombre ?? '',
+                            'periodo'        => $reg->periodo_nombre ?? '',
+                            'estado_cuenta'  => $reg->estado_cuenta ?? 'activo',
+                            'presentes'      => 0,
+                            'faltas'         => 0
                         ];
                     }
                     $estado = strtolower($reg->estado ?? '');
@@ -1922,83 +2677,171 @@ table.dataTable tbody tr:hover {
                             <h4 style="font-weight: 700; color: var(--p-ink-3);">No hay histórico registrado en este año</h4>
                         </div>
                     <?php else: ?>
-                        <?php $muroDelay=0; foreach($resumenTotal as $pid => $rt): 
-                            $nombres = explode(',', $rt['nombre']??'');
-                            $apellido = trim($nombres[0] ?? 'A');
-                            $nombreP = trim($nombres[1] ?? 'A');
+                        <?php $muroDelay=0; foreach($resumenTotal as $pid => $rt):
+                            $partsN = explode(',', $rt['nombre'] ?? '');
+                            $apellido = trim($partsN[0] ?? 'A');
+                            $nombreP  = trim($partsN[1] ?? 'A');
                             $iniciales = strtoupper(substr($nombreP, 0, 1) . substr($apellido, 0, 1));
-                            if(strlen(trim($iniciales)) < 2) $iniciales = strtoupper(substr($rt['nombre']??'AA', 0, 2));
-                            
+                            if(strlen(trim($iniciales)) < 2) $iniciales = strtoupper(substr($rt['nombre'] ?? 'AA', 0, 2));
+
                             $horasAcumuladas = $rt['presentes'] * 8;
-                            $horasMeta = 1440;
-                            $pctHoras = $horasMeta > 0 ? min(100, round(($horasAcumuladas / $horasMeta) * 100)) : 0;
-                            $isFinalizado = ($horasAcumuladas >= $horasMeta);
-                            $estadoBadge = $isFinalizado ? 'Finalizado' : 'Activo';
-                            // Colores de Auditoría: Finalizado (Cian #0ea5e9), Activo (Verde #059669)
-                            $gaugeColor = $isFinalizado ? '#0ea5e9' : '#059669';
-                            $statusBg = $isFinalizado ? 'rgba(14, 165, 233, 0.1)' : 'rgba(5, 150, 105, 0.1)';
-                            $statusBorder = $isFinalizado ? 'rgba(14, 165, 233, 0.2)' : 'rgba(5, 150, 105, 0.2)';
-                            
+                            $horasMeta  = 1440;
+                            $pctHoras   = $horasMeta > 0 ? min(100, round(($horasAcumuladas / $horasMeta) * 100)) : 0;
+
+                            $esInactivo   = ($rt['estado_cuenta'] === 'inactivo');
+                            $isFinalizado = !$esInactivo && ($horasAcumuladas >= $horasMeta);
+
+                            if ($esInactivo) {
+                                $estadoBadge  = 'Inactivo';
+                                $badgeIcon    = 'ti-user-off';
+                                $gaugeColor   = '#94a3b8';
+                                $statusBg     = 'rgba(148,163,184,0.1)';
+                                $statusBorder = 'rgba(148,163,184,0.2)';
+                            } elseif ($isFinalizado) {
+                                $estadoBadge  = 'Finalizado';
+                                $badgeIcon    = 'ti-circle-check';
+                                $gaugeColor   = '#0ea5e9';
+                                $statusBg     = 'rgba(14,165,233,0.1)';
+                                $statusBorder = 'rgba(14,165,233,0.2)';
+                            } else {
+                                $estadoBadge  = 'Activo';
+                                $badgeIcon    = 'ti-circle-dot';
+                                $gaugeColor   = '#059669';
+                                $statusBg     = 'rgba(5,150,105,0.1)';
+                                $statusBorder = 'rgba(5,150,105,0.2)';
+                            }
                             $searchData = strtolower($rt['nombre'] . ' ' . $rt['cedula'] . ' ' . $estadoBadge);
+
+                            // Avatar
+                            $hasAvatar  = !empty($rt['avatar']) && $rt['avatar'] !== 'default.png';
+                            $avatarUrl  = $hasAvatar ? (URLROOT . '/img/avatars/' . htmlspecialchars($rt['avatar'], ENT_QUOTES)) : '';
+
+                            // Nombre para el carnet: "Nombres Apellidos"
+                            $nombreReal = trim(($rt['nombres'] ?? '') . ' ' . ($rt['apellidos'] ?? ''));
+                            if(empty($nombreReal)) $nombreReal = $rt['nombre'];
+
+                            $institucion = htmlspecialchars($rt['institucion'] ?: '—', ENT_QUOTES);
+                            $periodo     = htmlspecialchars($rt['periodo']     ?: '—', ENT_QUOTES);
                         ?>
-                        <div class="muro-item stagger-enter" 
-                             data-search="<?= htmlspecialchars($searchData . ' ' . strtolower($rt['departamento']), ENT_QUOTES) ?>" 
+                        <div class="muro-item stagger-enter"
+                             data-search="<?= htmlspecialchars($searchData . ' ' . strtolower($rt['departamento']), ENT_QUOTES) ?>"
                              data-estado="<?= $estadoBadge ?>"
                              style="animation-delay: <?= $muroDelay ?>ms;">
                             <?php $muroDelay += 30; ?>
-                            <div class="p-card">
-                                <!-- Status & Faltas Header -->
-                                <div style="width: 100%; display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
-                                    <span class="p-badge" style="background: <?= $statusBg ?>; color: <?= $gaugeColor ?>; border: 1px solid <?= $statusBorder ?>;">
-                                        <i class="ti <?= $isFinalizado ? 'ti-circle-check' : 'ti-circle-dot' ?>"></i> <?= strtoupper($estadoBadge) ?>
-                                    </span>
-                                    <?php if($rt['faltas'] > 0): ?>
-                                    <span class="p-badge" style="background: rgba(220, 38, 38, 0.08); color: #dc2626;">
-                                        <i class="ti ti-alert-triangle"></i> <?= $rt['faltas'] ?> faltas
-                                    </span>
-                                    <?php endif; ?>
-                                </div>
+                            <div class="flip-wrapper">
+                                <div class="flip-inner">
 
-                                <!-- Persona -->
-                                <h5 class="p-name" style="font-weight: 800; font-size: 1.15rem; color: var(--p-ink); margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 100%;" title="<?= htmlspecialchars($rt['nombre']) ?>">
-                                    <?= htmlspecialchars($rt['nombre']) ?>
-                                </h5>
-                                <div class="p-dept" style="font-size: 0.75rem; font-weight: 700; color: var(--p-blue); letter-spacing: 0.5px; text-transform: uppercase; margin-top: 4px;">
-                                    <?= htmlspecialchars($rt['departamento']) ?>
-                                </div>
-                                <div class="p-ci" style="font-size: 0.8rem; color: var(--p-ink-3); font-family: 'JetBrains Mono', monospace; margin-top: 2px;">
-                                    V-<?= htmlspecialchars($rt['cedula']) ?>
-                                </div>
+                                    <!-- ═══ FRENTE ═══ -->
+                                    <div class="flip-front p-card">
+                                        <!-- Estado / Faltas -->
+                                        <div style="width:100%;display:flex;justify-content:space-between;align-items:start;margin-bottom:12px;">
+                                            <span class="p-badge" style="background:<?= $statusBg ?>;color:<?= $gaugeColor ?>;border:1px solid <?= $statusBorder ?>;">
+                                                <i class="ti <?= $badgeIcon ?>"></i> <?= strtoupper($estadoBadge) ?>
+                                            </span>
+                                            <?php if($rt['faltas'] > 0): ?>
+                                            <span class="p-badge" style="background:rgba(220,38,38,0.08);color:#dc2626;">
+                                                <i class="ti ti-alert-triangle"></i> <?= $rt['faltas'] ?> faltas
+                                            </span>
+                                            <?php endif; ?>
+                                        </div>
 
-                                <!-- Radial Gauge -->
-                                <div class="p-gauge-wrap">
-                                    <svg class="p-gauge-svg" width="130" height="130" viewBox="0 0 130 130">
-                                        <circle class="p-gauge-track" cx="65" cy="65" r="54" />
-                                        <circle class="p-gauge-fill" cx="65" cy="65" r="54" 
-                                                stroke="<?= $gaugeColor ?>"
-                                                stroke-dashoffset="<?= 339.292 - (339.292 * $pctHoras) / 100 ?>" />
-                                    </svg>
-                                    <div class="p-gauge-info">
-                                        <span class="p-gauge-val"><?= number_format($horasAcumuladas, 0, ',', '.') ?></span>
-                                        <span class="p-gauge-lbl">/ <?= number_format($horasMeta, 0, ',', '.') ?> hrs</span>
-                                    </div>
-                                </div>
+                                        <!-- Persona -->
+                                        <h5 class="p-name" style="font-weight:800;font-size:1.15rem;color:var(--p-ink);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;" title="<?= htmlspecialchars($rt['nombre'], ENT_QUOTES) ?>">
+                                            <?= htmlspecialchars($rt['nombre']) ?>
+                                        </h5>
+                                        <div class="p-dept" style="font-size:0.75rem;font-weight:700;color:var(--p-blue);letter-spacing:0.5px;text-transform:uppercase;margin-top:4px;">
+                                            <?= htmlspecialchars($rt['departamento']) ?>
+                                        </div>
+                                        <div class="p-ci" style="font-size:0.8rem;color:var(--p-ink-3);font-family:'JetBrains Mono',monospace;margin-top:2px;">
+                                            V-<?= htmlspecialchars($rt['cedula']) ?>
+                                        </div>
 
-                                <div class="p-pct" style="font-size: 0.9rem; font-weight: 800; color: <?= $gaugeColor ?>; margin-bottom: 20px;">
-                                    <?= $pctHoras ?>% COMPLETADO
-                                </div>
+                                        <!-- Gauge radial -->
+                                        <div class="p-gauge-wrap">
+                                            <svg class="p-gauge-svg" width="130" height="130" viewBox="0 0 130 130">
+                                                <circle class="p-gauge-track" cx="65" cy="65" r="54"/>
+                                                <circle class="p-gauge-fill" cx="65" cy="65" r="54"
+                                                        stroke="<?= $gaugeColor ?>"
+                                                        stroke-dashoffset="<?= 339.292 - (339.292 * $pctHoras) / 100 ?>"/>
+                                            </svg>
+                                            <div class="p-gauge-info">
+                                                <span class="p-gauge-val"><?= number_format($horasAcumuladas, 0, ',', '.') ?></span>
+                                                <span class="p-gauge-lbl">/ <?= number_format($horasMeta, 0, ',', '.') ?> hrs</span>
+                                            </div>
+                                        </div>
 
-                                <!-- Acciones -->
-                                <div style="width: 100%; display: flex; gap: 8px; margin-top: auto; padding-top: 20px; border-top: 1px solid var(--p-border);">
-                                    <button onclick="openPreview('<?= URLROOT ?>/reportes/pdfIndividual?id=<?= $pid ?>&download=0')" class="btn btn-p-soft btn-soft-pdf" style="flex: 1; height: 38px; border-radius: 10px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0;">
-                                        <i class="ti ti-file-type-pdf" style="font-size: 1.1rem;"></i> PDF
-                                    </button>
-                                    <button onclick="window.location.href='<?= URLROOT ?>/reportes/exportarExcel?id=<?= $pid ?>'" class="btn btn-p-soft btn-soft-excel" style="flex: 1; height: 38px; border-radius: 10px; font-size: 0.8rem; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 0;">
-                                        <i class="ti ti-file-type-xls" style="font-size: 1.1rem;"></i> EXCEL
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                                        <div class="p-pct" style="font-size:0.9rem;font-weight:800;color:<?= $gaugeColor ?>;margin-bottom:8px;">
+                                            <?= $pctHoras ?>% COMPLETADO
+                                        </div>
+
+                                        <!-- Pill "Ver carnet" -->
+                                        <div class="flip-hint-sep">
+                                            <div class="flip-hint">
+                                                <i class="ti ti-id-badge-2"></i> Ver carnet
+                                            </div>
+                                        </div>
+                                    </div><!-- /.flip-front -->
+
+                                    <!-- ═══ REVERSO: Carnet ═══ -->
+                                    <div class="flip-back p-carnet">
+                                        <!-- Cabecera -->
+                                        <div class="pc-header">
+                                            <img src="<?= URLROOT ?>/img/logo.png" class="pc-logo" alt="SGP">
+                                            <div style="display:flex;align-items:center;gap:10px;">
+                                                <span class="pc-sys-label">SGP · Pasante</span>
+                                                <button class="pc-close-btn" onclick="event.stopPropagation();this.closest('.flip-inner').classList.remove('is-flipped')" title="Volver">
+                                                    <i class="ti ti-x"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        <!-- Foto -->
+                                        <div class="pc-photo-wrap">
+                                            <?php if($hasAvatar): ?>
+                                                <img src="<?= $avatarUrl ?>" class="pc-photo-img" alt="Foto">
+                                            <?php else: ?>
+                                                <div class="pc-photo-init"><?= $iniciales ?></div>
+                                            <?php endif; ?>
+                                        </div>
+
+                                        <!-- Nombre y rol -->
+                                        <div class="pc-fullname" title="<?= htmlspecialchars($nombreReal, ENT_QUOTES) ?>"><?= htmlspecialchars($nombreReal) ?></div>
+                                        <div class="pc-role-badge">PASANTE</div>
+
+                                        <!-- Datos del carnet -->
+                                        <div class="pc-data">
+                                            <div class="pc-row">
+                                                <i class="ti ti-id pc-icon"></i>
+                                                <span class="pc-val">V-<?= htmlspecialchars($rt['cedula']) ?></span>
+                                            </div>
+                                            <div class="pc-row">
+                                                <i class="ti ti-building pc-icon"></i>
+                                                <span class="pc-val" title="<?= $institucion ?>"><?= $institucion ?></span>
+                                            </div>
+                                            <div class="pc-row">
+                                                <i class="ti ti-briefcase pc-icon"></i>
+                                                <span class="pc-val"><?= htmlspecialchars($rt['departamento']) ?></span>
+                                            </div>
+                                            <div class="pc-row">
+                                                <i class="ti ti-calendar pc-icon"></i>
+                                                <span class="pc-val"><?= $periodo ?></span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Acciones -->
+                                        <div class="pc-actions">
+                                            <button onclick="event.stopPropagation();window.open('<?= URLROOT ?>/reportes/pdfIndividual?id=<?= $pid ?>&download=0','_blank')" class="pc-btn pc-btn-pdf">
+                                                <i class="ti ti-file-type-pdf"></i> PDF
+                                            </button>
+                                            <button onclick="event.stopPropagation();window.location.href='<?= URLROOT ?>/reportes/exportarExcel?id=<?= $pid ?>'" class="pc-btn pc-btn-xls">
+                                                <i class="ti ti-file-type-xls"></i> Excel
+                                            </button>
+                                        </div>
+                                    </div><!-- /.flip-back -->
+
+                                </div><!-- /.flip-inner -->
+                            </div><!-- /.flip-wrapper -->
+                        </div><!-- /.muro-item -->
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </div>
@@ -2073,6 +2916,19 @@ table.dataTable tbody tr:hover {
                 if (found === 0) noRes.classList.remove('d-none');
                 else noRes.classList.add('d-none');
             }
+
+            // Click en cualquier parte del frente → voltear al carnet
+            document.querySelectorAll('.flip-front').forEach(front => {
+                front.addEventListener('click', function() {
+                    this.closest('.flip-inner').classList.add('is-flipped');
+                });
+            });
+            // Click en el reverso (fuera de los botones de acción) → volver
+            document.querySelectorAll('.flip-back').forEach(back => {
+                back.addEventListener('click', function() {
+                    this.closest('.flip-inner').classList.remove('is-flipped');
+                });
+            });
 
             function doExportAnual() {
                 let csv = 'Nombre,Cédula,Departamento,Horas Acumuladas,Meta,%,Estado\n';
@@ -2806,8 +3662,8 @@ function cerrarModalConsulta() {
 /* ── Datos de pasantes (para el select del modal "Nuevo" registro) ── */
 var pasantesActivos = <?= json_encode(array_map(fn($p) => [
     'id'     => $p->id,
-    'nombre' => trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? '')),
-], $pasantesActivos), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?>;
+    'nombre' => mb_convert_encoding(trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? '')), 'UTF-8', 'UTF-8'),
+], $pasantesActivos), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) ?: '[]' ?>;
 
 /* ── Abrir modal pre-seleccionado (desde lista "Sin Marcar") ─────── */
 function abrirModalManual(pasanteId, nombre) {
@@ -3043,16 +3899,27 @@ function cerrarModalDetalle() {
 /* ── Exportar CSV ─────────────────────────────────────────────────── */
 function exportarCSV() {
     let csv = 'Pasante,Cédula,Departamento,Hora,Método,Estado\n';
-    <?php foreach ($registrosHoy as $r):
-        $nombre = str_replace('"', '""', trim(($r->apellidos ?? '') . ', ' . ($r->nombres ?? '')));
-        $cedula = str_replace('"', '""', $r->cedula ?? '');
-        $depto  = str_replace('"', '""', $r->departamento_nombre ?? '');
-        $hora   = $r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—';
-        $metodo = $r->metodo ?? '—';
-        $estado = $r->estado ?? '—';
-    ?>
-    csv += `"<?= $nombre ?>","<?= $cedula ?>","<?= $depto ?>","<?= $hora ?>","<?= $metodo ?>","<?= $estado ?>"\n`;
-    <?php endforeach; ?>
+    const dataRows = <?php 
+        $rows = [];
+        foreach($registrosHoy as $r) {
+            $rows[] = [
+                trim(($r->apellidos ?? '') . ', ' . ($r->nombres ?? '')),
+                $r->cedula ?? '',
+                $r->departamento_nombre ?? '',
+                $r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—',
+                $r->metodo ?? '—',
+                $r->estado ?? '—'
+            ];
+        }
+        $encodedRows = json_encode(array_map(function($row) {
+            return array_map(fn($v) => mb_convert_encoding((string)$v, 'UTF-8', 'UTF-8'), $row);
+        }, $rows), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+        echo $encodedRows ?: '[]';
+    ?>;
+    dataRows.forEach(r => {
+        const escaped = r.map(val => val.replace(/"/g, '""'));
+        csv += `"${escaped[0]}","${escaped[1]}","${escaped[2]}","${escaped[3]}","${escaped[4]}","${escaped[5]}"\n`;
+    });
 
     const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
@@ -3245,8 +4112,9 @@ document.addEventListener('DOMContentLoaded', () => {
 <script>
 // ==========================================
 // MOTOR DE CONSULTA RÁPIDA (AJAX + ApexCharts)
+// IIFE: se ejecuta inmediatamente al inyectarse (funciona en carga normal y tras PJAX)
 // ==========================================
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
     const inputBuscar = document.getElementById('inputBuscarPasanteAJAX');
     const listaSugerencias = document.getElementById('listaSugerencias');
     const zonaResultados = document.getElementById('zonaResultadosPasante');
@@ -3585,7 +4453,7 @@ document.addEventListener('DOMContentLoaded', function() {
         chartTiempo = new ApexCharts(container, options);
         chartTiempo.render();
     }
-});
+})();
 </script>
 
 <!-- MODAL ALMANAQUE INTELIGENTE (Heatmap) -->
@@ -4491,11 +5359,14 @@ function sgpAlertarDepto(depto, faltas) {
     }
 }
 
-// Inicializar Tooltips de Bootstrap globales para avatares
+// Inicializar badges e interfaces (guard: solo si estamos en vista mensual)
 document.addEventListener("DOMContentLoaded", function() {
+    if (typeof window.actualizarVistaRetardos === 'function') window.actualizarVistaRetardos();
+    if (typeof window.actualizarVistaTop      === 'function') window.actualizarVistaTop();
+
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
     tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl);
+        if (typeof bootstrap !== 'undefined') return new bootstrap.Tooltip(tooltipTriggerEl);
     });
 });
 </script>

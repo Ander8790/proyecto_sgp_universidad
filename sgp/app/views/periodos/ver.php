@@ -112,21 +112,31 @@
 .btn-alm:hover { background: #f59e0b; color: white; }
 .btn-off { background: rgba(220,38,38,0.1); color: #dc2626; }
 .btn-off:hover { background: #dc2626; color: white; }
+
+/* ── Pills de Trimestre (mismo estilo que módulo Reportes) ────── */
+.rpt-pill {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 10px 12px; border-radius: 50px; border: 1.5px solid #dde2f0;
+    background: #f8fafc; color: #3A4768; font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; user-select: none; transition: all 0.2s ease;
+    width: 100%; text-align: center;
+}
+.rpt-pill input[type="radio"] { display: none; }
+.rpt-pill:hover { border-color: #1D4ED8; color: #1D4ED8; background: rgba(29,78,216,0.07); }
+.rpt-pill:has(input[type="radio"]:checked) {
+    background: #162660; border-color: #162660; color: #ffffff;
+    box-shadow: 0 4px 12px rgba(22,38,96,0.25);
+}
+/* ── Input de fecha para el modal ─────────────────────────────── */
+.rpt-date-input {
+    width: 100%; padding: 12px 16px; border: 2px solid #f1f5f9; border-radius: 14px;
+    font-size: 0.9rem; background: #f8fafc; color: #0D1424; outline: none;
+    transition: all 0.2s;
+}
+.rpt-date-input:focus { border-color: #1D4ED8; background: #fff; box-shadow: 0 0 0 4px rgba(29,78,216,0.07); }
 </style>
 
 <div class="dashboard-container" style="width: 100%; max-width: 1600px; margin: 0 auto; padding: 20px;">
-
-    <!-- ── Flash messages ─────────────────────────────────────────── -->
-    <?php if ($msg = Session::getFlash('success')): ?>
-    <div style="background:#ecfdf5;border:1px solid #10b981;border-radius:16px;padding:16px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px;color:#065f46;font-weight:600;box-shadow:0 4px 12px rgba(16,185,129,0.1);animation:act-fadeIn 0.4s ease;">
-        <i class="ti ti-circle-check" style="font-size:1.4rem;"></i> <?= htmlspecialchars($msg) ?>
-    </div>
-    <?php endif; ?>
-    <?php if ($msg = Session::getFlash('error')): ?>
-    <div style="background:#fef2f2;border:1px solid #ef4444;border-radius:16px;padding:16px 24px;margin-bottom:24px;display:flex;align-items:center;gap:16px;color:#991b1b;font-weight:600;box-shadow:0 4px 12px rgba(239,68,68,0.1);animation:act-fadeIn 0.4s ease;">
-        <i class="ti ti-alert-circle" style="font-size:1.4rem;"></i> <?= htmlspecialchars($msg) ?>
-    </div>
-    <?php endif; ?>
 
     <?php
     // Estado visual del periodo
@@ -312,9 +322,9 @@
                             <a href="<?= URLROOT ?>/asistencias/almanaque/<?= (int)$p->id ?>" target="_blank" class="btn-p-acti btn-alm" title="Ver Almanaque Personal">
                                 <i class="ti ti-calendar-stats"></i> Almanaque
                             </a>
-                            <a href="<?= URLROOT ?>/periodos/reporteAsistencia/<?= (int)$p->id ?>" target="_blank" class="btn-p-acti btn-asis" title="Reporte Completo de Asistencias">
+                            <button type="button" onclick="abrirModalReporteAsist(<?= (int)$p->id ?>, '<?= addslashes($nombreCompl) ?>')" class="btn-p-acti btn-asis" title="Reporte de Asistencias por Trimestre">
                                 <i class="ti ti-file-analytics"></i> Reporte Asist.
-                            </a>
+                            </button>
                             <button type="button" onclick="generarConstancia(<?= (int)$p->id ?>, '<?= $p->estado_pasantia ?>', <?= $progreso ?>)" class="btn-p-acti btn-carta" title="Generar Constancia PDF">
                                 <i class="ti ti-file-certificate"></i> Constancia
                             </button>
@@ -345,6 +355,78 @@
 
     <div style="margin-bottom:60px;"></div>
 
+<!-- ── Modal: Reporte de Asistencia por Trimestre ─────────────────── -->
+<div id="modalReporteAsist" class="sgp-modal-overlay" onclick="if(event.target===this)cerrarModalReporte()">
+    <div class="sgp-modal" style="max-width:500px;">
+
+        <!-- Header idéntico al módulo de reportes -->
+        <div class="sgp-modal-header" style="padding:24px 28px;display:flex;justify-content:space-between;align-items:center;">
+            <div>
+                <h3 style="color:white;font-weight:800;font-size:1.2rem;margin:0;display:flex;align-items:center;gap:8px;">
+                    <i class="ti ti-file-analytics"></i> Reporte de Asistencias
+                </h3>
+                <p id="rptAsistNombre" style="color:rgba(255,255,255,0.72);font-size:0.85rem;margin:5px 0 0;"></p>
+            </div>
+            <button onclick="cerrarModalReporte()"
+                    style="background:rgba(255,255,255,0.15);border:none;color:rgba(255,255,255,0.8);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;transition:background 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div class="sgp-modal-body" style="padding:24px 28px;overflow-y:auto;">
+
+            <p style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:12px;">
+                Selección rápida por trimestre
+            </p>
+
+            <!-- 3 Trimestres en fila -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:8px;">
+                <label class="rpt-pill">
+                    <input type="radio" name="rptTrimestre" value="1" onchange="selTrimestre(1)">
+                    <i class="ti ti-calendar-event" style="font-size:0.85rem;"></i> Trimestre I
+                </label>
+                <label class="rpt-pill">
+                    <input type="radio" name="rptTrimestre" value="2" onchange="selTrimestre(2)">
+                    <i class="ti ti-calendar-event" style="font-size:0.85rem;"></i> Trimestre II
+                </label>
+                <label class="rpt-pill">
+                    <input type="radio" name="rptTrimestre" value="3" onchange="selTrimestre(3)">
+                    <i class="ti ti-calendar-event" style="font-size:0.85rem;"></i> Trimestre III
+                </label>
+            </div>
+            <!-- Período completo full-width -->
+            <div style="margin-bottom:22px;">
+                <label class="rpt-pill" id="rptPillCompleto" style="width:100%;justify-content:center;">
+                    <input type="radio" name="rptTrimestre" value="0" onchange="selTrimestre(0)" checked>
+                    <i class="ti ti-chart-bar" style="font-size:0.85rem;"></i> Período Completo
+                </label>
+            </div>
+
+            <p style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">
+                O define un rango personalizado
+            </p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+                <div>
+                    <label style="display:block;font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Desde</label>
+                    <input type="date" id="rptDesde" class="rpt-date-input">
+                </div>
+                <div>
+                    <label style="display:block;font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">Hasta</label>
+                    <input type="date" id="rptHasta" class="rpt-date-input">
+                </div>
+            </div>
+
+            <button onclick="generarReporteAsist()"
+                    style="width:100%;padding:14px;background:linear-gradient(135deg,#172554 0%,#2563eb 100%);color:white;border:none;border-radius:14px;font-size:0.95rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity 0.2s;"
+                    onmouseover="this.style.opacity='0.88'" onmouseout="this.style.opacity='1'">
+                <i class="ti ti-file-download"></i> Generar PDF
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- Formulario oculto para cerrar período y desactivar a todos -->
 <form id="formCerrarPeriodo" action="<?= URLROOT ?>/periodos/cerrar" method="POST" style="display:none;">
     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
@@ -352,9 +434,102 @@
 </form>
 
 <script>
+const PERIODO_ESTADO = '<?= htmlspecialchars($periodo->estado) ?>';
+const PERIODO_INICIO = '<?= $periodo->fecha_inicio ?>';
+const PERIODO_FIN    = '<?= $periodo->fecha_fin ?>';
 
+/* ── Modal: Reporte de Asistencia ────────────────────────────── */
+let _rptPasanteId = 0;
+
+function abrirModalReporteAsist(pasanteId, nombrePasante) {
+    _rptPasanteId = pasanteId;
+    document.getElementById('rptAsistNombre').textContent = nombrePasante;
+    // Resetear al período completo
+    document.querySelectorAll('input[name="rptTrimestre"]').forEach(r => r.checked = false);
+    document.querySelector('input[name="rptTrimestre"][value="0"]').checked = true;
+    document.getElementById('rptDesde').value = PERIODO_INICIO;
+    document.getElementById('rptHasta').value = PERIODO_FIN;
+    document.getElementById('modalReporteAsist').classList.add('active');
+}
+
+function cerrarModalReporte() {
+    document.getElementById('modalReporteAsist').classList.remove('active');
+}
+
+function selTrimestre(num) {
+    const inicio = new Date(PERIODO_INICIO + 'T00:00:00');
+    const fin    = new Date(PERIODO_FIN    + 'T00:00:00');
+    let desde, hasta;
+
+    if (num === 0) {
+        desde = PERIODO_INICIO;
+        hasta = PERIODO_FIN;
+    } else {
+        // Dividir el período en 3 trimestres iguales
+        const totalMs = fin.getTime() - inicio.getTime();
+        const trimMs  = totalMs / 3;
+        const dIni    = new Date(inicio.getTime() + (num - 1) * trimMs);
+        const dFin    = new Date(inicio.getTime() + num * trimMs - 86400000);
+        if (dFin > fin) dFin.setTime(fin.getTime());
+        desde = dIni.toISOString().slice(0, 10);
+        hasta = dFin.toISOString().slice(0, 10);
+    }
+
+    document.getElementById('rptDesde').value = desde;
+    document.getElementById('rptHasta').value = hasta;
+}
+
+function generarReporteAsist() {
+    const desde = document.getElementById('rptDesde').value;
+    const hasta = document.getElementById('rptHasta').value;
+    if (!desde || !hasta) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'Selecciona las fechas de inicio y fin.', showConfirmButton: false, timer: 2500 });
+        return;
+    }
+    if (hasta < desde) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'warning', title: 'La fecha final debe ser mayor o igual a la inicial.', showConfirmButton: false, timer: 2500 });
+        return;
+    }
+    window.open(`<?= URLROOT ?>/periodos/reporteAsistencia/${_rptPasanteId}?desde=${desde}&hasta=${hasta}`, '_blank');
+    cerrarModalReporte();
+}
+
+/* ── Constancia de Culminación ──────────────────────────────── */
+function generarConstancia(id, estadoPasantia, progreso) {
+    if (typeof Swal === 'undefined') return;
+
+    if (PERIODO_ESTADO !== 'Cerrado') {
+        Swal.fire({
+            title: 'Período Aún Activo',
+            html: '<p style="color:#64748b;font-size:0.95rem;">La constancia de culminación solo puede generarse cuando el período académico esté en estado <strong>Cerrado</strong>.<br><br>Finaliza el período primero desde la administración.</p>',
+            icon: 'info',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#2563eb',
+            customClass: { popup: 'sgp-swal-modal' },
+            didOpen: () => { document.querySelector('.swal2-popup').style.borderRadius = '20px'; }
+        });
+        return;
+    }
+
+    if (progreso < 100) {
+        Swal.fire({
+            title: 'Horas Incompletas',
+            html: `<p style="color:#64748b;font-size:0.95rem;">Este pasante solo tiene <strong>${progreso}%</strong> de sus horas completadas.<br><br>No se puede emitir la constancia de culminación hasta que haya alcanzado el <strong>100%</strong> de las horas requeridas.</p>`,
+            icon: 'warning',
+            confirmButtonText: 'Entendido',
+            confirmButtonColor: '#f59e0b',
+            customClass: { popup: 'sgp-swal-modal' },
+            didOpen: () => { document.querySelector('.swal2-popup').style.borderRadius = '20px'; }
+        });
+        return;
+    }
+
+    window.open('<?= URLROOT ?>/periodos/cartaCulminacion/' + id, '_blank');
+}
+
+/* ── Cerrar período desde la vista de detalle ───────────────── */
 function confirmarCerrarDesde(id, nombre, activosCount) {
-    if(typeof Swal === 'undefined') return;
+    if (typeof Swal === 'undefined') return;
 
     if (activosCount > 0) {
         Swal.fire({
@@ -388,7 +563,7 @@ function confirmarCerrarDesde(id, nombre, activosCount) {
 }
 
 function confirmarDesactivarIndividual(form, nombrePasante) {
-    if(typeof Swal === 'undefined') return;
+    if (typeof Swal === 'undefined') return;
     Swal.fire({
         title: 'Protección de Pasante',
         html: `<p style="color:#64748b;font-size:0.95rem;">¿De verdad deseas retirar el acceso al sistema a <strong>${nombrePasante}</strong> de forma prematura?<br><br>Esta acción cortará su actividad inmediatamente.</p>`,
@@ -400,36 +575,14 @@ function confirmarDesactivarIndividual(form, nombrePasante) {
         cancelButtonText: 'Cancelar',
         customClass: { popup: 'sgp-swal-modal' },
         didOpen: () => { document.querySelector('.swal2-popup').style.borderRadius = '20px'; }
-    }).then((result) => {
-        if (result.isConfirmed) {
-            form.submit();
-        }
+    }).then(result => {
+        if (result.isConfirmed) form.submit();
     });
 }
 
-function generarConstancia(id, estado, progreso) {
-    if(typeof Swal === 'undefined') return;
-    
-    if (estado !== 'Finalizado' && progreso < 100) {
-        Swal.fire({
-            title: 'Pasante no culminado',
-            html: `<p style="color:#64748b;font-size:0.95rem;">Este estudiante apenas tiene <strong>${progreso}%</strong> procesado en el sistema.<br>No se puede generar la constancia de culminación de las 1440 horas hasta que su ciclo haya finalizado legalmente.</p>`,
-            icon: 'warning',
-            confirmButtonText: 'Entendido',
-            confirmButtonColor: '#f59e0b',
-            customClass: { popup: 'sgp-swal-modal' },
-            didOpen: () => { document.querySelector('.swal2-popup').style.borderRadius = '20px'; }
-        });
-    } else {
-        window.open('<?= URLROOT ?>/periodos/cartaCulminacion/' + id, '_blank');
-    }
-}
-
-    }
-}
 function generarInformePeriodo(id, estado, event) {
     if (event) event.preventDefault();
-    if(typeof Swal === 'undefined') return;
+    if (typeof Swal === 'undefined') return;
 
     if (estado !== 'Cerrado') {
         Swal.fire({

@@ -288,9 +288,6 @@
                 </button>`;
             }
         }
-        actionsHtml += `<button class="sgp-btn-action sgp-btn-close-action" onclick="SGPModal.cerrar('ver')">
-            <i class="ti ti-x"></i> Cerrar
-        </button>`;
         actionsEl.innerHTML = actionsHtml;
     }
 

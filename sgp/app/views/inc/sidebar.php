@@ -165,6 +165,14 @@ function isActive($url) {
                     <span class="menu-text">Act. Extras</span>
                 </a>
             </li>
+            <li style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                <a href="<?= URLROOT ?>/ayuda"
+                   class="nav-link <?= isActive('/ayuda') ?>"
+                   data-tooltip="Manual de Usuario">
+                    <i class="ti ti-lifebuoy"></i>
+                    <span class="menu-text">Ayuda</span>
+                </a>
+            </li>
             <?php endif; ?>
 
             <?php if ($role == 'Tutor'): ?>

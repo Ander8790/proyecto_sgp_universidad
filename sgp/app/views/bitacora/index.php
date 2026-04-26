@@ -890,39 +890,152 @@ function traducir_tabla($tabla)
         chevron.style.transform = body.classList.contains('open') ? 'rotate(180deg)' : 'rotate(0deg)';
     }
 
-    function ejecutarMantenimiento() {
+    function ejecutarMantenimiento(skipConfirm = false) {
         const diasC = parseInt(document.getElementById('diasCriticos').value) || 365;
         const diasO = parseInt(document.getElementById('diasOperacion').value) || 90;
 
-        if (!confirm(`¿Ejecutar mantenimiento?\n\n• Acciones críticas: retener ${diasC} días\n• Acciones operacionales: retener ${diasO} días\n\nLos registros más antiguos se moverán al histórico.`)) return;
+        const realizarAccion = () => {
+            const btn = document.querySelector('.btn-purge');
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Procesando...';
 
-        const btn = document.querySelector('.btn-purge');
-        btn.disabled = true;
-        btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite"></i> Procesando...';
-
-        fetch(`<?= URLROOT ?>/bitacora/mantenimiento`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
-            body: new URLSearchParams({ dias_criticos: diasC, dias_operacion: diasO })
-        })
-            .then(r => r.json())
-            .then(data => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="ti ti-trash"></i> Ejecutar Mantenimiento';
-                if (data.success) {
-                    // Recargar la página para actualizar los KPI cards
-                    Swal?.fire({ icon: 'success', title: 'Mantenimiento completado', text: data.message, timer: 3000, showConfirmButton: false })
-                        .then(() => location.reload());
-                    if (!window.Swal) { alert(data.message); location.reload(); }
-                } else {
-                    (window.Swal ? Swal.fire({ icon: 'error', title: 'Error', text: data.message }) : alert('Error: ' + data.message));
-                }
+            fetch(`<?= URLROOT ?>/bitacora/mantenimiento`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                body: new URLSearchParams({ dias_criticos: diasC, dias_operacion: diasO })
             })
-            .catch(() => {
-                btn.disabled = false;
-                btn.innerHTML = '<i class="ti ti-trash"></i> Ejecutar Mantenimiento';
-                alert('Error de conexión al ejecutar el mantenimiento.');
-            });
+                .then(r => r.json())
+                .then(data => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ti ti-trash"></i> Ejecutar Mantenimiento';
+                    if (data.success) {
+                        Swal.fire({ 
+                            icon: 'success', 
+                            title: '¡Ciclo Completado!', 
+                            html: `
+                                <div style="color: #475569; font-size: 0.95rem; line-height: 1.6; margin-top: 10px;">
+                                    ${data.message}
+                                    <div style="margin-top: 15px; padding: 10px; background: #f0fdf4; border-radius: 10px; color: #16a34a; font-size: 0.85rem; font-weight: 600;">
+                                        <i class="ti ti-check"></i> Registros optimizados correctamente
+                                    </div>
+                                </div>
+                            `,
+                            timer: 4000, 
+                            showConfirmButton: false,
+                            timerProgressBar: true,
+                            customClass: { popup: 'sgp-swal-inactividad' },
+                            didOpen: () => { 
+                                const p = Swal.getPopup(); 
+                                if(p){ 
+                                    p.style.borderRadius='20px';
+                                    p.style.padding = '32px 28px 28px';
+                                    p.style.boxShadow = '0 25px 60px rgba(0,0,0,0.18), 0 8px 24px rgba(0,0,0,0.12)';
+                                } 
+                            }
+                        }).then(() => location.reload());
+                    } else {
+                        Swal.fire({ 
+                            icon: 'error', 
+                            title: 'Error de Ejecución', 
+                            html: `
+                                <div style="color: #475569; font-size: 0.95rem; line-height: 1.6; margin-top: 10px;">
+                                    ${data.message}
+                                    <div style="margin-top: 15px; padding: 12px; background: #fff1f2; border-radius: 10px; color: #e11d48; font-size: 0.82rem; border: 1px solid rgba(225,29,72,0.1);">
+                                        <i class="ti ti-alert-circle"></i> Verifique que las tablas de histórico estén inicializadas en la base de datos.
+                                    </div>
+                                </div>
+                            `,
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#1d4ed8',
+                            customClass: { popup: 'sgp-swal-inactividad' },
+                            didOpen: () => { 
+                                const p = Swal.getPopup(); 
+                                if(p){ 
+                                    p.style.borderRadius='20px';
+                                    p.style.padding = '32px 28px 28px';
+                                    p.style.boxShadow = '0 25px 60px rgba(0,0,0,0.18)';
+                                } 
+                            }
+                        });
+                    }
+                })
+                .catch(() => {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="ti ti-trash"></i> Ejecutar Mantenimiento';
+                    Swal.fire({ 
+                        icon: 'error', 
+                        title: 'Error de Red', 
+                        html: '<div style="color: #475569; font-size: 0.95rem;">No se pudo establecer conexión con el servidor de mantenimiento.</div>',
+                        confirmButtonText: 'Cerrar',
+                        confirmButtonColor: '#64748b',
+                        customClass: { popup: 'sgp-swal-inactividad' },
+                        didOpen: () => { 
+                            const p = Swal.getPopup(); 
+                            if(p){ p.style.borderRadius='20px'; p.style.padding = '32px 28px 28px'; } 
+                        }
+                    });
+                });
+        };
+
+        if (skipConfirm) {
+            realizarAccion();
+            return;
+        }
+
+        Swal.fire({
+            title: '¿Ejecutar Mantenimiento?',
+            html: `
+                <div style="text-align:left; font-size:0.92rem; color:#475569; line-height:1.6;">
+                    <p style="margin-bottom:12px;">Se procesará el ciclo de vida de los registros según los parámetros:</p>
+                    <ul style="list-style:none; padding-left:0; margin-bottom:18px;">
+                        <li style="margin-bottom:10px; display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; background:#eff6ff; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#2563eb; flex-shrink:0;">
+                                <i class="ti ti-shield-check" style="font-size:1.1rem;"></i>
+                            </div>
+                            <span>Acciones críticas: retener <strong>${diasC} días</strong></span>
+                        </li>
+                        <li style="display:flex; align-items:center; gap:12px;">
+                            <div style="width:32px; height:32px; background:#f0fdf4; border-radius:10px; display:flex; align-items:center; justify-content:center; color:#16a34a; flex-shrink:0;">
+                                <i class="ti ti-activity" style="font-size:1.1rem;"></i>
+                            </div>
+                            <span>Acciones operacionales: retener <strong>${diasO} días</strong></span>
+                        </li>
+                    </ul>
+                    <div style="background:#f8fafc; padding:14px; border-radius:12px; border:1px solid #e2e8f0; font-size:0.82rem; color:#64748b; display:flex; gap:10px; align-items:flex-start;">
+                        <i class="ti ti-info-circle" style="color:#3b82f6; font-size:1.2rem; margin-top:2px;"></i>
+                        <span>Los registros que superen estos períodos se moverán a la tabla de histórico antes de ser depurados de la tabla activa.</span>
+                    </div>
+                </div>
+            `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#1d4ed8',
+            cancelButtonColor: '#f1f5f9',
+            confirmButtonText: '✓ Ejecutar Ciclo de Vida',
+            cancelButtonText: 'Cancelar',
+            customClass: { 
+                popup: 'sgp-swal-inactividad',
+                confirmButton: 'sgp-swal-btn-confirm',
+                cancelButton: 'sgp-swal-btn-cancel'
+            },
+            didOpen: () => { 
+                const p = Swal.getPopup(); 
+                if(!p) return;
+                p.style.borderRadius='20px'; 
+                p.style.padding = '32px 28px 28px';
+                p.style.boxShadow = '0 25px 60px rgba(0,0,0,0.18)';
+                
+                // Estilizar botón cancelar igual que en el layout
+                const cB = Swal.getCancelButton();
+                if(cB) {
+                    cB.style.color = '#475569';
+                    cB.style.fontWeight = '500';
+                    cB.style.border = '1px solid #cbd5e1';
+                }
+            }
+        }).then(result => {
+            if (result.isConfirmed) realizarAccion();
+        });
     }
 
     function exportHistorico() {
@@ -948,7 +1061,7 @@ function traducir_tabla($tabla)
             // Calcular días
             const diasAntiguedad = meses * 30;
             document.getElementById('diasOperacion').value = diasAntiguedad;
-            ejecutarMantenimiento();
+            ejecutarMantenimiento(true); // Ejecutar directamente sin segundo modal
         });
     }
 

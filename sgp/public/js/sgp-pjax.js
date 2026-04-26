@@ -118,10 +118,13 @@
     /**
      * Re-ejecuta los scripts inline que vienen dentro del HTML cargado por PJAX.
      * Los scripts normales dentro de innerHTML no se ejecutan automáticamente.
+     * NOTA: Solo se procesan scripts SIN atributo src (inline).
+     * Los scripts externos (src) ya están cargados desde el layout inicial y
+     * re-crearlos causaría recargas asíncronas que dejan SGPModal/Choices undefined.
      * @param {HTMLElement} container
      */
     function execInlineScripts(container) {
-        const scripts = container.querySelectorAll('script');
+        const scripts = container.querySelectorAll('script:not([src])');
         scripts.forEach(function (oldScript) {
             const newScript = document.createElement('script');
             // Copiar atributos (type, src, etc.)

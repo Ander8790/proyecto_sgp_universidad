@@ -99,6 +99,13 @@ class PdfGenerator
         $pdf->SetAutoPageBreak(true, 15);
         $pdf->AddPage();
 
+        // ── Cintillo institucional ─────────────
+        $imgPath = $_SERVER['DOCUMENT_ROOT'] . '/proyecto_sgp/sgp/public/img/cintillo_isp_bolivar.jpg';
+        if (file_exists($imgPath)) {
+            $pdf->Image($imgPath, 15, 10, 180, 0, 'JPEG');
+            $pdf->Ln(22);
+        }
+
         // ── Encabezado del reporte ─────────────
         $pdf->SetFont('helvetica', 'B', 16);
         $pdf->SetTextColor(22, 38, 96); // Deep Azure
@@ -156,6 +163,17 @@ class PdfGenerator
      */
     public static function wrapHtml(string $body, string $titulo = 'Reporte SGP'): string
     {
+        $imgPath = $_SERVER['DOCUMENT_ROOT'] . '/proyecto_sgp/sgp/public/img/cintillo_isp_bolivar.jpg';
+        $cintillo = '';
+        if (file_exists($imgPath)) {
+            $b64 = base64_encode(file_get_contents($imgPath));
+            $cintillo = '<div style="width:100%;margin-bottom:16px;line-height:0;">'
+                      . '<img src="data:image/jpeg;base64,' . $b64 . '" style="width:100%;height:auto;display:block;" alt="Cintillo ISP Bolívar">'
+                      . '</div>';
+        } else {
+            $cintillo = '<div style="width:100%;padding:12px 20px;background:#162660;color:white;font-family:Helvetica,Arial,sans-serif;font-size:12pt;font-weight:bold;margin-bottom:16px;">Instituto de Salud Pública de Bolívar &nbsp;|&nbsp; SGP</div>';
+        }
+
         return <<<HTML
 <!DOCTYPE html>
 <html lang="es">
@@ -165,9 +183,6 @@ class PdfGenerator
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #1e293b; }
-  .header { background: #162660; color: white; padding: 20px 30px; margin-bottom: 20px; }
-  .header h1 { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-  .header p  { font-size: 11px; opacity: 0.8; }
   .section-title { font-size: 13px; font-weight: bold; color: #162660; border-left: 4px solid #162660; padding-left: 10px; margin: 16px 0 10px; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
   th { background: #162660; color: white; padding: 7px 10px; font-size: 10px; text-align: left; }
@@ -185,10 +200,7 @@ class PdfGenerator
 </style>
 </head>
 <body>
-  <div class="header">
-    <h1>SGP — Sistema de Gestión de Pasantes</h1>
-    <p>UPT Bolívar &nbsp;|&nbsp; {$titulo} &nbsp;|&nbsp; Generado: HTML</p>
-  </div>
+  {$cintillo}
   {$body}
   <div class="footer">Sistema de Gestión de Pasantes — UPT Bolívar — Documento generado el HTML</div>
 </body>

@@ -1,136 +1,312 @@
+<?php
+// ── Datos calculados ──────────────────────────────────────────────────────────
+$nombrePasante = mb_strtoupper(trim(($eval->nombres ?? '') . ' ' . ($eval->apellidos ?? '')));
+$cedula = htmlspecialchars($eval->cedula ?? '');
+$instNombre = htmlspecialchars($eval->inst_nombre ?? 'N/D');
+$departamento = htmlspecialchars($eval->departamento ?? 'N/D');
+$fechaEval = !empty($eval->fecha_evaluacion) ? date('d/m/Y', strtotime($eval->fecha_evaluacion)) : '—';
+
+$fechaInicio = !empty($eval->fecha_inicio_pasantia) ? date('d/m/Y', strtotime($eval->fecha_inicio_pasantia)) : '—';
+$fechaFin = !empty($eval->fecha_fin_estimada) ? date('d/m/Y', strtotime($eval->fecha_fin_estimada)) : '—';
+
+if (!empty($eval->fecha_inicio_pasantia) && !empty($eval->fecha_fin_estimada)) {
+    $dias = (int) ((strtotime($eval->fecha_fin_estimada) - strtotime($eval->fecha_inicio_pasantia)) / 86400);
+    $semanas = max(1, round($dias / 7));
+} elseif (!empty($eval->horas_meta)) {
+    $semanas = max(1, round((int) $eval->horas_meta / 40));
+} else {
+    $semanas = '—';
+}
+$duracion = is_numeric($semanas) ? $semanas . ' SEMANAS' : $semanas;
+$tutorNombre = mb_strtoupper(trim(($eval->tutor_nombres ?? '') . ' ' . ($eval->tutor_apellidos ?? '')));
+$tutorCargo = mb_strtoupper($eval->tutor_cargo ?? '');
+$tutorTel = htmlspecialchars($eval->tutor_tel ?? '');
+
+$prom = (float) ($eval->promedio_final ?? 0);
+if ($prom >= 4.5)
+    $resultado = 'EXCELENTE';
+elseif ($prom >= 3.5)
+    $resultado = 'MUY BUENO';
+elseif ($prom >= 2.5)
+    $resultado = 'BUENO';
+elseif ($prom >= 1.5)
+    $resultado = 'REGULAR';
+else
+    $resultado = 'DEFICIENTE';
+
+// Cintillo como Base64 con altura controlada
+$imgPath = $_SERVER['DOCUMENT_ROOT'] . '/proyecto_sgp/sgp/public/img/cintillo_isp_bolivar.jpg';
+$bCintillo = file_exists($imgPath) ? 'data:image/jpeg;base64,' . base64_encode(file_get_contents($imgPath)) : '';
+
+$criterios = [
+    'criterio_iniciativa' => ['Iniciativa', 'Demuestra interés para desenvolverse por si mismo en la Institución, estableciendo la colaboración necesaria. Tiene capacidad creadora, aporta ideas y sugerencias para el mejoramiento de las condiciones de trabajo y correcciones de fallas.'],
+    'criterio_interes' => ['Interés', 'Manifiesta interés y entusiasmo para aprender y asimilar nuevos conocimientos mediante el entrenamiento, se preocupa por presentar a tiempo las tareas o informes exigidos siguiendo las instrucciones recibidas.'],
+    'criterio_conocimiento' => ['Conocimiento de Trabajo', 'Su preparación educativa y formación técnica le permite aplicar en la práctica los conocimientos adquiridos de manera efectiva, tiene suficientes conocimientos básicos para comprender y resolver problemas en su área de trabajo.'],
+    'criterio_analisis' => ['Habilidad Analítica', 'Su razonamiento sobre problemas Técnicos son lógicos, sus opiniones censatas y correctas es efectivo en exponer soluciones adecuadas a circunstancias imprevistas en la empresa.'],
+    'criterio_comunicacion' => ['Comunicación', 'Tiene habilidad para exponer y razonar con propiedad sus conocimientos e ideas, sabe escuchar, su comunicación oral y escrita es clara, precisa y concisa.'],
+    'criterio_aprendizaje' => ['Habilidad de Aprendizaje', 'Tiene capacidad para aprender y entrenarse rápidamente, adquiere fácilmente los conocimientos sobre los procesos administrativos, procedimientos, instrumento y equipos de trabajo, adaptándose a ellos, siendo su actitud hacia la institución positiva.'],
+    'criterio_companerismo' => ['Compañerismo', 'Mantiene relaciones inter personales con sus compañeros y trabajadores de la empresa, en su trato es cortes y educado con los demás, muestra disposición para trabajar en grupo sin ser intransigente y obstaculizando.'],
+    'criterio_cooperacion' => ['Cooperación', 'Dispuesto a colaborar con sus compañeros de estudio y supervisores, espontáneamente, aun cuando no se le exige tratar de ser útil se puede contar con él para trabajo adicionales simples.'],
+    'criterio_puntualidad' => ['Puntualidad y Asistencia', 'Cumple con el horario normal de trabajo, rara vez llega con retraso, asiste con regularidad y falta solo por razones muy bien justificadas.'],
+    'criterio_presentacion' => ['Presentación del Trabajo', 'Cumple con los requisitos de Presentación exigidos por la Institución.'],
+    'criterio_desarrollo' => ['Desarrollo Analítico', 'El o los problemas están planteados de forma clara, precisa y objetiva que permiten captar los principios y técnicas de solución empleados en el trabajo.'],
+    'criterio_analisis_res' => ['Análisis de Resultados', 'Presenta el estudio realizado, una comparación acorde con los valores obtenidos.'],
+    'criterio_conclusiones' => ['Conclusiones', 'Cumple el trabajo con sus respectivas consecuencias y resultados al término del mismo.'],
+    'criterio_recomendacion' => ['Recomendación', 'Desarrolla razonamiento y consejo lógico acerca de los problemas analizados.'],
+];
+?>
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <style>
-        body { font-family: 'Helvetica', 'Arial', sans-serif; font-size: 10px; color: #333; line-height: 1.4; margin: 0; padding: 0; }
-        .header { text-align: center; border-bottom: 2px solid #162660; padding-bottom: 10px; margin-bottom: 20px; position: relative; }
-        .logo-placeholder { position: absolute; left: 0; top: 0; width: 60px; height: 60px; background: #f0f0f0; border: 1px dashed #ccc; }
-        .title { font-size: 14px; font-weight: bold; color: #162660; text-transform: uppercase; }
-        .subtitle { font-size: 11px; margin-top: 5px; color: #666; }
-        
-        .section-title { background: #f1f5f9; padding: 5px 10px; font-weight: bold; border: 1px solid #cbd5e1; margin-top: 15px; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #cbd5e1; padding: 6px 8px; text-align: left; }
-        th { background: #f8fafc; font-weight: bold; color: #162660; }
-        
-        .table-eval { margin-top: 20px; }
-        .table-eval th { text-align: center; font-size: 9px; }
-        .table-eval td { font-size: 9px; }
-        .col-score { width: 30px; text-align: center; font-weight: bold; font-size: 12px; }
-        
-        .info-grid { display: block; margin-top: 10px; }
-        .info-box { display: inline-block; width: 48%; vertical-align: top; margin-bottom: 10px; }
-        .label { font-weight: bold; color: #64748b; font-size: 8px; text-transform: uppercase; }
-        .value { border-bottom: 1px solid #e2e8f0; padding: 2px 0; font-size: 10px; min-height: 14px; }
-        
-        .footer-signatures { margin-top: 50px; }
-        .sig-box { display: inline-block; width: 30%; text-align: center; padding-top: 40px; border-top: 1px solid #000; margin: 0 1.5%; }
-        .sig-label { font-size: 8px; font-weight: bold; margin-top: 5px; }
-        
-        .page-break { page-break-after: always; }
+        @page {
+            size: A4 portrait;
+            margin: 1.5cm 1.5cm;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 9px;
+            color: #000;
+            line-height: 1.3;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Cintillo: ancho completo, altura proporcional controlada */
+        .cintillo {
+            width: 100%;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .cintillo img {
+            max-width: 100%;
+            height: 14mm;
+            object-fit: contain;
+        }
+
+        /* Títulos institucionales: serif para fidelidad al documento oficial */
+        .inst-titles {
+            text-align: center;
+            margin-bottom: 8px;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            line-height: 1.4;
+        }
+
+        .inst-titles .subtitulo {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 11px;
+            margin-top: 4px;
+            text-decoration: underline;
+            font-weight: bold;
+        }
+
+        /* Tablas */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+        }
+
+        td,
+        th {
+            border: 1px solid #000;
+            padding: 4px;
+            vertical-align: middle;
+            font-size: 8.5px;
+        }
+
+        /* Encabezado de sección (fila gris) */
+        .sec-hd td {
+            background: #d9d9d9;
+            font-weight: bold;
+            text-align: center;
+            font-size: 9px;
+            padding: 4px;
+        }
+
+        /* Columnas de calificación */
+        .th-cal {
+            width: 6%;
+            text-align: center;
+            font-size: 7.5px;
+            font-weight: bold;
+            padding: 3px 2px;
+            vertical-align: bottom;
+        }
+
+        .td-x {
+            width: 6%;
+            text-align: center;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px;
+        }
+
+        /* Filas de criterio */
+        .td-nombre {
+            width: 15%;
+            font-weight: bold;
+            font-size: 8.5px;
+            vertical-align: middle;
+            padding: 4px;
+        }
+
+        .td-desc {
+            font-size: 8px;
+            color: #111;
+            vertical-align: middle;
+            padding: 4px;
+            text-align: justify;
+        }
+
+        /* Firmas */
+        .firma-row td {
+            height: 30px;
+            vertical-align: bottom;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 3px 4px;
+        }
+
+        .firma-top td {
+            font-size: 8px;
+            padding: 3px 4px;
+            vertical-align: top;
+        }
     </style>
 </head>
+
 <body>
-    <div class="header">
-        <div class="title">Instituto de Salud Pública</div>
-        <div class="subtitle">Despacho del Director General | Gestión de Recursos Humanos</div>
-        <div class="subtitle" style="font-weight: bold; margin-top: 10px;">INSTRUMENTO DE EVALUACIÓN DEL PASANTE</div>
+
+    <!-- Cintillo reducido (altura fija 14mm) -->
+    <?php if ($bCintillo): ?>
+        <div class="cintillo">
+            <img src="<?= $bCintillo ?>" alt="Cintillo ISP Bolívar">
+        </div>
+    <?php else: ?>
+        <div style="width:100%;height:14mm;background:#162660;margin-bottom:3px;"></div>
+    <?php endif; ?>
+
+    <!-- Títulos institucionales -->
+    <div class="inst-titles">
+        DIRECCIÓN DE RECURSOS HUMANOS<br>
+        DIVISIÓN DE DESARROLLO DEL PERSONAL<br>
+        DEPARTAMENTO DE CAPACITACIÓN Y DESARROLLO ORGANIZACIONAL
+        <div class="subtitulo">Evaluación de Pasantías</div>
     </div>
 
-    <div class="section-title">I. Datos de Identificación</div>
-    <div class="info-grid">
-        <div class="info-box">
-            <div class="label">Nombres y Apellidos del Pasante</div>
-            <div class="value"><?= htmlspecialchars($eval->nombres . ' ' . $eval->apellidos) ?></div>
-        </div>
-        <div class="info-box" style="margin-left: 4%;">
-            <div class="label">Cédula de Identidad</div>
-            <div class="value"><?= htmlspecialchars($eval->cedula) ?></div>
-        </div>
-        <div class="info-box">
-            <div class="label">Departamento / Área de Adscripción</div>
-            <div class="value"><?= htmlspecialchars($eval->departamento) ?></div>
-        </div>
-        <div class="info-box" style="margin-left: 4%;">
-            <div class="label">Periodo Evaluado / Lapso Académico</div>
-            <div class="value"><?= htmlspecialchars($eval->lapso_academico ?: 'N/A') ?></div>
-        </div>
-        <div class="info-box">
-            <div class="label">Tutor Empresarial (ISP)</div>
-            <div class="value"><?= htmlspecialchars($eval->tutor_nombres . ' ' . $eval->tutor_apellidos) ?></div>
-        </div>
-        <div class="info-box" style="margin-left: 4%;">
-            <div class="label">Fecha de Evaluación</div>
-            <div class="value"><?= date('d/m/Y', strtotime($eval->fecha_evaluacion)) ?></div>
-        </div>
-    </div>
+    <!-- DATOS DEL PASANTE -->
+    <table>
+        <tr class="sec-hd">
+            <td colspan="4">Datos del Pasante</td>
+        </tr>
+        <tr>
+            <td style="width:38%;"><strong>Nombres y Apellido:</strong> <?= $nombrePasante ?></td>
+            <td style="width:28%;"><strong>Cédula de Identidad:</strong> V- <?= $cedula ?></td>
+            <td style="width:34%;"><strong>Tipo de Pasantía:</strong> REGULAR</td>
+        </tr>
+        <tr>
+            <td colspan="2"><strong>Instituto de Procedencia:</strong> <?= $instNombre ?></td>
+            <td><strong>Especialidad que Cursa:</strong></td>
+        </tr>
+        <tr>
+            <td style="width:18%;"><strong>Semestre o Año que Cursa:</strong></td>
+            <td><strong>Duración de Pasantías:</strong> <?= $duracion ?></td>
+            <td><strong>Lapso Evaluado:</strong> Desde: <?= $fechaInicio ?> Hasta: <?= $fechaFin ?></td>
+            <td style="width:20%;"><strong>Fecha de Evaluación:</strong> <?= $fechaEval ?></td>
+        </tr>
+    </table>
 
-    <div class="section-title">II. Criterios de Evaluación (Rango 1 - 5)</div>
-    <table class="table-eval">
+    <!-- DATOS DEL TUTOR -->
+    <table>
+        <tr class="sec-hd">
+            <td colspan="3">Datos del Tutor</td>
+        </tr>
+        <tr>
+            <td style="width:38%;"><strong>Nombres y Apellidos:</strong> <?= $tutorNombre ?></td>
+            <td style="width:34%;"><strong>Cargo:</strong> <?= $tutorCargo ?></td>
+            <td style="width:28%;"><strong>Extensión Telefónica:</strong> <?= $tutorTel ?></td>
+        </tr>
+        <tr>
+            <td><strong>Dirección:</strong> <?= $departamento ?></td>
+            <td><strong>División:</strong></td>
+            <td><strong>Departamento/ Coordinación/ Unidad:</strong></td>
+        </tr>
+    </table>
+
+    <!-- TABLA DE CRITERIOS -->
+    <table>
         <thead>
             <tr>
-                <th style="text-align: left;">Factores a Evaluar</th>
-                <th>1 (Def)</th>
-                <th>2 (Reg)</th>
-                <th>3 (Bue)</th>
-                <th>4 (MB)</th>
-                <th>5 (Exc)</th>
+                <td colspan="2" style="font-size:6.5px; padding:2px 4px;">
+                    A continuación mencionamos los factores considerados para evaluar el desempeño del pasante y la
+                    presentación del trabajo; para ello deber analizar cada factor y marcar con una equis (X) la casilla
+                    que define la actuación del evaluado.
+                </td>
+                <th class="th-cal">Excelente</th>
+                <th class="th-cal">Sobre<br>Promedio</th>
+                <th class="th-cal">Promedio</th>
+                <th class="th-cal">Bajo<br>Promedio</th>
+                <th class="th-cal">Deficiente</th>
             </tr>
         </thead>
         <tbody>
-            <?php 
-            $criterios = [
-                'Iniciativa y creatividad en las tareas' => 'criterio_iniciativa',
-                'Interés por aprender y superarse' => 'criterio_interes',
-                'Conocimiento técnico aplicado' => 'criterio_conocimiento',
-                'Capacidad de análisis de problemas' => 'criterio_analisis',
-                'Comunicación oral y escrita' => 'criterio_comunicacion',
-                'Rapidez de aprendizaje' => 'criterio_aprendizaje',
-                'Compañerismo y relaciones humanas' => 'criterio_companerismo',
-                'Cooperación con el equipo' => 'criterio_cooperacion',
-                'Puntualidad y asistencia' => 'criterio_puntualidad',
-                'Presentación personal y orden' => 'criterio_presentacion',
-                'Calidad en el desarrollo de actividades' => 'criterio_desarrollo',
-                'Análisis e interpretación de resultados' => 'criterio_analisis_res',
-                'Capacidad para llegar a conclusiones' => 'criterio_conclusiones',
-                'Habilidad para realizar recomendaciones' => 'criterio_recomendacion'
-            ];
-
-            foreach ($criterios as $label => $campo): ?>
+            <?php foreach ($criterios as $campo => [$label, $desc]):
+                $val = (int) ($eval->$campo ?? 0); ?>
                 <tr>
-                    <td><?= $label ?></td>
-                    <?php for($i=1; $i<=5; $i++): ?>
-                        <td class="col-score"><?= ($eval->$campo == $i) ? 'X' : '' ?></td>
+                    <td class="td-nombre"><?= $label ?></td>
+                    <td class="td-desc"><?= $desc ?></td>
+                    <?php for ($r = 5; $r >= 1; $r--): ?>
+                        <td class="td-x"><?= ($val === $r) ? 'X' : '' ?></td>
                     <?php endfor; ?>
                 </tr>
             <?php endforeach; ?>
-            <tr style="background: #f8fafc; font-weight: bold;">
-                <td style="text-align: right; font-size: 11px;">PROMEDIO FINAL DE DESEMPEÑO:</td>
-                <td colspan="5" style="text-align: center; font-size: 14px; color: #162660;"><?= number_format((float)$eval->promedio_final, 2) ?> / 5.00</td>
+            <tr>
+                <td colspan="2" style="padding:2px 4px; font-size:6.5px; vertical-align:top; height:12px;">
+                    <strong>Observaciones:</strong>
+                    <?= !empty($eval->observaciones) ? '&nbsp;' . htmlspecialchars($eval->observaciones) : '' ?>
+                </td>
+                <td colspan="5"
+                    style="text-align:right; padding:2px 4px; font-size:7px; font-weight:bold; vertical-align:bottom;">
+                    Resultado: <?= $resultado ?>
+                </td>
             </tr>
         </tbody>
     </table>
 
-    <div class="section-title">III. Observaciones del Tutor</div>
-    <div style="border: 1px solid #cbd5e1; padding: 10px; min-height: 80px; font-size: 10px; margin-top: 5px;">
-        <?= !empty($eval->observaciones) ? nl2br(htmlspecialchars($eval->observaciones)) : 'Sin observaciones adicionales por parte del tutor evaluador.' ?>
-    </div>
+    <!-- FIRMAS -->
+    <table style="margin-top:4px;">
+        <tr class="firma-top">
+            <td style="width:30%; border:1px solid #000;"><strong>Tutor Empresarial:</strong></td>
+            <td style="width:25%; border:1px solid #000;"><strong>Evaluado:</strong></td>
+            <td style="width:45%; border:1px solid #000;">División de Desarrollo de Personal<br>(Departamento de
+                Capacitación y Desarrollo Organizacional)</td>
+        </tr>
+        <tr class="firma-row">
+            <td style="border:1px solid #000;"><strong>Firma y Sello:</strong></td>
+            <td style="border:1px solid #000;"><strong>Firma y huella:</strong></td>
+            <td style="border:none; padding:0;">
+                <table style="border-collapse:collapse; width:100%;">
+                    <tr>
+                        <td
+                            style="border:1px solid #000; width:60%; height:18px; padding:1px 4px; font-size:6.5px; font-weight:bold; vertical-align:bottom;">
+                            <strong>Firma y Sello:</strong></td>
+                        <td
+                            style="border:1px solid #000; width:40%; padding:1px 4px; font-size:6.5px; font-weight:bold; vertical-align:bottom;">
+                            <strong>Fecha:</strong></td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
 
-    <div class="footer-signatures">
-        <div class="sig-box">
-            <div class="sig-label">Evaluador (Sello y Firma)</div>
-            <div style="font-size: 7px; margin-top: 10px;">Tutor Interno ISP</div>
-        </div>
-        <div class="sig-box">
-            <div class="sig-label">Pasante (Firma)</div>
-            <div style="font-size: 7px; margin-top: 10px;">Conformidad del Evaluado</div>
-        </div>
-        <div class="sig-box">
-            <div class="sig-label">Recursos Humanos</div>
-            <div style="font-size: 7px; margin-top: 10px;">Recepción Institucional</div>
-        </div>
-    </div>
 </body>
+
 </html>

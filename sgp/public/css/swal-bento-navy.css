@@ -109,7 +109,54 @@
     word-break: break-all !important;
 }
 
-/* Animación y Scrollbar */
+/* ── Toast Mode (flash messages & AJAX feedback) ───────────────────── */
+.swal2-toast.sgp-swal-toast {
+    border-radius: 14px !important;
+    padding: 14px 18px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+    border: 1px solid rgba(255,255,255,0.15) !important;
+    min-width: 280px !important;
+    max-width: 420px !important;
+}
+.swal2-toast.sgp-swal-toast .swal2-title {
+    font-size: .9rem !important;
+    font-weight: 600 !important;
+    color: #1e293b !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+.swal2-toast.sgp-swal-toast .swal2-icon {
+    width: 28px !important;
+    height: 28px !important;
+    margin: 0 10px 0 0 !important;
+    border-width: 2px !important;
+}
+.swal2-toast.sgp-swal-toast .swal2-icon .swal2-icon-content {
+    font-size: 1.1rem !important;
+}
+.swal2-toast.sgp-swal-toast .swal2-timer-progress-bar {
+    background: rgba(0,0,0,0.15) !important;
+    border-radius: 0 0 14px 14px !important;
+}
+/* Colores por tipo */
+.swal2-toast.sgp-swal-toast.swal2-icon-success {
+    background: linear-gradient(135deg,#f0fdf4,#ecfdf5) !important;
+    border-color: #bbf7d0 !important;
+}
+.swal2-toast.sgp-swal-toast.swal2-icon-error {
+    background: linear-gradient(135deg,#fff1f2,#fef2f2) !important;
+    border-color: #fecdd3 !important;
+}
+.swal2-toast.sgp-swal-toast.swal2-icon-warning {
+    background: linear-gradient(135deg,#fffbeb,#fef9c3) !important;
+    border-color: #fde68a !important;
+}
+.swal2-toast.sgp-swal-toast.swal2-icon-info {
+    background: linear-gradient(135deg,#eff6ff,#e0f2fe) !important;
+    border-color: #bae6fd !important;
+}
+
+/* ── Animación y Scrollbar ─────────────────────────────────────────── */
 @keyframes bell-wiggle {
   0%, 100% { transform: rotate(0deg); }
   25% { transform: rotate(15deg); }

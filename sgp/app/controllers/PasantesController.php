@@ -49,8 +49,8 @@ class PasantesController extends Controller
         $this->db->query("SELECT id, nombre FROM departamentos WHERE activo = 1 ORDER BY nombre ASC");
         $departamentos = $this->db->resultSet();
 
-        // Periodos académicos para el modal
-        $this->db->query("SELECT id, nombre, estado FROM periodos_academicos ORDER BY fecha_inicio DESC");
+        // Periodos académicos regulares (9 meses) para el modal de asignación
+        $this->db->query("SELECT id, nombre, estado FROM periodos_academicos WHERE tipo = 'Regular' ORDER BY fecha_inicio DESC");
         $periodos = $this->db->resultSet();
 
         // Tutores activos para el modal
@@ -63,15 +63,19 @@ class PasantesController extends Controller
         ");
         $tutores = $this->db->resultSet();
 
+        // Instituciones
+        $this->db->query("SELECT id, nombre FROM instituciones ORDER BY nombre ASC");
+        $instituciones = $this->db->resultSet();
+
         $this->view('pasantes/index', [
             'pasantes'     => $pasantes,
             'total'        => $total,
             'enCurso'      => $enCurso,
             'pendientes'   => $pendientes,
-            'culminados'   => $culminados,
             'departamentos'=> $departamentos,
             'tutores'      => $tutores,
             'periodos'     => $periodos,
+            'instituciones'=> $instituciones,
         ]);
     }
 
@@ -237,6 +241,174 @@ class PasantesController extends Controller
                 'message' => 'Error al actualizar el estado.'
             ]);
         }
+        exit;
+    }
+
+    /**
+     * AJAX: Obtener datos básicos de pasante
+     * GET /pasantes/obtenerDatosPersonales/{id}
+     */
+    public function obtenerDatosPersonales($id = 0): void
+    {
+        header('Content-Type: application/json');
+        $id = filter_var($id, FILTER_VALIDATE_INT);
+        if (!$id) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido']);
+            exit;
+        }
+
+        $this->db->query("
+            SELECT dp.nombres, dp.apellidos, dp.telefono,
+                   dpa.institucion_procedencia,
+                   CASE WHEN dpa.institucion_id IS NOT NULL THEN dpa.institucion_id
+                        WHEN dpa.institucion_procedencia REGEXP '^[0-9]+$' THEN CAST(dpa.institucion_procedencia AS UNSIGNED)
+                        ELSE NULL END AS institucion_id
+            FROM datos_personales dp
+            LEFT JOIN datos_pasante dpa ON dpa.usuario_id = dp.usuario_id
+            WHERE dp.usuario_id = :id
+        ");
+        $this->db->bind(':id', $id);
+        $data = $this->db->single();
+
+        $this->db->query("SELECT id, nombre FROM instituciones ORDER BY nombre ASC");
+        $instituciones = $this->db->resultSet();
+
+        if ($data) {
+            $data->instituciones_lista = $instituciones;
+            echo json_encode(['success' => true, 'data' => $data]);
+        } else {
+            echo json_encode(['success' => false, 'message' => 'No se encontraron datos']);
+        }
+        exit;
+    }
+
+    /**
+     * AJAX: Actualizar datos básicos de pasante
+     * POST /pasantes/actualizarDatos
+     */
+    public function actualizarDatos(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            exit;
+        }
+
+        // Requiere admin o tutor
+        $roleId = (int)Session::get('role_id');
+        if (!in_array($roleId, [1, 2])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Acceso denegado']);
+            exit;
+        }
+
+        $id        = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
+        $nombres   = trim($_POST['nombres'] ?? '');
+        $apellidos = trim($_POST['apellidos'] ?? '');
+        $telefono  = trim($_POST['telefono'] ?? '');
+        $institucion = filter_input(INPUT_POST, 'institucion', FILTER_VALIDATE_INT);
+
+        if (!$id || empty($nombres) || empty($apellidos)) {
+            echo json_encode(['success' => false, 'message' => 'Nombres y apellidos son obligatorios.']);
+            exit;
+        }
+
+        try {
+            $this->db->beginTransaction();
+
+            // 1. Actualizar datos_personales
+            $this->db->query("
+                UPDATE datos_personales
+                SET nombres = :nom, apellidos = :ape, telefono = :tel
+                WHERE usuario_id = :id
+            ");
+            $this->db->bind(':nom', $nombres);
+            $this->db->bind(':ape', $apellidos);
+            $this->db->bind(':tel', $telefono);
+            $this->db->bind(':id', $id);
+            // Execute returns bool, if row count is 0 it's still true.
+            $this->db->execute(); 
+
+            // 2. Actualizar institucion en datos_pasante
+            if ($institucion) {
+                $this->db->query("
+                    UPDATE datos_pasante 
+                    SET institucion_procedencia = :inst
+                    WHERE usuario_id = :id
+                ");
+                $this->db->bind(':inst', $institucion);
+                $this->db->bind(':id', $id);
+                $this->db->execute();
+            }
+
+            $this->db->commit();
+            AuditModel::log('UPDATE_PASANTE_DATA', "Pasante ID $id");
+
+            echo json_encode(['success' => true, 'message' => 'Datos actualizados correctamente.']);
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            error_log('[SGP-PASANTES] Error en actualizarDatos: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error interno al actualizar datos.']);
+        }
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // POST /pasantes/eliminar/ID — eliminación permanente con cascade
+    // ─────────────────────────────────────────────────────────────────
+    public function eliminar(int $id = 0): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . URLROOT . '/pasantes');
+            exit;
+        }
+
+        if (!Session::validateCsrfToken($_POST['_csrf'] ?? '')) {
+            Session::setFlash('error', 'Token de seguridad inválido.');
+            header('Location: ' . URLROOT . '/pasantes');
+            exit;
+        }
+
+        if ($id <= 0) {
+            Session::setFlash('error', 'ID de pasante inválido.');
+            header('Location: ' . URLROOT . '/pasantes');
+            exit;
+        }
+
+        $this->db->query("
+            SELECT u.id, u.cedula, dp.nombres, dp.apellidos
+            FROM usuarios u
+            LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
+            WHERE u.id = :id AND u.rol_id = 3 LIMIT 1
+        ");
+        $this->db->bind(':id', $id);
+        $pasante = $this->db->single();
+
+        if (!$pasante) {
+            Session::setFlash('error', 'El pasante no existe.');
+            header('Location: ' . URLROOT . '/pasantes');
+            exit;
+        }
+
+        $nombre = trim(($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? ''));
+
+        // Cascade delete
+        foreach ([
+            "DELETE FROM asistencias          WHERE pasante_id  = :id",
+            "DELETE FROM evaluaciones          WHERE pasante_id  = :id",
+            "DELETE FROM actividad_participantes WHERE usuario_id = :id",
+            "DELETE FROM datos_pasante         WHERE usuario_id  = :id",
+            "DELETE FROM datos_personales      WHERE usuario_id  = :id",
+            "DELETE FROM usuarios              WHERE id = :id AND rol_id = 3",
+        ] as $sql) {
+            $this->db->query($sql);
+            $this->db->bind(':id', $id);
+            $this->db->execute();
+        }
+
+        AuditModel::log('DELETE_PASANTE', 'usuarios', $id, ['nombre' => $nombre, 'tipo' => 'hard_delete']);
+        Session::setFlash('success', "Pasante \"{$nombre}\" eliminado permanentemente del sistema.");
+        header('Location: ' . URLROOT . '/pasantes');
         exit;
     }
 }

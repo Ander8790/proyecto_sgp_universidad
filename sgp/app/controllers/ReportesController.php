@@ -305,19 +305,20 @@ class ReportesController extends Controller
             $this->renderErrorPage('Datos incompletos', 'Debe seleccionar un pasante para generar la planilla.');
         }
 
-        // Obtener datos de la evaluación — LEFT JOINs para no fallar si el pasante
-        // no tiene departamento_id en usuarios o tutor sin datos_personales.
         $this->db->query("
             SELECT e.*,
                    dp.nombres, dp.apellidos, u.cedula,
-                   u.correo,
+                   COALESCE(inst.nombre, dpa.institucion_procedencia, 'N/D') AS inst_nombre,
                    COALESCE(d.nombre, 'N/D') AS departamento,
-                   t.nombres AS tutor_nombres, t.apellidos AS tutor_apellidos
+                   dpa.fecha_inicio_pasantia, dpa.fecha_fin_estimada, dpa.horas_meta,
+                   t.nombres AS tutor_nombres, t.apellidos AS tutor_apellidos,
+                   t.cargo AS tutor_cargo, t.telefono AS tutor_tel
             FROM evaluaciones e
             JOIN usuarios          u   ON u.id = e.pasante_id
             JOIN datos_personales  dp  ON dp.usuario_id = u.id
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
-            LEFT JOIN departamentos d   ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
+            LEFT JOIN departamentos d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN datos_personales t ON t.usuario_id = e.tutor_id
             WHERE e.pasante_id = :pid
             ORDER BY e.created_at DESC LIMIT 1

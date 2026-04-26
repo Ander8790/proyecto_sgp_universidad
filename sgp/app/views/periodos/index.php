@@ -196,17 +196,6 @@
 
 <div style="width:100%;max-width:1600px;margin:0 auto;padding:20px;" id="periodos-pjax-container">
 
-    <!-- ── Flash messages ───────────────────────────────────────── -->
-    <?php if ($msg = Session::getFlash('success')): ?>
-    <div style="background:#ecfdf5;border:1px solid #10b981;border-radius:12px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;color:#065f46;font-weight:600;animation:per-fadeIn .4s ease;">
-        <i class="ti ti-circle-check" style="font-size:1.2rem;"></i> <?= htmlspecialchars($msg) ?>
-    </div>
-    <?php endif; ?>
-    <?php if ($msg = Session::getFlash('error')): ?>
-    <div style="background:#fef2f2;border:1px solid #ef4444;border-radius:12px;padding:14px 20px;margin-bottom:24px;display:flex;align-items:center;gap:12px;color:#991b1b;font-weight:600;animation:per-fadeIn .4s ease;">
-        <i class="ti ti-alert-circle" style="font-size:1.2rem;"></i> <?= htmlspecialchars($msg) ?>
-    </div>
-    <?php endif; ?>
 
     <!-- ══════════════════════════════════════════════════════
          BANNER PREMIUM
@@ -308,6 +297,14 @@
             <div class="card-header-c" style="background:<?= $headBg ?>;">
                 <h4><?= htmlspecialchars($p->nombre) ?></h4>
                 <div style="display:flex;gap:8px;align-items:center;">
+                    <?php
+                    $tipoPer = $p->tipo ?? 'Regular';
+                    $tipoBg  = $tipoPer === 'Corto' ? '#fdf4ff' : '#eff6ff';
+                    $tipoColor = $tipoPer === 'Corto' ? '#7c3aed' : '#2563eb';
+                    ?>
+                    <span style="background:<?= $tipoBg ?>;color:<?= $tipoColor ?>;font-size:.68rem;font-weight:800;padding:2px 9px;border-radius:100px;text-transform:uppercase;letter-spacing:.5px;">
+                        <?= $tipoPer === 'Corto' ? '⚡ Corto' : '📚 Regular' ?>
+                    </span>
                     <span class="badge-estado <?= $badgeClass ?>">
                         <?php if ($est === 'activo'): ?><span class="pulsing-dot"></span><?php endif; ?>
                         <i class="ti <?= $estadoIcon ?>" style="display:<?= $est === 'activo' ? 'none' : 'inline-block' ?>;"></i>
@@ -356,12 +353,22 @@
                 <a href="<?= URLROOT ?>/periodos/ver/<?= $p->id ?>" class="btn-ver-full">
                     Ver Pasantías <i class="ti ti-arrow-right"></i>
                 </a>
-                <?php if (strtolower($est) === 'planificado'): ?>
-                <button title="Activar Período" onclick="confirmarActivar(<?= $p->id ?>, '<?= htmlspecialchars(addslashes($p->nombre)) ?>')" style="display:inline-flex; align-items:center; gap:6px; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; padding:0 14px; border-radius:20px; font-weight:700; font-size:0.85rem; cursor:pointer; transition:all 0.2s; white-space:nowrap;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
-                    <i class="ti ti-toggle-right" style="font-size:1.4rem;"></i> Activar
+                <?php if ($est === 'planificado'): ?>
+                <button title="Activar Período" onclick="confirmarActivar(<?= $p->id ?>, '<?= htmlspecialchars(addslashes($p->nombre)) ?>')" style="display:inline-flex;align-items:center;gap:6px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:0 14px;border-radius:20px;font-weight:700;font-size:.85rem;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'">
+                    <i class="ti ti-player-play" style="font-size:1.1rem;"></i> Activar
                 </button>
                 <?php endif; ?>
-                <?php if (strtolower($est) !== 'cerrado'): ?>
+                <?php if ($est === 'planificado' || $est === 'cerrado'): ?>
+                <button title="Eliminar Período" onclick="confirmarEliminarPeriodo(<?= $p->id ?>, '<?= htmlspecialchars(addslashes($p->nombre)) ?>', <?= (int)$p->total_pasantes ?>)" style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:0 12px;border-radius:20px;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+                    <i class="ti ti-trash" style="font-size:1rem;"></i> Eliminar
+                </button>
+                <?php endif; ?>
+                <?php if ($est === 'activo' || $est === 'planificado'): ?>
+                <button title="Cerrar Período" onclick="confirmarCerrar(<?= $p->id ?>, '<?= htmlspecialchars(addslashes($p->nombre)) ?>', <?= (int)$p->total_pasantes ?>)" style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;padding:0 12px;border-radius:20px;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
+                    <i class="ti ti-lock" style="font-size:1rem;"></i> Cerrar
+                </button>
+                <?php endif; ?>
+                <?php if ($est !== 'cerrado'): ?>
                 <button title="Editar Período" onclick="abrirModalEditar(<?= htmlspecialchars(json_encode([
                     'id'           => (int)$p->id,
                     'nombre'       => $p->nombre,
@@ -396,35 +403,98 @@
         <div class="modal-body" style="background:#f8fafc; padding:32px;">
             <form action="<?= URLROOT ?>/periodos/crear" method="POST" id="formCrearPeriodo">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf) ?>">
-                
+                <input type="hidden" name="tipo" id="nuevo_tipo" value="Regular">
+
+                <!-- Selector de tipo -->
+                <div style="margin-bottom:20px;">
+                    <p style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">Tipo de Período *</p>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div id="tipo-card-regular" onclick="seleccionarTipo('Regular')"
+                             style="cursor:pointer;padding:16px;border-radius:14px;border:2px solid #2563eb;background:#eff6ff;transition:all .2s;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                <div style="width:36px;height:36px;border-radius:10px;background:#2563eb;display:flex;align-items:center;justify-content:center;">
+                                    <i class="ti ti-school" style="color:white;font-size:1.1rem;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight:800;color:#1e293b;font-size:.9rem;">Regular</div>
+                                    <div style="font-size:.72rem;color:#64748b;">9 meses · Pasantía estándar</div>
+                                </div>
+                            </div>
+                            <div id="check-regular" style="text-align:right;font-size:.75rem;font-weight:700;color:#2563eb;">✔ Seleccionado</div>
+                        </div>
+                        <div id="tipo-card-corto" onclick="seleccionarTipo('Corto')"
+                             style="cursor:pointer;padding:16px;border-radius:14px;border:2px solid #e2e8f0;background:white;transition:all .2s;">
+                            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                <div style="width:36px;height:36px;border-radius:10px;background:#f3f4f6;display:flex;align-items:center;justify-content:center;">
+                                    <i class="ti ti-bolt" style="color:#7c3aed;font-size:1.1rem;"></i>
+                                </div>
+                                <div>
+                                    <div style="font-weight:800;color:#1e293b;font-size:.9rem;">Corto</div>
+                                    <div style="font-size:.72rem;color:#64748b;">3 meses · Actividades Extras</div>
+                                </div>
+                            </div>
+                            <div id="check-corto" style="text-align:right;font-size:.75rem;font-weight:700;color:#94a3b8;">Seleccionar</div>
+                        </div>
+                    </div>
+                </div>
+
                 <div style="background:white; padding:24px; border-radius:16px; border:1px solid #e2e8f0; margin-bottom:20px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.02);">
                     <div class="form-group">
-                        <label class="form-label" style="color:#64748b; font-size:0.75rem;">Nombre del Período / Cohorte *</label>
+                        <label class="form-label" style="color:#64748b; font-size:0.75rem;">Nombre del Período / Cohorte * <span class="sgp-tip" data-tip="Nombre que identifica al cohorte. Aparece en constancias y reportes. Ej: Cohorte Médica 2026-I. Máx. 100 caracteres.">?</span></label>
                         <input type="text" name="nombre" class="form-input" placeholder="Ej: Cohorte Médica 2026-I" required maxlength="100" style="border:none; border-bottom:2px solid #e2e8f0; border-radius:0; background:transparent; padding:8px 0; font-size:1.1rem; box-shadow:none;">
                     </div>
                     <div class="form-group" style="margin-bottom:0;">
-                        <label class="form-label" style="color:#64748b; font-size:0.75rem; margin-top:16px;">Descripción de Referencia</label>
+                        <label class="form-label" style="color:#64748b; font-size:0.75rem; margin-top:16px;">Descripción de Referencia <span class="sgp-tip" data-tip="Notas internas sobre el período. No aparece en PDFs ni constancias generadas para el pasante.">?</span></label>
                         <textarea name="descripcion" class="form-input" rows="2" style="resize:vertical; border:none; background:#f1f5f9; border-radius:12px; margin-top:4px;" placeholder="Agrega notas sobre este período..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Estado inicial -->
+                <div style="margin-bottom:20px;">
+                    <p style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;">Estado Inicial *</p>
+                    <input type="hidden" name="estado_inicial" id="nuevo_estado_inicial" value="Planificado">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <div id="estado-card-plan" onclick="seleccionarEstadoInicial('Planificado')"
+                             style="cursor:pointer;padding:14px 16px;border-radius:14px;border:2px solid #f59e0b;background:#fffbeb;transition:all .2s;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                <i class="ti ti-clock-pause" style="color:#b45309;font-size:1.1rem;"></i>
+                                <span style="font-weight:800;color:#1e293b;font-size:.88rem;">Planificado</span>
+                            </div>
+                            <div style="font-size:.72rem;color:#92400e;">Creado sin activar · Lo activas después</div>
+                            <div id="check-estado-plan" style="text-align:right;font-size:.72rem;font-weight:700;color:#b45309;margin-top:4px;">✔ Seleccionado</div>
+                        </div>
+                        <div id="estado-card-activo" onclick="seleccionarEstadoInicial('Activo')"
+                             style="cursor:pointer;padding:14px 16px;border-radius:14px;border:2px solid #e2e8f0;background:white;transition:all .2s;">
+                            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                                <i class="ti ti-player-play" style="color:#059669;font-size:1.1rem;"></i>
+                                <span style="font-weight:800;color:#1e293b;font-size:.88rem;">Activo</span>
+                            </div>
+                            <div style="font-size:.72rem;color:#64748b;">Se activa inmediatamente al crear</div>
+                            <div id="check-estado-activo" style="text-align:right;font-size:.72rem;font-weight:700;color:#94a3b8;margin-top:4px;">Seleccionar</div>
+                        </div>
+                    </div>
+                    <div id="aviso-estado-activo" style="display:none;margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:.78rem;color:#b91c1c;">
+                        <i class="ti ti-alert-triangle" style="margin-right:5px;"></i>
+                        Al activar de inmediato, cualquier período del mismo tipo que esté activo quedará <strong>cerrado</strong> automáticamente.
                     </div>
                 </div>
 
                 <div style="background:white; padding:24px; border-radius:16px; border:1px solid #e2e8f0; margin-bottom:24px; box-shadow:0 4px 6px -1px rgba(0,0,0,0.02);">
                     <h4 style="margin:0 0 16px; color:#1e293b; font-size:0.95rem; display:flex; align-items:center; gap:8px;"><i class="ti ti-clock-play" style="color:#2563eb;"></i> Timeline de Pasantía</h4>
                     <div class="form-group">
-                        <label class="form-label" style="color:#64748b; font-size:0.75rem;">Selecciona la Fecha de Inicio *</label>
+                        <label class="form-label" style="color:#64748b; font-size:0.75rem;">Selecciona la Fecha de Inicio * <span class="sgp-tip" data-tip="Fecha desde la cual comienzan las pasantías. Todos los cálculos de asistencia parten de este día. La fecha de fin se calcula automáticamente.">?</span></label>
                         <input type="date" id="nuevo_fecha_inicio" name="fecha_inicio" class="form-input" required style="border-width:2px; padding:10px 14px;">
                     </div>
-                    
+
                     <div style="margin-top:16px; padding:16px; background:#eff6ff; border:1px dashed #bfdbfe; border-radius:12px; display:flex; justify-content:space-between; align-items:center;">
                         <div>
-                            <span style="display:block; font-size:0.75rem; font-weight:700; color:#1d4ed8; text-transform:uppercase; margin-bottom:4px;">Cierre Automático (8 Meses)</span>
+                            <span id="label_tipo_duracion" style="display:block; font-size:0.75rem; font-weight:700; color:#1d4ed8; text-transform:uppercase; margin-bottom:4px;">Cierre Automático (9 Meses)</span>
                             <span id="label_calculo_fin" style="font-weight:700; color:#1e3a8a; font-size:1.1rem; letter-spacing:-0.5px;">Selecciona inicio...</span>
                         </div>
                         <div style="width:40px; height:40px; border-radius:50%; background:#dbeafe; color:#2563eb; display:flex; justify-content:center; align-items:center;">
                             <i class="ti ti-calendar-check" style="font-size:1.3rem;"></i>
                         </div>
                     </div>
-                    <!-- Endpoint espera fecha_fin. Oculto para que el usuario no lo manipule UX. -->
                     <input type="hidden" id="nuevo_fecha_fin" name="fecha_fin" required>
                 </div>
 
@@ -566,28 +636,107 @@ function abrirModalEditar(data) {
 }
 function cerrarModalEditar() { document.getElementById('modalEditarPeriodo').classList.remove('active'); }
 
-// Autocalculate 8 months
+// Calculadora dinámica por tipo
 const nuevoInicio = document.getElementById('nuevo_fecha_inicio');
-const nuevoFin = document.getElementById('nuevo_fecha_fin');
-const labelFin = document.getElementById('label_calculo_fin');
+const nuevoFin    = document.getElementById('nuevo_fecha_fin');
+const labelFin    = document.getElementById('label_calculo_fin');
+const labelDur    = document.getElementById('label_tipo_duracion');
+let   tipoActual  = 'Regular';
 
-function calcularOchoMeses(e) {
-    if (e.target.value) {
-        let d = new Date(e.target.value + 'T12:00:00'); // Evitar zona horaria
-        d.setMonth(d.getMonth() + 8);
-        let y = d.getFullYear();
-        let m = String(d.getMonth() + 1).padStart(2, '0');
-        let dd = String(d.getDate()).padStart(2, '0');
-        nuevoFin.value = `${y}-${m}-${dd}`;
-        
-        let mesText = d.toLocaleString('es-ES', { month: 'long' });
-        labelFin.innerHTML = `${d.getDate()} de ${mesText} de ${y}`;
+function seleccionarTipo(tipo) {
+    tipoActual = tipo;
+    document.getElementById('nuevo_tipo').value = tipo;
+
+    const cardR  = document.getElementById('tipo-card-regular');
+    const cardC  = document.getElementById('tipo-card-corto');
+    const checkR = document.getElementById('check-regular');
+    const checkC = document.getElementById('check-corto');
+
+    if (tipo === 'Regular') {
+        cardR.style.border = '2px solid #2563eb'; cardR.style.background = '#eff6ff';
+        cardC.style.border = '2px solid #e2e8f0'; cardC.style.background = 'white';
+        checkR.textContent = '✔ Seleccionado'; checkR.style.color = '#2563eb';
+        checkC.textContent = 'Seleccionar';      checkC.style.color = '#94a3b8';
+        if (labelDur) labelDur.textContent = 'Cierre Automático (9 Meses)';
+    } else {
+        cardC.style.border = '2px solid #7c3aed'; cardC.style.background = '#fdf4ff';
+        cardR.style.border = '2px solid #e2e8f0'; cardR.style.background = 'white';
+        checkC.textContent = '✔ Seleccionado'; checkC.style.color = '#7c3aed';
+        checkR.textContent = 'Seleccionar';      checkR.style.color = '#94a3b8';
+        if (labelDur) labelDur.textContent = 'Cierre Automático (3 Meses)';
+    }
+    calcularFechaFin();
+}
+
+function calcularFechaFin() {
+    const val = nuevoInicio ? nuevoInicio.value : '';
+    if (!val) return;
+    const meses = (tipoActual === 'Corto') ? 3 : 9;
+    let d = new Date(val + 'T12:00:00');
+    d.setMonth(d.getMonth() + meses);
+    const y  = d.getFullYear();
+    const m  = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    nuevoFin.value = `${y}-${m}-${dd}`;
+    const mesText = d.toLocaleString('es-ES', { month: 'long' });
+    if (labelFin) labelFin.innerHTML = `${d.getDate()} de ${mesText} de ${y}`;
+}
+
+if (nuevoInicio) {
+    nuevoInicio.addEventListener('change', calcularFechaFin);
+    nuevoInicio.addEventListener('input',  calcularFechaFin);
+}
+
+function seleccionarEstadoInicial(estado) {
+    document.getElementById('nuevo_estado_inicial').value = estado;
+    const cPlan   = document.getElementById('estado-card-plan');
+    const cActivo = document.getElementById('estado-card-activo');
+    const chkPlan = document.getElementById('check-estado-plan');
+    const chkAct  = document.getElementById('check-estado-activo');
+    const aviso   = document.getElementById('aviso-estado-activo');
+    if (estado === 'Activo') {
+        cActivo.style.border = '2px solid #059669'; cActivo.style.background = '#f0fdf4';
+        cPlan.style.border   = '2px solid #e2e8f0'; cPlan.style.background   = 'white';
+        chkAct.textContent   = '✔ Seleccionado'; chkAct.style.color = '#059669';
+        chkPlan.textContent  = 'Seleccionar';    chkPlan.style.color = '#94a3b8';
+        aviso.style.display  = 'block';
+    } else {
+        cPlan.style.border   = '2px solid #f59e0b'; cPlan.style.background   = '#fffbeb';
+        cActivo.style.border = '2px solid #e2e8f0'; cActivo.style.background = 'white';
+        chkPlan.textContent  = '✔ Seleccionado'; chkPlan.style.color = '#b45309';
+        chkAct.textContent   = 'Seleccionar';    chkAct.style.color  = '#94a3b8';
+        aviso.style.display  = 'none';
     }
 }
 
-if(nuevoInicio) {
-    nuevoInicio.addEventListener('change', calcularOchoMeses);
-    nuevoInicio.addEventListener('input', calcularOchoMeses);
+async function confirmarCerrar(id, nombre, totalPasantes) {
+    const tienePasantes = totalPasantes > 0;
+    const html = tienePasantes
+        ? `Este período tiene <b>${totalPasantes} pasante(s) activos</b>. Al cerrarlo, sus pasantías quedarán como <b>Finalizado</b> y sus cuentas serán deshabilitadas.<br><br>¿Deseas proceder de todas formas?`
+        : `El período <b>"${nombre}"</b> no tiene pasantes activos. Se cerrará de forma segura.`;
+
+    const result = await Swal.fire({
+        title: `¿Cerrar "${nombre}"?`,
+        html,
+        icon: tienePasantes ? 'warning' : 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: tienePasantes ? '<i class="ti ti-lock"></i> Sí, forzar cierre' : '<i class="ti ti-lock"></i> Cerrar período',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+    });
+    if (!result.isConfirmed) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '<?= URLROOT ?>/periodos/cerrar';
+    const addInput = (n, v) => { const i = document.createElement('input'); i.type='hidden'; i.name=n; i.value=v; form.appendChild(i); };
+    addInput('periodo_id', id);
+    addInput('forzar', '1');
+    addInput('csrf_token', '<?= htmlspecialchars($csrf) ?>');
+    document.body.appendChild(form);
+    form.submit();
 }
 
 function confirmarActivar(id, nombre) {
@@ -706,4 +855,33 @@ document.getElementById('inputBuscarHist').addEventListener('input', function() 
             });
     }, 450);
 });
+
+function confirmarEliminarPeriodo(id, nombre, totalPasantes) {
+    if (typeof Swal === 'undefined') return;
+    const tienePasantes = totalPasantes > 0;
+    const extraMsg = tienePasantes
+        ? `<br><br><span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;display:inline-block;font-size:.85rem;">⚠ Este período tiene <strong>${totalPasantes} pasante(s)</strong> asignado(s). Quedarán sin período asignado.</span>`
+        : '';
+    Swal.fire({
+        title: '¿Eliminar período?',
+        html: `<p style="color:#64748b;font-size:.95rem;">Vas a eliminar permanentemente el período <strong>${nombre}</strong>.${extraMsg}<br><br>Esta acción <strong>no se puede deshacer</strong>.</p>`,
+        icon: tienePasantes ? 'error' : 'warning',
+        showCancelButton: true,
+        confirmButtonText: '<i class="ti ti-trash"></i> Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        customClass: { popup: 'sgp-swal-modal' },
+        didOpen: () => { document.querySelector('.swal2-popup').style.borderRadius = '20px'; }
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `<?= URLROOT ?>/periodos/eliminar/${id}`;
+        const addInput = (n, v) => { const i = document.createElement('input'); i.type='hidden'; i.name=n; i.value=v; form.appendChild(i); };
+        addInput('csrf_token', '<?= htmlspecialchars($csrf) ?>');
+        document.body.appendChild(form);
+        form.submit();
+    });
+}
 </script>

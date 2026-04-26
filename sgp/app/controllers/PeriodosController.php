@@ -188,6 +188,7 @@ class PeriodosController extends Controller
         $descripcion = trim($_POST['descripcion'] ?? '');
         $fechaInicio = trim($_POST['fecha_inicio'] ?? '');
         $fechaFin    = trim($_POST['fecha_fin']    ?? '');
+        $tipo        = in_array($_POST['tipo'] ?? '', ['Regular', 'Corto']) ? $_POST['tipo'] : 'Regular';
 
         if (empty($nombre) || empty($fechaInicio) || empty($fechaFin)) {
             Session::setFlash('error', 'Nombre, fecha de inicio y fecha fin son obligatorios.');
@@ -201,19 +202,47 @@ class PeriodosController extends Controller
             exit;
         }
 
+        // Estado inicial: Planificado o Activo (si el admin quiere activarlo de inmediato)
+        $estadoInicial = ($_POST['estado_inicial'] ?? '') === 'Activo' ? 'Activo' : 'Planificado';
+
+        // Validar unicidad: no puede haber otro período del mismo tipo en estado Planificado o Activo
+        $this->db->query("
+            SELECT COUNT(*) AS total FROM periodos_academicos
+            WHERE tipo = :tipo AND estado IN ('Planificado','Activo')
+        ");
+        $this->db->bind(':tipo', $tipo);
+        $existe = $this->db->single();
+        if ((int)($existe->total ?? 0) > 0) {
+            Session::setFlash('error', "Ya existe un período de tipo «{$tipo}» activo o planificado. Ciérralo antes de crear uno nuevo.");
+            header('Location: ' . URLROOT . '/periodos');
+            exit;
+        }
+
+        // Si se activa de inmediato, cerrar cualquier activo del mismo tipo primero
+        if ($estadoInicial === 'Activo') {
+            $this->db->query("UPDATE periodos_academicos SET estado = 'Cerrado' WHERE tipo = :tipo AND estado = 'Activo'");
+            $this->db->bind(':tipo', $tipo);
+            $this->db->execute();
+        }
+
         $this->db->query("
             INSERT INTO periodos_academicos
-                (nombre, descripcion, fecha_inicio, fecha_fin, estado)
+                (nombre, tipo, descripcion, fecha_inicio, fecha_fin, estado)
             VALUES
-                (:nombre, :descripcion, :fecha_inicio, :fecha_fin, 'Planificado')
+                (:nombre, :tipo, :descripcion, :fecha_inicio, :fecha_fin, :estado)
         ");
         $this->db->bind(':nombre',       $nombre);
+        $this->db->bind(':tipo',         $tipo);
         $this->db->bind(':descripcion',  $descripcion ?: null);
         $this->db->bind(':fecha_inicio', $fechaInicio);
         $this->db->bind(':fecha_fin',    $fechaFin);
+        $this->db->bind(':estado',       $estadoInicial);
 
         if ($this->db->execute()) {
-            Session::setFlash('success', 'Período académico creado exitosamente.');
+            $msg = $estadoInicial === 'Activo'
+                ? 'Período académico creado y activado correctamente.'
+                : 'Período académico creado en estado Planificado.';
+            Session::setFlash('success', $msg);
         } else {
             Session::setFlash('error', 'Error al crear el período. Intenta de nuevo.');
         }
@@ -255,7 +284,7 @@ class PeriodosController extends Controller
         $this->db->bind(':id', $id);
         $check = $this->db->single();
 
-        if (!$check || $check->estado === 'Cerrado') {
+        if (!$check || strtolower($check->estado) === 'cerrado') {
             Session::setFlash('error', 'No se puede editar un período cerrado.');
             header('Location: ' . URLROOT . '/periodos');
             exit;
@@ -316,12 +345,28 @@ class PeriodosController extends Controller
         }
 
         // Verificar que existe y no está ya cerrado
-        $this->db->query("SELECT id, estado FROM periodos_academicos WHERE id = :id LIMIT 1");
+        $this->db->query("SELECT id, nombre, estado FROM periodos_academicos WHERE id = :id LIMIT 1");
         $this->db->bind(':id', $id);
         $periodo = $this->db->single();
 
         if (!$periodo || $periodo->estado === 'Cerrado') {
             Session::setFlash('error', 'El período ya está cerrado o no existe.');
+            header('Location: ' . URLROOT . '/periodos');
+            exit;
+        }
+
+        // Validar: no cerrar si hay pasantes con pasantía activa
+        $this->db->query("
+            SELECT COUNT(*) AS total FROM datos_pasante
+            WHERE periodo_id = :pid AND estado_pasantia = 'Activo'
+        ");
+        $this->db->bind(':pid', $id);
+        $activos = (int)($this->db->single()->total ?? 0);
+
+        $forzar = ($_POST['forzar'] ?? '') === '1';
+
+        if ($activos > 0 && !$forzar) {
+            Session::setFlash('error', "El período «{$periodo->nombre}» tiene {$activos} pasante(s) con pasantía activa. Usa el botón «Forzar cierre» si deseas cerrarlo de todas formas.");
             header('Location: ' . URLROOT . '/periodos');
             exit;
         }
@@ -385,7 +430,7 @@ class PeriodosController extends Controller
         $this->db->bind(':id', $periodoId);
         $periodo = $this->db->single();
 
-        if (!$periodo || $periodo->estado === 'Cerrado') {
+        if (!$periodo || strtolower($periodo->estado) === 'cerrado') {
             Session::setFlash('error', 'No se puede asignar pasantes a un período cerrado.');
             header('Location: ' . URLROOT . '/periodos/ver/' . $periodoId);
             exit;
@@ -590,7 +635,7 @@ class PeriodosController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────
-    // GET /periodos/reporteAsistencia/PASANTE_ID — PDF asistencias
+    // GET /periodos/reporteAsistencia/PASANTE_ID?desde=Y-m-d&hasta=Y-m-d
     // ─────────────────────────────────────────────────────────────────
     public function reporteAsistencia(int $pasanteId = 0): void
     {
@@ -600,12 +645,23 @@ class PeriodosController extends Controller
         }
 
         $this->db->query("
-            SELECT dp.nombres, dp.apellidos, u.cedula, d.nombre AS departamento
+            SELECT
+                dp.nombres, dp.apellidos, u.cedula,
+                d.nombre  AS departamento,
+                inst.nombre AS institucion,
+                dpa.horas_meta, dpa.horas_acumuladas,
+                dpa.estado_pasantia,
+                pa.nombre AS periodo_nombre,
+                pa.fecha_inicio AS periodo_inicio,
+                pa.fecha_fin    AS periodo_fin
             FROM usuarios u
-            LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
-            LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
-            LEFT JOIN departamentos d ON d.id = dpa.departamento_asignado_id
+            LEFT JOIN datos_personales  dp  ON dp.usuario_id  = u.id
+            LEFT JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos     d   ON d.id  = dpa.departamento_asignado_id
+            LEFT JOIN instituciones     inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN periodos_academicos pa ON pa.id  = dpa.periodo_id
             WHERE u.id = :uid AND u.rol_id = 3
+            LIMIT 1
         ");
         $this->db->bind(':uid', $pasanteId);
         $pasante = $this->db->single();
@@ -615,45 +671,155 @@ class PeriodosController extends Controller
             exit;
         }
 
+        // Rango de fechas (GET params, con fallback al período completo)
+        $desde = trim($_GET['desde'] ?? '');
+        $hasta = trim($_GET['hasta'] ?? '');
+
+        if (empty($desde) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $desde)) {
+            $desde = $pasante->periodo_inicio ?? date('Y-01-01');
+        }
+        if (empty($hasta) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $hasta)) {
+            $hasta = $pasante->periodo_fin ?? date('Y-12-31');
+        }
+
         $this->db->query("
             SELECT fecha, hora_registro, estado, metodo, motivo_justificacion
             FROM asistencias
             WHERE pasante_id = :uid
+              AND fecha BETWEEN :desde AND :hasta
             ORDER BY fecha ASC, hora_registro ASC
         ");
-        $this->db->bind(':uid', $pasanteId);
+        $this->db->bind(':uid',   $pasanteId);
+        $this->db->bind(':desde', $desde);
+        $this->db->bind(':hasta', $hasta);
         $asistencias = $this->db->resultSet();
+
+        // Estadísticas del rango
+        $totalRegistros = count($asistencias);
+        $totalPresentes = 0;
+        $totalAusentes  = 0;
+        $totalJustif    = 0;
+        foreach ($asistencias as $a) {
+            if ($a->estado === 'Presente' || $a->estado === 'Tardanza') $totalPresentes++;
+            elseif ($a->estado === 'Justificado') $totalJustif++;
+            else $totalAusentes++;
+        }
+        $pctAsist = $totalRegistros > 0 ? round(($totalPresentes / $totalRegistros) * 100) : 0;
 
         require_once '../app/lib/PdfGenerator.php';
         $pdf = new PdfGenerator();
 
-        $nombre = htmlspecialchars(($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? ''));
-        $html = '<h2 style="text-align:center; color:#1e3a8a;">Reporte de Asistencias</h2>';
-        $html .= '<p><strong>Pasante:</strong> ' . $nombre . '<br>';
-        $html .= '<strong>Cédula:</strong> ' . htmlspecialchars($pasante->cedula ?? '') . '<br>';
-        $html .= '<strong>Departamento:</strong> ' . htmlspecialchars($pasante->departamento ?? 'Sin Asignar') . '</p>';
+        $cintillo_path = $_SERVER['DOCUMENT_ROOT'] . '/proyecto_sgp/sgp/public/img/cintillo_isp_bolivar.jpg';
+        if (!function_exists('imgToBase64')) {
+            function imgToBase64(string $path): string {
+                static $cache = [];
+                if (isset($cache[$path])) return $cache[$path];
+                if (file_exists($path)) {
+                    $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+                    $mime = ($ext === 'jpg') ? 'jpeg' : $ext;
+                    $cache[$path] = 'data:image/' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+                    return $cache[$path];
+                }
+                return $cache[$path] = '';
+            }
+        }
+        $b64 = imgToBase64($cintillo_path);
 
-        $html .= '<table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse: collapse; font-family: sans-serif; font-size: 11px;">';
-        $html .= '<thead style="background-color: #f1f5f9;"><tr>';
-        $html .= '<th>Fecha</th><th>Hora</th><th>Estado</th><th>Método</th><th>Observación</th>';
-        $html .= '</tr></thead><tbody>';
+        $nombreCompleto = htmlspecialchars(trim(($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? '')));
+        $desdeF = date('d/m/Y', strtotime($desde));
+        $hastaF = date('d/m/Y', strtotime($hasta));
 
-        $totalPresentes = 0;
+        $meses = ['','enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+        $estadoColors = [
+            'Presente'    => ['bg' => '#dcfce7', 'color' => '#166534'],
+            'Tardanza'    => ['bg' => '#fef3c7', 'color' => '#92400e'],
+            'Ausente'     => ['bg' => '#fee2e2', 'color' => '#991b1b'],
+            'Justificado' => ['bg' => '#e0e7ff', 'color' => '#3730a3'],
+        ];
+
+        $html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+        <style>
+            * { margin:0; padding:0; box-sizing:border-box; }
+            body { font-family: Helvetica,Arial,sans-serif; font-size:11px; color:#1a1a1a; line-height:1.5; }
+            .linea-navy { width:100%; height:3px; background:#162660; margin-bottom:18px; }
+            .contenido  { padding:0 28px 28px; }
+            .titulo-doc { text-align:center; font-size:13px; font-weight:bold; color:#162660; text-transform:uppercase; letter-spacing:1px; margin-bottom:4px; }
+            .subtitulo  { text-align:center; font-size:10px; color:#555; margin-bottom:20px; }
+            .lugar-fecha { text-align:right; font-size:10.5px; color:#444; margin-bottom:18px; }
+            .info-grid  { display:table; width:100%; border-collapse:collapse; margin-bottom:16px; }
+            .info-cell  { display:table-cell; vertical-align:top; width:50%; padding:6px 10px; }
+            .info-cell strong { color:#162660; display:block; font-size:9px; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px; }
+            .kpi-row    { display:table; width:100%; border-collapse:separate; border-spacing:8px; margin-bottom:16px; }
+            .kpi-box    { display:table-cell; text-align:center; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:8px 4px; }
+            .kpi-val    { font-size:18px; font-weight:bold; color:#162660; display:block; }
+            .kpi-lbl    { font-size:8.5px; color:#64748b; text-transform:uppercase; letter-spacing:0.5px; }
+            table.asist { width:100%; border-collapse:collapse; font-size:10.5px; }
+            table.asist th { background:#162660; color:white; padding:6px 8px; text-align:left; font-size:9.5px; text-transform:uppercase; letter-spacing:0.4px; }
+            table.asist td { padding:5px 8px; border-bottom:1px solid #e2e8f0; vertical-align:middle; }
+            table.asist tr:nth-child(even) td { background:#f8fafc; }
+            .badge { display:inline-block; padding:2px 8px; border-radius:12px; font-size:9px; font-weight:bold; }
+            .pie   { margin-top:24px; border-top:1px solid #cbd5e1; padding-top:8px; font-size:8.5px; color:#9ca3af; text-align:center; }
+        </style></head><body>';
+
+        if ($b64) {
+            $html .= '<div style="width:100%;line-height:0;"><img src="' . $b64 . '" style="width:100%;height:auto;display:block;" alt=""></div>';
+        } else {
+            $html .= '<div style="width:100%;padding:10px 20px;background:#162660;color:white;font-weight:bold;">Instituto de Salud Pública de Bolívar | SGP</div>';
+        }
+
+        $html .= '<div class="linea-navy"></div>';
+        $html .= '<div class="contenido">';
+        $html .= '<p class="lugar-fecha">Ciudad Bolívar, ' . date('d') . ' de ' . $meses[(int)date('m')] . ' de ' . date('Y') . '</p>';
+        $html .= '<p class="titulo-doc">Reporte Individual de Asistencias</p>';
+        $html .= '<p class="subtitulo">Período: ' . htmlspecialchars($pasante->periodo_nombre ?? 'N/D') . ' &nbsp;|&nbsp; ' . $desdeF . ' al ' . $hastaF . '</p>';
+
+        $html .= '<table style="width:100%;border-collapse:collapse;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:16px;font-size:10.5px;"><tbody>';
+        $html .= '<tr><td style="padding:7px 12px;background:#f1f5f9;font-weight:bold;color:#374151;width:30%;">Nombre</td><td style="padding:7px 12px;">' . $nombreCompleto . '</td><td style="padding:7px 12px;background:#f1f5f9;font-weight:bold;color:#374151;width:25%;">Cédula</td><td style="padding:7px 12px;">V-' . htmlspecialchars($pasante->cedula ?? '—') . '</td></tr>';
+        $html .= '<tr><td style="padding:7px 12px;background:#f1f5f9;font-weight:bold;color:#374151;">Departamento</td><td style="padding:7px 12px;">' . htmlspecialchars($pasante->departamento ?? '—') . '</td><td style="padding:7px 12px;background:#f1f5f9;font-weight:bold;color:#374151;">Estado</td><td style="padding:7px 12px;">' . htmlspecialchars($pasante->estado_pasantia ?? '—') . '</td></tr>';
+        $html .= '<tr><td style="padding:7px 12px;background:#f1f5f9;font-weight:bold;color:#374151;">Institución</td><td style="padding:7px 12px;" colspan="3">' . htmlspecialchars($pasante->institucion ?? '—') . '</td></tr>';
+        $html .= '</tbody></table>';
+
+        // KPIs
+        $html .= '<table style="width:100%;border-collapse:separate;border-spacing:8px 0;margin-bottom:16px;"><tr>';
+        $html .= '<td style="text-align:center;background:#dcfce7;border:1px solid #bbf7d0;border-radius:6px;padding:8px;"><span style="font-size:18px;font-weight:bold;color:#166534;display:block;">' . $totalPresentes . '</span><span style="font-size:8.5px;color:#166534;text-transform:uppercase;">Días Asistidos</span></td>';
+        $html .= '<td style="text-align:center;background:#fee2e2;border:1px solid #fecaca;border-radius:6px;padding:8px;"><span style="font-size:18px;font-weight:bold;color:#991b1b;display:block;">' . $totalAusentes . '</span><span style="font-size:8.5px;color:#991b1b;text-transform:uppercase;">Ausencias</span></td>';
+        $html .= '<td style="text-align:center;background:#e0e7ff;border:1px solid #c7d2fe;border-radius:6px;padding:8px;"><span style="font-size:18px;font-weight:bold;color:#3730a3;display:block;">' . $totalJustif . '</span><span style="font-size:8.5px;color:#3730a3;text-transform:uppercase;">Justificados</span></td>';
+        $html .= '<td style="text-align:center;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:6px;padding:8px;"><span style="font-size:18px;font-weight:bold;color:#1e3a8a;display:block;">' . $pctAsist . '%</span><span style="font-size:8.5px;color:#64748b;text-transform:uppercase;">Tasa Asist.</span></td>';
+        $html .= '</tr></table>';
+
+        // Tabla de registros
+        $html .= '<table class="asist"><thead><tr><th>#</th><th>Fecha</th><th>Día</th><th>Hora</th><th>Estado</th><th>Método</th><th>Observación</th></tr></thead><tbody>';
+
+        $diasES = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+        $rowNum = 0;
         foreach ($asistencias as $a) {
-            if ($a->estado === 'Presente' || $a->estado === 'Tardanza') $totalPresentes++;
+            $rowNum++;
+            $ts   = strtotime($a->fecha);
+            $dia  = $diasES[(int)date('w', $ts)];
+            $colores = $estadoColors[$a->estado] ?? ['bg' => '#f1f5f9', 'color' => '#475569'];
+            $badge = '<span style="background:' . $colores['bg'] . ';color:' . $colores['color'] . ';padding:2px 8px;border-radius:12px;font-size:9px;font-weight:bold;">' . htmlspecialchars($a->estado) . '</span>';
             $html .= '<tr>';
-            $html .= '<td>' . date('d/m/Y', strtotime($a->fecha)) . '</td>';
+            $html .= '<td style="color:#94a3b8;font-size:9.5px;">' . $rowNum . '</td>';
+            $html .= '<td>' . date('d/m/Y', $ts) . '</td>';
+            $html .= '<td style="color:#64748b;">' . $dia . '</td>';
             $html .= '<td>' . ($a->hora_registro ? date('h:i A', strtotime($a->hora_registro)) : '—') . '</td>';
-            $html .= '<td>' . htmlspecialchars($a->estado) . '</td>';
-            $html .= '<td>' . htmlspecialchars($a->metodo ?? '') . '</td>';
-            $html .= '<td>' . htmlspecialchars($a->motivo_justificacion ?? '') . '</td>';
+            $html .= '<td>' . $badge . '</td>';
+            $html .= '<td style="color:#64748b;">' . htmlspecialchars($a->metodo ?? '—') . '</td>';
+            $html .= '<td style="color:#64748b;">' . htmlspecialchars($a->motivo_justificacion ?? '') . '</td>';
             $html .= '</tr>';
         }
 
-        $html .= '</tbody></table>';
-        $html .= '<p style="text-align:right; margin-top:20px;"><strong>Total días laborados:</strong> ' . $totalPresentes . '</p>';
+        if ($rowNum === 0) {
+            $html .= '<tr><td colspan="7" style="text-align:center;padding:20px;color:#94a3b8;font-style:italic;">No hay registros de asistencia en el rango seleccionado.</td></tr>';
+        }
 
-        $pdf->renderDomPdf($html, 'Asistencias_' . preg_replace('/[^A-Za-z0-9_\-]/', '_', $nombre), true);
+        $html .= '</tbody></table>';
+        $html .= '<div class="pie">Instituto de Salud Pública del Estado Bolívar &nbsp;|&nbsp; Sistema de Gestión de Pasantías (SGP) &nbsp;|&nbsp; Generado el ' . date('d/m/Y H:i') . '</div>';
+        $html .= '</div></body></html>';
+
+        $nombreSafe = preg_replace('/[^A-Za-z0-9_\-]/', '_', trim(($pasante->nombres ?? '') . '_' . ($pasante->apellidos ?? '')));
+        $pdf->renderDomPdf($html, 'Asistencias_' . $nombreSafe . '_' . str_replace('-', '', $desde) . '-' . str_replace('-', '', $hasta), false);
     }
 
     // ─────────────────────────────────────────────────────────────────
@@ -688,11 +854,18 @@ class PeriodosController extends Controller
                 exit;
             }
 
-            // Move current Activo to Cerrado
-            $this->db->query("UPDATE periodos_academicos SET estado = 'Cerrado' WHERE LOWER(estado) = 'activo'");
+            // Obtener tipo del período a activar
+            $this->db->query("SELECT tipo FROM periodos_academicos WHERE id = :id LIMIT 1");
+            $this->db->bind(':id', $id);
+            $pTipo = $this->db->single();
+            $tipo  = $pTipo->tipo ?? 'Regular';
+
+            // Cerrar solo el período activo del MISMO tipo
+            $this->db->query("UPDATE periodos_academicos SET estado = 'Cerrado' WHERE LOWER(estado) = 'activo' AND tipo = :tipo");
+            $this->db->bind(':tipo', $tipo);
             $this->db->execute();
 
-            // Set the new selected period to Activo
+            // Activar el período seleccionado
             $this->db->query("UPDATE periodos_academicos SET estado = 'Activo' WHERE id = :id");
             $this->db->bind(':id', $id);
             $this->db->execute();
@@ -702,6 +875,58 @@ class PeriodosController extends Controller
             Session::setFlash('error', 'Ocurrió un error en la base de datos al activar el período.');
         }
 
+        header('Location: ' . URLROOT . '/periodos');
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // POST /periodos/eliminar/ID — solo períodos Planificados
+    // ─────────────────────────────────────────────────────────────────
+    public function eliminar(int $id = 0): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ' . URLROOT . '/periodos');
+            exit;
+        }
+
+        if (!Session::validateCsrfToken($_POST['csrf_token'] ?? '')) {
+            Session::setFlash('error', 'Token de seguridad inválido.');
+            header('Location: ' . URLROOT . '/periodos');
+            exit;
+        }
+
+        if ($id <= 0) {
+            Session::setFlash('error', 'ID de período inválido.');
+            header('Location: ' . URLROOT . '/periodos');
+            exit;
+        }
+
+        $this->db->query("SELECT id, nombre, estado FROM periodos_academicos WHERE id = :id LIMIT 1");
+        $this->db->bind(':id', $id);
+        $periodo = $this->db->single();
+
+        if (!$periodo) {
+            Session::setFlash('error', 'El período no existe.');
+            header('Location: ' . URLROOT . '/periodos');
+            exit;
+        }
+
+        if (!in_array($periodo->estado, ['Planificado', 'Cerrado'], true)) {
+            Session::setFlash('error', 'Solo se pueden eliminar períodos en estado Planificado o Cerrado.');
+            header('Location: ' . URLROOT . '/periodos');
+            exit;
+        }
+
+        // Desvincular pasantes del período antes de eliminarlo
+        $this->db->query("UPDATE datos_pasante SET periodo_id = NULL WHERE periodo_id = :id");
+        $this->db->bind(':id', $id);
+        $this->db->execute();
+
+        $this->db->query("DELETE FROM periodos_academicos WHERE id = :id");
+        $this->db->bind(':id', $id);
+        $this->db->execute();
+
+        Session::setFlash('success', 'Período «' . $periodo->nombre . '» eliminado correctamente.');
         header('Location: ' . URLROOT . '/periodos');
         exit;
     }

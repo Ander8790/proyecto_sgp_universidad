@@ -530,7 +530,8 @@ class AuthController extends Controller
                 // Marcar verificación exitosa y renovar expiración
                 Session::set('rec_verified',      true);
                 Session::set('rec_token_expires', time() + 900); // 15 min para cambiar contraseña
-                $this->view('auth/reset_password', [], false);
+                $userForView = $this->model('User')->findById($uid);
+                $this->view('auth/reset_password', ['cedula' => $userForView['cedula'] ?? ''], false);
             } else {
                 $this->view('auth/recovery_questions', ['questions' => $userAnswers, 'error' => 'Las respuestas de seguridad no coinciden. Verifíquelas e intente nuevamente.'], false);
             }

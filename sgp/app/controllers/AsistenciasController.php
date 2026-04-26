@@ -128,15 +128,22 @@ class AsistenciasController extends Controller
                 a.es_auto_fill,
                 u.id           AS pasante_id,
                 u.cedula,
+                u.avatar,
+                u.estado       AS estado_cuenta,
                 dp.nombres,
                 dp.apellidos,
                 d.nombre       AS departamento_nombre,
+                COALESCE(inst.nombre, IF(dpa.institucion_procedencia REGEXP '^[0-9]+$', NULL, dpa.institucion_procedencia)) AS institucion_nombre,
+                pa.nombre      AS periodo_nombre,
                 a.es_retardo
             FROM asistencias a
             INNER JOIN usuarios          u   ON u.id          = a.pasante_id
             LEFT  JOIN datos_personales  dp  ON dp.usuario_id = u.id
             LEFT  JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos     d   ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
+            LEFT  JOIN instituciones     inst ON dpa.institucion_procedencia REGEXP '^[0-9]+$'
+                                                AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            LEFT  JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
             WHERE a.fecha >= :fecha_inicio AND a.fecha <= :fecha_fin $wherePasante
             ORDER BY a.fecha DESC, a.hora_registro DESC
         ");
@@ -160,6 +167,7 @@ class AsistenciasController extends Controller
             WHERE  u.rol_id = 3
               AND  u.estado = 'activo'
               AND  COALESCE(dpa.estado_pasantia, 'Sin Asignar') = 'Activo'
+              AND  COALESCE(dpa.tipo_pasantia, 'Regular') = 'Regular'
             ORDER BY IFNULL(dp.apellidos, u.correo) ASC
         ");
         $todosActivos = $this->db->resultSet();
@@ -835,6 +843,7 @@ class AsistenciasController extends Controller
             WHERE  u.rol_id = 3
               AND  u.estado = 'activo'
               AND  COALESCE(dpa.estado_pasantia, 'Sin Asignar') = 'Activo'
+              AND  COALESCE(dpa.tipo_pasantia, 'Regular') = 'Regular'
               AND  (u.cedula LIKE :q OR dp.nombres LIKE :q OR dp.apellidos LIKE :q)
             ORDER BY IFNULL(dp.apellidos, u.correo) ASC
             LIMIT 15
@@ -1075,7 +1084,6 @@ class AsistenciasController extends Controller
                 dp.nombres,
                 dp.apellidos,
                 dp.telefono,
-                dp.direccion,
                 d.nombre        AS departamento,
                 COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_nombre,
                 dpa.institucion_procedencia,
@@ -1255,14 +1263,17 @@ class AsistenciasController extends Controller
         $pctAsistencia = $stats['laborables'] > 0
             ? round(($stats['P'] + $stats['J']) / $stats['laborables'] * 100, 1) : 0;
 
-        // Racha actual y máxima
+        // Racha máxima: días P/J consecutivos; se resetea en cada Ausente
         $rachaActual = 0; $rachaMax = 0; $corriente = 0;
-        $diasOrdenados = array_filter($registrosAnio, fn($r) => in_array($r->estado, ['Presente','Justificado']));
-        foreach ($diasOrdenados as $r) {
-            $corriente++;
-            if ($corriente > $rachaMax) $rachaMax = $corriente;
+        foreach ($registrosAnio as $r) {
+            if (in_array($r->estado, ['Presente', 'Justificado'])) {
+                $corriente++;
+                if ($corriente > $rachaMax) $rachaMax = $corriente;
+            } else {
+                $corriente = 0;
+            }
         }
-        // Racha actual = días consecutivos hasta hoy
+        // Racha actual = días P/J consecutivos hacia atrás desde hoy
         $tmpRacha = 0;
         foreach (array_reverse($registrosAnio) as $r) {
             if ($r->fecha > $hoy) continue;

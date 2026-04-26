@@ -726,6 +726,9 @@
                                         <i class="ti ti-user-check fs-5 text-white"></i>
                                     </button>
                                 <?php endif; ?>
+                                <button class="btn btn-sm border-0 shadow-sm transition-all" data-bs-toggle="tooltip" title="Eliminar Permanente" onclick="confirmarEliminarUsuario('<?= UrlSecurity::encrypt($user['id']) ?>', '<?= addslashes(htmlspecialchars(($user['nombres'] ?? '') . ' ' . ($user['apellidos'] ?? $user['correo'] ?? ''))) ?>', <?= intval($user['role_id']) ?>)" style="width: 32px; height: 32px; padding: 0; display: inline-flex; align-items: center; justify-content: center; background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px !important;">
+                                    <i class="ti ti-trash fs-5"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -833,6 +836,11 @@
                     <i class="ti ti-user-check"></i>
                 </button>
             <?php endif; ?>
+            <button class="bcu-btn bcu-btn-icon" style="color:#dc2626;border-color:#fecaca;background:#fef2f2;"
+                    onclick="confirmarEliminarUsuario('<?= UrlSecurity::encrypt($user['id']) ?>', '<?= addslashes(htmlspecialchars(($user['nombres'] ?? '') . ' ' . ($user['apellidos'] ?? $user['correo'] ?? ''))) ?>', <?= intval($user['role_id']) ?>)"
+                    title="Eliminar permanente">
+                <i class="ti ti-trash"></i>
+            </button>
         </div>
 
     </div>
@@ -1741,6 +1749,82 @@ window.filtrarPorRol = function(rolSeleccionado) {
                     });
                 });
             }
-        }, 500); 
+        }, 500);
     });
+
+// ── Eliminación permanente de usuario ──────────────────────────
+function _ejecutarEliminarUsuario(encryptedId) {
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    fetch(URLROOT + '/users/eliminarPermanente/' + encryptedId, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfMeta ? csrfMeta.getAttribute('content') : '',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({ icon: 'success', title: 'Eliminado', text: data.message, timer: 2500, showConfirmButton: false })
+                .then(() => location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+        }
+    });
+}
+
+// roleId: 1=Admin, 2=Tutor → confirmación simple | 3=Pasante → doble confirmación
+function confirmarEliminarUsuario(encryptedId, nombre, roleId) {
+    const esPasante = (parseInt(roleId) === 3);
+
+    const htmlInfo = `<p style="color:#475569;font-size:.95rem;line-height:1.6;">
+                 Vas a eliminar permanentemente a <strong>${nombre}</strong>.
+               </p>
+               <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:10px 14px;font-size:.83rem;color:#b91c1c;margin-top:12px;text-align:left;">
+                 <strong>Se eliminarán:</strong> datos personales y cuenta de usuario.
+                 ${esPasante ? '<br><span style="font-size:.8rem;color:#dc2626;">También se borrarán sus asistencias, evaluaciones y registros de pasantía.</span>' : ''}
+               </div>`;
+
+    if (!esPasante) {
+        // Admin / Tutor: confirmación simple
+        Swal.fire({
+            title: 'Eliminar usuario',
+            html: htmlInfo,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+        }).then(r => {
+            if (r.isConfirmed) _ejecutarEliminarUsuario(encryptedId);
+        });
+        return;
+    }
+
+    // Pasante: primera confirmación + segunda con tipeo "ELIMINAR"
+    Swal.fire({
+        title: 'Eliminar pasante',
+        html: htmlInfo,
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, continuar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#dc2626',
+    }).then(r => {
+        if (!r.isConfirmed) return;
+        Swal.fire({
+            title: 'Confirmación final',
+            html: '<p style="color:#475569;font-size:.9rem;">Escribe <strong style="color:#dc2626;">ELIMINAR</strong> para confirmar la acción irreversible:</p>',
+            input: 'text',
+            inputPlaceholder: 'ELIMINAR',
+            showCancelButton: true,
+            confirmButtonText: 'Eliminar definitivamente',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+            inputValidator: v => v !== 'ELIMINAR' ? 'Escribe exactamente: ELIMINAR' : null
+        }).then(r2 => {
+            if (r2.isConfirmed) _ejecutarEliminarUsuario(encryptedId);
+        });
+    });
+}
 </script>

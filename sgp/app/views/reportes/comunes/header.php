@@ -7,7 +7,7 @@
  * sin problemas de permisos o rutas relativas.
  */
 
-$cintillo_path = $_SERVER['DOCUMENT_ROOT'] . '/proyecto_sgp/sgp/public/img/cintillo_pdf.jpg';
+$cintillo_path = $_SERVER['DOCUMENT_ROOT'] . '/proyecto_sgp/sgp/public/img/cintillo_isp_bolivar.jpg';
 
 if (!function_exists('imgToBase64')) {
     function imgToBase64(string $path): string

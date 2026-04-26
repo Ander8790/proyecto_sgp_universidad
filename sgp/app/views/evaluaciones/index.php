@@ -253,24 +253,28 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
     #btnGuardar { display: none !important; }
     /* Labels */
     #mobConfigBody label { font-size: 0.62rem !important; margin-bottom: 3px !important; }
-    /* Campos read-only — altura fija para no romper layout */
+    /* Campos read-only — altura auto en movil para no cortar el texto */
     .ev-field-ro {
-        padding: 6px 8px !important; font-size: 0.74rem !important;
-        border-radius: 9px !important; height: 32px !important;
-        min-height: 32px !important; max-height: 32px !important;
-        overflow: hidden !important; box-sizing: border-box !important;
+        padding: 5px 8px !important; font-size: 0.72rem !important;
+        border-radius: 9px !important;
+        height: auto !important; min-height: 30px !important; max-height: none !important;
+        overflow: visible !important; box-sizing: border-box !important;
+        flex-wrap: wrap !important; align-items: flex-start !important;
     }
-    .ev-auto-badge { font-size: 0.55rem !important; padding: 1px 5px !important; }
-    /* Select tutor — misma altura que los campos ro, no crece al cambiar */
+    /* Badge Auto: fuente minima */
+    .ev-auto-badge { font-size: 0.52rem !important; padding: 1px 5px !important; flex-shrink: 0 !important; }
+    /* Select tutor */
     #fTutorId {
         font-size: 0.74rem !important; padding: 0 8px !important;
         border-radius: 9px !important;
-        height: 32px !important; min-height: 32px !important; max-height: 32px !important;
+        height: 34px !important; min-height: 34px !important; max-height: 34px !important;
         box-sizing: border-box !important; width: 100% !important;
         overflow: hidden !important; text-overflow: ellipsis !important;
     }
-    /* Fecha + Lapso: columna única */
-    .ev-meta-grid { grid-template-columns: 1fr !important; gap: 6px !important; }
+    /* Fecha + Lapso: columna unica en movil */
+    .ev-meta-grid { grid-template-columns: 1fr !important; gap: 5px !important; }
+    /* Span de texto dentro del campo: permite truncar con ellipsis */
+    .ev-field-ro > span { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; min-width: 0 !important; flex: 1 !important; }
     /* Textarea observaciones — altura fija */
     #fObs {
         font-size: 0.74rem !important; padding: 6px 8px !important;
@@ -788,7 +792,7 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
                                 </label>
                                 <div class="ev-field-ro" style="width:100%;padding:8px 10px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.8rem;color:#0D1424;background:#F8FAFD;box-sizing:border-box;display:flex;align-items:center;gap:6px;">
                                     <i class="ti ti-check" style="color:#10b981;font-size:0.85rem;flex-shrink:0;"></i>
-                                    <span id="dispFecha" style="flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= date('d') . ' de ' . ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][(int)date('n')-1] . ' ' . date('Y') ?></span>
+                                    <span id="dispFecha" style="flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= date('d/m/Y') ?></span>
                                     <span class="ev-auto-badge" style="background:#dcfce7;color:#15803d;font-size:0.6rem;font-weight:700;padding:2px 7px;border-radius:20px;text-transform:uppercase;white-space:nowrap;flex-shrink:0;">Auto</span>
                                 </div>
                                 <input type="hidden" name="fecha_evaluacion" id="fFecha" value="<?= date('Y-m-d') ?>">
@@ -886,16 +890,17 @@ const TOTAL_CRITERIOS = <?= $totalCriterios ?>;
 <script>
 /* ── Móvil: navegación push nativa (panel B entra desde la derecha) ── */
 (function () {
-    if (window.innerWidth > 767) return;
-
     var panelB  = document.getElementById('vistaEvaluacion');
     var saveBar = document.querySelector('.ev-save-bar');
 
+    function esMobile() { return window.innerWidth <= 767; }
+
     function mostrarPanelB() {
+        if (!esMobile()) return;
         panelB.classList.add('ev-panel-visible');
         if (saveBar) saveBar.classList.add('ev-save-active');
         panelB.scrollTop = 0;
-        document.body.style.overflow = 'hidden'; // evitar doble scroll
+        document.body.style.overflow = 'hidden';
     }
     function ocultarPanelB() {
         panelB.classList.remove('ev-panel-visible');
@@ -903,24 +908,34 @@ const TOTAL_CRITERIOS = <?= $totalCriterios ?>;
         document.body.style.overflow = '';
     }
 
-    /* Esperar a que EvalApp cargue */
+    /* Esperar a que EvalApp cargue — sin límite de intentos */
     var chk = setInterval(function () {
-        if (typeof EvalApp === 'undefined') return;
+        if (typeof EvalApp === 'undefined' || typeof EvalApp.abrirFormulario === 'undefined') return;
         clearInterval(chk);
+
+        /* Solo parchear una vez */
+        if (EvalApp.__mobilePatchDone) return;
+        EvalApp.__mobilePatchDone = true;
 
         var _abrir = EvalApp.abrirFormulario.bind(EvalApp);
         var _nueva = EvalApp.nuevaDesdeBoton ? EvalApp.nuevaDesdeBoton.bind(EvalApp) : null;
 
-        EvalApp.abrirFormulario = function (p) { _abrir(p); mostrarPanelB(); };
+        EvalApp.abrirFormulario = function (p) {
+            _abrir(p);
+            mostrarPanelB();
+        };
 
-        /* Reimplementar volver: SweetAlert2 en lugar de confirm() nativo */
+        /* Volver: confirmar si hay datos calificados */
         EvalApp.volver = function () {
             var inputs  = Array.from(document.querySelectorAll('#formEvaluacion .star-input'));
             var hasData = inputs.some(function(i) { return parseInt(i.value) > 0; });
 
             if (!hasData) {
-                document.getElementById('evalSlider').style.transform = 'translateX(0)';
-                ocultarPanelB();
+                if (esMobile()) {
+                    ocultarPanelB();
+                } else {
+                    document.getElementById('evalSlider').style.transform = 'translateX(0)';
+                }
                 return;
             }
 
@@ -943,13 +958,19 @@ const TOTAL_CRITERIOS = <?= $totalCriterios ?>;
                 }
             }).then(function(result) {
                 if (result.isConfirmed) {
-                    document.getElementById('evalSlider').style.transform = 'translateX(0)';
-                    ocultarPanelB();
+                    if (esMobile()) {
+                        ocultarPanelB();
+                    } else {
+                        document.getElementById('evalSlider').style.transform = 'translateX(0)';
+                    }
                 }
             });
         };
 
-        if (_nueva) EvalApp.nuevaDesdeBoton = function () { _nueva(); mostrarPanelB(); };
-    }, 40);
+        if (_nueva) {
+            EvalApp.nuevaDesdeBoton = function () { _nueva(); mostrarPanelB(); };
+        }
+
+    }, 30);
 })();
 </script>

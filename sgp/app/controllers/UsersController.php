@@ -457,6 +457,77 @@ public function update()
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────
+    // POST /users/eliminarPermanente/ENC_ID — eliminación permanente
+    // ─────────────────────────────────────────────────────────────────
+    public function eliminarPermanente(string $encrypted_id = ''): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $this->jsonResponse(false, 'Método no permitido');
+            return;
+        }
+
+        $id = UrlSecurity::validateAndDecrypt($encrypted_id);
+        if (!$id) {
+            $this->jsonResponse(false, 'URL inválida o enlace manipulado');
+            return;
+        }
+
+        if ($id == Session::get('user_id')) {
+            $this->jsonResponse(false, 'No puedes eliminar tu propia cuenta');
+            return;
+        }
+
+        $db = Database::getInstance();
+
+        // Guard: no eliminar admin raíz (ID 1)
+        $db->query("SELECT id, rol_id FROM usuarios WHERE id = :id LIMIT 1");
+        $db->bind(':id', $id);
+        $usuario = $db->single();
+
+        if (!$usuario) {
+            $this->jsonResponse(false, 'El usuario no existe');
+            return;
+        }
+        if ((int)$usuario->rol_id === 1 && (int)$id === 1) {
+            $this->jsonResponse(false, 'No se puede eliminar el administrador raíz del sistema');
+            return;
+        }
+
+        // Si es pasante (rol 3), cascade completo
+        if ((int)$usuario->rol_id === 3) {
+            foreach ([
+                "DELETE FROM asistencias             WHERE pasante_id  = :id",
+                "DELETE FROM evaluaciones             WHERE pasante_id  = :id",
+                "DELETE FROM actividad_participantes  WHERE usuario_id  = :id",
+                "DELETE FROM datos_pasante            WHERE usuario_id  = :id",
+            ] as $sql) {
+                $db->query($sql);
+                $db->bind(':id', $id);
+                $db->execute();
+            }
+        } else {
+            // Tutor/admin: desvincular pasantes antes de borrar
+            $db->query("UPDATE datos_pasante SET tutor_id = NULL WHERE tutor_id = :id");
+            $db->bind(':id', $id);
+            $db->execute();
+        }
+
+        $db->query("DELETE FROM datos_personales WHERE usuario_id = :id");
+        $db->bind(':id', $id);
+        $db->execute();
+
+        $db->query("DELETE FROM usuarios WHERE id = :id");
+        $db->bind(':id', $id);
+
+        if ($db->execute()) {
+            AuditModel::log('DELETE_USER_PERMANENT', 'usuarios', $id, ['tipo' => 'hard_delete']);
+            $this->jsonResponse(true, 'Usuario eliminado permanentemente');
+        } else {
+            $this->jsonResponse(false, 'Error al eliminar el usuario');
+        }
+    }
+
     /**
      * Get full user details for profile view (AJAX)
      */
@@ -763,12 +834,17 @@ public function update()
             SELECT dp.nombres, dp.apellidos, u.cedula, u.correo, u.rol_id, dp.telefono,
                 dpa.estado_pasantia, dpa.horas_acumuladas, dpa.horas_meta,
                 dpa.fecha_inicio_pasantia, dpa.fecha_fin_estimada,
-                dpa.institucion_procedencia, d.nombre AS departamento, r.nombre AS nombre_rol, u.estado AS user_estado
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_procedencia,
+                d.nombre AS departamento, r.nombre AS nombre_rol, u.estado AS user_estado,
+                CONCAT(COALESCE(dp_tutor.nombres,''), ' ', COALESCE(dp_tutor.apellidos,'')) AS tutor_nombre
             FROM usuarios u
             JOIN datos_personales dp ON dp.usuario_id = u.id
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos d ON d.id = dpa.departamento_asignado_id
             LEFT JOIN roles r ON r.id = u.rol_id
+            LEFT JOIN instituciones inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN usuarios u_tutor ON u_tutor.id = dpa.tutor_id
+            LEFT JOIN datos_personales dp_tutor ON dp_tutor.usuario_id = u_tutor.id
             WHERE u.id = :id
         ");
         $db->bind(':id', $id);
@@ -782,7 +858,14 @@ public function update()
         $isPasante = ($p->rol_id == 3);
         $evals = [];
         if ($isPasante) {
-            $db->query("SELECT * FROM evaluaciones WHERE pasante_id = :id ORDER BY fecha_evaluacion DESC LIMIT 5");
+            $db->query("
+                SELECT e.fecha_evaluacion, e.lapso_academico, e.promedio_final, e.observaciones,
+                       CONCAT(tp.nombres, ' ', tp.apellidos) AS tutor_nombre_eval,
+                       DATE_FORMAT(e.fecha_evaluacion, '%d/%m/%Y') AS fecha_formateada
+                FROM evaluaciones e
+                LEFT JOIN datos_personales tp ON tp.usuario_id = e.tutor_id
+                WHERE e.pasante_id = :id ORDER BY e.fecha_evaluacion DESC LIMIT 5
+            ");
             $db->bind(':id', $id);
             $evals = $db->resultSet();
         }
