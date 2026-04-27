@@ -594,6 +594,8 @@
 </div>
 
 <script>
+(function() { /* IIFE — evita redeclaración de variables con PJAX */
+
 function abrirModalCrear()  { document.getElementById('modalCrearPeriodo').classList.add('active'); }
 function cerrarModalCrear() { document.getElementById('modalCrearPeriodo').classList.remove('active'); document.getElementById('formCrearPeriodo').reset(); }
 
@@ -602,7 +604,6 @@ function abrirModalEditar(data) {
     document.getElementById('editar_nombre').value       = data.nombre;
     document.getElementById('editar_descripcion').value  = data.descripcion;
     
-    // Asegurar compatibilidad (si viene YYYY-MM-DD HH:MM:SS recortar solo al YYYY-MM-DD)
     const dbInicio = data.fecha_inicio ? data.fecha_inicio.substring(0, 10) : '';
     const dbFin    = data.fecha_fin ? data.fecha_fin.substring(0, 10) : '';
     document.getElementById('editar_fecha_inicio').value = dbInicio;
@@ -610,10 +611,7 @@ function abrirModalEditar(data) {
 
     const fi = document.getElementById('editar_fecha_inicio');
     const ff = document.getElementById('editar_fecha_fin');
-    
-    // Si esta activo, bloquear fechas para no romper timeline general de estudiantes
     let alertMsg = document.getElementById('editar_warning_fechas');
-
     const fc = document.getElementById('editar_fechas_container');
 
     if (data.estado.toLowerCase() === 'activo') {
@@ -677,7 +675,7 @@ function calcularFechaFin() {
     const y  = d.getFullYear();
     const m  = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    nuevoFin.value = `${y}-${m}-${dd}`;
+    if (nuevoFin) nuevoFin.value = `${y}-${m}-${dd}`;
     const mesText = d.toLocaleString('es-ES', { month: 'long' });
     if (labelFin) labelFin.innerHTML = `${d.getDate()} de ${mesText} de ${y}`;
 }
@@ -755,17 +753,10 @@ function confirmarActivar(id, nombre) {
             let form = document.createElement('form');
             form.method = 'POST';
             form.action = '<?= URLROOT ?>/periodos/activar';
-            
             let idInput = document.createElement('input');
-            idInput.type = 'hidden';
-            idInput.name = 'periodo_id';
-            idInput.value = id;
-            
+            idInput.type = 'hidden'; idInput.name = 'periodo_id'; idInput.value = id;
             let csrfInput = document.createElement('input');
-            csrfInput.type = 'hidden';
-            csrfInput.name = 'csrf_token';
-            csrfInput.value = '<?= htmlspecialchars($csrf) ?>';
-            
+            csrfInput.type = 'hidden'; csrfInput.name = 'csrf_token'; csrfInput.value = '<?= htmlspecialchars($csrf) ?>';
             form.appendChild(idInput);
             form.appendChild(csrfInput);
             document.body.appendChild(form);
@@ -884,4 +875,19 @@ function confirmarEliminarPeriodo(id, nombre, totalPasantes) {
         form.submit();
     });
 }
+
+/* Exponer funciones al scope global para que los onclick del HTML funcionen */
+window.abrirModalCrear          = abrirModalCrear;
+window.cerrarModalCrear         = cerrarModalCrear;
+window.abrirModalEditar         = abrirModalEditar;
+window.cerrarModalEditar        = cerrarModalEditar;
+window.seleccionarTipo          = seleccionarTipo;
+window.seleccionarEstadoInicial = seleccionarEstadoInicial;
+window.confirmarCerrar          = confirmarCerrar;
+window.confirmarActivar         = confirmarActivar;
+window.abrirModalConsulta       = abrirModalConsulta;
+window.cerrarModalConsulta      = cerrarModalConsulta;
+window.confirmarEliminarPeriodo = confirmarEliminarPeriodo;
+
+})(); /* fin IIFE */
 </script>

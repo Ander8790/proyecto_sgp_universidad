@@ -8,9 +8,7 @@
    DISEÑO PREMIUM - VISTA DE PASANTES (TUTOR)
    ========================================================= */
 .tutor-pasantes {
-    padding: 1.5rem;
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 /* --- BANNER PRINCIPAL (TUTOR) --- */
@@ -472,9 +470,10 @@
 
     <!-- ACTION BAR -->
     <div class="action-bar">
-        <div class="search-wrapper">
+        <div class="search-wrapper" style="position:relative;">
             <i class="ti ti-search"></i>
             <input type="text" id="buscarPasante" class="search-input" placeholder="Buscar por nombre, cédula o departamento...">
+            <i class="ti ti-help-circle" data-tooltip="Escriba aquí para filtrar rápidamente a sus pasantes asignados" style="position:absolute; right:15px; color:#94a3b8; cursor:help; top:50%; transform:translateY(-50%); font-size:1.1rem;"></i>
         </div>
         <a href="<?= URLROOT ?>/evaluaciones/nueva" class="btn-primary-indigo">
             <i class="ti ti-plus"></i> Nueva Evaluación
@@ -568,11 +567,11 @@
         <h3 class="pin-modal-title">Resetear PIN</h3>
         <p class="pin-modal-sub" id="pinModalNombre"></p>
         <div class="pin-field">
-            <label>Nuevo PIN (4 dígitos)</label>
+            <label style="display:flex;align-items:center;gap:6px;">Nuevo PIN (4 dígitos) <i class="ti ti-help-circle" style="color:#2563eb;font-size:1.1em;cursor:help;" data-tooltip="Ingrese un código numérico de 4 dígitos"></i></label>
             <input type="password" id="nuevoPinInput" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="• • • •">
         </div>
         <div class="pin-field">
-            <label>Confirmar PIN</label>
+            <label style="display:flex;align-items:center;gap:6px;">Confirmar PIN <i class="ti ti-help-circle" style="color:#2563eb;font-size:1.1em;cursor:help;" data-tooltip="Vuelva a escribir el PIN para confirmarlo"></i></label>
             <input type="password" id="confirmarPinInput" inputmode="numeric" pattern="\d{4}" maxlength="4" placeholder="• • • •">
         </div>
         <div class="pin-modal-actions">

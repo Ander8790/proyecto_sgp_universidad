@@ -184,11 +184,17 @@ class PasanteController extends Controller
         $this->db->bind(':uid', $userId);
         $asistencias = $this->db->resultSet();
 
+        // Feriados del mes actual para el calendario Mon-Fri
+        $fechaIniMes = date('Y-m') . '-01';
+        $fechaFinMes = date('Y-m-t');
+        $feriados = $asistenciaModel->getFeriadosEnRango($fechaIniMes, $fechaFinMes);
+
         $this->view('pasante/asistencia', [
             'title'      => 'Mi Asistencia',
             'pasante'    => $pasante,
             'asistencias'=> $asistencias,
             'proRata'    => $proRata,
+            'feriados'   => $feriados,
         ]);
 
     }

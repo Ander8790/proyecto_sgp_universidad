@@ -17,7 +17,7 @@ class AyudaController extends Controller
     public function pdf(): void
     {
         Session::start();
-        AuthMiddleware::require();
+        // AuthMiddleware::require(); // Comentado para permitir acceso desde el Login
         // Pasar variables de rol al documento
         $rolId     = (int)(Session::get('role_id') ?? Session::get('rol_id') ?? 0);
         $esAdmin   = $rolId === 1;

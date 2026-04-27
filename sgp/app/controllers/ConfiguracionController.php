@@ -47,7 +47,11 @@ class ConfiguracionController extends Controller {
             } else {
                 Session::setFlash('error', '⚠️ La fecha y el nombre del feriado son obligatorios.');
             }
-            header('Location: ' . URLROOT . '/configuracion');
+            if (isset($_POST['origen']) && $_POST['origen'] === 'almanaque') {
+                header('Location: ' . URLROOT . '/configuracion/calendario_feriados');
+            } else {
+                header('Location: ' . URLROOT . '/configuracion');
+            }
             exit;
         }
 
@@ -79,7 +83,11 @@ class ConfiguracionController extends Controller {
             } else {
                 Session::setFlash('error', '⚠️ El nombre del feriado es obligatorio.');
             }
-            header('Location: ' . URLROOT . '/configuracion');
+            if (isset($_POST['origen']) && $_POST['origen'] === 'almanaque') {
+                header('Location: ' . URLROOT . '/configuracion/calendario_feriados');
+            } else {
+                header('Location: ' . URLROOT . '/configuracion');
+            }
             exit;
         }
 
@@ -105,7 +113,11 @@ class ConfiguracionController extends Controller {
                     Session::setFlash('error', '❌ Error al eliminar feriado.');
                 }
             }
-            header('Location: ' . URLROOT . '/configuracion');
+            if (isset($_POST['origen']) && $_POST['origen'] === 'almanaque') {
+                header('Location: ' . URLROOT . '/configuracion/calendario_feriados');
+            } else {
+                header('Location: ' . URLROOT . '/configuracion');
+            }
             exit;
         }
 
@@ -531,5 +543,29 @@ class ConfiguracionController extends Controller {
             echo json_encode(['success' => false, 'message' => 'Error al purgar: ' . $e->getMessage()]);
         }
         exit;
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // GET /configuracion/calendario_feriados — Vista Almanaque
+    // ─────────────────────────────────────────────────────────
+    public function calendario_feriados() {
+        $year = isset($_GET['y']) && is_numeric($_GET['y']) ? (int)$_GET['y'] : (int)date('Y');
+        
+        $feriadoModel = new FeriadoModel($this->db);
+        $feriadosArray = $feriadoModel->obtenerTodos(); // Puedes crear un método por año o filtrarlo aquí
+        
+        // Indexar por fecha para acceso rápido
+        $feriados = [];
+        foreach ($feriadosArray as $f) {
+            $feriados[$f->fecha] = $f;
+        }
+
+        $data = [
+            'year'     => $year,
+            'feriados' => $feriados
+        ];
+
+        $this->view('configuracion/calendario_feriados', $data);
     }
 }

@@ -20,7 +20,7 @@ $tutorActualId = $data['tutorActualId'] ?? null;
 if (!$pasante):
 ?>
 <style>
-.sel-wrap    { max-width:860px; margin:0 auto; padding-bottom:40px; }
+.sel-wrap    { width: 100%; padding-bottom:40px; }
 .sel-banner  {
     background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);
     border-radius:20px; padding:28px 36px; margin-bottom:28px;

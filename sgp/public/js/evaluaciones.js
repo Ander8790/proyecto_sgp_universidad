@@ -55,11 +55,15 @@ const EvalApp = {
                 chk.checked = false;
                 let bg = chk.previousElementSibling;
                 let knob = bg.querySelector('.cat-switch-knob');
-                bg.style.background = '#DDE2F0';
-                knob.style.transform = 'none';
+                if (bg) bg.style.background = '#DDE2F0';
+                if (knob) knob.style.transform = 'none';
             });
         }
         
+        // Reiniciar evaluacion_id para indicar nueva
+        const elId = document.getElementById('fEvaluacionId');
+        if (elId) elId.value = '0';
+
         this._ocultarError();
         this.resetStars();
         this.updateGauge(0, 0);
@@ -94,6 +98,79 @@ const EvalApp = {
                     });
                 }
             });
+        }
+    },
+
+    // ── Transición: editar evaluación existente ──────────────────────────
+    async editarEvaluacion(id) {
+        try {
+            const resp = await fetch(URLROOT + '/evaluaciones/obtenerDetalleAjax/' + id);
+            const data = await resp.json();
+            if (!data.success) {
+                this._toast(data.message || 'Error al cargar evaluación', 'error');
+                return;
+            }
+            
+            const ev = data.evaluacion;
+            const p = {
+                id: ev.pasante_id,
+                nombre: ev.pasante_nombre,
+                cedula: ev.pasante_cedula,
+                depto: '', // optional
+                tutor_id: ev.tutor_id
+            };
+            
+            // Reutilizar la lógica de abrirFormulario para inicializar UI
+            this.abrirFormulario(p);
+            
+            // Sobrescribir id y modo edición
+            document.getElementById('fEvaluacionId').value = id;
+            document.getElementById('fFecha').value = ev.fecha_evaluacion;
+            const _dispFecha = document.getElementById('dispFecha');
+            if (_dispFecha) {
+                const parts = ev.fecha_evaluacion.split('-');
+                _dispFecha.innerText = new Date(parts[0], parts[1]-1, parts[2]).toLocaleDateString('es-VE', {day:'2-digit',month:'long',year:'numeric'});
+            }
+            document.getElementById('fLapso').value = ev.lapso_academico || '';
+            const _dispLapso = document.getElementById('dispLapso');
+            if (_dispLapso) _dispLapso.innerText = ev.lapso_academico || '—';
+            
+            document.getElementById('fObs').value = ev.observaciones || '';
+            
+            // Llenar estrellas
+            const criterios = {
+                'criterio_iniciativa': ev.criterio_iniciativa,
+                'criterio_interes': ev.criterio_interes,
+                'criterio_conocimiento': ev.criterio_conocimiento,
+                'criterio_analisis': ev.criterio_analisis,
+                'criterio_comunicacion': ev.criterio_comunicacion,
+                'criterio_aprendizaje': ev.criterio_aprendizaje,
+                'criterio_companerismo': ev.criterio_companerismo,
+                'criterio_cooperacion': ev.criterio_cooperacion,
+                'criterio_puntualidad': ev.criterio_puntualidad,
+                'criterio_presentacion': ev.criterio_presentacion,
+                'criterio_desarrollo': ev.criterio_desarrollo,
+                'criterio_analisis_res': ev.criterio_analisis_res,
+                'criterio_conclusiones': ev.criterio_conclusiones,
+                'criterio_recomendacion': ev.criterio_recomendacion
+            };
+            
+            for (const [key, val] of Object.entries(criterios)) {
+                if (val > 0) {
+                    const group = document.querySelector(`.star-group[data-criterio="${key}"]`);
+                    if (group) {
+                        const stars = group.querySelectorAll('.star-btn');
+                        if (stars[val - 1]) stars[val - 1].click();
+                    }
+                }
+            }
+            
+            // Cambiar texto de botón
+            const btn = document.getElementById('btnGuardar');
+            if (btn) btn.innerHTML = '<i class="ti ti-check"></i> Actualizar Evaluación';
+            
+        } catch (e) {
+            this._toast('Error de conexión al cargar', 'error');
         }
     },
 
@@ -338,9 +415,11 @@ const EvalApp = {
         btn.innerHTML = '<i class="ti ti-loader" style="animation:spin 1s linear infinite;display:inline-block;"></i> Guardando...';
 
         const fd = new FormData(form); // incluye _csrf del campo hidden en el form
+        const isEdit = parseInt(fd.get('evaluacion_id') || '0') > 0;
+        const endpoint = isEdit ? '/evaluaciones/actualizar' : '/evaluaciones/guardar';
 
         try {
-            const resp = await fetch(URLROOT + '/evaluaciones/guardar', {
+            const resp = await fetch(URLROOT + endpoint, {
                 method: 'POST',
                 headers: { 'X-Requested-With': 'XMLHttpRequest' },
                 body: fd
@@ -365,10 +444,14 @@ const EvalApp = {
                 const promColor = promNum >= 4 ? '#10b981' : promNum >= 3 ? '#f59e0b' : '#ef4444';
                 const promLabel = promNum >= 4 ? 'Excelente' : promNum >= 3 ? 'Bueno' : promNum >= 2 ? 'Regular' : 'Deficiente';
                 const pasanteNom = (this.currentPasante && this.currentPasante.nombre) ? this.currentPasante.nombre : '';
+                const tituloSwal = isEdit ? '¡Evaluación Actualizada!' : '¡Evaluación Registrada!';
+                const msjSwal = isEdit 
+                    ? 'Los cambios se han guardado correctamente en el historial.' 
+                    : 'La evaluación quedó registrada correctamente<br>en el historial del pasante.';
 
                 // SweetAlert2 Bento premium — éxito
                 Swal.fire({
-                    title: '¡Evaluación Registrada!',
+                    title: tituloSwal,
                     html: `
                         <div style="text-align:center;padding:4px 0 8px;">
                             <div style="display:inline-flex;align-items:center;justify-content:center;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#dcfce7,#bbf7d0);margin-bottom:14px;">
@@ -382,7 +465,7 @@ const EvalApp = {
                                     <div style="font-size:0.78rem;font-weight:800;color:${promColor};">${promLabel}</div>
                                 </div>
                             </div>
-                            <p style="color:#64748b;font-size:0.8rem;margin:12px 0 0;line-height:1.5;">La evaluación quedó registrada correctamente<br>en el historial del pasante.</p>
+                            <p style="color:#64748b;font-size:0.8rem;margin:12px 0 0;line-height:1.5;">${msjSwal}</p>
                         </div>`,
                     icon: false,
                     showConfirmButton: true,

@@ -565,8 +565,15 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
                         <span style="background:<?= $pb ?>;color:<?= $pc ?>;padding:4px 10px;border-radius:20px;font-size:0.82rem;font-weight:800;"><?= number_format($prom, 1) ?>/5</span>
                         <button onclick="verEvaluacion(<?= (int)$ev->id ?>)"
                             style="background:#f1f5f9;border:none;border-radius:8px;padding:5px 9px;cursor:pointer;color:#64748b;font-size:0.8rem;transition:background .15s;"
-                            onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                            onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'"
+                            title="Ver evaluación">
                             <i class="ti ti-eye"></i>
+                        </button>
+                        <button onclick="EvalApp.editarEvaluacion(<?= (int)$ev->id ?>)"
+                            style="background:#f0fdf4;border:none;border-radius:8px;padding:5px 9px;cursor:pointer;color:#16a34a;font-size:0.8rem;transition:background .15s;margin-left:4px;"
+                            onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'"
+                            title="Editar evaluación">
+                            <i class="ti ti-pencil"></i>
                         </button>
                     </div>
                 </div>
@@ -642,6 +649,8 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
         <form id="formEvaluacion" onsubmit="return false;">
             <?= CsrfHelper::field() ?>
             <input type="hidden" name="pasante_id" id="fPasanteId" value="">
+            <input type="hidden" name="tutor_id" id="fTutorId" value="">
+            <input type="hidden" name="evaluacion_id" id="fEvaluacionId" value="0">
             <div class="ev-panel-b-grid">
 
                 <!-- ── Col izquierda: Criterios ── -->

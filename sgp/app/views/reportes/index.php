@@ -3,6 +3,8 @@
  * VISTA: CENTRO DE REPORTES - REDISEÑO PREMIUM (ANILLOS SÓLIDOS + GRID 4x2)
  * Arquitectura UI/UX Premium - Sistema SGP
  */
+$rolId = (int)($data['rolId'] ?? Session::get('role_id') ?? 0);
+$esTutor = ($rolId === 2);
 ?>
 
 <style>
@@ -217,15 +219,18 @@
                 <p style="color:rgba(255,255,255,0.8);margin:4px 0 0;font-size:0.9rem;font-weight:500;">Generación de formatos institucionales y sábanas de datos.</p>
             </div>
         </div>
+        <?php if (!$esTutor): ?>
         <button onclick="abrirModal('ejecutivo', 'pdf')" class="btn-ejecutivo">
             <i class="ti ti-bolt" style="font-size:1.2rem;"></i> Resumen Ejecutivo
         </button>
+        <?php endif; ?>
     </div>
 
     <!-- GRID DE 8 CARTAS PERFECTA (4x2) -->
     <div class="p-grid">
         
-        <!-- 1. Usuarios -->
+        <!-- 1. Usuarios — Solo Admin -->
+        <?php if (!$esTutor): ?>
         <div class="p-card">
             <div class="p-card-header"><span class="p-badge p-badge-active"><i class="ti ti-check"></i> DISPONIBLE</span></div>
             <h3 class="p-card-title">Usuarios</h3><h4 class="p-card-subtitle" style="color:var(--p-blue);">SISTEMA</h4>
@@ -238,12 +243,14 @@
                 <button class="btn-p-soft btn-soft-excel" onclick="abrirModal('usuarios', 'excel')"><i class="ti ti-file-spreadsheet"></i> EXCEL</button>
             </div>
         </div>
+        <?php endif; ?>
 
-        <!-- 2. Pasantes -->
+        <!-- 2. Pasantes (Admin: todos / Tutor: solo sus asignados) -->
         <div class="p-card">
             <div class="p-card-header"><span class="p-badge p-badge-final"><i class="ti ti-check"></i> DISPONIBLE</span></div>
-            <h3 class="p-card-title">Pasantes</h3><h4 class="p-card-subtitle" style="color:var(--p-green);">GESTIÓN ACADÉMICA</h4>
-            <p class="p-card-desc">Ficha general e instituciones.</p>
+            <h3 class="p-card-title"><?= $esTutor ? 'Mis Pasantes' : 'Pasantes' ?></h3>
+            <h4 class="p-card-subtitle" style="color:var(--p-green);">GESTIÓN ACADÉMICA</h4>
+            <p class="p-card-desc"><?= $esTutor ? 'Ficha de tus pasantes asignados.' : 'Ficha general e instituciones.' ?></p>
             <div class="p-icon-ring" style="color: var(--p-green);">
                 <i class="ti ti-id" style="font-size: 2.5rem;"></i>
             </div>
@@ -280,7 +287,8 @@
             </div>
         </div>
 
-        <!-- 5. Asignaciones -->
+        <!-- 5. Asignaciones — Solo Admin -->
+        <?php if (!$esTutor): ?>
         <div class="p-card">
             <div class="p-card-header"><span class="p-badge" style="background:var(--p-purple-dim); color:var(--p-purple);"><i class="ti ti-check"></i> DISPONIBLE</span></div>
             <h3 class="p-card-title">Asignaciones</h3><h4 class="p-card-subtitle" style="color:var(--p-purple);">OPERATIVO</h4>
@@ -293,8 +301,10 @@
                 <button class="btn-p-soft btn-soft-excel" onclick="abrirModal('asignaciones', 'excel')"><i class="ti ti-file-spreadsheet"></i> EXCEL</button>
             </div>
         </div>
+        <?php endif; ?>
 
-        <!-- 6. Bitácora -->
+        <!-- 6. Bitácora — Solo Admin -->
+        <?php if (!$esTutor): ?>
         <div class="p-card">
             <div class="p-card-header"><span class="p-badge" style="background:rgba(116, 128, 160, 0.1); color:var(--p-ink-3);"><i class="ti ti-check"></i> DISPONIBLE</span></div>
             <h3 class="p-card-title">Auditoría</h3><h4 class="p-card-subtitle" style="color:var(--p-ink-3);">SEGURIDAD</h4>
@@ -307,8 +317,10 @@
                 <button class="btn-p-soft btn-soft-excel" onclick="abrirModal('bitacora', 'excel')"><i class="ti ti-file-spreadsheet"></i> EXCEL</button>
             </div>
         </div>
+        <?php endif; ?>
 
-        <!-- 7. Ficha Diaria -->
+        <!-- 7. Ficha Diaria — Solo Admin (es reporte grupal de todo el sistema) -->
+        <?php if (!$esTutor): ?>
         <div class="p-card">
             <div class="p-card-header"><span class="p-badge" style="background:rgba(13,20,36,0.1); color:var(--p-ink);"><i class="ti ti-activity"></i> MONITOREO</span></div>
             <h3 class="p-card-title">Ficha Diaria</h3><h4 class="p-card-subtitle" style="color:var(--p-ink);">SUPERVISIÓN</h4>
@@ -320,6 +332,7 @@
                 <button class="btn-p-soft btn-soft-pdf" onclick="abrirModal('diaria', 'pdf')"><i class="ti ti-file-type-pdf"></i> PDF</button>
             </div>
         </div>
+        <?php endif; ?>
 
         <!-- 8. Constancias -->
         <div class="p-card">

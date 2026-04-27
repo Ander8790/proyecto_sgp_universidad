@@ -7,7 +7,7 @@
 <footer class="main-footer">
     <div class="footer-container">
         <div class="footer-left">
-            © <?= date('Y') ?> SGP <span class="footer-separator">•</span> v1.0.0
+            Copyleft <?= date('Y') ?> SGP <span class="footer-separator">•</span> v1.0.0
         </div>
         <div class="footer-right">
             <span class="status-dot"></span> Sistema Operativo

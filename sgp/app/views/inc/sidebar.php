@@ -47,9 +47,13 @@ if ($rol_id == 3) $dashboardUrl = URLROOT . '/pasante/dashboard';
  * @param string $url URL a verificar
  * @return string Clase CSS 'active' si coincide, '' si no
  */
-function isActive($url) {
-    $current = $_SERVER['REQUEST_URI'];
-    return strpos($current, $url) !== false ? 'active' : '';
+function isActive($url, $exact = false) {
+    $current = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+    if ($exact) {
+        $target = parse_url(URLROOT . $url, PHP_URL_PATH);
+        return rtrim($current, '/') === rtrim($target, '/') ? 'active' : '';
+    }
+    return strpos($_SERVER['REQUEST_URI'], $url) !== false ? 'active' : '';
 }
 ?>
 
@@ -59,7 +63,7 @@ function isActive($url) {
             <!-- Dashboard -->
             <li>
                 <a href="<?= $dashboardUrl ?>" 
-                   class="nav-link <?= isActive($rol_id == 1 ? '/admin' : ($rol_id == 2 ? '/tutor' : '/pasante/dashboard')) ?>"
+                   class="nav-link <?= isActive($rol_id == 1 ? '/admin' : ($rol_id == 2 ? '/tutor' : '/pasante/dashboard'), true) ?>"
                    data-tooltip="Inicio">
                     <i class="ti ti-home"></i>
                     <span class="menu-text">Inicio</span>
@@ -222,6 +226,14 @@ function isActive($url) {
                     <span class="menu-text">Reportes</span>
                 </a>
             </li>
+            <li style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                <a href="<?= URLROOT ?>/ayuda"
+                   class="nav-link <?= isActive('/ayuda') ?>"
+                   data-tooltip="Manual de Usuario">
+                    <i class="ti ti-lifebuoy"></i>
+                    <span class="menu-text">Ayuda</span>
+                </a>
+            </li>
             <?php endif; ?>
 
             <?php if ($role == 'Pasante'): ?>
@@ -255,6 +267,14 @@ function isActive($url) {
                    data-tooltip="Mi Constancia">
                     <i class="ti ti-file-certificate"></i>
                     <span class="menu-text">Mi Constancia</span>
+                </a>
+            </li>
+            <li style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
+                <a href="<?= URLROOT ?>/ayuda"
+                   class="nav-link <?= isActive('/ayuda') ?>"
+                   data-tooltip="Manual de Usuario">
+                    <i class="ti ti-lifebuoy"></i>
+                    <span class="menu-text">Ayuda</span>
                 </a>
             </li>
             <?php endif; ?>

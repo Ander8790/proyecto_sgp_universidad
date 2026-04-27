@@ -9,28 +9,29 @@ $pasante     = $data['pasante']      ?? null;
 $evaluaciones= $data['evaluaciones'] ?? [];
 
 /* ── helpers ── */
+// Escala real del sistema: promedio de 14 criterios de 1–5 estrellas
 function notaColor(float $n): string {
-    if ($n >= 18) return '#10b981';
-    if ($n >= 15) return '#f59e0b';
-    if ($n >= 10) return '#f97316';
+    if ($n >= 4.5) return '#10b981';
+    if ($n >= 3.5) return '#f59e0b';
+    if ($n >= 2.5) return '#f97316';
     return '#ef4444';
 }
 function notaGradient(float $n): string {
-    if ($n >= 18) return 'linear-gradient(135deg,#064e3b,#059669)';
-    if ($n >= 15) return 'linear-gradient(135deg,#78350f,#d97706)';
-    if ($n >= 10) return 'linear-gradient(135deg,#7c2d12,#f97316)';
+    if ($n >= 4.5) return 'linear-gradient(135deg,#064e3b,#059669)';
+    if ($n >= 3.5) return 'linear-gradient(135deg,#78350f,#d97706)';
+    if ($n >= 2.5) return 'linear-gradient(135deg,#7c2d12,#f97316)';
     return 'linear-gradient(135deg,#7f1d1d,#ef4444)';
 }
 function notaLabel(float $n): string {
-    if ($n >= 18) return 'Excelente';
-    if ($n >= 15) return 'Bueno';
-    if ($n >= 10) return 'Regular';
+    if ($n >= 4.5) return 'Excelente';
+    if ($n >= 3.5) return 'Bueno';
+    if ($n >= 2.5) return 'Regular';
     return 'Deficiente';
 }
 function notaIcon(float $n): string {
-    if ($n >= 18) return 'ti-star-filled';
-    if ($n >= 15) return 'ti-star-half-filled';
-    if ($n >= 10) return 'ti-star';
+    if ($n >= 4.5) return 'ti-star-filled';
+    if ($n >= 3.5) return 'ti-star-half-filled';
+    if ($n >= 2.5) return 'ti-star';
     return 'ti-star-off';
 }
 
@@ -44,7 +45,7 @@ $ultima    = $totalEv ? $evaluaciones[0] : null; // ya ordenadas DESC
 /* ── arco SVG para el indicador de desempeño ── */
 $r     = 52;
 $circ  = 2 * M_PI * $r;
-$pct   = min(100, ($promGlobal / 20) * 100);
+$pct   = min(100, ($promGlobal / 5) * 100);
 $dash  = round($pct / 100 * $circ, 2);
 $gap   = round($circ - $dash, 2);
 $ringColor = notaColor($promGlobal);
@@ -53,7 +54,7 @@ $ringColor = notaColor($promGlobal);
 /* ── keyframes ── */
 @keyframes evFadeUp{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
 @keyframes evPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
-@keyframes evGlow{0%,100%{box-shadow:0 0 0 0 rgba(251,191,36,.35)}50%{box-shadow:0 0 0 10px rgba(251,191,36,0)}}
+@keyframes evGlow{0%,100%{box-shadow:0 0 0 0 rgba(37,99,235,.35)}50%{box-shadow:0 0 0 10px rgba(37,99,235,0)}}
 @keyframes dashSpin{from{stroke-dashoffset:<?= round($circ, 2) ?>}to{stroke-dashoffset:<?= round($circ - $dash, 2) ?>}}
 @keyframes shimmer{0%{background-position:-200% 0}100%{background-position:200% 0}}
 
@@ -62,15 +63,15 @@ $ringColor = notaColor($promGlobal);
 
 /* ── hero ── */
 .ev-hero{
-    background:linear-gradient(135deg,#713f12 0%,#92400e 35%,#b45309 65%,#d97706 100%);
+    background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);
     border-radius:24px;padding:32px 36px;position:relative;overflow:hidden;
     display:flex;align-items:center;gap:20px;flex-wrap:wrap;
-    box-shadow:0 8px 32px rgba(113,63,18,.35);
+    box-shadow:0 8px 32px rgba(30,58,138,.35);
 }
 .ev-hero::before{
     content:'';position:absolute;top:-40px;right:-40px;
     width:220px;height:220px;border-radius:50%;
-    background:radial-gradient(circle,rgba(251,191,36,.18) 0%,transparent 70%);
+    background:radial-gradient(circle,rgba(96,165,250,.18) 0%,transparent 70%);
     pointer-events:none;
 }
 .ev-hero::after{
@@ -181,9 +182,9 @@ $ringColor = notaColor($promGlobal);
 }
 .ev-empty-icon{
     width:80px;height:80px;border-radius:50%;
-    background:linear-gradient(135deg,#fef3c7,#fde68a);
+    background:linear-gradient(135deg,#dbeafe,#bfdbfe);
     display:flex;align-items:center;justify-content:center;
-    margin:0 auto 18px;font-size:2rem;color:#92400e;
+    margin:0 auto 18px;font-size:2rem;color:#1e3a8a;
 }
 
 /* ── sparkline-bar mensual ── */
@@ -196,7 +197,7 @@ $ringColor = notaColor($promGlobal);
 <!-- ══════════════════════ HERO ══════════════════════ -->
 <div class="ev-hero">
     <div class="ev-hero-icon">
-        <i class="ti ti-medal" style="font-size:32px;color:#fde68a;"></i>
+        <i class="ti ti-medal" style="font-size:32px;color:rgba(255,255,255,.9);"></i>
     </div>
     <div class="ev-hero-text">
         <div class="ev-hero-badge">
@@ -210,7 +211,7 @@ $ringColor = notaColor($promGlobal);
             <?php if ($totalEv > 0): ?>
                 <?= $totalEv ?> evaluación<?= $totalEv > 1 ? 'es' : '' ?> registrada<?= $totalEv > 1 ? 's' : '' ?>
                 &nbsp;·&nbsp; Promedio global:
-                <strong style="color:#fde68a;"><?= number_format($promGlobal, 1) ?>/20</strong>
+                <strong style="color:#93c5fd;"><?= number_format($promGlobal, 1) ?>/5</strong>
             <?php else: ?>
                 Aún no tienes evaluaciones registradas
             <?php endif; ?>
@@ -218,7 +219,7 @@ $ringColor = notaColor($promGlobal);
     </div>
     <?php if ($totalEv > 0): ?>
     <div style="z-index:1;text-align:center;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:14px 22px;">
-        <div style="font-size:2.4rem;font-weight:900;color:#fde68a;line-height:1;"><?= number_format($mejorNota, 1) ?></div>
+        <div style="font-size:2.4rem;font-weight:900;color:#93c5fd;line-height:1;"><?= number_format($mejorNota, 1) ?></div>
         <div style="font-size:.72rem;color:rgba(255,255,255,.7);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;">Mejor nota</div>
     </div>
     <?php endif; ?>
@@ -287,7 +288,7 @@ $ringColor = notaColor($promGlobal);
             </svg>
             <div class="ev-ring-center">
                 <div class="ev-ring-score" style="color:<?= $ringColor ?>"><?= number_format($promGlobal, 1) ?></div>
-                <div class="ev-ring-denom">/ 20 pts</div>
+                <div class="ev-ring-denom">/ 5 pts</div>
                 <div class="ev-ring-label"><?= notaLabel($promGlobal) ?></div>
             </div>
         </div>
@@ -346,10 +347,10 @@ $ringColor = notaColor($promGlobal);
                 $icon  = notaIcon($nota);
             ?>
             <div class="ev-item" style="animation-delay:<?= $idx * 0.06 ?>s">
-                <div class="ev-item-side" style="background:<?= $grad ?>;">
+                <div class="ev-item-side" style="background:linear-gradient(160deg,#1e3a8a,#2563eb);">
                     <i class="ti <?= $icon ?>" style="font-size:.85rem;opacity:.8;"></i>
                     <div class="ev-item-score"><?= number_format($nota, 1) ?></div>
-                    <div class="ev-item-base">/ 20</div>
+                    <div class="ev-item-base">/ 5</div>
                 </div>
                 <div class="ev-item-body">
                     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
@@ -377,11 +378,11 @@ $ringColor = notaColor($promGlobal);
 </div><!-- /ev-bento -->
 
 <!-- ── NOTA BENE ── -->
-<div style="background:#fffbeb;border:1px solid #fde68a;border-left:4px solid #d97706;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;animation:evFadeUp .7s ease both;">
-    <i class="ti ti-info-circle" style="color:#d97706;font-size:1rem;margin-top:2px;flex-shrink:0;"></i>
-    <p style="margin:0;font-size:.82rem;color:#92400e;line-height:1.6;">
+<div style="background:#eff6ff;border:1px solid #bfdbfe;border-left:4px solid #2563eb;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;animation:evFadeUp .7s ease both;">
+    <i class="ti ti-info-circle" style="color:#2563eb;font-size:1rem;margin-top:2px;flex-shrink:0;"></i>
+    <p style="margin:0;font-size:.82rem;color:#1e40af;line-height:1.6;">
         <strong>Escala de evaluación:</strong>
-        Excelente 18–20 &nbsp;·&nbsp; Bueno 15–17 &nbsp;·&nbsp; Regular 10–14 &nbsp;·&nbsp; Deficiente &lt;10.
+        Excelente 4.5–5 &nbsp;·&nbsp; Bueno 3.5–4.4 &nbsp;·&nbsp; Regular 2.5–3.4 &nbsp;·&nbsp; Deficiente &lt;2.5.
         Las evaluaciones son registradas por tu tutor o el administrador del sistema.
     </p>
 </div>

@@ -808,7 +808,12 @@ $hoy             = date('Y-m-d');
                         <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Días no laborables — excluidos del auto-fill de asistencias</div>
                     </div>
                 </div>
-                <span class="cfg-badge" style="background:#f5f3ff;color:#7c3aed;"><?= $totalFeriados ?> en <?= $anioActual ?></span>
+                <div style="display:flex;align-items:center;gap:12px;">
+                    <span class="cfg-badge" style="background:#f5f3ff;color:#7c3aed;"><?= $totalFeriados ?> en <?= $anioActual ?></span>
+                    <a href="<?= URLROOT ?>/configuracion/calendario_feriados" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;padding:7px 12px;border-radius:10px;font-size:0.8rem;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:0 4px 10px rgba(124,58,237,0.3);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
+                        <i class="ti ti-calendar-stats"></i> Almanaque
+                    </a>
+                </div>
             </div>
 
             <?php if (empty($feriados)): ?>
@@ -965,49 +970,55 @@ $hoy             = date('Y-m-d');
             <div style="display:flex;flex-direction:column;gap:10px;">
 
                 <!-- Verificar BD -->
-                <div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #f1f5f9;">
+                <div style="background:#eff6ff;border-radius:12px;padding:14px;border:1px solid #bfdbfe;transition:all 0.2s;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
-                            <p style="margin:0;font-size:0.85rem;font-weight:700;color:#1e293b;">Base de Datos</p>
-                            <p style="margin:2px 0 0;font-size:0.73rem;color:#64748b;" id="txt-bd-sub">Verificar conexión y estado</p>
+                            <p style="margin:0;font-size:0.85rem;font-weight:800;color:#1e3a8a;">Base de Datos</p>
+                            <p style="margin:2px 0 0;font-size:0.73rem;color:#3b82f6;" id="txt-bd-sub">Verificar conexión y estado</p>
                         </div>
-                        <i class="ti ti-database" style="font-size:1.4rem;color:#94a3b8;"></i>
+                        <div style="width:36px;height:36px;background:rgba(59,130,246,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                            <i class="ti ti-database" style="font-size:1.3rem;color:#2563eb;"></i>
+                        </div>
                     </div>
                     <button type="button" onclick="verificarBD(this)"
-                        style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;color:#374151;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:inherit;"
-                        onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                        style="width:100%;padding:9px;border:none;border-radius:9px;background:white;color:#2563eb;font-size:0.85rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:inherit;box-shadow:0 2px 6px rgba(59,130,246,0.1);"
+                        onmouseover="this.style.background='#dbeafe';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='white';this.style.transform='none'">
                         <i class="ti ti-plug-connected"></i> <span id="txt-btn-bd">Verificar Conexión</span>
                     </button>
                 </div>
 
                 <!-- Limpiar sesiones -->
-                <div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #f1f5f9;">
+                <div style="background:#fff1f2;border-radius:12px;padding:14px;border:1px solid #fecdd3;transition:all 0.2s;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
-                            <p style="margin:0;font-size:0.85rem;font-weight:700;color:#1e293b;">Sesiones Expiradas</p>
-                            <p style="margin:2px 0 0;font-size:0.73rem;color:#64748b;">Limpiar tokens de sesión vencidos</p>
+                            <p style="margin:0;font-size:0.85rem;font-weight:800;color:#881337;">Sesiones Expiradas</p>
+                            <p style="margin:2px 0 0;font-size:0.73rem;color:#f43f5e;">Limpiar tokens de sesión vencidos</p>
                         </div>
-                        <i class="ti ti-eraser" style="font-size:1.4rem;color:#94a3b8;"></i>
+                        <div style="width:36px;height:36px;background:rgba(244,63,94,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                            <i class="ti ti-eraser" style="font-size:1.3rem;color:#e11d48;"></i>
+                        </div>
                     </div>
                     <button type="button" onclick="limpiarSesiones(this)"
-                        style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;color:#374151;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:inherit;"
-                        onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                        style="width:100%;padding:9px;border:none;border-radius:9px;background:white;color:#e11d48;font-size:0.85rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;font-family:inherit;box-shadow:0 2px 6px rgba(244,63,94,0.1);"
+                        onmouseover="this.style.background='#ffe4e6';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='white';this.style.transform='none'">
                         <i class="ti ti-trash-x"></i> <span>Limpiar Sesiones</span>
                     </button>
                 </div>
 
                 <!-- Acceso rápido a Bitácora -->
-                <div style="background:#f8fafc;border-radius:12px;padding:14px;border:1px solid #f1f5f9;">
+                <div style="background:#f5f3ff;border-radius:12px;padding:14px;border:1px solid #ddd6fe;transition:all 0.2s;">
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
-                            <p style="margin:0;font-size:0.85rem;font-weight:700;color:#1e293b;">Bitácora del Sistema</p>
-                            <p style="margin:2px 0 0;font-size:0.73rem;color:#64748b;">Ver registro de actividades del sistema</p>
+                            <p style="margin:0;font-size:0.85rem;font-weight:800;color:#4c1d95;">Bitácora del Sistema</p>
+                            <p style="margin:2px 0 0;font-size:0.73rem;color:#8b5cf6;">Registro de actividades del sistema</p>
                         </div>
-                        <i class="ti ti-clipboard-list" style="font-size:1.4rem;color:#94a3b8;"></i>
+                        <div style="width:36px;height:36px;background:rgba(139,92,246,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                            <i class="ti ti-clipboard-list" style="font-size:1.3rem;color:#7c3aed;"></i>
+                        </div>
                     </div>
                     <a href="<?= URLROOT ?>/bitacora"
-                        style="width:100%;padding:9px;border:1.5px solid #e2e8f0;border-radius:9px;background:white;color:#374151;font-size:0.82rem;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;text-decoration:none;"
-                        onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">
+                        style="width:100%;padding:9px;border:none;border-radius:9px;background:white;color:#7c3aed;font-size:0.85rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;text-decoration:none;box-shadow:0 2px 6px rgba(139,92,246,0.1);"
+                        onmouseover="this.style.background='#ede9fe';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='white';this.style.transform='none'">
                         <i class="ti ti-external-link"></i> Ir a Bitácora
                     </a>
                 </div>

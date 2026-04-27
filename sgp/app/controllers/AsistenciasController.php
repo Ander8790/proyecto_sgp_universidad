@@ -105,6 +105,12 @@ class AsistenciasController extends Controller
             $tituloRango = "del año " . $paramsUrl['anio'];
         }
 
+        // Filtro por tutor: si rol=2, solo muestra sus pasantes asignados
+        $whereTutor = "";
+        if ($rolId === 2) {
+            $whereTutor = " AND dpa.tutor_id = :tutor_id ";
+        }
+
         // Si es pasante, solo ve sus propios registros
         $wherePasante = "";
         $filtroBusquedaPasante = (int)($_GET['pasante_id'] ?? 0);
@@ -144,11 +150,14 @@ class AsistenciasController extends Controller
             LEFT  JOIN instituciones     inst ON dpa.institucion_procedencia REGEXP '^[0-9]+$'
                                                 AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
             LEFT  JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
-            WHERE a.fecha >= :fecha_inicio AND a.fecha <= :fecha_fin $wherePasante
+            WHERE a.fecha >= :fecha_inicio AND a.fecha <= :fecha_fin $whereTutor $wherePasante
             ORDER BY a.fecha DESC, a.hora_registro DESC
         ");
         $this->db->bind(':fecha_inicio', $fechaInicio);
         $this->db->bind(':fecha_fin', $fechaFin);
+        if ($rolId === 2) {
+            $this->db->bind(':tutor_id', $userId);
+        }
         if ($rolId === 3) {
             $this->db->bind(':uid_pasante', $userId);
         } elseif ($filtroBusquedaPasante > 0) {
@@ -168,8 +177,12 @@ class AsistenciasController extends Controller
               AND  u.estado = 'activo'
               AND  COALESCE(dpa.estado_pasantia, 'Sin Asignar') = 'Activo'
               AND  COALESCE(dpa.tipo_pasantia, 'Regular') = 'Regular'
+              $whereTutor
             ORDER BY IFNULL(dp.apellidos, u.correo) ASC
         ");
+        if ($rolId === 2) {
+            $this->db->bind(':tutor_id', $userId);
+        }
         $todosActivos = $this->db->resultSet();
         $totalActivos = count($todosActivos);
 
@@ -763,6 +776,11 @@ class AsistenciasController extends Controller
             $fechaFin    = $paramsUrl['anio'] . '-12-31';
         }
 
+        $whereTutor = "";
+        if ($rolId === 2) {
+            $whereTutor = " AND dpa.tutor_id = :tutor_id ";
+        }
+
         $wherePasante = "";
         $filtroBusquedaPasante = (int)($_GET['pasante_id'] ?? 0);
 
@@ -789,12 +807,15 @@ class AsistenciasController extends Controller
             LEFT  JOIN datos_personales  dp  ON dp.usuario_id = u.id
             LEFT  JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos     d   ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
-            WHERE a.fecha >= :fecha_inicio AND a.fecha <= :fecha_fin $wherePasante
+            WHERE a.fecha >= :fecha_inicio AND a.fecha <= :fecha_fin $whereTutor $wherePasante
             ORDER BY a.fecha DESC, a.hora_registro DESC
         ");
-        
+
         $this->db->bind(':fecha_inicio', $fechaInicio);
         $this->db->bind(':fecha_fin', $fechaFin);
+        if ($rolId === 2) {
+            $this->db->bind(':tutor_id', $userId);
+        }
         if ($rolId === 3) {
             $this->db->bind(':uid_pasante', $userId);
         } elseif ($filtroBusquedaPasante > 0) {
@@ -821,16 +842,19 @@ class AsistenciasController extends Controller
     public function buscar_pasantes(): void
     {
         header('Content-Type: application/json');
-        
+
+        $rolId  = (int)Session::get('role_id');
+        $userId = (int)Session::get('user_id');
+
         $term = $_GET['q'] ?? '';
         if (strlen(trim($term)) < 2) {
             echo json_encode(['success' => true, 'data' => []]);
             exit;
         }
 
-        $termSql = "%" . trim($term) . "%";
+        $termSql    = "%" . trim($term) . "%";
+        $whereTutor = $rolId === 2 ? " AND dpa.tutor_id = :tutor_id " : "";
 
-        // Mismos filtros que pasantesActivos: Rol 3, Usuario activo, Pasantía activa
         $this->db->query("
             SELECT u.id, u.cedula, dp.nombres, dp.apellidos,
                    d.nombre AS departamento_nombre,
@@ -844,11 +868,15 @@ class AsistenciasController extends Controller
               AND  u.estado = 'activo'
               AND  COALESCE(dpa.estado_pasantia, 'Sin Asignar') = 'Activo'
               AND  COALESCE(dpa.tipo_pasantia, 'Regular') = 'Regular'
+              $whereTutor
               AND  (u.cedula LIKE :q OR dp.nombres LIKE :q OR dp.apellidos LIKE :q)
             ORDER BY IFNULL(dp.apellidos, u.correo) ASC
             LIMIT 15
         ");
         $this->db->bind(':q', $termSql);
+        if ($rolId === 2) {
+            $this->db->bind(':tutor_id', $userId);
+        }
         $resultados = $this->db->resultSet();
 
         echo json_encode(['success' => true, 'data' => $resultados]);
@@ -902,15 +930,16 @@ class AsistenciasController extends Controller
      */
     public function buscarPasanteAjax() {
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $query = trim($_POST['query'] ?? '');
-            
-            // Llamamos al modelo para buscar coincidencias por cédula o nombre
-            // IMPORTANTE: Asegúrate de crear este método en tu AsistenciaModel
-            $resultados = $this->asistenciaModel->buscarPasanteLive($query);
-            
+            $rolId   = (int)Session::get('role_id');
+            $userId  = (int)Session::get('user_id');
+            $query   = trim($_POST['query'] ?? '');
+            $tutorId = $rolId === 2 ? $userId : 0;
+
+            $resultados = $this->asistenciaModel->buscarPasanteLive($query, $tutorId);
+
             header('Content-Type: application/json');
             echo json_encode($resultados);
-            exit; // Evitamos que se renderice cualquier vista HTML
+            exit;
         }
     }
 
@@ -1063,6 +1092,8 @@ class AsistenciasController extends Controller
     public function almanaque($pasanteId = null): void
     {
         $rolId  = (int)Session::get('role_id');
+        $userId = (int)Session::get('user_id');
+
         if (!in_array($rolId, [1, 2])) {
             $this->redirect('/dashboard');
             return;
@@ -1072,6 +1103,21 @@ class AsistenciasController extends Controller
         if ($pasanteId <= 0) {
             $this->redirect('/asistencias');
             return;
+        }
+
+        // Verificar que el tutor solo accede al almanaque de sus pasantes
+        if ($rolId === 2) {
+            $this->db->query("
+                SELECT 1 FROM datos_pasante
+                WHERE usuario_id = :pid AND tutor_id = :tid
+                LIMIT 1
+            ");
+            $this->db->bind(':pid', $pasanteId);
+            $this->db->bind(':tid', $userId);
+            if (!$this->db->single()) {
+                $this->redirect('/asistencias');
+                return;
+            }
         }
 
         $anio = (int)($_GET['anio'] ?? date('Y'));

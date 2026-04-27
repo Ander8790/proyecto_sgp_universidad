@@ -31,8 +31,10 @@ class AsistenciaModel
      * @param string $query Término de búsqueda del usuario
      * @return array Lista de coincidencias (máx. 5)
      */
-    public function buscarPasanteLive(string $query): array
+    public function buscarPasanteLive(string $query, int $tutorId = 0): array
     {
+        $whereTutor = $tutorId > 0 ? " AND dpa.tutor_id = :tutor_id " : "";
+
         $this->db->query("
             SELECT u.id AS pasante_id, u.cedula, dp.nombres, dp.apellidos,
                    d.nombre AS departamento_nombre,
@@ -49,12 +51,16 @@ class AsistenciaModel
             WHERE  u.rol_id = 3
               AND  u.estado = 'activo'
               AND  COALESCE(dpa.estado_pasantia, 'Sin Asignar') = 'Activo'
+              $whereTutor
               AND  (u.cedula LIKE :busqueda OR dp.nombres LIKE :busqueda OR dp.apellidos LIKE :busqueda)
             ORDER BY IFNULL(dp.apellidos, u.correo) ASC
             LIMIT 5
         ");
 
         $this->db->bind(':busqueda', '%' . $query . '%');
+        if ($tutorId > 0) {
+            $this->db->bind(':tutor_id', $tutorId);
+        }
         return $this->db->resultSet();
     }
 
@@ -328,14 +334,26 @@ class AsistenciaModel
                 $fechaStr = $cursor->format('Y-m-d');
                 $dow      = (int)$cursor->format('N'); // 1=Lun … 7=Dom
 
-                // Solo días L-V, no feriados, no existentes
-                if ($dow < 6 && !isset($feriados[$fechaStr]) && !isset($fechasExistentes[$fechaStr])) {
-                    $this->db->query("
-                        INSERT IGNORE INTO asistencias
-                            (pasante_id, fecha, hora_registro, estado, metodo, es_auto_fill)
-                        VALUES
-                            (:pid, :fecha, '00:00:00', 'Ausente', 'Sistema', 1)
-                    ");
+                // Solo días L-V, no existentes
+                if ($dow < 6 && !isset($fechasExistentes[$fechaStr])) {
+                    if (isset($feriados[$fechaStr])) {
+                        // Feriado: Inyectar como Justificado para que sume horas
+                        $this->db->query("
+                            INSERT IGNORE INTO asistencias
+                                (pasante_id, fecha, hora_registro, estado, metodo, es_auto_fill)
+                            VALUES
+                                (:pid, :fecha, '00:00:00', 'Justificado', 'Sistema', 1)
+                        ");
+                    } else {
+                        // Día hábil sin registro: Ausente
+                        $this->db->query("
+                            INSERT IGNORE INTO asistencias
+                                (pasante_id, fecha, hora_registro, estado, metodo, es_auto_fill)
+                            VALUES
+                                (:pid, :fecha, '00:00:00', 'Ausente', 'Sistema', 1)
+                        ");
+                    }
+                    
                     $this->db->bind(':pid',   $pid);
                     $this->db->bind(':fecha', $fechaStr);
                     if ($this->db->execute()) {

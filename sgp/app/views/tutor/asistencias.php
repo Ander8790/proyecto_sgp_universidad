@@ -210,7 +210,10 @@ $porcAsistencia = $totalActivos > 0 ? round(($presentes + $justificados) / $tota
     <!-- ── VISTA DIARIA ── -->
     <div class="ta-card">
     <div class="ta-date-bar">
-        <input type="date" id="filtroFecha" value="<?= htmlspecialchars($paramsUrl['fecha']) ?>" max="<?= $hoy ?>">
+        <div style="position:relative; display:inline-block;">
+            <input type="date" id="filtroFecha" value="<?= htmlspecialchars($paramsUrl['fecha']) ?>" max="<?= $hoy ?>" style="padding-right:32px;">
+            <i class="ti ti-help-circle" data-tooltip="Seleccione una fecha para consultar la asistencia de ese día" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); color:#94a3b8; cursor:help; font-size:1.1rem;"></i>
+        </div>
         <button class="ta-apply-btn" onclick="filtrarFecha()"><i class="ti ti-filter"></i> Aplicar</button>
     </div>
     <div style="overflow-x:auto;">
@@ -316,7 +319,7 @@ $porcAsistencia = $totalActivos > 0 ? round(($presentes + $justificados) / $tota
     <div class="ta-modal">
         <h3 class="ta-modal-title">Registrar Asistencia Manual</h3>
         <div class="ta-form-row">
-            <label>Pasante</label>
+            <label style="display:flex;align-items:center;gap:6px;">Pasante <i class="ti ti-help-circle" style="color:#2563eb;font-size:1.1em;cursor:help;" data-tooltip="Seleccione al pasante a quien registrará la asistencia"></i></label>
             <select id="selectPasante">
                 <option value="">Seleccionar…</option>
                 <?php foreach ($misPasantes as $p): ?>
@@ -325,11 +328,11 @@ $porcAsistencia = $totalActivos > 0 ? round(($presentes + $justificados) / $tota
             </select>
         </div>
         <div class="ta-form-row">
-            <label>Fecha</label>
+            <label style="display:flex;align-items:center;gap:6px;">Fecha <i class="ti ti-help-circle" style="color:#2563eb;font-size:1.1em;cursor:help;" data-tooltip="Seleccione la fecha de la asistencia"></i></label>
             <input type="date" id="manualFecha" value="<?= $hoy ?>" max="<?= $hoy ?>">
         </div>
         <div class="ta-form-row">
-            <label>Estado</label>
+            <label style="display:flex;align-items:center;gap:6px;">Estado <i class="ti ti-help-circle" style="color:#2563eb;font-size:1.1em;cursor:help;" data-tooltip="Seleccione el estado (Presente, Ausente, Justificado)"></i></label>
             <select id="manualEstado" onchange="toggleMotivo()">
                 <option value="Presente">Presente</option>
                 <option value="Ausente">Ausente</option>
@@ -337,7 +340,7 @@ $porcAsistencia = $totalActivos > 0 ? round(($presentes + $justificados) / $tota
             </select>
         </div>
         <div class="ta-form-row" id="motivoRow" style="display:none;">
-            <label>Motivo de Justificación</label>
+            <label style="display:flex;align-items:center;gap:6px;">Motivo de Justificación <i class="ti ti-help-circle" style="color:#2563eb;font-size:1.1em;cursor:help;" data-tooltip="Describa brevemente el motivo (ej. Cita médica)"></i></label>
             <textarea id="manualMotivo" rows="2" placeholder="Ej: Cita médica, diligencia personal…"></textarea>
         </div>
         <div class="ta-modal-actions">

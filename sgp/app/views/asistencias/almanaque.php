@@ -278,6 +278,50 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
     color: #94a3b8; font-size: .9rem;
 }
 
+/* ── DataTables paginación custom ── */
+.hist-dt-top {
+    display: flex; align-items: center; justify-content: flex-end;
+    margin-bottom: 10px;
+}
+.hist-dt-top label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: .78rem; color: #64748b; font-weight: 600;
+}
+.hist-dt-top select {
+    border: 1.5px solid #e2e8f0; border-radius: 8px;
+    padding: 4px 8px; font-size: .78rem; color: #1e293b;
+    background: #f8fafc; cursor: pointer; outline: none;
+}
+.hist-dt-bottom {
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px; margin-top: 14px; padding-top: 10px;
+    border-top: 1px solid #f1f5f9;
+}
+.hist-dt-bottom .dataTables_info {
+    font-size: .75rem; color: #94a3b8; font-weight: 600;
+}
+.hist-dt-bottom .dataTables_paginate {
+    display: flex; align-items: center; gap: 4px;
+}
+.hist-dt-bottom .dataTables_paginate .paginate_button {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 30px; height: 30px; border-radius: 8px;
+    font-size: .8rem; font-weight: 700; cursor: pointer;
+    border: 1.5px solid #e2e8f0; background: #f8fafc; color: #475569;
+    transition: all .15s; user-select: none; padding: 0 8px;
+}
+.hist-dt-bottom .dataTables_paginate .paginate_button:hover:not(.disabled) {
+    background: #1e3a8a; color: white; border-color: #1e3a8a;
+}
+.hist-dt-bottom .dataTables_paginate .paginate_button.current {
+    background: #1e3a8a; color: white; border-color: #1e3a8a;
+}
+.hist-dt-bottom .dataTables_paginate .paginate_button.disabled {
+    opacity: .35; cursor: default;
+}
+/* Ocultar la barra de búsqueda interna de DT (usamos nuestros propios filtros) */
+.hist-dt-top .dataTables_filter { display: none; }
+
 /* ═══ DESGLOSE MENSUAL ═════════════════════════════════════════════ */
 .alm-meses-grid {
     display: grid;
@@ -1358,24 +1402,22 @@ let fpHistorial = null;
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('histTable')) {
         tableHistorial = $('#histTable').DataTable({
-            "pageLength": 5,
-            "lengthMenu": [[5, 10, 25, 50, -1], [5, 10, 25, 50, "Todos"]],
-            "scrollY": "380px",
-            "scrollCollapse": true,
+            "pageLength": 10,
+            "lengthMenu": [[10, 20, 50, -1], [10, 20, 50, "Todos"]],
             "language": {
                 "sProcessing": "Procesando...",
-                "sLengthMenu": "Mostrar _MENU_ reg.",
+                "sLengthMenu": "Mostrar _MENU_ registros",
                 "sZeroRecords": "No se encontraron resultados",
                 "sEmptyTable": "No hay registros disponibles",
-                "sInfo": "Mostrando _START_ al _END_ de _TOTAL_",
-                "sInfoEmpty": "Mostrando 0 al 0 de 0",
-                "sInfoFiltered": "(filtrado de _MAX_)",
-                "sSearch": "Buscar (ej: Ausente, Abr):",
-                "oPaginate": { "sNext": "Sig", "sPrevious": "Ant" }
+                "sInfo": "_START_–_END_ de _TOTAL_",
+                "sInfoEmpty": "0 registros",
+                "sInfoFiltered": "(de _MAX_ total)",
+                "sSearch": "",
+                "oPaginate": { "sNext": "›", "sPrevious": "‹" }
             },
-            "order": [], // Mantener orden de la BD temporalmente
+            "order": [],
             "responsive": true,
-            "dom": '<"dt-top"lf>rt<"dt-bottom"ip><"clear">'
+            "dom": '<"hist-dt-top"l>t<"hist-dt-bottom"ip>'
         });
 
         // Inicializar Flatpickr si existe el field

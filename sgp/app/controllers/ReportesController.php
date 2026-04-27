@@ -66,10 +66,11 @@ class ReportesController extends Controller
         $pasantes = $this->db->resultSet();
 
         $this->view('reportes/index', [
-            'title' => 'Centro de Reportes',
+            'title'         => 'Centro de Reportes',
             'departamentos' => $departamentos,
             'instituciones' => $instituciones,
-            'pasantes' => $pasantes
+            'pasantes'      => $pasantes,
+            'rolId'         => $rolId,   // ← para filtrar tarjetas admin-only en la vista
         ]);
     }
 

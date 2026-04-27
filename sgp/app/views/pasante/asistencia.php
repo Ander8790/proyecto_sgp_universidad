@@ -52,6 +52,62 @@ $primerDow = (int)$primero->format('N'); // 1=lun
 
 $nombDias = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
 $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+// ── Calendario Mon-Fri estilo almanaque ──────────────────────────────
+$feriados  = $data['feriados'] ?? [];
+$hoyStr    = date('Y-m-d');
+
+// Inicio: lunes de la semana que contiene el día 1
+$calStart = clone $primero;
+if ($primerDow > 1) $calStart->modify('-' . ($primerDow - 1) . ' days');
+
+// Fin: viernes de la semana que contiene el último día del mes
+$calEnd = new DateTime("$anioMes-$mesMes-$ultimoDia");
+$calEndDow = (int)$calEnd->format('N');
+if ($calEndDow < 5)      $calEnd->modify('+' . (5 - $calEndDow) . ' days');
+elseif ($calEndDow > 5)  $calEnd->modify('+' . (12 - $calEndDow) . ' days');
+
+$semanasMes = []; $semanaCur = [];
+$cur = clone $calStart;
+while ($cur <= $calEnd) {
+    $dow  = (int)$cur->format('N');
+    $fStr = $cur->format('Y-m-d');
+    $inMes = (int)$cur->format('m') === $mesMes && (int)$cur->format('Y') === $anioMes;
+    if ($dow <= 5) {
+        $reg       = $inMes ? ($actMap[$fStr] ?? null) : null;
+        $esFeriado = $inMes && isset($feriados[$fStr]);
+        $esFuturo  = $inMes && $fStr > $hoyStr;
+        if (!$inMes)        $estado = 'fuera';
+        elseif ($esFeriado) $estado = 'feriado';
+        elseif ($esFuturo)  $estado = 'futuro';
+        elseif ($reg)       $estado = $reg['estado'];
+        else                $estado = 'sin_dato';
+        $semanaCur[$dow] = [
+            'day'           => $inMes ? (int)$cur->format('j') : '',
+            'estado'        => $estado,
+            'hora'          => $reg['hora'] ?? null,
+            'feriadoNombre' => $esFeriado ? ($feriados[$fStr]) : null,
+        ];
+        if ($dow === 5) { $semanasMes[] = $semanaCur; $semanaCur = []; }
+    }
+    $cur->modify('+1 day');
+}
+if (!empty($semanaCur)) $semanasMes[] = $semanaCur;
+
+// ── Resumen por mes para el acordeón ─────────────────────────────────
+$resumenMeses = [];
+foreach ($asistencias as $a) {
+    $mesKey = substr($a->fecha ?? '', 0, 7);
+    if (!$mesKey) continue;
+    if (!isset($resumenMeses[$mesKey])) $resumenMeses[$mesKey] = ['P'=>0,'A'=>0,'J'=>0];
+    $est = $a->estado ?? '';
+    if ($est === 'Presente')      $resumenMeses[$mesKey]['P']++;
+    elseif ($est === 'Ausente')   $resumenMeses[$mesKey]['A']++;
+    elseif ($est === 'Justificado') $resumenMeses[$mesKey]['J']++;
+}
+krsort($resumenMeses);
+$mesesAbrev = ['01'=>'Ene','02'=>'Feb','03'=>'Mar','04'=>'Abr','05'=>'May','06'=>'Jun',
+               '07'=>'Jul','08'=>'Ago','09'=>'Sep','10'=>'Oct','11'=>'Nov','12'=>'Dic'];
 ?>
 <style>
 /* ── Base ── */
@@ -125,26 +181,55 @@ $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agost
 .as-week-day .day-ico { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1rem; }
 .as-week-day .day-lbl { font-size:.65rem; font-weight:700; border-radius:20px; padding:2px 8px; }
 
-/* ── MENSUAL (Calendario) ── */
-.as-cal { width:100%; }
-.as-cal-head { display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:8px; }
-.as-cal-head span { text-align:center; font-size:.7rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:.06em; padding:6px 0; }
-.as-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
-.as-cal-cell {
-    aspect-ratio:1; border-radius:10px; display:flex;
-    flex-direction:column; align-items:center; justify-content:center;
-    font-size:.78rem; font-weight:700; cursor:default;
-    transition:transform .15s, box-shadow .15s;
-    position:relative;
+/* ── MENSUAL — Layout 2 columnas ── */
+.as-mensual-layout { display:grid; grid-template-columns:260px 1fr; gap:16px; }
+@media(max-width:768px) { .as-mensual-layout { grid-template-columns:1fr; } }
+
+/* Mini-calendario Lun-Vie (estilo almanaque) */
+.as-mf-card { background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:14px 16px; }
+.as-mf-title { display:flex; align-items:center; gap:7px; font-size:.85rem; font-weight:800; color:#1e293b; margin-bottom:14px; }
+.as-mf-head { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; margin-bottom:5px; }
+.as-mf-head div { text-align:center; font-size:.63rem; font-weight:800; color:#94a3b8; text-transform:uppercase; padding:4px 0; }
+.as-mf-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:3px; }
+.as-mf-cell {
+    aspect-ratio:1; border-radius:7px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:.75rem; font-weight:700; cursor:default;
+    transition:transform .12s;
 }
-.as-cal-cell:hover:not(.empty):not(.filler) { transform:scale(1.12); z-index:2; }
-.as-cal-cell.filler { background:transparent; }
-.as-cal-cell.empty  { background:#f8fafc; color:#cbd5e1; }
-.as-cal-cell.Presente    { background:#dcfce7; color:#15803d; }
-.as-cal-cell.Ausente     { background:#fee2e2; color:#dc2626; }
-.as-cal-cell.Justificado { background:#dbeafe; color:#1d4ed8; }
-.as-cal-cell.hoy         { outline:2px solid #2563eb; outline-offset:2px; }
-.as-cal-cell .dot { width:5px; height:5px; border-radius:50%; background:currentColor; margin-top:2px; }
+.as-mf-cell:hover:not([data-e="fuera"]):not([data-e="futuro"]) { transform:scale(1.12); }
+.as-mf-cell[data-e="fuera"]       { background:transparent; color:transparent; pointer-events:none; }
+.as-mf-cell[data-e="futuro"]      { background:#fff; border:1px solid #e2e8f0; color:#cbd5e1; }
+.as-mf-cell[data-e="sin_dato"]    { background:#f1f5f9; color:#94a3b8; }
+.as-mf-cell[data-e="Presente"]    { background:#22c55e; color:#fff; }
+.as-mf-cell[data-e="Ausente"]     { background:#ef4444; color:#fff; }
+.as-mf-cell[data-e="Justificado"] { background:#3b82f6; color:#fff; }
+.as-mf-cell[data-e="feriado"]     { background:#f59e0b; color:#fff; }
+.as-mf-legend { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; font-size:.68rem; color:#64748b; }
+.as-mf-legend span { display:flex; align-items:center; gap:4px; font-weight:600; }
+.as-mf-dot { width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+
+/* Acordeón histórico por mes */
+.as-acc-wrap { display:flex; flex-direction:column; gap:6px; }
+.as-acc-title { font-size:.82rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:.05em; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.as-acc-item { border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; background:#fff; }
+.as-acc-btn {
+    width:100%; border:none; cursor:pointer; background:#fff;
+    display:flex; align-items:center; justify-content:space-between;
+    padding:11px 14px; transition:background .15s; gap:8px;
+}
+.as-acc-btn:hover { background:#f8fafc; }
+.as-acc-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+.as-acc-chevron { transition:transform .2s; font-size:.8rem; color:#94a3b8; flex-shrink:0; }
+.as-acc-item.open .as-acc-chevron { transform:rotate(180deg); }
+.as-acc-body { display:none; padding:10px 14px 12px; border-top:1px solid #f1f5f9; background:#f8fafc; }
+.as-acc-item.open .as-acc-body { display:block; }
+.as-acc-stats { display:flex; gap:0; }
+.as-acc-stat { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; padding:6px 4px; }
+.as-acc-stat b { font-size:1.3rem; font-weight:900; line-height:1; }
+.as-acc-stat small { font-size:.62rem; color:#94a3b8; font-weight:600; text-transform:uppercase; }
+.as-acc-bar { height:5px; border-radius:4px; overflow:hidden; background:#e2e8f0; margin-top:8px; display:flex; }
+.as-acc-bar div { height:100%; }
 
 /* ── TOTAL (Tabla) ── */
 .as-tbl { width:100%; border-collapse:collapse; }
@@ -157,6 +242,21 @@ $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agost
 /* ── Progress bar ── */
 .as-bar { height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin:.3rem 0; }
 .as-bar-fill { height:100%; border-radius:999px; transition:width .8s cubic-bezier(.4,0,.2,1); }
+
+/* ── Total — Paginación ── */
+.as-pg { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.as-pg-info { font-size:.78rem; color:#94a3b8; }
+.as-pg-btns { display:flex; gap:4px; flex-wrap:wrap; }
+.as-pg-btn {
+    min-width:30px; height:30px; padding:0 8px;
+    border:1px solid #e2e8f0; border-radius:8px;
+    background:#fff; color:#64748b; font-size:.8rem; font-weight:600;
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    transition: all .15s;
+}
+.as-pg-btn:hover:not(:disabled):not(.active) { background:#f1f5f9; border-color:#cbd5e1; }
+.as-pg-btn.active { background:#1e3a8a; border-color:#1e3a8a; color:#fff; }
+.as-pg-btn:disabled { opacity:.35; cursor:not-allowed; }
 
 /* ── Responsive ── */
 @media(max-width:768px) {
@@ -180,7 +280,8 @@ $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agost
     </div>
     <div style="margin-left:auto;z-index:1;text-align:right;flex-shrink:0;">
         <div style="font-size:2rem;font-weight:900;color:#fff;line-height:1;"><?= $porcAsist ?>%</div>
-        <div style="font-size:.75rem;color:rgba(255,255,255,.7);font-weight:600;">asistencia total</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.7);font-weight:600;">tasa de asistencia</div>
+        <div style="font-size:.68rem;color:rgba(255,255,255,.5);margin-top:2px;"><?= $cPresentes + $cJustificados ?> de <?= $totalReg ?> días marcados</div>
     </div>
 </div>
 
@@ -198,7 +299,7 @@ $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agost
         ['lbl'=>'Presentes',   'num'=>$cPresentes,  'cls'=>'g', 'color'=>'#10b981', 'ibg'=>'#d1fae5', 'icon'=>'ti-check'],
         ['lbl'=>'Ausentes',    'num'=>$cAusentes,   'cls'=>'r', 'color'=>'#ef4444', 'ibg'=>'#fee2e2', 'icon'=>'ti-x'],
         ['lbl'=>'Justificados','num'=>$cJustificados,'cls'=>'y','color'=>'#f59e0b', 'ibg'=>'#fef3c7', 'icon'=>'ti-file-description'],
-        ['lbl'=>'% Asistencia','num'=>$porcAsist.'%','cls'=>'b','color'=>'#6366f1', 'ibg'=>'#ede9fe', 'icon'=>'ti-percentage'],
+        ['lbl'=>'Tasa Asist.','num'=>$porcAsist.'%','cls'=>'b','color'=>'#6366f1', 'ibg'=>'#ede9fe', 'icon'=>'ti-percentage'],
     ];
     foreach ($kpis as $k): ?>
     <div class="as-kpi <?= $k['cls'] ?>">
@@ -293,40 +394,101 @@ $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agost
 
     <!-- ── PANEL MENSUAL ── -->
     <div id="panel-mensual" class="as-panel">
-        <div style="text-align:center;font-size:.9rem;font-weight:800;color:#0f172a;margin-bottom:14px;">
-            <?= $nombMeses[$mesMes] ?> <?= $anioMes ?>
-        </div>
-        <div class="as-cal-head">
-            <?php foreach ($nombDias as $n): ?>
-            <span><?= $n ?></span>
-            <?php endforeach; ?>
-        </div>
-        <div class="as-cal-grid">
-            <?php
-            // Celdas vacías antes del día 1
-            for ($i = 1; $i < $primerDow; $i++): ?>
-            <div class="as-cal-cell filler"></div>
-            <?php endfor; ?>
-            <?php for ($day = 1; $day <= $ultimoDia; $day++):
-                $fStr  = sprintf('%04d-%02d-%02d', $anioMes, $mesMes, $day);
-                $esHoy = $fStr === $hoy->format('Y-m-d');
-                $reg   = $actMap[$fStr] ?? null;
-                $est   = $reg['estado'] ?? null;
-                $cls   = $est ?: 'empty';
-            ?>
-            <div class="as-cal-cell <?= $cls ?><?= $esHoy ? ' hoy' : '' ?>" title="<?= $day . '/' . $mesMes . ($est ? " — $est" : '') ?>">
-                <?= $day ?>
-                <?php if ($est): ?><div class="dot"></div><?php endif; ?>
+    <div class="as-mensual-layout">
+
+        <!-- Columna izq: mini-calendario Mon-Vie -->
+        <div class="as-mf-card">
+            <div class="as-mf-title">
+                <i class="ti ti-calendar-month" style="color:#2563eb;"></i>
+                <?= $nombMeses[$mesMes] ?> <?= $anioMes ?>
             </div>
-            <?php endfor; ?>
+            <div class="as-mf-head">
+                <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div>
+            </div>
+            <div class="as-mf-grid">
+            <?php foreach ($semanasMes as $semana): ?>
+                <?php for ($d = 1; $d <= 5; $d++):
+                    $cell    = $semana[$d] ?? ['day'=>'','estado'=>'fuera','hora'=>null,'feriadoNombre'=>null];
+                    $tooltip = $cell['feriadoNombre'] ?: ($cell['hora'] ? 'Entrada: ' . substr($cell['hora'], 0, 5) : '');
+                ?>
+                <div class="as-mf-cell" data-e="<?= htmlspecialchars($cell['estado']) ?>"
+                    <?= $tooltip ? ' title="' . htmlspecialchars($tooltip) . '"' : '' ?>>
+                    <?= $cell['day'] ?>
+                </div>
+                <?php endfor; ?>
+            <?php endforeach; ?>
+            </div>
+            <div class="as-mf-legend">
+                <span><span class="as-mf-dot" style="background:#22c55e;"></span>Presente</span>
+                <span><span class="as-mf-dot" style="background:#ef4444;"></span>Ausente</span>
+                <span><span class="as-mf-dot" style="background:#3b82f6;"></span>Justif.</span>
+                <span><span class="as-mf-dot" style="background:#f59e0b;"></span>Feriado</span>
+                <span><span class="as-mf-dot" style="background:#f1f5f9;border:1px solid #e2e8f0;"></span>Sin dato</span>
+            </div>
         </div>
-        <!-- Leyenda -->
-        <div style="display:flex;gap:14px;justify-content:center;margin-top:14px;font-size:.72rem;font-weight:600;color:#64748b;flex-wrap:wrap;">
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#dcfce7;display:inline-block;"></span>Presente</span>
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#fee2e2;display:inline-block;"></span>Ausente</span>
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#dbeafe;display:inline-block;"></span>Justificado</span>
-            <span style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;border-radius:3px;background:#f8fafc;border:1px solid #e2e8f0;display:inline-block;"></span>Sin registro</span>
+
+        <!-- Columna der: acordeón histórico por mes -->
+        <div class="as-acc-wrap">
+            <div class="as-acc-title">
+                <i class="ti ti-history"></i> Historial por mes
+            </div>
+            <?php if (empty($resumenMeses)): ?>
+            <div style="text-align:center;padding:32px;color:#94a3b8;font-size:.85rem;">Sin registros aún.</div>
+            <?php else: ?>
+            <?php foreach ($resumenMeses as $mesKey => $stats):
+                [$y, $m] = explode('-', $mesKey);
+                $mesLabel = ($mesesAbrev[$m] ?? $m) . ' ' . $y;
+                $total    = $stats['P'] + $stats['A'] + $stats['J'];
+                $tasa     = $total > 0 ? round(($stats['P'] + $stats['J']) / $total * 100) : 0;
+                $isCurrent = $mesKey === date('Y-m');
+                $colorTasa = $tasa >= 85 ? '#16a34a' : ($tasa >= 70 ? '#d97706' : '#dc2626');
+                $pW = $total > 0 ? round($stats['P'] / $total * 100) : 0;
+                $jW = $total > 0 ? round($stats['J'] / $total * 100) : 0;
+            ?>
+            <div class="as-acc-item <?= $isCurrent ? 'open' : '' ?>">
+                <button class="as-acc-btn" onclick="toggleAcc(this)" type="button">
+                    <div style="display:flex;align-items:center;gap:8px;min-width:0;">
+                        <span class="as-acc-dot" style="background:<?= $colorTasa ?>;"></span>
+                        <span style="font-weight:700;color:#1e293b;font-size:.88rem;"><?= $mesLabel ?></span>
+                        <?php if ($isCurrent): ?>
+                        <span style="background:#eff6ff;color:#2563eb;font-size:.62rem;font-weight:700;padding:2px 7px;border-radius:20px;white-space:nowrap;">Actual</span>
+                        <?php endif; ?>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+                        <span style="font-size:.82rem;font-weight:800;color:<?= $colorTasa ?>;"><?= $tasa ?>%</span>
+                        <i class="ti ti-chevron-down as-acc-chevron"></i>
+                    </div>
+                </button>
+                <div class="as-acc-body">
+                    <div class="as-acc-stats">
+                        <div class="as-acc-stat" style="color:#16a34a;">
+                            <i class="ti ti-check-circle"></i>
+                            <b><?= $stats['P'] ?></b>
+                            <small>Presentes</small>
+                        </div>
+                        <div class="as-acc-stat" style="color:#dc2626;">
+                            <i class="ti ti-x-circle"></i>
+                            <b><?= $stats['A'] ?></b>
+                            <small>Ausentes</small>
+                        </div>
+                        <div class="as-acc-stat" style="color:#2563eb;">
+                            <i class="ti ti-file-check"></i>
+                            <b><?= $stats['J'] ?></b>
+                            <small>Justificados</small>
+                        </div>
+                    </div>
+                    <div class="as-acc-bar">
+                        <div style="width:<?= $pW ?>%;background:#22c55e;"></div>
+                        <div style="width:<?= $jW ?>%;background:#3b82f6;"></div>
+                        <div style="width:<?= 100 - $pW - $jW ?>%;background:#ef4444;"></div>
+                    </div>
+                </div>
+            </div>
+            <?php endforeach; ?>
+            <?php endif; ?>
         </div>
+
+    </div>
     </div>
 
     <!-- ── PANEL TOTAL ── -->
@@ -338,7 +500,7 @@ $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agost
         </div>
         <?php else: ?>
         <div style="overflow-x:auto;">
-            <table class="as-tbl">
+            <table class="as-tbl" id="tblTotal">
                 <thead>
                     <tr>
                         <th>Fecha</th>
@@ -396,8 +558,9 @@ $nombMeses = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agost
                 </tbody>
             </table>
         </div>
-        <div style="margin-top:12px;font-size:.78rem;color:#94a3b8;text-align:right;">
-            <?= $totalReg ?> registros en total
+        <div class="as-pg">
+            <div class="as-pg-info" id="pgTotalInfo"><?= $totalReg ?> registros en total</div>
+            <div class="as-pg-btns" id="pgTotalBtns"></div>
         </div>
         <?php endif; ?>
     </div>
@@ -413,4 +576,56 @@ function asTab(name, btn) {
     document.getElementById('panel-' + name).classList.add('active');
     btn.classList.add('active');
 }
+function toggleAcc(btn) {
+    btn.closest('.as-acc-item').classList.toggle('open');
+}
+
+(function() {
+    const PER_PAGE = 10;
+    const tbl = document.getElementById('tblTotal');
+    if (!tbl) return;
+    const rows = Array.from(tbl.querySelectorAll('tbody tr'));
+    const total = rows.length;
+    if (total <= PER_PAGE) return;
+    let cur = 1;
+    const pages = Math.ceil(total / PER_PAGE);
+    const infoEl = document.getElementById('pgTotalInfo');
+    const btnsEl = document.getElementById('pgTotalBtns');
+
+    function render() {
+        rows.forEach((r, i) => {
+            r.style.display = (i >= (cur - 1) * PER_PAGE && i < cur * PER_PAGE) ? '' : 'none';
+        });
+        const from = (cur - 1) * PER_PAGE + 1;
+        const to   = Math.min(cur * PER_PAGE, total);
+        infoEl.textContent = `Mostrando ${from}–${to} de ${total} registros`;
+
+        btnsEl.innerHTML = '';
+        const prev = document.createElement('button');
+        prev.className = 'as-pg-btn';
+        prev.innerHTML = '<i class="ti ti-chevron-left"></i>';
+        prev.disabled = cur === 1;
+        prev.onclick = () => { cur--; render(); };
+        btnsEl.appendChild(prev);
+
+        const start = Math.max(1, cur - 2);
+        const end   = Math.min(pages, start + 4);
+        for (let p = start; p <= end; p++) {
+            const btn = document.createElement('button');
+            btn.className = 'as-pg-btn' + (p === cur ? ' active' : '');
+            btn.textContent = p;
+            btn.onclick = ((pg) => () => { cur = pg; render(); })(p);
+            btnsEl.appendChild(btn);
+        }
+
+        const next = document.createElement('button');
+        next.className = 'as-pg-btn';
+        next.innerHTML = '<i class="ti ti-chevron-right"></i>';
+        next.disabled = cur === pages;
+        next.onclick = () => { cur++; render(); };
+        btnsEl.appendChild(next);
+    }
+
+    render();
+})();
 </script>

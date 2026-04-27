@@ -379,6 +379,83 @@ class EvaluacionesController extends Controller {
     }
 
     // ─────────────────────────────────────────────────────────
+    // POST /evaluaciones/actualizar — Editar evaluación (AJAX)
+    // ─────────────────────────────────────────────────────────
+    public function actualizar(): void
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            return;
+        }
+
+        // Solo Administradores (1) y Tutores (2) pueden actualizar evaluaciones
+        $rolId = (int)(Session::get('role_id') ?? 0);
+        if (!in_array($rolId, [1, 2])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Sin permiso para editar evaluaciones']);
+            return;
+        }
+
+        // Validar CSRF
+        $token = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!Session::validateCsrfToken($token)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido. Recarga la página.']);
+            return;
+        }
+
+        $id    = (int)($_POST['evaluacion_id'] ?? 0);
+        $fecha = trim($_POST['fecha_evaluacion'] ?? date('Y-m-d'));
+        $obs   = trim($_POST['observaciones']    ?? '');
+
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID de evaluación inválido']);
+            return;
+        }
+
+        $criterios = [
+            'criterio_iniciativa',   'criterio_interes',
+            'criterio_conocimiento', 'criterio_analisis',
+            'criterio_comunicacion', 'criterio_aprendizaje',
+            'criterio_companerismo', 'criterio_cooperacion',
+            'criterio_puntualidad',  'criterio_presentacion',
+            'criterio_desarrollo',   'criterio_analisis_res',
+            'criterio_conclusiones', 'criterio_recomendacion',
+        ];
+
+        $valores = [];
+        $suma    = 0;
+        foreach ($criterios as $c) {
+            $v = (int)($_POST[$c] ?? 0);
+            if ($v < 1 || $v > 5) {
+                echo json_encode(['success' => false, 'message' => "El criterio {$c} debe estar entre 1 y 5"]);
+                return;
+            }
+            $valores[$c] = $v;
+            $suma += $v;
+        }
+
+        $promedio = round($suma / count($criterios), 2);
+
+        try {
+            if ($this->evaluacionModel->actualizar($id, $fecha, $promedio, $obs, $valores, $criterios)) {
+                echo json_encode([
+                    'success'  => true,
+                    'message'  => "Evaluación actualizada exitosamente. Promedio: {$promedio}/5",
+                    'promedio' => $promedio,
+                ]);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Error al actualizar en la base de datos']);
+            }
+        } catch (\Exception $e) {
+            error_log('[SGP-EVAL] Error al actualizar evaluación: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
     // GET /evaluaciones/obtenerDetalleAjax/{id} — Detalle (AJAX)
     // ─────────────────────────────────────────────────────────
     public function obtenerDetalleAjax($id = null): void

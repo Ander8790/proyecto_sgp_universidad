@@ -19,6 +19,11 @@ $labels     = array_map(fn($r) => $r->mes_label, $porMes);
 $dPresentes = array_map(fn($r) => (int)$r->presentes,    $porMes);
 $dAusentes  = array_map(fn($r) => (int)$r->ausentes,     $porMes);
 $dJustif    = array_map(fn($r) => (int)$r->justificados, $porMes);
+$dTasa      = array_map(fn($r) => (int)$r->total > 0
+    ? round(((int)$r->presentes + (int)$r->justificados) / (int)$r->total * 100)
+    : 0,
+    $porMes
+);
 ?>
 <style>
 @keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
@@ -56,8 +61,9 @@ $dJustif    = array_map(fn($r) => (int)$r->justificados, $porMes);
 .an-card-ttl { font-size:1rem; font-weight:700; color:#0f172a; display:flex; align-items:center; gap:8px; margin-bottom:18px; }
 .an-card-ttl i { color:#6366f1; font-size:1.1rem; }
 
-.an-two { display:grid; grid-template-columns:1fr 2fr; gap:20px; }
-@media(max-width:900px){ .an-two{grid-template-columns:1fr;} }
+.an-two { display:grid; grid-template-columns:repeat(3,1fr); gap:20px; }
+@media(max-width:1100px){ .an-two{grid-template-columns:repeat(2,1fr);} }
+@media(max-width:600px){ .an-two{grid-template-columns:1fr;} }
 
 .an-bar { height:8px; background:#e2e8f0; border-radius:999px; overflow:hidden; margin:.3rem 0; }
 .an-bar-fill { height:100%; border-radius:999px; }
@@ -229,6 +235,42 @@ $dJustif    = array_map(fn($r) => (int)$r->justificados, $porMes);
         <canvas id="chartMes" height="120"></canvas>
         <?php endif; ?>
     </div>
+
+    <!-- Tendencia de asistencia -->
+    <div class="an-card">
+        <div class="an-card-ttl" style="margin-bottom:10px;">
+            <i class="ti ti-trending-up"></i> Tendencia
+            <span style="margin-left:auto;font-size:.72rem;color:#94a3b8;font-weight:500;">% mensual</span>
+        </div>
+        <?php if (empty($porMes)): ?>
+        <div style="text-align:center;padding:40px;color:#94a3b8;">
+            <i class="ti ti-chart-off" style="font-size:2rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+            Sin datos
+        </div>
+        <?php else:
+            $tasaActual   = end($dTasa) ?: 0;
+            $tasaAnterior = count($dTasa) > 1 ? $dTasa[count($dTasa)-2] : $tasaActual;
+            $delta        = $tasaActual - $tasaAnterior;
+            $colorDelta   = $delta >= 0 ? '#10b981' : '#ef4444';
+            $iconDelta    = $delta >= 0 ? 'ti-trending-up' : 'ti-trending-down';
+        ?>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="background:#f5f3ff;border-radius:10px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+                <i class="ti <?= $iconDelta ?>" style="color:<?= $colorDelta ?>;font-size:1.1rem;"></i>
+                <div>
+                    <div style="font-size:1.4rem;font-weight:900;color:<?= $colorDelta ?>;line-height:1;"><?= $tasaActual ?>%</div>
+                    <div style="font-size:.65rem;color:#94a3b8;font-weight:600;">Mes actual</div>
+                </div>
+            </div>
+            <?php if ($delta !== 0): ?>
+            <div style="font-size:.78rem;color:<?= $colorDelta ?>;font-weight:700;">
+                <?= $delta > 0 ? '+' : '' ?><?= $delta ?>pp
+            </div>
+            <?php endif; ?>
+        </div>
+        <canvas id="chartTendencia" height="140"></canvas>
+        <?php endif; ?>
+    </div>
 </div>
 
 </div><!-- /an-wrap -->
@@ -254,6 +296,70 @@ $dJustif    = array_map(fn($r) => (int)$r->justificados, $porMes);
             scales:{
                 x:{ grid:{display:false}, ticks:{color:'#94a3b8',font:{size:11,weight:'600'}} },
                 y:{ grid:{color:'#f1f5f9'}, ticks:{color:'#94a3b8',font:{size:11},stepSize:1,precision:0}, beginAtZero:true }
+            }
+        }
+    });
+})();
+
+// ── Tendencia ──
+(function(){
+    const ctx2 = document.getElementById('chartTendencia');
+    if (!ctx2) return;
+    const gradFill = ctx2.getContext('2d').createLinearGradient(0, 0, 0, 220);
+    gradFill.addColorStop(0,   'rgba(99,102,241,.35)');
+    gradFill.addColorStop(0.6, 'rgba(99,102,241,.08)');
+    gradFill.addColorStop(1,   'rgba(99,102,241,0)');
+    new Chart(ctx2, {
+        type: 'line',
+        data: {
+            labels: <?= json_encode($labels) ?>,
+            datasets: [
+                {
+                    label: '% Asistencia',
+                    data: <?= json_encode($dTasa) ?>,
+                    borderColor: '#6366f1',
+                    borderWidth: 3,
+                    backgroundColor: gradFill,
+                    fill: true,
+                    tension: 0.4,
+                    pointBackgroundColor: '#6366f1',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                },
+                {
+                    label: 'Meta 85%',
+                    data: Array(<?= count($labels) ?>).fill(85),
+                    borderColor: '#94a3b8',
+                    borderWidth: 2,
+                    borderDash: [6, 4],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0,
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    callbacks: {
+                        label: ctx => ctx.dataset.label + ': ' + ctx.parsed.y + '%'
+                    }
+                }
+            },
+            scales: {
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { size: 11, weight: '600' } } },
+                y: {
+                    grid: { color: '#f1f5f9' },
+                    ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => v + '%' },
+                    min: 0, max: 100, stepSize: 20
+                }
             }
         }
     });

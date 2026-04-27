@@ -93,6 +93,37 @@ class EvaluacionModel {
     }
 
     /**
+     * Actualizar una evaluación existente
+     */
+    public function actualizar(int $id, string $fecha, float $promedio, string $obs, array $valores, array $criterios): bool {
+        $this->db->query("
+            UPDATE evaluaciones 
+            SET fecha_evaluacion = :fecha,
+                criterio_iniciativa = :c1, criterio_interes = :c2, criterio_conocimiento = :c3,
+                criterio_analisis = :c4, criterio_comunicacion = :c5, criterio_aprendizaje = :c6,
+                criterio_companerismo = :c7, criterio_cooperacion = :c8, criterio_puntualidad = :c9,
+                criterio_presentacion = :c10, criterio_desarrollo = :c11, criterio_analisis_res = :c12,
+                criterio_conclusiones = :c13, criterio_recomendacion = :c14,
+                promedio_final = :promedio, observaciones = :obs
+            WHERE id = :id
+        ");
+
+        $this->db->bind(':id', $id);
+        $this->db->bind(':fecha', $fecha);
+        
+        $i = 1;
+        foreach ($criterios as $c) {
+            $this->db->bind(":c{$i}", $valores[$c]);
+            $i++;
+        }
+        
+        $this->db->bind(':promedio', $promedio);
+        $this->db->bind(':obs',      $obs ?: null);
+
+        return $this->db->execute();
+    }
+
+    /**
      * Verificar si un pasante ya tiene evaluación registrada
      */
     public function getByPasante(int $pasanteId) {

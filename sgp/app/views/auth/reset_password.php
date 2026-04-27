@@ -85,11 +85,13 @@
 
             <!-- Password con Floating Label y Toggle -->
             <div class="form-group">
-                <input type="password" name="password" id="new_password" class="input-modern" placeholder=" " required style="padding-right: 48px;" autocomplete="new-password">
-                <label for="new_password" class="label-floating">
-                    <i class="ti ti-lock" style="margin-right: 8px; font-size: 18px;"></i>Contraseña Nueva
-                </label>
-                <i class="ti ti-eye password-toggle" onclick="togglePassword('new_password', this)"></i>
+                <div style="position: relative;">
+                    <input type="password" name="password" id="new_password" class="input-modern" placeholder=" " required style="padding-right: 48px;" autocomplete="new-password">
+                    <label for="new_password" class="label-floating">
+                        <i class="ti ti-lock" style="margin-right: 8px; font-size: 18px;"></i>Contraseña Nueva
+                    </label>
+                    <i class="ti ti-eye password-toggle" onclick="togglePassword('new_password', this)"></i>
+                </div>
 
                 <!-- Barra de fortaleza -->
                 <div class="pwd-strength-bar"><div class="pwd-strength-fill" id="pwdFill"></div></div>

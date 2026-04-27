@@ -407,7 +407,7 @@ body {
         font-family: 'Segoe UI', Arial, sans-serif;
     }
     @bottom-left {
-        content: "© <?= $anioDoc ?> Instituto Superior de Tecnología Agro-Industrial del Estado Bolívar";
+        content: "Copyleft <?= $anioDoc ?> Instituto Superior de Tecnología Agro-Industrial del Estado Bolívar";
         font-size: 7pt;
         color: #cbd5e1;
         font-family: 'Segoe UI', Arial, sans-serif;
