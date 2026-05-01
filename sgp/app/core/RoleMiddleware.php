@@ -13,6 +13,7 @@ class RoleMiddleware
      * Mapeo de roles a rutas
      */
     const ROLE_ROUTES = [
+        0 => '/superadmin', // SuperAdministrador
         1 => '/admin',      // Administrador
         2 => '/tutor',      // Tutor
         3 => '/pasante'     // Pasante
@@ -29,6 +30,9 @@ class RoleMiddleware
     {
         Session::start();
         $currentRoleId = Session::get('role_id');
+        
+        // El Super Administrador (rol 0) tiene acceso total automático
+        if ((int)$currentRoleId === 0) return;
 
         // Normaliza a enteros estrictos (PHP 8 Best Practice)
         $allowed_roles = array_map('intval', $allowed_roles);
@@ -126,11 +130,53 @@ class RoleMiddleware
         $roleId = Session::get('role_id');
         
         $roleNames = [
+            0 => 'SuperAdministrador',
             1 => 'Administrador',
             2 => 'Tutor',
             3 => 'Pasante'
         ];
         
         return $roleNames[$roleId] ?? 'Invitado';
+    }
+
+    /**
+     * Verifica si el usuario tiene permiso para una acción específica.
+     * Implementa Data-Driven UI: consulta el cache de sesión cargado al login.
+     *
+     * SuperAdmin (rol 0) siempre retorna TRUE sin consultar nada.
+     * Si la clave no existe en sesión, retorna TRUE (permisivo — mantiene comportamiento actual).
+     *
+     * @param  string $clave  Ej: 'ver_usuarios', 'crear_backup', 'exportar_reporte'
+     * @return bool
+     */
+    public static function hasPermission(string $clave): bool
+    {
+        Session::start();
+        $roleId = (int)Session::get('role_id');
+
+        // SuperAdmin bypass total — nunca se le niega nada
+        if ($roleId === 0) return true;
+
+        // Leer desde cache de sesión (cargado en login por AuthController)
+        $permisos = Session::get('permisos');
+
+        // Si no hay cache (usuario legacy sin permisos cargados) → permitir
+        if (empty($permisos) || !is_array($permisos)) return true;
+
+        // Si la clave no existe en el cache → usar default permisivo
+        if (!array_key_exists($clave, $permisos)) return true;
+
+        return (bool)$permisos[$clave];
+    }
+
+    /**
+     * Verifica si el usuario actual es SuperAdmin.
+     *
+     * @return bool
+     */
+    public static function isSuperAdmin(): bool
+    {
+        Session::start();
+        return (int)Session::get('role_id') === 0;
     }
 }

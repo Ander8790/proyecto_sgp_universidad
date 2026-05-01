@@ -115,7 +115,7 @@ class EvaluacionesController extends Controller {
         $pasanteId = (int)($pasanteId ?? 0);
 
         // Solo tutores (rol 2) y admins (rol 1)
-        if (!in_array($rol_id, [1, 2])) {
+        if (!in_array($rol_id, [0, 1, 2])) {
             $this->redirect('/evaluaciones');
             return;
         }
@@ -233,7 +233,7 @@ class EvaluacionesController extends Controller {
         // Solo Administradores (1) y Tutores (2) pueden guardar evaluaciones
         $rolId    = (int)(Session::get('role_id') ?? 0);
         $userId   = (int)(Session::get('user_id') ?? 0);
-        if (!in_array($rolId, [1, 2])) {
+        if (!in_array($rolId, [0, 1, 2])) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Sin permiso para registrar evaluaciones']);
             return;
@@ -267,24 +267,9 @@ class EvaluacionesController extends Controller {
             $lapso   = $dpaInfo ? trim($dpaInfo->lapso_nombre) : '';
         }
 
-        // --- Tutor: Tutor usa siempre su propio id.
-        //            Admin: usa el tutor asignado al pasante como valor por defecto,
-        //            pero puede sobreescribirse con el select del formulario.
-        if ($rolId === 2) {
-            $tutorId = $userId;
-        } else {
-            $tutorIdPost = (int)($_POST['tutor_id'] ?? 0);
-            if ($tutorIdPost > 0) {
-                // Admin seleccionó un tutor manualmente
-                $tutorId = $tutorIdPost;
-            } else {
-                // Auto: usar el tutor asignado al pasante
-                $this->db->query("SELECT tutor_id FROM datos_pasante WHERE usuario_id = :pid LIMIT 1");
-                $this->db->bind(':pid', $pasanteId);
-                $dpaFallback = $this->db->single();
-                $tutorId     = (int)($dpaFallback->tutor_id ?? 0);
-            }
-        }
+        // --- Tutor: Tanto el Admin (rol 1, tutor empresarial) como el Tutor (rol 2)
+        //            quedan registrados como el evaluador usando su propio user_id.
+        $tutorId = $userId;
 
         if (!$pasanteId || !$tutorId) {
             echo json_encode(['success' => false, 'message' => 'Pasante y Tutor son obligatorios']);
@@ -364,6 +349,12 @@ class EvaluacionesController extends Controller {
                     URLROOT . '/perfil'
                 );
 
+                AuditModel::log('CREAR_EVALUACION', 'evaluaciones', $pasanteId, [
+                    'tutor_id' => $tutorId,
+                    'promedio' => $promedio,
+                    'lapso'    => $lapso
+                ]);
+
                 echo json_encode([
                     'success'  => true,
                     'message'  => "Evaluación guardada exitosamente. Promedio: {$promedio}/5",
@@ -392,7 +383,7 @@ class EvaluacionesController extends Controller {
 
         // Solo Administradores (1) y Tutores (2) pueden actualizar evaluaciones
         $rolId = (int)(Session::get('role_id') ?? 0);
-        if (!in_array($rolId, [1, 2])) {
+        if (!in_array($rolId, [0, 1, 2])) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Sin permiso para editar evaluaciones']);
             return;
@@ -441,6 +432,11 @@ class EvaluacionesController extends Controller {
 
         try {
             if ($this->evaluacionModel->actualizar($id, $fecha, $promedio, $obs, $valores, $criterios)) {
+                
+                AuditModel::log('ACTUALIZAR_EVALUACION', 'evaluaciones', $id, [
+                    'promedio' => $promedio
+                ]);
+
                 echo json_encode([
                     'success'  => true,
                     'message'  => "Evaluación actualizada exitosamente. Promedio: {$promedio}/5",

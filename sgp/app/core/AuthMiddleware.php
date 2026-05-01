@@ -173,8 +173,6 @@ class AuthMiddleware
         // Se ejecuta una sola vez por sesión (controlado por 'cargo_verificado').
         // Captura usuarios que completaron el wizard antes de que se exigiera el cargo.
         if (!Session::get('cargo_verificado')) {
-            $rolId = (int)Session::get('role_id');
-
             if ($rolId !== 3 && $rolId > 0) { // solo admin (1) y tutor (2)
                 try {
                     $db = Database::getInstance();

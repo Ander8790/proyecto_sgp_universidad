@@ -15,7 +15,12 @@ if (typeof Choices !== 'undefined' && typeof Choices.prototype._onKeyDown === 'f
         if (!this.input || !this._store || !this.passedElement) {
             return;
         }
-        return originalOnKeyDown.call(this, e);
+        try {
+            return originalOnKeyDown.call(this, e);
+        } catch (err) {
+            // Ignorar silenciosamente eventos huérfanos en DOM destruido por PJAX
+            return;
+        }
     };
 }
 

@@ -17,7 +17,7 @@ class BackupController extends Controller
         Session::start();
         
         // Solo Admin puede acceder (Validador de Rol Transversal)
-        RoleMiddleware::authorize([1]);
+        RoleMiddleware::authorize([0, 1]);
         
         $this->backupDir = APPROOT . '/storage/backups';
         

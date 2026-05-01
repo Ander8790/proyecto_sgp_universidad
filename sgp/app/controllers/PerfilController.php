@@ -457,7 +457,7 @@ class PerfilController extends Controller
                 u.rol_id,
                 u.estado,
                 u.created_at,
-                r.nombre as rol_nombre,
+                CASE WHEN u.rol_id = 0 THEN 'Super Administrador' ELSE r.nombre END as rol_nombre,
                 dp.nombres,
                 dp.apellidos,
                 dp.cargo,
@@ -503,6 +503,11 @@ class PerfilController extends Controller
 
         // Tarea 1: Asegurar que los nombres vienen de datos_personales
         $dataArray = (array) $userData;
+
+        // Corregir visualización de Super Administrador (rol_id = 0)
+        if ($dataArray['rol_id'] == 0) {
+            $dataArray['rol_nombre'] = 'Super Administrador';
+        }
         
         // Obtener preguntas de seguridad (para el nuevo modal)
         $preguntas = $this->userModel->getSecurityQuestions();

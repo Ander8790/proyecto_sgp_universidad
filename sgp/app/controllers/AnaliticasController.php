@@ -22,7 +22,7 @@ class AnaliticasController extends Controller
         AuthMiddleware::require();
         AuthMiddleware::verificarEstado();
 
-        if (!RoleMiddleware::hasAnyRole([1, 2])) {
+        if (!RoleMiddleware::hasAnyRole([0, 1, 2])) {
             RoleMiddleware::redirectToRoleDashboard(Session::get('role_id'));
         }
 
@@ -33,7 +33,7 @@ class AnaliticasController extends Controller
 
     public function index(): void
     {
-        $isAdmin    = $this->rolId === 1;
+        $isAdmin    = in_array($this->rolId, [0, 1]);
         $tutorId    = $this->tutorId;
 
         // Filtros SQL dinámicos según rol

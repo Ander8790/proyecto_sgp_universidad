@@ -18,7 +18,7 @@ class ActividadesController extends Controller
         Session::start();
         AuthMiddleware::require();
 
-        if (!RoleMiddleware::hasAnyRole([1])) {
+        if (!RoleMiddleware::hasAnyRole([0, 1])) {
             RoleMiddleware::redirectToRoleDashboard(Session::get('role_id'));
         }
 

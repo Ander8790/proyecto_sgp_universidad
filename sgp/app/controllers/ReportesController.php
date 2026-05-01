@@ -313,14 +313,25 @@ class ReportesController extends Controller
                    COALESCE(d.nombre, 'N/D') AS departamento,
                    dpa.fecha_inicio_pasantia, dpa.fecha_fin_estimada, dpa.horas_meta,
                    t.nombres AS tutor_nombres, t.apellidos AS tutor_apellidos,
-                   t.cargo AS tutor_cargo, t.telefono AS tutor_tel
+                   adm.nombres AS jefe_nombres, adm.apellidos AS jefe_apellidos,
+                   adm.cargo AS jefe_cargo, adm.telefono AS jefe_tel
             FROM evaluaciones e
             JOIN usuarios          u   ON u.id = e.pasante_id
             JOIN datos_personales  dp  ON dp.usuario_id = u.id
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
-            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
+            LEFT JOIN instituciones inst ON (
+                dpa.institucion_procedencia REGEXP '^[0-9]+$'
+                AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            )
             LEFT JOIN departamentos d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN datos_personales t ON t.usuario_id = e.tutor_id
+            LEFT JOIN (
+                SELECT dp2.nombres, dp2.apellidos, dp2.cargo, dp2.telefono
+                FROM datos_personales dp2
+                JOIN usuarios u2 ON u2.id = dp2.usuario_id
+                WHERE u2.rol_id = 1 AND u2.estado = 'activo'
+                ORDER BY u2.id ASC LIMIT 1
+            ) AS adm ON 1=1
             WHERE e.pasante_id = :pid
             ORDER BY e.created_at DESC LIMIT 1
         ");
@@ -420,7 +431,9 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             $fecha_inicio = $inicio_trim->format('Y-m-d');
             $fecha_fin    = $fin_trim->format('Y-m-d');
 
-            // ── 3. Obtener datos completos del pasante con tutor ──
+            // ── 3. Obtener datos completos del pasante ──
+            // El tutor empresarial es el usuario asignado en el módulo de asignaciones
+            // (datos_pasante.tutor_id), que puede ser admin o tutor según lo configurado.
             $this->db->query("
                 SELECT
                     dp.nombres,
@@ -1486,14 +1499,27 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 dpa.fecha_inicio_pasantia  AS fecha_inicio,
                 dpa.fecha_fin_estimada     AS fecha_fin,
                 CONCAT(tp.nombres,' ',tp.apellidos)           AS tutor_nombre,
-                tp.cargo                                      AS tutor_cargo
+                tp.cargo                                      AS tutor_cargo,
+                adm.nombres                                   AS jefe_nombres,
+                adm.apellidos                                 AS jefe_apellidos,
+                adm.cargo                                     AS jefe_cargo
             FROM usuarios u
             JOIN datos_personales  dp   ON dp.usuario_id  = u.id
             JOIN datos_pasante     dpa  ON dpa.usuario_id = u.id
             LEFT JOIN departamentos d   ON d.id   = dpa.departamento_asignado_id
-            LEFT JOIN instituciones inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones inst ON (
+                dpa.institucion_procedencia REGEXP '^[0-9]+$'
+                AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            )
             LEFT JOIN usuarios      tu  ON tu.id   = dpa.tutor_id
             LEFT JOIN datos_personales tp ON tp.usuario_id = dpa.tutor_id
+            LEFT JOIN (
+                SELECT dp2.nombres, dp2.apellidos, dp2.cargo
+                FROM datos_personales dp2
+                JOIN usuarios u2 ON u2.id = dp2.usuario_id
+                WHERE u2.rol_id = 1 AND u2.estado = 'activo'
+                ORDER BY u2.id ASC LIMIT 1
+            ) AS adm ON 1=1
             WHERE u.id = :pid AND u.rol_id = 3
             LIMIT 1
         ");
@@ -1515,6 +1541,11 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
         $fechaEmision = date('d')  . ' de '
             . ['', 'enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][(int)date('n')]
             . ' de ' . date('Y');
+
+        $jefeNombre = mb_strtoupper(
+            trim(($pasante->jefe_nombres ?? '') . ' ' . ($pasante->jefe_apellidos ?? '')),
+            'UTF-8'
+        );
 
         ob_start();
         include '../app/views/reportes/pdf_constancia.php';

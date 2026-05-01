@@ -61,10 +61,11 @@
                         <i class="ti ti-school" style="margin-right: 6px;"></i>Tutor Asignado *
                     </label>
                     <select name="tutor_id" id="selectTutor" required class="input-modern">
-                        <option value="">Selecciona un tutor...</option>
+                        <option value="">Selecciona un tutor o administrador...</option>
                         <?php foreach ($tutores as $t): ?>
                         <option value="<?= (int)$t->id ?>">
-                            <?= htmlspecialchars(($t->nombres ?? '') . ' ' . ($t->apellidos ?? '')) ?>
+                            [<?= htmlspecialchars($t->rol_nombre ?? 'Tutor') ?>]
+                            <?= htmlspecialchars(($t->apellidos ?? '') . ', ' . ($t->nombres ?? '')) ?>
                             <?php if (!empty($t->departamento_nombre)): ?> — <?= htmlspecialchars($t->departamento_nombre) ?><?php endif; ?>
                         </option>
                         <?php endforeach; ?>

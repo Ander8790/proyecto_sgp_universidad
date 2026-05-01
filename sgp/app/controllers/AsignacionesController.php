@@ -27,7 +27,7 @@ class AsignacionesController extends Controller
         AuthMiddleware::require();
         AuthMiddleware::verificarEstado();
 
-        if (!RoleMiddleware::hasAnyRole([1])) {
+        if (!RoleMiddleware::hasAnyRole([0, 1])) {
             RoleMiddleware::redirectToRoleDashboard(Session::get('role_id'));
         }
 
@@ -49,14 +49,18 @@ class AsignacionesController extends Controller
         $this->db->query("SELECT id, nombre FROM departamentos WHERE activo = 1 ORDER BY nombre ASC");
         $departamentos = $this->db->resultSet();
 
-        // Tutores activos para el select del modal
+        // Tutores y administradores activos para el select del modal
+        // El tutor empresarial puede ser un Tutor (rol=2) o un Administrador (rol=1)
         $this->db->query("
-            SELECT u.id, dp.nombres, dp.apellidos, d.nombre AS departamento_nombre
+            SELECT u.id, dp.nombres, dp.apellidos,
+                   d.nombre AS departamento_nombre,
+                   r.nombre AS rol_nombre
             FROM usuarios u
             LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
             LEFT JOIN departamentos    d  ON d.id = u.departamento_id
-            WHERE u.rol_id = 2 AND u.estado = 'activo'
-            ORDER BY IFNULL(dp.apellidos, u.correo) ASC
+            LEFT JOIN roles            r  ON r.id = u.rol_id
+            WHERE u.rol_id IN (1, 2) AND u.estado = 'activo'
+            ORDER BY u.rol_id ASC, IFNULL(dp.apellidos, u.correo) ASC
         ");
         $tutores = $this->db->resultSet();
 

@@ -512,6 +512,18 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
         </div>
         <?php endif; ?>
 
+        <a href="<?= URLROOT ?>/asistencias/pdfAlmanaque/<?= (int)($pasante->id ?? 0) ?>?anio=<?= $anio ?>"
+           target="_blank"
+           title="Descargar reporte PDF del almanaque"
+           style="background:rgba(239,68,68,.22);border:1px solid rgba(239,68,68,.35);
+                  border-radius:10px;padding:9px 16px;color:#fca5a5;font-size:.84rem;
+                  font-weight:600;text-decoration:none;display:flex;align-items:center;gap:6px;
+                  transition:background .2s;white-space:nowrap;"
+           onmouseover="this.style.background='rgba(239,68,68,.35)'"
+           onmouseout="this.style.background='rgba(239,68,68,.22)'">
+            <i class="ti ti-file-type-pdf"></i> Exportar PDF
+        </a>
+
         <a href="<?= URLROOT ?>/asistencias"
            class="pjax-link"
            style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);

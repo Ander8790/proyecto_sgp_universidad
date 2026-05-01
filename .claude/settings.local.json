@@ -169,7 +169,24 @@
       "Bash(mysql -u root proyecto_sgp -e \"SHOW CREATE TABLE datos_pasante\\\\G\")",
       "Bash(mysql -u root sgp_db -e \"SHOW TABLES LIKE '%evaluac%'; SHOW TABLES LIKE '%asistencia%';\")",
       "Bash(grep -A 30 \"CREATE TABLE.*usuarios\\\\`\" \"/c/xampp/htdocs/proyecto_sgp/sgp/sql/proyecto_sgp.sql\")",
-      "Bash(grep -A 15 \"CREATE TABLE.*bitacora\\\\`\" \"/c/xampp/htdocs/proyecto_sgp/sgp/sql/proyecto_sgp.sql\")"
+      "Bash(grep -A 15 \"CREATE TABLE.*bitacora\\\\`\" \"/c/xampp/htdocs/proyecto_sgp/sgp/sql/proyecto_sgp.sql\")",
+      "Bash(\"c:/xampp/mysql/bin/mysql.exe\" -u root -e \"source c:/xampp/htdocs/proyecto_sgp/sgp/app/scripts/migration_pasante_permisos.sql\")",
+      "Bash(\"c:/xampp/mysql/bin/mysql.exe\" -u root proyecto_sgp -e \"source c:/xampp/htdocs/proyecto_sgp/sgp/app/scripts/migration_pasante_permisos.sql\")",
+      "Bash(\"c:/xampp/htdocs/proyecto_sgp/sgp/app/scripts/../../../xampp/mysql/bin/mysql.exe\" -u root proyecto_sgp -e \"SELECT COUNT\\(*\\) as total, rol_id FROM usuarios WHERE estado='activo' GROUP BY rol_id;\")",
+      "Bash(\"c:/xampp/mysql/bin/mysql.exe\" -u root proyecto_sgp -e \"SELECT COUNT\\(*\\) as total, rol_id FROM usuarios WHERE estado='activo' GROUP BY rol_id;\")",
+      "Bash(\"c:/xampp/mysql/bin/mysql.exe\" -u root proyecto_sgp --default-character-set=utf8mb4 -e \"SELECT id, clave, grupo, HEX\\(grupo\\) FROM modulos_sistema WHERE clave IN \\('portal_pasante', 'gestion_pasantes'\\);\")",
+      "Bash(\"c:/xampp/mysql/bin/mysql.exe\" -u root proyecto_sgp --default-character-set=utf8mb4 -e \"UPDATE modulos_sistema SET grupo = 'Pasantías' WHERE clave = 'portal_pasante';\")",
+      "Bash(tail -30 \"c:/xampp/php/logs/php_error_log\")",
+      "Bash(tail -30 \"c:/xampp/apache/logs/error.log\")",
+      "Bash(c:/xampp/mysql/bin/mysql.exe -u root -e \"SELECT VERSION\\(\\); SELECT 'conectado' AS status;\")",
+      "Bash(c:/xampp/mysql/bin/mysql.exe -u root proyecto_sgp -e \"SELECT id, nombre, fecha_inicio, fecha_fin, estado FROM periodos_academicos; SELECT YEAR\\(fecha\\) AS anio, COUNT\\(*\\) AS feriados FROM dias_feriados GROUP BY YEAR\\(fecha\\) ORDER BY anio; SELECT COUNT\\(*\\) AS pasantes FROM usuarios WHERE rol_id=3;\")",
+      "Bash(c:/xampp/mysql/bin/mysql.exe -u root proyecto_sgp -e \"SELECT fecha, nombre, tipo FROM dias_feriados WHERE fecha BETWEEN '2025-10-01' AND '2026-06-30' ORDER BY fecha;\")",
+      "Bash(c:/xampp/php/php.exe \"c:/xampp/htdocs/proyecto_sgp/sgp/app/scripts/inyeccion_pasantes_reales.php\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(grep -v \"^[[:space:]]*$\")",
+      "Bash(c:/xampp/mysql/bin/mysql.exe -u root proyecto_sgp)",
+      "Bash(c:/xampp/mysql/bin/mysql.exe -u root proyecto_sgp -e \"SHOW COLUMNS FROM datos_pasante LIKE 'estado_pasantia';\")",
+      "Bash(c:/xampp/php/php.exe \"c:/xampp/htdocs/proyecto_sgp/sgp/app/scripts/correccion_pasantes.php\")"
     ],
     "additionalDirectories": [
       "c:\\xampp\\htdocs\\sgp\\app\\models"

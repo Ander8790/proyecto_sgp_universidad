@@ -48,7 +48,7 @@ class PasanteController extends Controller
      */
     public function index(): void
     {
-        if (Session::get('role_id') != 1) {
+        if (!in_array((int)Session::get('role_id'), [0, 1])) {
             Session::setFlash('error', 'No tienes permisos para esta sección.');
             $this->redirect('/dashboard');
             return;
@@ -75,7 +75,7 @@ class PasanteController extends Controller
      */
     public function show(int $id): void
     {
-        if (Session::get('role_id') != 1) {
+        if (!in_array((int)Session::get('role_id'), [0, 1])) {
             $this->redirect('/dashboard');
             return;
         }

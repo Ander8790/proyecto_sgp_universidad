@@ -17,7 +17,7 @@ class PeriodosController extends Controller
         Session::start();
         AuthMiddleware::require();
 
-        if (!RoleMiddleware::hasAnyRole([1])) {
+        if (!RoleMiddleware::hasAnyRole([0, 1])) {
             RoleMiddleware::redirectToRoleDashboard(Session::get('role_id'));
         }
 
@@ -911,8 +911,8 @@ class PeriodosController extends Controller
             exit;
         }
 
-        if (!in_array($periodo->estado, ['Planificado', 'Cerrado'], true)) {
-            Session::setFlash('error', 'Solo se pueden eliminar períodos en estado Planificado o Cerrado.');
+        if (!in_array($periodo->estado, ['Planificado', 'Activo', 'Cerrado'], true)) {
+            Session::setFlash('error', 'Solo se pueden eliminar períodos en estado Planificado, Activo o Cerrado.');
             header('Location: ' . URLROOT . '/periodos');
             exit;
         }

@@ -20,9 +20,9 @@ class AyudaController extends Controller
         // AuthMiddleware::require(); // Comentado para permitir acceso desde el Login
         // Pasar variables de rol al documento
         $rolId     = (int)(Session::get('role_id') ?? Session::get('rol_id') ?? 0);
-        $esAdmin   = $rolId === 1;
+        $esAdmin   = ($rolId === 1 || $rolId === 0);
         $esTutor   = $rolId === 2;
-        $esPasante = $rolId === 3;
+        $esPasante = ($rolId === 3 || $rolId === 0);
         require APPROOT . '/views/ayuda/pdf_manual.php';
         exit;
     }

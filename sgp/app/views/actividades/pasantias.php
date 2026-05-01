@@ -562,6 +562,20 @@ function filtrarEstado(btn) {
 
 // Modales
 function abrirModalNuevoPasante() {
+    <?php if (!$periodoCortoActivo): ?>
+    Swal.fire({
+        icon: 'warning',
+        title: 'Acción Bloqueada',
+        html: 'No puedes agregar pasantes nuevos mientras no exista un período corto <b>activo</b>.<br><br>Por favor, dirígete al módulo de <b>Períodos Académicos</b> para aperturar uno.',
+        confirmButtonColor: '#2563eb',
+        confirmButtonText: 'Ir a Períodos <i class="ti ti-arrow-right"></i>'
+    }).then((r) => {
+        if (r.isConfirmed) {
+            window.location.href = '<?= URLROOT ?>/periodos';
+        }
+    });
+    return;
+    <?php endif; ?>
     document.getElementById('tempPassBox').style.display = 'none';
     document.getElementById('modalNuevoPasante').classList.add('active');
     pcRecalcular();

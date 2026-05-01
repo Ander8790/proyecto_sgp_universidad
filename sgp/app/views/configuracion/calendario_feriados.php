@@ -27,12 +27,25 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
                 <p style="color:#93c5fd;font-size:0.85rem;margin:2px 0 0;font-weight:600;">Haz clic en un día para registrar o eliminar un feriado</p>
             </div>
         </div>
-        
-        <!-- Paginador de Año -->
-        <div style="display:flex;align-items:center;background:rgba(255,255,255,0.15);border-radius:14px;padding:4px;border:1px solid rgba(255,255,255,0.2);">
-            <a href="?y=<?= $year - 1 ?>" style="padding:8px 14px;color:#fff;text-decoration:none;border-radius:10px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'"><i class="ti ti-chevron-left"></i></a>
-            <div style="padding:0 20px;color:#fff;font-weight:800;font-size:1.2rem;letter-spacing:1px;"><?= $year ?></div>
-            <a href="?y=<?= $year + 1 ?>" style="padding:8px 14px;color:#fff;text-decoration:none;border-radius:10px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'"><i class="ti ti-chevron-right"></i></a>
+
+        <!-- Controles: Botón Sync + Paginador Año -->
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+
+            <!-- Botón Sincronizar Feriados -->
+            <button type="button" id="btnSyncFeriados" onclick="sincronizarFeriados()"
+                style="background:linear-gradient(135deg,#059669,#10b981);color:white;padding:10px 18px;border:none;border-radius:12px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 4px 14px rgba(5,150,105,0.4);white-space:nowrap;"
+                onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(5,150,105,0.5)'"
+                onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 14px rgba(5,150,105,0.4)'">
+                <i class="ti ti-refresh" id="iconSyncFeriados"></i>
+                Sincronizar <?= $year ?>
+            </button>
+
+            <!-- Paginador de Año -->
+            <div style="display:flex;align-items:center;background:rgba(255,255,255,0.15);border-radius:14px;padding:4px;border:1px solid rgba(255,255,255,0.2);">
+                <a href="?y=<?= $year - 1 ?>" style="padding:8px 14px;color:#fff;text-decoration:none;border-radius:10px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'"><i class="ti ti-chevron-left"></i></a>
+                <div style="padding:0 20px;color:#fff;font-weight:800;font-size:1.2rem;letter-spacing:1px;"><?= $year ?></div>
+                <a href="?y=<?= $year + 1 ?>" style="padding:8px 14px;color:#fff;text-decoration:none;border-radius:10px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'"><i class="ti ti-chevron-right"></i></a>
+            </div>
         </div>
     </div>
 
@@ -348,6 +361,84 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 </div>
 
 <script>
+// ── Sincronizar Feriados (año de la página actual) ─────────
+function sincronizarFeriados() {
+    const anio = <?= $year ?>;
+    const btn  = document.getElementById('btnSyncFeriados');
+    const icon = document.getElementById('iconSyncFeriados');
+
+    btn.disabled = true;
+    icon.className = 'ti ti-loader-2';
+    icon.style.animation = 'spin 1s linear infinite';
+
+    fetch('<?= URLROOT ?>/configuracion/sincronizarFeriados', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: 'anio=' + anio + '&csrf_token=<?= Session::generateCsrfToken() ?>'
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.success) {
+            const insertados = data.insertados ?? 0;
+            const yaExistian = data.ya_existian ?? 0;
+            const totalApi   = data.total_api   ?? 0;
+
+            let html = '<div style="text-align:left;font-size:0.88rem;line-height:1.8;">';
+            html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;">'
+                  + '<span style="color:#64748b;">Consultados en la API</span>'
+                  + '<strong>' + totalApi + '</strong></div>';
+            html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;">'
+                  + '<span style="color:#059669;">✅ Nuevos insertados</span>'
+                  + '<strong style="color:#059669;">' + insertados + '</strong></div>';
+            html += '<div style="display:flex;justify-content:space-between;padding:6px 0;">'
+                  + '<span style="color:#94a3b8;">⏭ Ya existían (omitidos)</span>'
+                  + '<strong style="color:#94a3b8;">' + yaExistian + '</strong></div>';
+            html += '</div>';
+            if (data.nota) {
+                html += '<div style="margin-top:10px;font-size:0.78rem;background:#fef9c3;border-radius:8px;padding:8px 12px;color:#854d0e;text-align:left;">'
+                      + '⚠️ ' + data.nota + '</div>';
+            }
+
+            Swal.fire({
+                icon: insertados > 0 ? 'success' : 'info',
+                title: insertados > 0 ? '¡Feriados Sincronizados!' : 'Todo al día',
+                html: html,
+                confirmButtonColor: '#7c3aed',
+                confirmButtonText: insertados > 0 ? 'Ver cambios' : 'Entendido'
+            }).then(r => { if (r.isConfirmed && insertados > 0) location.reload(); });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Error de Sincronización',
+                text: data.message || 'No se pudo conectar con la API de feriados.',
+                footer: '<small>Verifica que el equipo tenga conexión a internet.</small>',
+                confirmButtonColor: '#dc2626'
+            });
+        }
+    })
+    .catch(() => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Sin conexión',
+            text: 'No se pudo contactar la API. Verifica la conexión a internet.',
+            confirmButtonColor: '#dc2626'
+        });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        icon.className = 'ti ti-refresh';
+        icon.style.animation = '';
+    });
+}
+
+// ── Estilos del spinner ────────────────────────────────────
+const _spinStyle = document.createElement('style');
+_spinStyle.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
+document.head.appendChild(_spinStyle);
+
 window.abrirModalPorFecha = function(el) {
     if (el.getAttribute('data-e') === 'fuera') return;
     

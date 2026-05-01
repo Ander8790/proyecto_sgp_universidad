@@ -27,6 +27,7 @@ $rol_id = Session::get('role_id') ?? Session::get('rol_id') ?? 0;
 $role = 'Invitado';
 
 switch ($rol_id) {
+    case 0: $role = 'SuperAdministrador'; break;
     case 1: $role = 'Administrador'; break;
     case 2: $role = 'Tutor'; break;
     case 3: $role = 'Pasante'; break;
@@ -37,6 +38,7 @@ switch ($rol_id) {
 
 // Determinar URL del dashboard según rol
 $dashboardUrl = URLROOT . '/dashboard';
+if ($rol_id == 0) $dashboardUrl = URLROOT . '/superadmin';
 if ($rol_id == 1) $dashboardUrl = URLROOT . '/admin';
 if ($rol_id == 2) $dashboardUrl = URLROOT . '/tutor';
 if ($rol_id == 3) $dashboardUrl = URLROOT . '/pasante/dashboard';
@@ -63,15 +65,27 @@ function isActive($url, $exact = false) {
             <!-- Dashboard -->
             <li>
                 <a href="<?= $dashboardUrl ?>" 
-                   class="nav-link <?= isActive($rol_id == 1 ? '/admin' : ($rol_id == 2 ? '/tutor' : '/pasante/dashboard'), true) ?>"
+                   class="nav-link <?= isActive($rol_id == 1 ? '/admin' : ($rol_id == 2 ? '/tutor' : ($rol_id == 0 ? '/superadmin' : '/pasante/dashboard')), true) ?>"
                    data-tooltip="Inicio">
                     <i class="ti ti-home"></i>
                     <span class="menu-text">Inicio</span>
                 </a>
             </li>
-            
-            <?php if ($role == 'Administrador'): ?>
-            <!-- Menú Administrador -->
+
+            <?php if ($role == 'SuperAdministrador'): ?>
+            <!-- Menú Exclusivo SuperAdministrador -->
+            <li>
+                <a href="<?= URLROOT ?>/superadmin/permisos"
+                   class="nav-link <?= isActive('/superadmin/permisos') ?>"
+                   data-tooltip="Gestión de Permisos">
+                    <i class="ti ti-shield-lock"></i>
+                    <span class="menu-text">Permisos</span>
+                </a>
+            </li>
+            <?php endif; ?>
+
+            <?php if (in_array($role, ['Administrador', 'SuperAdministrador'])): ?>
+            <!-- Menú Administrador / SuperAdministrador -->
             <li>
                 <a href="<?= URLROOT ?>/users" 
                    class="nav-link <?= isActive('/users') ?>"

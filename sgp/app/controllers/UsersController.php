@@ -23,7 +23,7 @@ class UsersController extends Controller
         
         $roleId = (int)Session::get('role_id');
         
-        if (!in_array($roleId, [1, 2])) {
+        if (!in_array($roleId, [0, 1, 2])) {
             // Pasantes (rol 3) can access AJAX endpoints (buscar, verUniversal)
             if ($isAjax && $roleId === 3) {
                 // Allow — individual methods handle fine-grained permissions
@@ -712,7 +712,7 @@ public function update()
             exit;
         }
 
-        // Permiso: Solo Admin(1) o Tutor(2). Pasante solo su propio perfil.
+        // Permiso: Solo SuperAdmin(0), Admin(1) o Tutor(2). Pasante solo su propio perfil.
         $currentRole = (int)Session::get('role_id');
         $currentUser = (int)Session::get('user_id');
         if ($currentRole === 3 && $id !== $currentUser) {
@@ -776,9 +776,9 @@ public function update()
     public function buscarPorCedula(): void {
         header('Content-Type: application/json');
 
-        // Solo admins y tutores
+        // Solo superadmins, admins y tutores
         $role = (int)Session::get('role_id');
-        if (!in_array($role, [1, 2])) {
+        if (!in_array($role, [0, 1, 2])) {
             echo json_encode(['success' => false, 'message' => 'Acceso denegado']);
             exit;
         }

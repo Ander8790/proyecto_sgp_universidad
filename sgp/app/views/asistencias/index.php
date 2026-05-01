@@ -144,14 +144,19 @@ table.dataTable tbody tr:hover {
                 $pasantesAnual = [];
                 foreach($registrosLista as $reg) {
                     $pid = $reg->pasante_id ?? 'P'.$reg->id;
-                    if(!isset($pasantesAnual[$pid])) $pasantesAnual[$pid] = 0;
+                    if(!isset($pasantesAnual[$pid])) {
+                        $pasantesAnual[$pid] = [
+                            'presentes' => 0,
+                            'horas_meta' => (int)($reg->horas_meta ?? 1440)
+                        ];
+                    }
                     if(stripos($reg->estado, 'presente') !== false || stripos($reg->estado, 'justificado') !== false) {
-                        $pasantesAnual[$pid]++;
+                        $pasantesAnual[$pid]['presentes']++;
                     }
                 }
                 $historicoAnual = count($pasantesAnual);
-                foreach($pasantesAnual as $pid => $presentes) {
-                    if (($presentes * 8) >= 1440) $finalizadosAnual++;
+                foreach($pasantesAnual as $pid => $data) {
+                    if (($data['presentes'] * 8) >= $data['horas_meta']) $finalizadosAnual++;
                     else $enCursoAnual++;
                 }
             }

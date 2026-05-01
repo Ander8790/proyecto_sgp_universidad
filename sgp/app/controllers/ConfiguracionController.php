@@ -189,13 +189,64 @@ class ConfiguracionController extends Controller {
             exit;
         }
 
+        // ── POST: Editar institución ──────────────────────────────────────
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'editar_institucion') {
+            $id = (int)($_POST['id'] ?? 0);
+            $nombre = trim($_POST['nombre'] ?? '');
+            $direccion = trim($_POST['direccion'] ?? '');
+            $rep_nombre = trim($_POST['representante_nombre'] ?? '');
+            $rep_cargo = trim($_POST['representante_cargo'] ?? '');
+            $rep_correo = trim($_POST['representante_correo'] ?? '');
+            $rep_telefono = trim($_POST['representante_telefono'] ?? '');
+
+            if ($id > 0 && $nombre && $direccion) {
+                try {
+                    $this->db->query("SELECT COUNT(*) as total FROM instituciones WHERE nombre = :nombre AND id != :id");
+                    $this->db->bind(':nombre', $nombre);
+                    $this->db->bind(':id', $id);
+                    $row = $this->db->single();
+
+                    if ($row->total > 0) {
+                        Session::setFlash('error', '⚠️ Ya existe otra institución con ese nombre.');
+                    } else {
+                        $this->db->query("
+                            UPDATE instituciones 
+                            SET nombre = :nombre, 
+                                direccion = :direccion,
+                                representante_nombre = :rep_nombre,
+                                representante_cargo = :rep_cargo,
+                                representante_correo = :rep_correo,
+                                representante_telefono = :rep_telefono
+                            WHERE id = :id
+                        ");
+                        $this->db->bind(':nombre', $nombre);
+                        $this->db->bind(':direccion', $direccion);
+                        $this->db->bind(':rep_nombre', $rep_nombre ?: null);
+                        $this->db->bind(':rep_cargo', $rep_cargo ?: null);
+                        $this->db->bind(':rep_correo', $rep_correo ?: null);
+                        $this->db->bind(':rep_telefono', $rep_telefono ?: null);
+                        $this->db->bind(':id', $id);
+                        $this->db->execute();
+
+                        Session::setFlash('success', '✅ Institución "' . htmlspecialchars($nombre) . '" actualizada correctamente.');
+                    }
+                } catch (Exception $e) {
+                    Session::setFlash('error', '❌ Error al editar institución: ' . $e->getMessage());
+                }
+            } else {
+                Session::setFlash('error', '⚠️ Faltan datos obligatorios para editar la institución.');
+            }
+            header('Location: ' . URLROOT . '/configuracion');
+            exit;
+        }
+
         // ── POST: Eliminar institución ────────────────────────────────────
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'eliminar_institucion') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
                 try {
                     // Verificar que no tenga pasantes asignados
-                    $this->db->query("SELECT COUNT(*) as total FROM usuarios WHERE institucion_id = :id");
+                    $this->db->query("SELECT COUNT(*) as total FROM datos_pasante WHERE institucion_id = :id");
                     $this->db->bind(':id', $id);
                     $row = $this->db->single();
                     if ($row->total > 0) {
@@ -427,7 +478,7 @@ class ConfiguracionController extends Controller {
     public function verificarConexionBD()
     {
         header('Content-Type: application/json');
-        RoleMiddleware::authorize([1]);
+        RoleMiddleware::authorize([0, 1]);
 
         $inicio = microtime(true);
         try {
@@ -454,7 +505,7 @@ class ConfiguracionController extends Controller {
     public function limpiarSesiones()
     {
         header('Content-Type: application/json');
-        RoleMiddleware::authorize([1]);
+        RoleMiddleware::authorize([0, 1]);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['success' => false, 'message' => 'Método no permitido']);
@@ -501,7 +552,7 @@ class ConfiguracionController extends Controller {
     public function purgarBitacora()
     {
         header('Content-Type: application/json');
-        RoleMiddleware::authorize([1]);
+        RoleMiddleware::authorize([0, 1]);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             echo json_encode(['success' => false, 'message' => 'Método no permitido']);
@@ -567,5 +618,114 @@ class ConfiguracionController extends Controller {
         ];
 
         $this->view('configuracion/calendario_feriados', $data);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // POST /configuracion/sincronizarFeriados — Sync API
+    // Consulta Nager.Date, inserta solo los feriados faltantes
+    // ─────────────────────────────────────────────────────────
+    public function sincronizarFeriados(): void
+    {
+        header('Content-Type: application/json');
+        RoleMiddleware::authorize([0, 1]);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            exit;
+        }
+
+        $anio = (int)($_POST['anio'] ?? date('Y'));
+        if ($anio < 2020 || $anio > 2035) {
+            echo json_encode(['success' => false, 'message' => 'Año inválido.']);
+            exit;
+        }
+
+        // ── Consultar la API Nager.Date (Venezuela = VE) ──────────────
+        $url = "https://date.nager.at/api/v3/PublicHolidays/{$anio}/VE";
+
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 8,
+            CURLOPT_CONNECTTIMEOUT => 5,
+            CURLOPT_HTTPHEADER     => ['Accept: application/json'],
+            CURLOPT_SSL_VERIFYPEER => false, // XAMPP local sin certificados
+            CURLOPT_USERAGENT      => 'SGP-ISP-Bolivar/1.0',
+        ]);
+        $respuesta = curl_exec($ch);
+        $httpCode  = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError || $httpCode !== 200 || !$respuesta) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'No se pudo conectar con la API de feriados. '
+                           . ($curlError ?: "Código HTTP: $httpCode"),
+            ]);
+            exit;
+        }
+
+        $lista = json_decode($respuesta, true);
+        if (!is_array($lista)) {
+            echo json_encode(['success' => false, 'message' => 'Respuesta de API inválida.']);
+            exit;
+        }
+
+        // ── Insertar solo los feriados que no existan ─────────────────
+        $insertados  = 0;
+        $yaExistian  = 0;
+        $totalApi    = count($lista);
+
+        // Cargar fechas ya existentes en BD para ese año (consulta única)
+        $this->db->query(
+            "SELECT fecha FROM dias_feriados WHERE YEAR(fecha) = :anio"
+        );
+        $this->db->bind(':anio', $anio);
+        $rows           = $this->db->resultSet();
+        $fechasExistentes = array_column(array_map(fn($r) => (array)$r, $rows), 'fecha');
+
+        foreach ($lista as $item) {
+            $fecha  = $item['date']      ?? '';
+            $nombre = $item['localName'] ?? ($item['name'] ?? '');
+
+            if (!$fecha || !$nombre) continue;
+
+            if (in_array($fecha, $fechasExistentes, true)) {
+                $yaExistian++;
+                continue;
+            }
+
+            try {
+                $this->db->query(
+                    "INSERT IGNORE INTO dias_feriados (fecha, nombre, tipo, created_at)
+                     VALUES (:fecha, :nombre, 'Nacional', NOW())"
+                );
+                $this->db->bind(':fecha',  $fecha);
+                $this->db->bind(':nombre', mb_substr($nombre, 0, 150));
+                $this->db->execute();
+                $insertados++;
+                $fechasExistentes[] = $fecha; // Evitar doble insert en la misma ejecución
+            } catch (Exception $e) {
+                $yaExistian++; // Si falla INSERT IGNORE, ya existía
+            }
+        }
+
+        if (class_exists('AuditModel')) {
+            AuditModel::log(
+                'SYNC_FERIADOS_API',
+                "Sincronización año $anio: $insertados nuevos, $yaExistian ya existían (Nager.Date)"
+            );
+        }
+
+        echo json_encode([
+            'success'     => true,
+            'insertados'  => $insertados,
+            'ya_existian' => $yaExistian,
+            'total_api'   => $totalApi,
+            'nota'        => 'Los feriados regionales (Aniversario Ciudad Bolívar, etc.) '
+                           . 'no están en la API. Agrégalos manualmente si es necesario.',
+        ]);
+        exit;
     }
 }

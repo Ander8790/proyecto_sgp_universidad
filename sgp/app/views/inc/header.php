@@ -321,7 +321,11 @@ if (Session::get('requiere_cambio_clave') == 1) {
                     <small class="text-muted d-block" style="font-size: 0.75rem;">
                         <?php
                         $rol_id = Session::get('role_id') ?? 0;
-                        echo ($rol_id == 1) ? 'Administrador' : (($rol_id == 2) ? 'Tutor' : 'Pasante');
+                        if ($rol_id == 0) {
+                            echo 'Super Administrador';
+                        } else {
+                            echo ($rol_id == 1) ? 'Administrador' : (($rol_id == 2) ? 'Tutor' : 'Pasante');
+                        }
                         ?>
                     </small>
                 </div>

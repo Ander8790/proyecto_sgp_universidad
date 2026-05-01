@@ -3,9 +3,9 @@
  * Vista: Manual de Usuario — SGP (Diseño SPA anti-scroll)
  */
 $rolId    = Session::get('role_id') ?? Session::get('rol_id') ?? 0;
-$esAdmin  = $rolId == 1;
-$esTutor  = $rolId == 2;
-$esPasante = $rolId == 3;
+$esAdmin   = ($rolId == 1 || $rolId == 0);
+$esTutor   = $rolId == 2;
+$esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
 ?>
 <style>
 /* ══ Manual SGP — Diseño SPA ═══════════════════════════════════ */

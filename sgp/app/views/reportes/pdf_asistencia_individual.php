@@ -4,21 +4,21 @@
     <meta charset="UTF-8">
     <title>Reporte Individual de Asistencia</title>
     <style>
-        @page { margin: 1.5cm 1.8cm; }
-        body   { font-family: Helvetica, Arial, sans-serif; font-size: 10px; color: #111; line-height: 1.4; }
-        h1     { font-size: 14px; text-align: center; text-transform: uppercase; margin: 0 0 2px; }
-        h2     { font-size: 10px; text-transform: uppercase; border-bottom: 1px solid #999; padding-bottom: 3px; margin: 14px 0 7px; }
-        .sub   { text-align: center; font-size: 9px; color: #555; margin-bottom: 12px; }
-        .ficha { width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 14px; }
-        .ficha td { padding: 5px 8px; border: 1px solid #ddd; vertical-align: middle; }
-        .ficha .lbl { background: #e8e8e8; font-weight: bold; text-transform: uppercase; width: 18%; font-size: 8px; }
-        table  { width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 12px; }
-        th     { background: #e8e8e8; padding: 5px 6px; text-align: left; border: 1px solid #ccc; font-size: 8px; text-transform: uppercase; }
-        td     { padding: 4px 6px; border: 1px solid #ddd; vertical-align: middle; }
+        @page { margin: 2cm 2.2cm; }
+        body   { font-family: Helvetica, Arial, sans-serif; font-size: 12px; color: #111; line-height: 1.5; }
+        h1     { font-size: 16px; text-align: center; text-transform: uppercase; margin: 0 0 4px; }
+        h2     { font-size: 12px; text-transform: uppercase; border-bottom: 1px solid #999; padding-bottom: 4px; margin: 18px 0 10px; }
+        .sub   { text-align: center; font-size: 11px; color: #555; margin-bottom: 14px; }
+        .ficha { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 16px; }
+        .ficha td { padding: 7px 10px; border: 1px solid #ddd; vertical-align: middle; }
+        .ficha .lbl { background: #e8e8e8; font-weight: bold; text-transform: uppercase; width: 18%; font-size: 10px; }
+        table  { width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 14px; }
+        th     { background: #e8e8e8; padding: 7px 8px; text-align: left; border: 1px solid #ccc; font-size: 10px; text-transform: uppercase; }
+        td     { padding: 6px 8px; border: 1px solid #ddd; vertical-align: middle; }
         .alt   { background: #f7f7f7; }
         .c     { text-align: center; }
         .b     { font-weight: bold; }
-        .foot  { border-top: 1px solid #bbb; margin-top: 14px; padding-top: 5px; text-align: center; font-size: 8px; color: #777; }
+        .foot  { border-top: 1px solid #bbb; margin-top: 18px; padding-top: 6px; text-align: center; font-size: 10px; color: #777; }
     </style>
 </head>
 <body>

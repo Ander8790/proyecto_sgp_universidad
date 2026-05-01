@@ -21,6 +21,9 @@ $duracion = is_numeric($semanas) ? $semanas . ' SEMANAS' : $semanas;
 $tutorNombre = mb_strtoupper(trim(($eval->tutor_nombres ?? '') . ' ' . ($eval->tutor_apellidos ?? '')));
 $tutorCargo = mb_strtoupper($eval->tutor_cargo ?? '');
 $tutorTel = htmlspecialchars($eval->tutor_tel ?? '');
+$jefeNombre = mb_strtoupper(trim(($eval->jefe_nombres ?? '') . ' ' . ($eval->jefe_apellidos ?? '')));
+$jefeCargo  = mb_strtoupper($eval->jefe_cargo ?? '');
+$jefeTel    = htmlspecialchars($eval->jefe_tel ?? '');
 
 $prom = (float) ($eval->promedio_final ?? 0);
 if ($prom >= 4.5)
@@ -208,18 +211,18 @@ $criterios = [
             <td colspan="4">Datos del Pasante</td>
         </tr>
         <tr>
-            <td style="width:38%;"><strong>Nombres y Apellido:</strong> <?= $nombrePasante ?></td>
-            <td style="width:28%;"><strong>Cédula de Identidad:</strong> V- <?= $cedula ?></td>
-            <td style="width:34%;"><strong>Tipo de Pasantía:</strong> REGULAR</td>
+            <td colspan="2"><strong>Nombres y Apellido:</strong> <?= $nombrePasante ?></td>
+            <td><strong>Cédula de Identidad:</strong> V- <?= $cedula ?></td>
+            <td><strong>Tipo de Pasantía:</strong> REGULAR</td>
         </tr>
         <tr>
             <td colspan="2"><strong>Instituto de Procedencia:</strong> <?= $instNombre ?></td>
-            <td><strong>Especialidad que Cursa:</strong></td>
+            <td colspan="2"><strong>Especialidad que Cursa:</strong> MENCIÓN TELEMÁTICA</td>
         </tr>
         <tr>
-            <td style="width:18%;"><strong>Semestre o Año que Cursa:</strong></td>
-            <td><strong>Duración de Pasantías:</strong> <?= $duracion ?></td>
-            <td><strong>Lapso Evaluado:</strong> Desde: <?= $fechaInicio ?> Hasta: <?= $fechaFin ?></td>
+            <td style="width:20%;"><strong>Semestre o Año que Cursa:</strong></td>
+            <td style="width:25%;"><strong>Duración de Pasantías:</strong> <?= $duracion ?></td>
+            <td style="width:35%;"><strong>Lapso Evaluado:</strong> Desde: <?= $fechaInicio ?> Hasta: <?= $fechaFin ?></td>
             <td style="width:20%;"><strong>Fecha de Evaluación:</strong> <?= $fechaEval ?></td>
         </tr>
     </table>
@@ -230,14 +233,14 @@ $criterios = [
             <td colspan="3">Datos del Tutor</td>
         </tr>
         <tr>
-            <td style="width:38%;"><strong>Nombres y Apellidos:</strong> <?= $tutorNombre ?></td>
-            <td style="width:34%;"><strong>Cargo:</strong> <?= $tutorCargo ?></td>
-            <td style="width:28%;"><strong>Extensión Telefónica:</strong> <?= $tutorTel ?></td>
+            <td style="width:38%;"><strong>Nombres y Apellidos:</strong> <?= $jefeNombre ?></td>
+            <td style="width:34%;"><strong>Cargo:</strong> <?= $jefeCargo ?></td>
+            <td style="width:28%;"><strong>Extensión Telefónica:</strong> <?= $jefeTel ?></td>
         </tr>
         <tr>
-            <td><strong>Dirección:</strong> <?= $departamento ?></td>
-            <td><strong>División:</strong></td>
-            <td><strong>Departamento/ Coordinación/ Unidad:</strong></td>
+            <td><strong>Dirección:</strong> DIRECCIÓN DE TELEMÁTICA</td>
+            <td><strong>División:</strong> DIVISIÓN DE SOPORTE TÉCNICO</td>
+            <td><strong>Departamento/ Coordinación/ Unidad:</strong> SOPORTE TÉCNICO</td>
         </tr>
     </table>
 
@@ -284,26 +287,15 @@ $criterios = [
     <!-- FIRMAS -->
     <table style="margin-top:4px;">
         <tr class="firma-top">
-            <td style="width:30%; border:1px solid #000;"><strong>Tutor Empresarial:</strong></td>
+            <td style="width:30%; border:1px solid #000;"><strong>Tutor Empresarial:</strong><br><?= $jefeNombre ?></td>
             <td style="width:25%; border:1px solid #000;"><strong>Evaluado:</strong></td>
-            <td style="width:45%; border:1px solid #000;">División de Desarrollo de Personal<br>(Departamento de
-                Capacitación y Desarrollo Organizacional)</td>
+            <td colspan="2" style="border:1px solid #000;">División de Desarrollo de Personal<br>(Departamento de Capacitación y Desarrollo Organizacional)</td>
         </tr>
         <tr class="firma-row">
             <td style="border:1px solid #000;"><strong>Firma y Sello:</strong></td>
             <td style="border:1px solid #000;"><strong>Firma y huella:</strong></td>
-            <td style="border:none; padding:0;">
-                <table style="border-collapse:collapse; width:100%;">
-                    <tr>
-                        <td
-                            style="border:1px solid #000; width:60%; height:18px; padding:1px 4px; font-size:6.5px; font-weight:bold; vertical-align:bottom;">
-                            <strong>Firma y Sello:</strong></td>
-                        <td
-                            style="border:1px solid #000; width:40%; padding:1px 4px; font-size:6.5px; font-weight:bold; vertical-align:bottom;">
-                            <strong>Fecha:</strong></td>
-                    </tr>
-                </table>
-            </td>
+            <td style="width:28%; border:1px solid #000;"><strong>Firma y Sello:</strong></td>
+            <td style="width:17%; border:1px solid #000;"><strong>Fecha:</strong></td>
         </tr>
     </table>
 

@@ -358,11 +358,9 @@
                     <i class="ti ti-player-play" style="font-size:1.1rem;"></i> Activar
                 </button>
                 <?php endif; ?>
-                <?php if ($est === 'planificado' || $est === 'cerrado'): ?>
                 <button title="Eliminar Período" onclick="confirmarEliminarPeriodo(<?= $p->id ?>, '<?= htmlspecialchars(addslashes($p->nombre)) ?>', <?= (int)$p->total_pasantes ?>)" style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;padding:0 12px;border-radius:20px;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
                     <i class="ti ti-trash" style="font-size:1rem;"></i> Eliminar
                 </button>
-                <?php endif; ?>
                 <?php if ($est === 'activo' || $est === 'planificado'): ?>
                 <button title="Cerrar Período" onclick="confirmarCerrar(<?= $p->id ?>, '<?= htmlspecialchars(addslashes($p->nombre)) ?>', <?= (int)$p->total_pasantes ?>)" style="display:inline-flex;align-items:center;gap:5px;background:#fef2f2;color:#ef4444;border:1px solid #fecaca;padding:0 12px;border-radius:20px;font-weight:700;font-size:.82rem;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'">
                     <i class="ti ti-lock" style="font-size:1rem;"></i> Cerrar
@@ -853,9 +851,12 @@ function confirmarEliminarPeriodo(id, nombre, totalPasantes) {
     const extraMsg = tienePasantes
         ? `<br><br><span style="background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;border-radius:8px;padding:6px 12px;display:inline-block;font-size:.85rem;">⚠ Este período tiene <strong>${totalPasantes} pasante(s)</strong> asignado(s). Quedarán sin período asignado.</span>`
         : '';
+        
     Swal.fire({
         title: '¿Eliminar período?',
-        html: `<p style="color:#64748b;font-size:.95rem;">Vas a eliminar permanentemente el período <strong>${nombre}</strong>.${extraMsg}<br><br>Esta acción <strong>no se puede deshacer</strong>.</p>`,
+        html: `<p style="color:#64748b;font-size:.95rem;">Vas a eliminar permanentemente el período <strong>${nombre}</strong>.${extraMsg}<br><br>Para confirmar, escribe la palabra <b>ELIMINAR</b> a continuación:</p>`,
+        input: 'text',
+        inputPlaceholder: 'ELIMINAR',
         icon: tienePasantes ? 'error' : 'warning',
         showCancelButton: true,
         confirmButtonText: '<i class="ti ti-trash"></i> Sí, eliminar',
@@ -863,7 +864,14 @@ function confirmarEliminarPeriodo(id, nombre, totalPasantes) {
         confirmButtonColor: '#dc2626',
         cancelButtonColor: '#64748b',
         customClass: { popup: 'sgp-swal-modal' },
-        didOpen: () => { document.querySelector('.swal2-popup').style.borderRadius = '20px'; }
+        didOpen: () => { document.querySelector('.swal2-popup').style.borderRadius = '20px'; },
+        preConfirm: (inputValue) => {
+            if (inputValue !== 'ELIMINAR') {
+                Swal.showValidationMessage('Debes escribir ELIMINAR exactamente para confirmar');
+                return false;
+            }
+            return true;
+        }
     }).then(result => {
         if (!result.isConfirmed) return;
         const form = document.createElement('form');

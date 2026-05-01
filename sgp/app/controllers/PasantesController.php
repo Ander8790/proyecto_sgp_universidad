@@ -19,7 +19,7 @@ class PasantesController extends Controller
         AuthMiddleware::require();
 
         // Solo administradores
-        if (!RoleMiddleware::hasAnyRole([1])) {
+        if (!RoleMiddleware::hasAnyRole([0, 1])) {
             RoleMiddleware::redirectToRoleDashboard(Session::get('role_id'));
         }
 
@@ -296,7 +296,7 @@ class PasantesController extends Controller
 
         // Requiere admin o tutor
         $roleId = (int)Session::get('role_id');
-        if (!in_array($roleId, [1, 2])) {
+        if (!in_array($roleId, [0, 1, 2])) {
             http_response_code(403);
             echo json_encode(['success' => false, 'message' => 'Acceso denegado']);
             exit;

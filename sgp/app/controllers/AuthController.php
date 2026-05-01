@@ -93,6 +93,20 @@ class AuthController extends Controller
         }
         
         // 2. Verificar si la contraseña es correcta
+        // Guard: hash NULL significa que el usuario fue creado sin contraseña (seed manual)
+        if (empty($user['password'])) {
+            error_log("[SGP-AUTH] Usuario {$email} tiene password NULL — fue insertado sin hash válido.");
+            $errorMsg = 'Esta cuenta no tiene contraseña configurada. Contacte al administrador del sistema.';
+            if ($isAjax) {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => $errorMsg]);
+                exit;
+            }
+            Session::setFlash('login_error', $errorMsg);
+            $this->view('auth/login', [], false);
+            return;
+        }
+
         if (!password_verify($password, $user['password'])) {
             // SGP-FIX-v2 [1.4] — Mismo mensaje genérico (no revelar si correo existe)
             $errorMsg = 'Credenciales incorrectas. Verifica tu correo y contraseña.';
@@ -192,6 +206,12 @@ class AuthController extends Controller
         Session::set('departamento_id', $user['departamento_id'] ?? null);
         Session::set('user_avatar', $user['avatar'] ?? 'default.png');
         Session::set('last_activity', time());
+
+        // Cargar permisos en sesión (Data-Driven UI)
+        // SuperAdmin (rol 0) retorna array vacío; hasPermission() le permite todo directamente.
+        $permisosModel = $this->model('Permisos');
+        $permisos = $permisosModel->getPermisosUsuario((int)$user['id'], (int)$user['role_id']);
+        Session::set('permisos', $permisos);
 
         // Verificar si el perfil está completo
         $perfilCompletado = $userModel->verificarPerfilCompleto((int)$user['id']);
@@ -564,6 +584,11 @@ class AuthController extends Controller
             }
 
             $this->model('User')->updatePassword($uid, $pass);
+
+            // Registrar en bitácora (sin sesión activa aún, se registrará como sistema/anónimo pero con el email en detalles)
+            AuditModel::log('RECUPERACION_PASSWORD_EXITOSA', 'usuarios', $uid, [
+                'email' => $userRec['correo'] ?? 'desconocido'
+            ]);
 
             // Limpiar SOLO las variables de recovery, no destruir sesión entera
             $this->clearRecoverySession();
@@ -978,6 +1003,7 @@ class AuthController extends Controller
 
     protected function redirectByRole($roleId) {
         $routes = [
+            0 => '/superadmin', // SuperAdministrador
             1 => '/admin',      // Administrador
             2 => '/tutor',      // Tutor
             3 => '/pasante'     // Pasante

@@ -52,7 +52,7 @@ body {
 <div class="carta-body">
 
     <div class="ref-line">
-        Barcelona, <?= htmlspecialchars($fechaEmision ?? date('d \d\e F \d\e Y')) ?>
+        Ciudad Bolívar, <?= htmlspecialchars($fechaEmision ?? date('d \d\e F \d\e Y')) ?>
     </div>
 
     <?php
@@ -69,6 +69,7 @@ body {
     $fechaFin   = $pasante->fecha_fin    ? date('d/m/Y', strtotime($pasante->fecha_fin))    : 'N/D';
     $tutor      = mb_strtoupper($pasante->tutor_nombre ?? 'N/D', 'UTF-8');
     $tutorCargo = htmlspecialchars($pasante->tutor_cargo ?? '');
+    $jefeCargo  = htmlspecialchars($pasante->jefe_cargo ?? '');
     ?>
 
     <?php if (($tipo ?? 'servicio') === 'servicio'): ?>
@@ -77,7 +78,7 @@ body {
     <div class="asunto">CONSTANCIA DE PRESTACIÓN DE SERVICIOS COMUNITARIOS</div>
 
     <p class="parrafo">
-        La Coordinación de Pasantías de la <span class="destacado">Unidad de Producción Tecnológica (UPT) Bolívar</span>,
+        La Coordinación de Pasantías del <span class="destacado">Instituto de Salud Pública del Estado Bolívar</span>,
         hace constar por medio de la presente que el/la ciudadano/a
         <span class="destacado">V-<?= $ci ?> <?= htmlspecialchars($nombreCompleto) ?></span>,
         procedente de la institución de educación superior
@@ -108,7 +109,7 @@ body {
     <div class="asunto">CARTA DE CULMINACIÓN DE PASANTÍAS PROFESIONALES</div>
 
     <p class="parrafo">
-        La Coordinación de Pasantías de la <span class="destacado">Unidad de Producción Tecnológica (UPT) Bolívar</span>
+        La Coordinación de Pasantías del <span class="destacado">Instituto de Salud Pública del Estado Bolívar</span>
         certifica que el/la ciudadano/a
         <span class="destacado">V-<?= $ci ?> <?= htmlspecialchars($nombreCompleto) ?></span>,
         estudiante de la institución
@@ -145,8 +146,10 @@ body {
 <div class="firma-block">
     <div>
         <div class="firma-linea">
-            Coordinación de Pasantías<br>
-            <span class="firma-sub">UPT Bolívar — SGP</span>
+            <?= htmlspecialchars($jefeNombre ?? 'Jefe del Departamento') ?><br>
+            <span class="firma-sub">Jefe del Departamento de Soporte Técnico</span><br>
+            <span class="firma-sub">Dirección de Telemática — División de Soporte Técnico</span><br>
+            <span class="firma-sub">Instituto de Salud Pública del Estado Bolívar</span>
         </div>
         <div class="sello-box">Sello<br>Oficial</div>
     </div>
@@ -154,7 +157,7 @@ body {
 
 <div class="footer-line">
     Documento generado por el Sistema de Gestión de Pasantes (SGP) &nbsp;|&nbsp;
-    UPT Bolívar &nbsp;|&nbsp; <?= date('d/m/Y H:i') ?>
+    Instituto de Salud Pública del Estado Bolívar &nbsp;|&nbsp; <?= date('d/m/Y H:i') ?>
 </div>
 
 </body>

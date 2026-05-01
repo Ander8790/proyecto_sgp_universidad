@@ -474,7 +474,7 @@ $hoy             = date('Y-m-d');
             <div class="cfg-kpi-icon" style="background:#fef3c7;color:#d97706;">
                 <i class="ti ti-clock-hour-4"></i>
             </div>
-            <div class="cfg-kpi-value" style="color:#d97706;">1440</div>
+            <div class="cfg-kpi-value" style="color:#d97706;font-size:1.3rem;padding-top:4px;">Dinámica</div>
             <div class="cfg-kpi-label">Horas meta por pasante</div>
         </div>
 
@@ -808,8 +808,17 @@ $hoy             = date('Y-m-d');
                         <div style="font-size:0.72rem;color:#94a3b8;font-weight:500;margin-top:1px;">Días no laborables — excluidos del auto-fill de asistencias</div>
                     </div>
                 </div>
-                <div style="display:flex;align-items:center;gap:12px;">
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
                     <span class="cfg-badge" style="background:#f5f3ff;color:#7c3aed;"><?= $totalFeriados ?> en <?= $anioActual ?></span>
+                    <!-- Botón de sincronización API -->
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button type="button" id="btnSyncFeriados" onclick="sincronizarFeriados(<?= date('Y') ?>)"
+                            style="background:linear-gradient(135deg,#059669,#10b981);color:white;padding:7px 13px;border:none;border-radius:10px;font-size:0.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:0 4px 10px rgba(5,150,105,0.3);"
+                            onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 14px rgba(5,150,105,0.4)'"
+                            onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 10px rgba(5,150,105,0.3)'">
+                            <i class="ti ti-refresh" id="iconSyncFeriados"></i> Sincronizar
+                        </button>
+                    </div>
                     <a href="<?= URLROOT ?>/configuracion/calendario_feriados" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;padding:7px 12px;border-radius:10px;font-size:0.8rem;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:5px;transition:all .2s;box-shadow:0 4px 10px rgba(124,58,237,0.3);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">
                         <i class="ti ti-calendar-stats"></i> Almanaque
                     </a>
@@ -1333,6 +1342,81 @@ $hoy             = date('Y-m-d');
         })
         .catch(() => { NotificationService.error('No se pudo contactar el servidor'); })
         .finally(() => { span.textContent = 'Verificar Conexión'; btn.disabled = false; });
+    }
+
+    // ── Sincronizar Feriados vía API Nager.Date ────────────
+    function sincronizarFeriados(anioParam) {
+        const anio = anioParam || <?= date('Y') ?>;
+        const btn  = document.getElementById('btnSyncFeriados');
+        const icon = document.getElementById('iconSyncFeriados');
+
+        // Estado: cargando
+        btn.disabled = true;
+        icon.className = 'ti ti-loader-2';
+        icon.style.animation = 'spin 1s linear infinite';
+
+        fetch('<?= URLROOT ?>/configuracion/sincronizarFeriados', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: 'anio=' + encodeURIComponent(anio)
+                + '&csrf_token=<?= Session::generateCsrfToken() ?>'
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const insertados = data.insertados ?? 0;
+                const yaExistian = data.ya_existian ?? 0;
+                const totalApi   = data.total_api   ?? 0;
+
+                let html = '<div style="text-align:left;font-size:0.88rem;line-height:1.8;">';
+                html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;">'
+                      + '<span style="color:#64748b;">Consultados en la API</span>'
+                      + '<strong>' + totalApi + '</strong></div>';
+                html += '<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid #f1f5f9;">'
+                      + '<span style="color:#059669;">✅ Nuevos insertados</span>'
+                      + '<strong style="color:#059669;">' + insertados + '</strong></div>';
+                html += '<div style="display:flex;justify-content:space-between;padding:6px 0;">'
+                      + '<span style="color:#94a3b8;">⏭ Ya existían (omitidos)</span>'
+                      + '<strong style="color:#94a3b8;">' + yaExistian + '</strong></div>';
+                html += '</div>';
+                if (data.nota) {
+                    html += '<div style="margin-top:10px;font-size:0.78rem;background:#fef9c3;border-radius:8px;padding:8px 12px;color:#854d0e;text-align:left;">'
+                          + '⚠️ ' + data.nota + '</div>';
+                }
+
+                Swal.fire({
+                    icon: insertados > 0 ? 'success' : 'info',
+                    title: insertados > 0 ? '¡Feriados Sincronizados!' : 'Todo al día',
+                    html: html,
+                    confirmButtonColor: '#7c3aed',
+                    confirmButtonText: insertados > 0 ? 'Ver cambios' : 'Entendido'
+                }).then(r => { if (r.isConfirmed && insertados > 0) location.reload(); });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error de Sincronización',
+                    text: data.message || 'No se pudo conectar con la API de feriados.',
+                    footer: '<small>Verifica que el equipo tenga conexión a internet.</small>',
+                    confirmButtonColor: '#dc2626'
+                });
+            }
+        })
+        .catch(() => {
+            Swal.fire({
+                icon: 'error',
+                title: 'Sin conexión',
+                text: 'No se pudo contactar la API. Verifica la conexión a internet.',
+                confirmButtonColor: '#dc2626'
+            });
+        })
+        .finally(() => {
+            btn.disabled = false;
+            icon.className = 'ti ti-refresh';
+            icon.style.animation = '';
+        });
     }
 
     // ── Limpiar sesiones expiradas ─────────────────────────

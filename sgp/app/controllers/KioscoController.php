@@ -180,6 +180,35 @@ class KioscoController extends Controller
         $ok = $this->db->execute();
 
         if ($ok) {
+            // ── LOG BITÁCORA (sin sesión — contexto público del Kiosco) ───────
+            // El pasante ya está autenticado (cédula + bcrypt PIN), así que usamos
+            // su ID directamente como usuario_id. No se requiere $_SESSION.
+            try {
+                $asistenciaId = (int)$this->db->lastInsertId();
+                $this->db->query("
+                    INSERT INTO bitacora
+                        (usuario_id, accion, tabla_afectada, registro_id, ip_address, user_agent, detalles)
+                    VALUES
+                        (:uid, 'MARCAR_ASISTENCIA_KIOSCO', 'asistencias', :asistencia_id, :ip, :ua, :detalles)
+                ");
+                $this->db->bind(':uid',          $pasanteId);
+                $this->db->bind(':asistencia_id', $asistenciaId);
+                $this->db->bind(':ip',            $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN');
+                $this->db->bind(':ua',            $_SERVER['HTTP_USER_AGENT'] ?? null);
+                $this->db->bind(':detalles', json_encode([
+                    'pasante' => trim($pasante->nombres . ' ' . $pasante->apellidos),
+                    'cedula'  => $cedula,
+                    'hora'    => $horaActual,
+                    'retardo' => (bool)$esRetardo,
+                    'metodo'  => 'Kiosco',
+                ], JSON_UNESCAPED_UNICODE));
+                $this->db->execute();
+            } catch (\Throwable $e) {
+                // El log de bitácora nunca debe interrumpir el flujo principal
+                error_log('[SGP-KIOSCO] bitacora log error: ' . $e->getMessage());
+            }
+            // ────────────────────────────────────────────────────────────────
+
             // ✅ PRO-RATA: El progreso se calcula dinámicamente desde la tabla 'asistencias'.
             // NO se suma ni resta a horas_acumuladas — 'asistencias' es la única fuente de verdad.
             echo json_encode([

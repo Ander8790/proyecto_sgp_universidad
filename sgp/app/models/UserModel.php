@@ -137,6 +137,46 @@ class UserModel
     }
 
     /**
+     * Obtener usuarios filtrados por roles (para panel SuperAdmin).
+     * Excluye al propio SuperAdmin (rol 0) y Pasantes (rol 3) del listado.
+     *
+     * @param  array $roles  Ej: [1, 2] para Admin y Tutor
+     * @return array
+     */
+    public function getUsersByRoles(array $roles): array
+    {
+        if (empty($roles)) return [];
+
+        // Generar placeholders nombrados compatibles con el wrapper Database del proyecto
+        $placeholders = [];
+        foreach (array_values($roles) as $i => $rolId) {
+            $placeholders[] = ':rol' . $i;
+        }
+        $inClause = implode(',', $placeholders);
+
+        $this->db->query("
+            SELECT u.id, u.correo, u.rol_id, u.departamento_id, u.estado,
+                   CONCAT(COALESCE(dp.nombres,''), ' ', COALESCE(dp.apellidos,'')) AS nombre_completo,
+                   r.nombre AS rol_nombre,
+                   d.nombre AS departamento_nombre
+            FROM usuarios u
+            LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
+            LEFT JOIN roles r ON r.id = u.rol_id
+            LEFT JOIN departamentos d ON d.id = u.departamento_id
+            WHERE u.rol_id IN ({$inClause})
+              AND u.estado = 'activo'
+            ORDER BY u.rol_id, nombre_completo
+        ");
+
+        foreach (array_values($roles) as $i => $rolId) {
+            $this->db->bind(':rol' . $i, (int)$rolId);
+        }
+
+        $rows = $this->db->resultSet();
+        return $rows ? array_map(fn($r) => (array)$r, $rows) : [];
+    }
+
+    /**
      * Buscar Usuario por ID
      * 
      * PROPÓSITO:
@@ -424,6 +464,7 @@ class UserModel
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
             LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
             LEFT JOIN instituciones inst ON dpa.institucion_procedencia = inst.id
+            WHERE u.rol_id > 0
             ORDER BY u.created_at DESC
         ");
         $results = $this->db->resultSet();
@@ -439,10 +480,13 @@ class UserModel
         $this->db->query("
             SELECT 
                 COUNT(*) as total,
-                SUM(CASE WHEN rol_id = 3 THEN 1 ELSE 0 END) as pasantes,
                 SUM(CASE WHEN estado = 'activo' THEN 1 ELSE 0 END) as activos,
-                SUM(CASE WHEN estado = 'inactivo' THEN 1 ELSE 0 END) as inactivos
+                SUM(CASE WHEN estado = 'inactivo' THEN 1 ELSE 0 END) as inactivos,
+                SUM(CASE WHEN rol_id = 1 THEN 1 ELSE 0 END) as admins,
+                SUM(CASE WHEN rol_id = 2 THEN 1 ELSE 0 END) as tutores,
+                SUM(CASE WHEN rol_id = 3 THEN 1 ELSE 0 END) as pasantes
             FROM usuarios
+            WHERE rol_id > 0
         ");
         $row = $this->db->single();
         return $row ? (array) $row : ['total' => 0, 'pasantes' => 0, 'activos' => 0, 'inactivos' => 0];
@@ -888,7 +932,7 @@ class UserModel
                 COALESCE(dpas.horas_acumuladas, 0) AS horas_acumuladas,
                 dp.nombres, dp.apellidos, dp.telefono, dp.genero, dp.fecha_nacimiento,
                 dp.cargo,
-                r.nombre AS rol_nombre,
+                CASE WHEN u.rol_id = 0 THEN 'Super Administrador' ELSE r.nombre END AS rol_nombre,
                 d.nombre AS departamento,
                 COALESCE(
                     NULLIF(TRIM(

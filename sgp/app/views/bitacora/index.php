@@ -15,26 +15,36 @@ $proximaPurga = $ultimaPurga
 function traducir_accion($accion)
 {
     static $traducciones_accion = [
-    'CHANGE_PASANTE_STATUS' => 'Estado de Pasante Actualizado',
-    'CREATE_USER' => 'Usuario Creado',
-    'DELETE_USER' => 'Usuario Eliminado',
-    'LOGIN' => 'Inicio de Sesión',
-    'LOGOUT' => 'Cierre de Sesión',
-    'RESET_PASSWORD' => 'Contraseña Restablecida',
-    'RESET_PIN' => 'PIN Restablecido',
-    'TOGGLE_USER_STATUS' => 'Estado de Usuario Alterado',
-    'UPDATE_PROFILE' => 'Perfil Actualizado',
-    'UPDATE_SECURITY_QUESTIONS' => 'Preguntas de Seguridad Actualizadas',
-    'UPDATE_USER' => 'Usuario Modificado',
-    'CREATE_PASANTE' => 'Pasante Creado',
-    'UPDATE_PASANTE' => 'Pasante Modificado',
-    'DELETE_PASANTE' => 'Pasante Eliminado',
-    'AUDIT_PURGE' => 'Limpieza de Auditoría',
-    'EXPORT_CSV' => 'Exportación de Datos',
-    'UPDATE_CONFIG' => 'Configuración Actualizada',
-    'CREATE_EVALUACION' => 'Evaluación Creada',
-    'UPDATE_EVALUACION' => 'Evaluación Modificada',
-    'DELETE_EVALUACION' => 'Evaluación Eliminada'
+    // Autenticación
+    'LOGIN'                        => 'Inicio de Sesión',
+    'LOGOUT'                       => 'Cierre de Sesión',
+    'RESET_PASSWORD'               => 'Contraseña Restablecida',
+    'RESET_PIN'                    => 'PIN Restablecido',
+    'UPDATE_SECURITY_QUESTIONS'    => 'Preguntas de Seguridad Actualizadas',
+    // Usuarios
+    'CREATE_USER'                  => 'Usuario Creado',
+    'UPDATE_USER'                  => 'Usuario Modificado',
+    'DELETE_USER'                  => 'Usuario Eliminado',
+    'TOGGLE_USER_STATUS'           => 'Estado de Usuario Alterado',
+    'UPDATE_PROFILE'               => 'Perfil Actualizado',
+    // Pasantes
+    'CREATE_PASANTE'               => 'Pasante Registrado',
+    'UPDATE_PASANTE'               => 'Pasante Modificado',
+    'DELETE_PASANTE'               => 'Pasante Eliminado',
+    'CHANGE_PASANTE_STATUS'        => 'Estado de Pasante Actualizado',
+    // Asistencias
+    'MARCAR_ASISTENCIA_KIOSCO'     => 'Asistencia Marcada (Kiosco)',
+    // Evaluaciones
+    'CREATE_EVALUACION'            => 'Evaluación Creada',
+    'UPDATE_EVALUACION'            => 'Evaluación Modificada',
+    'DELETE_EVALUACION'            => 'Evaluación Eliminada',
+    // Permisos
+    'PERMISO_MODIFICADO'           => 'Permiso de Usuario Modificado',
+    'PERMISOS_RESET'               => 'Permisos Restablecidos al Rol',
+    // Sistema
+    'AUDIT_PURGE'                  => 'Limpieza de Bitácora',
+    'EXPORT_CSV'                   => 'Exportación de Datos CSV',
+    'UPDATE_CONFIG'                => 'Configuración del Sistema Actualizada',
     ];
     return $traducciones_accion[strtoupper($accion)] ?? $accion;
 }
@@ -1097,58 +1107,100 @@ function traducir_tabla($tabla)
         // ── Badge de acción ──
         const badge = document.getElementById('auditBadge');
         const actionDict = {
-            'CHANGE_PASANTE_STATUS': 'Estado de Pasante Actualizado',
-            'CREATE_USER': 'Usuario Creado',
-            'DELETE_USER': 'Usuario Eliminado',
-            'LOGIN': 'Inicio de Sesión',
-            'LOGOUT': 'Cierre de Sesión',
-            'RESET_PASSWORD': 'Contraseña Restablecida',
-            'RESET_PIN': 'PIN Restablecido',
-            'TOGGLE_USER_STATUS': 'Estado de Usuario Alterado',
-            'UPDATE_PROFILE': 'Perfil Actualizado',
+            'LOGIN':                     'Inicio de Sesión',
+            'LOGOUT':                    'Cierre de Sesión',
+            'RESET_PASSWORD':            'Contraseña Restablecida',
+            'RESET_PIN':                 'PIN Restablecido',
             'UPDATE_SECURITY_QUESTIONS': 'Preguntas de Seguridad Actualizadas',
-            'UPDATE_USER': 'Usuario Modificado',
-            'CREATE_PASANTE': 'Pasante Creado',
-            'UPDATE_PASANTE': 'Pasante Modificado',
-            'DELETE_PASANTE': 'Pasante Eliminado',
-            'AUDIT_PURGE': 'Limpieza de Auditoría',
-            'EXPORT_CSV': 'Exportación CSV',
-            'CREATE_EVALUACION': 'Evaluación Creada'
+            'CREATE_USER':               'Usuario Creado',
+            'UPDATE_USER':               'Usuario Modificado',
+            'DELETE_USER':               'Usuario Eliminado',
+            'TOGGLE_USER_STATUS':        'Estado de Usuario Alterado',
+            'UPDATE_PROFILE':            'Perfil Actualizado',
+            'CREATE_PASANTE':            'Pasante Registrado',
+            'UPDATE_PASANTE':            'Pasante Modificado',
+            'DELETE_PASANTE':            'Pasante Eliminado',
+            'CHANGE_PASANTE_STATUS':     'Estado de Pasante Actualizado',
+            'MARCAR_ASISTENCIA_KIOSCO':  'Asistencia Marcada (Kiosco)',
+            'CREATE_EVALUACION':         'Evaluación Creada',
+            'UPDATE_EVALUACION':         'Evaluación Modificada',
+            'DELETE_EVALUACION':         'Evaluación Eliminada',
+            'PERMISO_MODIFICADO':        'Permiso de Usuario Modificado',
+            'PERMISOS_RESET':            'Permisos Restablecidos al Rol',
+            'AUDIT_PURGE':               'Limpieza de Bitácora',
+            'EXPORT_CSV':                'Exportación de Datos CSV',
+            'UPDATE_CONFIG':             'Configuración del Sistema Actualizada',
         };
         const tableDict = {
-            'usuarios': 'Usuarios',
-            'datos_personales': 'Perfil de Usuario',
-            'pasantes': 'Pasantes',
-            'datos_pasante': 'Detalles de Pasante',
-            'bitacora': 'Bitácora de Auditoría',
-            'evaluaciones': 'Módulo de Evaluaciones',
-            'asistencias': 'Módulo de Asistencias',
-            'configuracion': 'Ajustes del Sistema'
+            'usuarios':        'Usuarios del Sistema',
+            'datos_personales':'Perfil de Usuario',
+            'pasantes':        'Pasantes',
+            'datos_pasante':   'Datos de Pasante',
+            'bitacora':        'Bitácora de Auditoría',
+            'evaluaciones':    'Evaluaciones',
+            'asistencias':     'Asistencias',
+            'configuracion':   'Configuración del Sistema',
+            'asignaciones':    'Asignaciones',
+            'usuario_permisos':'Permisos de Usuario',
         };
-        badge.textContent = actionDict[log.accion.toUpperCase()] || (log.accion || '-');
+        badge.textContent = actionDict[log.accion?.toUpperCase()] || (log.accion || '-');
         badge.className = `badge-action badge-${log.accion}`;
 
         // ── Metadata ──
         document.getElementById('auditTabla').textContent = tableDict[log.tabla_afectada?.toLowerCase()] || (log.tabla_afectada || '—');
         document.getElementById('auditIp').textContent = log.ip_address || '—';
-        document.getElementById('auditRecordId').textContent = `#${log.id || '—'}`;
+        document.getElementById('auditRecordId').textContent = `#${log.registro_id || log.id || '—'}`;
 
         if (log.created_at) {
             const d = new Date(log.created_at);
             document.getElementById('auditFecha').textContent =
                 d.toLocaleDateString('es-ES', { weekday: 'short', day: '2-digit', month: 'long', year: 'numeric' })
-                + ' ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+                + ' — ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
         }
 
-        // ── JSON de detalles (si existen) ──
+        // ── Sección de Detalles — legible en español, no JSON crudo ──
         const jsonSection = document.getElementById('auditJsonSection');
         if (log.detalles) {
-            try {
-                const pretty = JSON.stringify(JSON.parse(log.detalles), null, 2);
-                document.getElementById('auditJsonContent').textContent = pretty;
-            } catch {
-                document.getElementById('auditJsonContent').textContent = log.detalles;
+            let detallesObj = {};
+            try { detallesObj = JSON.parse(log.detalles); } catch { detallesObj = { valor: log.detalles }; }
+
+            // Mapas de claves técnicas → etiquetas legibles
+            const labelMap = {
+                pasante:       'Pasante',
+                cedula:        'Cédula',
+                hora:          'Hora de Registro',
+                retardo:       'Llegada con Retardo',
+                metodo:        'Método de Marcado',
+                clave:         'Clave del Permiso',
+                habilitado:    'Estado del Permiso',
+                usuario:       'Usuario Afectado',
+                email:         'Correo del Usuario',
+                accion:        'Acción Realizada',
+                tabla:         'Módulo Afectado',
+                campo:         'Campo Modificado',
+                valor_anterior:'Valor Anterior',
+                valor_nuevo:   'Valor Nuevo',
+                motivo:        'Motivo',
+                ip:            'Dirección IP',
+            };
+
+            let html = '<div style="display:flex;flex-direction:column;gap:8px;">';
+            for (const [key, val] of Object.entries(detallesObj)) {
+                const label = labelMap[key] || key.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+                let displayVal = val;
+                if (typeof val === 'boolean') displayVal = val ? '✅ Sí' : '❌ No';
+                else if (val === null || val === undefined || val === '') displayVal = '—';
+                html += `
+                    <div style="display:flex;align-items:baseline;gap:10px;padding:8px 12px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;">
+                        <span style="font-size:0.72rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;min-width:130px;flex-shrink:0;">${label}</span>
+                        <span style="font-size:0.85rem;color:#1e293b;font-weight:600;word-break:break-all;">${displayVal}</span>
+                    </div>`;
             }
+            html += '</div>';
+            document.getElementById('auditJsonContent').innerHTML = html;
+            document.getElementById('auditJsonContent').style.background = 'transparent';
+            document.getElementById('auditJsonContent').style.color = 'inherit';
+            document.getElementById('auditJsonContent').style.padding = '0';
             jsonSection.style.display = 'block';
         } else {
             jsonSection.style.display = 'none';

@@ -406,7 +406,11 @@ $estadoConfig = [
 $(document).ready(function() {
     var $tablaAsignaciones = $('#tablaAsignaciones');
     var dt;
-    if ($tablaAsignaciones.length && !$.fn.DataTable.isDataTable($tablaAsignaciones)) {
+
+    // SGP-FIX: Solo iniciar DataTables si hay filas reales (evita TN/18 con tabla vacía)
+    var hayFilas = $tablaAsignaciones.find('tbody tr.fila-asignacion').length > 0;
+
+    if ($tablaAsignaciones.length && hayFilas && !$.fn.DataTable.isDataTable($tablaAsignaciones)) {
         dt = $tablaAsignaciones.DataTable({
             language: {
                 url: '<?= URLROOT ?>/assets/libs/datatables/es-ES.json'
@@ -436,14 +440,18 @@ $(document).ready(function() {
     } else if ($tablaAsignaciones.length && $.fn.DataTable.isDataTable($tablaAsignaciones)) {
         dt = $tablaAsignaciones.DataTable();
         dt.draw(false);
+    } else {
+        // Tabla vacía: mostrar sin DataTables (sin error)
+        $tablaAsignaciones.css('opacity', '1');
     }
 
     // Conectar inputs de búsqueda visuales (Premium SGP) al core de DataTables
     $('#searchAsignaciones').on('input', function() {
-        dt.search(this.value).draw();
+        if (dt) dt.search(this.value).draw();
     });
 
     $('#filterEstado').on('change', function() {
+        if (!dt) return;
         var term = this.value;
         dt.column(6).search(term ? '^' + term + '$' : '', true, false).draw();
     });
@@ -469,6 +477,7 @@ $(document).ready(function() {
 // ── Filtros interactivos de KPIs ───────────────────────────────────
 window.filtrarPorEstado = function(estado) {
     var dt = $('#tablaAsignaciones').DataTable();
+    if (!$.fn.DataTable.isDataTable('#tablaAsignaciones')) return;
     if (estado === '') {
         dt.column(6).search('').draw();
     } else {

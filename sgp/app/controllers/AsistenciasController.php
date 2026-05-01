@@ -38,7 +38,8 @@ class AsistenciasController extends Controller
         $rolId  = (int)Session::get('role_id');
         $userId = (int)Session::get('user_id');
 
-        if ($rolId !== 1 && $rolId !== 2 && $rolId !== 3) { // solo Admin, Tutor y Pasante
+        // Permitir acceso a SuperAdmin (0), Admin (1), Tutor (2) y Pasante (3)
+        if (!in_array($rolId, [0, 1, 2, 3])) {
             Session::setFlash('error', 'Sin permisos para esta sección.');
             $this->redirect('/dashboard');
             return;
@@ -139,6 +140,7 @@ class AsistenciasController extends Controller
                 dp.nombres,
                 dp.apellidos,
                 d.nombre       AS departamento_nombre,
+                dpa.horas_meta,
                 COALESCE(inst.nombre, IF(dpa.institucion_procedencia REGEXP '^[0-9]+$', NULL, dpa.institucion_procedencia)) AS institucion_nombre,
                 pa.nombre      AS periodo_nombre,
                 a.es_retardo
@@ -278,7 +280,10 @@ class AsistenciasController extends Controller
             foreach ($registrosLista as $reg) {
                 $pid = $reg->pasante_id;
                 if (!isset($pasantesVistos[$pid])) {
-                    $pasantesVistos[$pid] = ['presentes' => 0];
+                    $pasantesVistos[$pid] = [
+                        'presentes' => 0,
+                        'horas_meta' => (int)($reg->horas_meta ?? 1440)
+                    ];
                 }
                 if (strtolower($reg->estado) === 'presente' || strtolower($reg->estado) === 'justificado') {
                     $pasantesVistos[$pid]['presentes']++;
@@ -287,7 +292,7 @@ class AsistenciasController extends Controller
             $historicoAnual = count($pasantesVistos);
             foreach ($pasantesVistos as $pData) {
                 $hrs = $pData['presentes'] * 8;
-                if ($hrs >= 1440) {
+                if ($hrs >= $pData['horas_meta']) {
                     $finalizadosAnual++;
                 } else {
                     $enCursoAnual++;
@@ -580,7 +585,7 @@ class AsistenciasController extends Controller
     {
         header('Content-Type: application/json');
 
-        if ((int)Session::get('role_id') !== 1) {
+        if (!in_array((int)Session::get('role_id'), [0, 1])) {
             echo json_encode(['success' => false, 'message' => 'Solo el Administrador puede hacer esto.']);
             exit;
         }
@@ -741,8 +746,9 @@ class AsistenciasController extends Controller
         $rolId = (int)Session::get('role_id');
         $userId = (int)Session::get('user_id');
 
-        if ($rolId !== 1 && $rolId !== 2 && $rolId !== 3) {
-            echo json_encode(['success' => false, 'message' => 'Sin permisos de exportación.']);
+        // Permitir acceso a SuperAdmin (0), Admin (1), Tutor (2) y Pasante (3)
+        if (!in_array($rolId, [0, 1, 2, 3])) {
+            echo json_encode(['success' => false, 'message' => 'Permiso denegado.']);
             exit;
         }
 
@@ -893,7 +899,7 @@ class AsistenciasController extends Controller
     public function anular_registro(): void
     {
         header('Content-Type: application/json');
-        if ((int)Session::get('role_id') !== 1) {
+        if (!in_array((int)Session::get('role_id'), [0, 1])) {
             echo json_encode(['success' => false, 'message' => 'Sin permisos.']);
             exit;
         }
@@ -1094,7 +1100,7 @@ class AsistenciasController extends Controller
         $rolId  = (int)Session::get('role_id');
         $userId = (int)Session::get('user_id');
 
-        if (!in_array($rolId, [1, 2])) {
+        if (!in_array($rolId, [0, 1, 2])) {
             $this->redirect('/dashboard');
             return;
         }
@@ -1435,5 +1441,139 @@ class AsistenciasController extends Controller
             'evaluaciones'     => $evaluaciones,
             'instituciones'    => $instituciones,
         ]);
+    }
+
+    // ────────────────────────────────────────────────────────────────
+    // PDF ALMANAQUE INDIVIDUAL
+    // ────────────────────────────────────────────────────────────────
+
+    /**
+     * pdfAlmanaque($pasanteId) — Genera PDF del historial completo del pasante.
+     *
+     * GET /asistencias/pdfAlmanaque/{pasante_id}?anio=YYYY
+     */
+    public function pdfAlmanaque($pasanteId = null): void
+    {
+        $rolId  = (int)Session::get('role_id');
+        $userId = (int)Session::get('user_id');
+
+        if (!in_array($rolId, [0, 1, 2])) {
+            http_response_code(403);
+            exit;
+        }
+
+        $pasanteId = (int)($pasanteId ?? $_GET['id'] ?? 0);
+        if ($pasanteId <= 0) {
+            $this->redirect('/asistencias');
+            return;
+        }
+
+        if ($rolId === 2) {
+            $this->db->query("SELECT 1 FROM datos_pasante WHERE usuario_id = :pid AND tutor_id = :tid LIMIT 1");
+            $this->db->bind(':pid', $pasanteId);
+            $this->db->bind(':tid', $userId);
+            if (!$this->db->single()) {
+                http_response_code(403);
+                exit;
+            }
+        }
+
+        // ── Datos del pasante ──
+        $this->db->query("
+            SELECT
+                u.id, u.cedula,
+                dp.nombres, dp.apellidos,
+                d.nombre AS departamento,
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_nombre,
+                dpa.estado_pasantia,
+                dpa.horas_acumuladas,
+                COALESCE(dpa.horas_meta, 1440) AS horas_meta,
+                dpa.fecha_inicio_pasantia AS fecha_inicio,
+                dpa.fecha_fin_estimada    AS fecha_fin
+            FROM usuarios u
+            LEFT JOIN datos_personales dp  ON dp.usuario_id = u.id
+            LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            WHERE u.id = :id AND u.rol_id = 3
+            LIMIT 1
+        ");
+        $this->db->bind(':id', $pasanteId);
+        $pasante = $this->db->single();
+
+        if (!$pasante) {
+            $this->redirect('/asistencias');
+            return;
+        }
+
+        // ── Historial de asistencias (todo el período) ──
+        $this->db->query("
+            SELECT fecha, hora_entrada, estado
+            FROM asistencias
+            WHERE pasante_id = :pid
+            ORDER BY fecha ASC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $asistenciasRaw = $this->db->resultSet();
+
+        // Indexar por fecha e indexar por mes para la grilla
+        $porFecha = [];
+        $stats    = ['P' => 0, 'A' => 0, 'J' => 0];
+        foreach ($asistenciasRaw as $a) {
+            $porFecha[$a->fecha] = $a;
+            $e = strtoupper(substr($a->estado ?? '', 0, 1));
+            if ($e === 'P' || strtolower($a->estado) === 'presente')    $stats['P']++;
+            elseif ($e === 'A' || strtolower($a->estado) === 'ausente') $stats['A']++;
+            elseif ($e === 'J' || strtolower($a->estado) === 'justificado') $stats['J']++;
+        }
+
+        $totalDias = $stats['P'] + $stats['J'];
+        $pct       = ($stats['P'] + $stats['J'] + $stats['A']) > 0
+            ? round(($stats['P'] + $stats['J']) / ($stats['P'] + $stats['J'] + $stats['A']) * 100, 1)
+            : 0;
+
+        $horasMeta = (int)(($pasante->horas_meta ?? 0) > 0 ? $pasante->horas_meta : 1440);
+        $proRata   = $this->asistenciaModel->calcularProgresoProRata($pasanteId, $horasMeta);
+        $horasAcum = $proRata->horas_mostradas;
+        $pctHoras  = $horasMeta > 0 ? min(100, round($horasAcum / $horasMeta * 100)) : 0;
+
+        // ── Evaluaciones ──
+        $this->db->query("
+            SELECT
+                e.fecha_evaluacion, e.lapso_academico,
+                e.promedio_final, e.observaciones,
+                CONCAT(tp.nombres, ' ', tp.apellidos) AS evaluador
+            FROM evaluaciones e
+            LEFT JOIN datos_personales tp ON tp.usuario_id = e.tutor_id
+            WHERE e.pasante_id = :pid
+            ORDER BY e.fecha_evaluacion ASC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $evaluaciones = $this->db->resultSet();
+
+        // ── Jefe que firma el documento (primer admin activo) ──
+        $this->db->query("
+            SELECT dp2.nombres, dp2.apellidos, dp2.cargo
+            FROM datos_personales dp2
+            JOIN usuarios u2 ON u2.id = dp2.usuario_id
+            WHERE u2.rol_id = 1 AND u2.estado = 'activo'
+            ORDER BY u2.id ASC
+            LIMIT 1
+        ");
+        $firmante = $this->db->single();
+        $jefeNombre = mb_strtoupper(
+            trim(($firmante->nombres ?? '') . ' ' . ($firmante->apellidos ?? '')), 'UTF-8'
+        );
+        $jefeCargo = htmlspecialchars($firmante->cargo ?? '');
+
+        require_once '../app/lib/PdfGenerator.php';
+        $pdf = new PdfGenerator();
+
+        ob_start();
+        include '../app/views/reportes/pdf_almanaque_pasante.php';
+        $html = ob_get_clean();
+
+        $cedula = preg_replace('/[^0-9]/', '', $pasante->cedula ?? (string)$pasanteId);
+        $pdf->renderDomPdf($html, 'Almanaque_' . $cedula, false);
     }
 }
