@@ -146,9 +146,7 @@ class TutorController extends Controller {
             INNER JOIN usuarios u ON u.id = dpa.usuario_id
             LEFT  JOIN datos_personales dp ON dp.usuario_id = dpa.usuario_id
             LEFT  JOIN departamentos d ON d.id = dpa.departamento_asignado_id
-            LEFT  JOIN instituciones i ON
-                dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                AND i.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            LEFT  JOIN instituciones i ON i.id = dpa.institucion_id
             LEFT  JOIN evaluaciones e ON e.pasante_id = dpa.usuario_id
             LEFT  JOIN (
                 SELECT pasante_id, COUNT(*) AS dias_validos
@@ -237,9 +235,7 @@ class TutorController extends Controller {
             INNER JOIN datos_personales dp ON dp.usuario_id = u.id
             LEFT  JOIN datos_pasante dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos d ON d.id = dpa.departamento_asignado_id
-            LEFT  JOIN instituciones i ON
-                dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                AND i.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            LEFT  JOIN instituciones i ON i.id = dpa.institucion_id
             WHERE u.id = :pid AND u.rol_id = 3
             LIMIT 1
         ");

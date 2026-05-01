@@ -785,7 +785,7 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
     <div class="alm-card">
         <div class="alm-card-title">
             <i class="ti ti-timeline" style="color:#7c3aed;"></i>
-            Timeline de Pasantía
+            Cronograma de Pasantía
         </div>
         <?php if ($pasante->fecha_inicio): ?>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px;">

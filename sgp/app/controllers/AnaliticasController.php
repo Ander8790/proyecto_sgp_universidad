@@ -254,10 +254,7 @@ class AnaliticasController extends Controller
                              ELSE NULL END) * 100
                 , 1) AS tasa_asistencia
             FROM datos_pasante dpa
-            LEFT JOIN instituciones i ON i.id = CASE
-                WHEN dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                THEN CAST(dpa.institucion_procedencia AS UNSIGNED)
-                ELSE NULL END
+            LEFT JOIN instituciones i ON i.id = dpa.institucion_id
             LEFT JOIN asistencias a ON a.pasante_id = dpa.usuario_id
                 AND a.fecha >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
             WHERE dpa.estado_pasantia IN ('Activo', 'Pendiente', 'Finalizado')

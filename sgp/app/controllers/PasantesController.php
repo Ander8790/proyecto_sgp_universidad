@@ -260,9 +260,7 @@ class PasantesController extends Controller
         $this->db->query("
             SELECT dp.nombres, dp.apellidos, dp.telefono,
                    dpa.institucion_procedencia,
-                   CASE WHEN dpa.institucion_id IS NOT NULL THEN dpa.institucion_id
-                        WHEN dpa.institucion_procedencia REGEXP '^[0-9]+$' THEN CAST(dpa.institucion_procedencia AS UNSIGNED)
-                        ELSE NULL END AS institucion_id
+                   dpa.institucion_id
             FROM datos_personales dp
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = dp.usuario_id
             WHERE dp.usuario_id = :id

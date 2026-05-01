@@ -56,7 +56,7 @@ class ActividadesController extends Controller
         $this->db->query("SELECT COUNT(*) AS total FROM actividades_extras WHERE tipo != 'Pasantía Corta'");
         $kpiActividadesCom = (int)($this->db->single()->total ?? 0);
 
-        $this->db->query("SELECT COUNT(*) AS total FROM instituciones_externas WHERE activo = 1");
+        $this->db->query("SELECT COUNT(*) AS total FROM instituciones WHERE categoria = 'actividad' AND activo = 1");
         $kpiInstituciones = (int)($this->db->single()->total ?? 0);
 
         $this->db->query("SELECT id, nombre, estado FROM periodos_academicos WHERE tipo = 'Corto' AND estado = 'Activo' LIMIT 1");
@@ -73,7 +73,7 @@ class ActividadesController extends Controller
         $kpis = $this->getKpis();
 
         // Preview: últimas 3 instituciones
-        $this->db->query("SELECT id, nombre, tipo, contacto FROM instituciones_externas ORDER BY id DESC LIMIT 3");
+        $this->db->query("SELECT id, nombre, tipo, contacto FROM instituciones WHERE categoria = 'actividad' ORDER BY id DESC LIMIT 3");
         $previewInstituciones = $this->db->resultSet();
 
         // Preview: últimos 3 pasantes cortos
@@ -84,7 +84,7 @@ class ActividadesController extends Controller
             FROM datos_pasante dpa
             JOIN usuarios u ON u.id = dpa.usuario_id
             LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
-            LEFT JOIN instituciones_externas ie ON ie.id = dpa.institucion_id
+            LEFT JOIN instituciones ie ON ie.id = dpa.institucion_id
             WHERE dpa.tipo_pasantia = 'Corta'
             ORDER BY dpa.id DESC LIMIT 3
         ");
@@ -96,7 +96,7 @@ class ActividadesController extends Controller
                    ie.nombre AS institucion_nombre,
                    COUNT(DISTINCT ap.id) AS total_participantes
             FROM actividades_extras a
-            LEFT JOIN instituciones_externas ie ON ie.id = a.institucion_id
+            LEFT JOIN instituciones ie ON ie.id = a.institucion_id
             LEFT JOIN actividad_participantes ap ON ap.actividad_id = a.id
             WHERE a.tipo != 'Pasantía Corta'
             GROUP BY a.id ORDER BY a.id DESC LIMIT 2
@@ -125,15 +125,16 @@ class ActividadesController extends Controller
         $this->db->query("
             SELECT ie.*,
                 COUNT(DISTINCT dpa.usuario_id) AS pasantes_activos
-            FROM instituciones_externas ie
+            FROM instituciones ie
             LEFT JOIN datos_pasante dpa ON dpa.institucion_id = ie.id AND dpa.estado_pasantia = 'Activo'
+            WHERE ie.categoria = 'actividad'
             GROUP BY ie.id
             ORDER BY ie.nombre ASC
         ");
         $instituciones = $this->db->resultSet();
 
         // Conteo por tipo para donut
-        $this->db->query("SELECT tipo, COUNT(*) AS total FROM instituciones_externas GROUP BY tipo");
+        $this->db->query("SELECT tipo, COUNT(*) AS total FROM instituciones WHERE categoria = 'actividad' GROUP BY tipo");
         $porTipo = $this->db->resultSet();
 
         $csrfToken = Session::generateCsrfToken();
@@ -167,7 +168,7 @@ class ActividadesController extends Controller
             JOIN usuarios u ON u.id = dpa.usuario_id
             LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
             LEFT JOIN departamentos d ON d.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones_externas ie ON ie.id = dpa.institucion_id
+            LEFT JOIN instituciones ie ON ie.id = dpa.institucion_id
             LEFT JOIN usuarios tu ON tu.id = dpa.tutor_id
             LEFT JOIN datos_personales tp ON tp.usuario_id = tu.id
             LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
@@ -177,7 +178,7 @@ class ActividadesController extends Controller
         $pasantesCortos = $this->db->resultSet();
 
         // Instituciones activas para modal nuevo pasante
-        $this->db->query("SELECT id, nombre FROM instituciones_externas WHERE activo = 1 ORDER BY nombre ASC");
+        $this->db->query("SELECT id, nombre FROM instituciones WHERE categoria = 'actividad' AND activo = 1 ORDER BY nombre ASC");
         $instituciones = $this->db->resultSet();
 
         $this->db->query("
@@ -231,7 +232,7 @@ class ActividadesController extends Controller
                 ie.nombre AS institucion_nombre,
                 COUNT(DISTINCT ap.id) AS total_participantes
             FROM actividades_extras a
-            LEFT JOIN instituciones_externas ie ON ie.id = a.institucion_id
+            LEFT JOIN instituciones ie ON ie.id = a.institucion_id
             LEFT JOIN actividad_participantes ap ON ap.actividad_id = a.id
             WHERE a.tipo != 'Pasantía Corta'
             GROUP BY a.id
@@ -239,7 +240,7 @@ class ActividadesController extends Controller
         ");
         $actividades = $this->db->resultSet();
 
-        $this->db->query("SELECT id, nombre FROM instituciones_externas WHERE activo = 1 ORDER BY nombre ASC");
+        $this->db->query("SELECT id, nombre FROM instituciones WHERE categoria = 'actividad' AND activo = 1 ORDER BY nombre ASC");
         $instituciones = $this->db->resultSet();
 
         $statActivas    = count(array_filter($actividades, fn($a) => ($a->estado ?? '') === 'Activa'));
@@ -271,7 +272,7 @@ class ActividadesController extends Controller
                 ie.tipo     AS institucion_tipo,
                 CONCAT(COALESCE(dp.nombres,''), ' ', COALESCE(dp.apellidos,'')) AS supervisor_nombre
             FROM actividades_extras a
-            LEFT JOIN instituciones_externas ie ON ie.id = a.institucion_id
+            LEFT JOIN instituciones ie ON ie.id = a.institucion_id
             LEFT JOIN datos_personales dp       ON dp.usuario_id = a.supervisor_id
             WHERE a.id = :id
             LIMIT 1
@@ -344,7 +345,7 @@ class ActividadesController extends Controller
         }
 
         // Instituciones para edición
-        $this->db->query("SELECT id, nombre FROM instituciones_externas WHERE activo = 1 ORDER BY nombre ASC");
+        $this->db->query("SELECT id, nombre FROM instituciones WHERE categoria = 'actividad' AND activo = 1 ORDER BY nombre ASC");
         $instituciones = $this->db->resultSet();
 
         // Supervisores para edición
@@ -696,8 +697,8 @@ class ActividadesController extends Controller
         if (!in_array($tipo, $tiposValidos)) $tipo = 'Universidad';
 
         $this->db->query("
-            INSERT INTO instituciones_externas (nombre, tipo, contacto, telefono, activo)
-            VALUES (:nombre, :tipo, :contacto, :telefono, 1)
+            INSERT INTO instituciones (nombre, tipo, contacto, telefono, activo, categoria)
+            VALUES (:nombre, :tipo, :contacto, :telefono, 1, 'actividad')
         ");
         $this->db->bind(':nombre',   $nombre);
         $this->db->bind(':tipo',     $tipo);
@@ -754,9 +755,9 @@ class ActividadesController extends Controller
         if (!in_array($tipo, $tiposValidos)) $tipo = 'Universidad';
 
         $this->db->query("
-            UPDATE instituciones_externas 
+            UPDATE instituciones
             SET nombre = :nombre, tipo = :tipo, contacto = :contacto, telefono = :telefono
-            WHERE id = :id
+            WHERE id = :id AND categoria = 'actividad'
         ");
         $this->db->bind(':id',       $id);
         $this->db->bind(':nombre',   $nombre);
@@ -805,7 +806,7 @@ class ActividadesController extends Controller
             exit;
         }
 
-        $this->db->query("SELECT activo FROM instituciones_externas WHERE id = :id LIMIT 1");
+        $this->db->query("SELECT activo FROM instituciones WHERE id = :id AND categoria = 'actividad' LIMIT 1");
         $this->db->bind(':id', $id);
         $inst = $this->db->single();
 
@@ -815,7 +816,7 @@ class ActividadesController extends Controller
         }
 
         $nuevoEstado = $inst->activo ? 0 : 1;
-        $this->db->query("UPDATE instituciones_externas SET activo = :estado WHERE id = :id");
+        $this->db->query("UPDATE instituciones SET activo = :estado WHERE id = :id AND categoria = 'actividad'");
         $this->db->bind(':estado', $nuevoEstado);
         $this->db->bind(':id',     $id);
         $this->db->execute();
@@ -843,7 +844,7 @@ class ActividadesController extends Controller
                 ie.nombre   AS institucion_nombre
             FROM actividad_participantes ap
             JOIN actividades_extras ae       ON ae.id = ap.actividad_id
-            LEFT JOIN instituciones_externas ie ON ie.id = ae.institucion_id
+            LEFT JOIN instituciones ie ON ie.id = ae.institucion_id
             WHERE ap.id = :id
             LIMIT 1
         ");
@@ -1065,7 +1066,7 @@ class ActividadesController extends Controller
             exit;
         }
 
-        $this->db->query("DELETE FROM instituciones_externas WHERE id = :id");
+        $this->db->query("DELETE FROM instituciones WHERE id = :id AND categoria = 'actividad'");
         $this->db->bind(':id', $id);
         $this->db->execute();
 

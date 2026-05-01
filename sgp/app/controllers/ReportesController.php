@@ -128,7 +128,7 @@ class ReportesController extends Controller
             LEFT JOIN datos_personales    dp   ON dp.usuario_id   = u.id
             LEFT JOIN datos_pasante       dpa  ON dpa.usuario_id  = u.id
             LEFT JOIN departamentos       d    ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
-            LEFT JOIN instituciones       inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones       inst ON inst.id = dpa.institucion_id
             WHERE u.id = :pid AND u.rol_id = 3
             GROUP BY u.id, dp.nombres, dp.apellidos, u.cedula, d.nombre
             LIMIT 1
@@ -319,10 +319,7 @@ class ReportesController extends Controller
             JOIN usuarios          u   ON u.id = e.pasante_id
             JOIN datos_personales  dp  ON dp.usuario_id = u.id
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
-            LEFT JOIN instituciones inst ON (
-                dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
-            )
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
             LEFT JOIN departamentos d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN datos_personales t ON t.usuario_id = e.tutor_id
             LEFT JOIN (
@@ -901,8 +898,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 COUNT(*) AS total
             FROM datos_pasante dpa
             JOIN  usuarios     u    ON u.id   = dpa.usuario_id
-            LEFT JOIN instituciones inst
-                   ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
             WHERE u.rol_id = 3
             {$sqlFiltroFecha}
             GROUP BY nombre
@@ -1085,8 +1081,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             FROM usuarios u
             JOIN datos_personales dp  ON dp.usuario_id  = u.id
             JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
-            LEFT JOIN instituciones inst
-                   ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
             LEFT JOIN departamentos d ON d.id = dpa.departamento_asignado_id
             {$sqlWhere}
             ORDER BY dp.apellidos ASC, dp.nombres ASC
@@ -1262,7 +1257,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             JOIN datos_personales dp   ON dp.usuario_id   = u.id
             JOIN datos_pasante    dpa  ON dpa.usuario_id  = u.id
             LEFT JOIN departamentos dep  ON dep.id  = dpa.departamento_asignado_id
-            LEFT JOIN instituciones inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
             LEFT JOIN asistencias   a    ON a.pasante_id  = u.id
                                         AND YEAR(a.fecha) = :anio
             WHERE u.rol_id = 3
@@ -1385,7 +1380,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             LEFT JOIN departamentos d   ON d.id   = dpa.departamento_asignado_id
             LEFT JOIN usuarios      tu  ON tu.id  = dpa.tutor_id
             LEFT JOIN datos_personales tp ON tp.usuario_id = dpa.tutor_id
-            LEFT JOIN instituciones    inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             WHERE " . implode(' AND ', $where) . "
             ORDER BY d.nombre ASC, dp.apellidos ASC
         ");
@@ -1507,10 +1502,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             JOIN datos_personales  dp   ON dp.usuario_id  = u.id
             JOIN datos_pasante     dpa  ON dpa.usuario_id = u.id
             LEFT JOIN departamentos d   ON d.id   = dpa.departamento_asignado_id
-            LEFT JOIN instituciones inst ON (
-                dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
-            )
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
             LEFT JOIN usuarios      tu  ON tu.id   = dpa.tutor_id
             LEFT JOIN datos_personales tp ON tp.usuario_id = dpa.tutor_id
             LEFT JOIN (
@@ -1665,7 +1657,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             JOIN datos_personales dp   ON dp.usuario_id   = u.id
             JOIN datos_pasante    dpa  ON dpa.usuario_id  = u.id
             LEFT JOIN departamentos dep  ON dep.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
             LEFT JOIN asistencias   a    ON a.pasante_id  = u.id
                                         AND YEAR(a.fecha) = :anio
             WHERE u.rol_id = 3

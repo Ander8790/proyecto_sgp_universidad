@@ -99,7 +99,7 @@ class PasanteModel
             LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
             WHERE u.rol_id = 3 {$periodoWhere}
             ORDER BY
@@ -157,7 +157,7 @@ class PasanteModel
             LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
             WHERE u.id = :uid AND u.rol_id = 3
             LIMIT 1

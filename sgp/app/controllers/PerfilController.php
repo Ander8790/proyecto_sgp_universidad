@@ -106,7 +106,7 @@ class PerfilController extends Controller
          * - d.nombre as departamento_nombre: Nombre del departamento (puede ser NULL)
          */
         $this->db->query("
-            SELECT 
+            SELECT
                 u.id,
                 u.correo,
                 u.cedula,
@@ -117,7 +117,8 @@ class PerfilController extends Controller
                 d.nombre as departamento_nombre
             FROM usuarios u
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
-            LEFT JOIN departamentos d ON u.departamento_id = d.id
+            LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
+            LEFT JOIN departamentos d ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
             WHERE u.id = :uid
         ");
         $this->db->bind(':uid', $userId);
@@ -474,7 +475,8 @@ class PerfilController extends Controller
                 i.representante_nombre     as inst_rep_nombre,
                 i.representante_cargo      as inst_rep_cargo,
                 i.representante_correo     as inst_rep_correo,
-                i.representante_telefono   as inst_rep_telefono";
+                i.representante_telefono   as inst_rep_telefono,
+                d_pas.nombre               as departamento_nombre";
         } else {
             $query .= ", u.avatar";
         }
@@ -487,7 +489,8 @@ class PerfilController extends Controller
         // Agregar JOIN específico para pasantes e instituciones
         if ($roleId == 3) {
             $query .= " LEFT JOIN datos_pasante dpa ON u.id = dpa.usuario_id
-                        LEFT JOIN instituciones i ON dpa.institucion_procedencia = i.id";
+                        LEFT JOIN instituciones i ON dpa.institucion_procedencia = i.id
+                        LEFT JOIN departamentos d_pas ON d_pas.id = dpa.departamento_asignado_id";
         }
         
         $query .= " WHERE u.id = :uid";

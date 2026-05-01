@@ -167,13 +167,13 @@ class ConfiguracionController extends Controller {
 
             if ($nombre && $direccion) {
                 try {
-                    $this->db->query("SELECT COUNT(*) as total FROM instituciones WHERE nombre = :nombre");
+                    $this->db->query("SELECT COUNT(*) as total FROM instituciones WHERE nombre = :nombre AND categoria = 'origen'");
                     $this->db->bind(':nombre', $nombre);
                     $row = $this->db->single();
                     if ($row->total > 0) {
                         Session::setFlash('error', '⚠️ Ya existe una institución con ese nombre.');
                     } else {
-                        $this->db->query("INSERT INTO instituciones (nombre, direccion) VALUES (:nombre, :direccion)");
+                        $this->db->query("INSERT INTO instituciones (nombre, direccion, categoria) VALUES (:nombre, :direccion, 'origen')");
                         $this->db->bind(':nombre',    $nombre);
                         $this->db->bind(':direccion', $direccion);
                         $this->db->execute();
@@ -201,7 +201,7 @@ class ConfiguracionController extends Controller {
 
             if ($id > 0 && $nombre && $direccion) {
                 try {
-                    $this->db->query("SELECT COUNT(*) as total FROM instituciones WHERE nombre = :nombre AND id != :id");
+                    $this->db->query("SELECT COUNT(*) as total FROM instituciones WHERE nombre = :nombre AND id != :id AND categoria = 'origen'");
                     $this->db->bind(':nombre', $nombre);
                     $this->db->bind(':id', $id);
                     $row = $this->db->single();
@@ -252,7 +252,7 @@ class ConfiguracionController extends Controller {
                     if ($row->total > 0) {
                         Session::setFlash('error', '⚠️ No se puede eliminar: hay ' . $row->total . ' pasante(s) asignados a esta institución.');
                     } else {
-                        $this->db->query("DELETE FROM instituciones WHERE id = :id");
+                        $this->db->query("DELETE FROM instituciones WHERE id = :id AND categoria = 'origen'");
                         $this->db->bind(':id', $id);
                         $this->db->execute();
                         Session::setFlash('success', '✅ Institución eliminada correctamente.');
@@ -326,7 +326,7 @@ class ConfiguracionController extends Controller {
         $statsDB       = [];
 
         try {
-            $this->db->query("SELECT * FROM instituciones ORDER BY nombre ASC");
+            $this->db->query("SELECT * FROM instituciones WHERE categoria = 'origen' ORDER BY nombre ASC");
             $instituciones = array_map(fn($i) => (array) $i, $this->db->resultSet());
         } catch (Exception $e) { /* tabla vacía o no existe */ }
 

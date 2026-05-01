@@ -45,8 +45,7 @@ class AsistenciaModel
             INNER JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT  JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
-            LEFT  JOIN instituciones   inst ON dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                                           AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            LEFT  JOIN instituciones   inst ON inst.id = dpa.institucion_id
             LEFT  JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
             WHERE  u.rol_id = 3
               AND  u.estado = 'activo'
@@ -96,8 +95,7 @@ class AsistenciaModel
             INNER JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT  JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
-            LEFT  JOIN instituciones   inst ON dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                                           AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            LEFT  JOIN instituciones   inst ON inst.id = dpa.institucion_id
             LEFT  JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
             LEFT  JOIN usuarios         t   ON t.id  = dpa.tutor_id
             LEFT  JOIN datos_personales td  ON td.usuario_id = t.id
@@ -159,6 +157,7 @@ class AsistenciaModel
             FROM   asistencias
             WHERE  pasante_id = :pid
               AND  estado IN ('Presente', 'Justificado')
+              AND  fecha <= CURDATE()
         ");
         $this->db->bind(':pid', $pasanteId);
         $resultado = $this->db->single();

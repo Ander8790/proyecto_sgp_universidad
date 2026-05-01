@@ -842,7 +842,7 @@ public function update()
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos d ON d.id = dpa.departamento_asignado_id
             LEFT JOIN roles r ON r.id = u.rol_id
-            LEFT JOIN instituciones inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones inst ON inst.id = dpa.institucion_id
             LEFT JOIN usuarios u_tutor ON u_tutor.id = dpa.tutor_id
             LEFT JOIN datos_personales dp_tutor ON dp_tutor.usuario_id = u_tutor.id
             WHERE u.id = :id

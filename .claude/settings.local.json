@@ -186,7 +186,11 @@
       "Bash(grep -v \"^[[:space:]]*$\")",
       "Bash(c:/xampp/mysql/bin/mysql.exe -u root proyecto_sgp)",
       "Bash(c:/xampp/mysql/bin/mysql.exe -u root proyecto_sgp -e \"SHOW COLUMNS FROM datos_pasante LIKE 'estado_pasantia';\")",
-      "Bash(c:/xampp/php/php.exe \"c:/xampp/htdocs/proyecto_sgp/sgp/app/scripts/correccion_pasantes.php\")"
+      "Bash(c:/xampp/php/php.exe \"c:/xampp/htdocs/proyecto_sgp/sgp/app/scripts/correccion_pasantes.php\")",
+      "Bash(grep -c \"^CREATE TABLE\" c:\\\\\\\\xampp\\\\\\\\htdocs\\\\\\\\proyecto_sgp\\\\\\\\proyecto_sgp.sql)",
+      "Bash(./mysql.exe -u root --password=\"\" proyecto_sgp -e \"SHOW TABLES;\")",
+      "Bash(./mysql.exe -u root --password=\"\" proyecto_sgp -e \"SHOW COLUMNS FROM instituciones; SHOW COLUMNS FROM asistencias;\")",
+      "Bash(./mysql.exe -u root --password= proyecto_sgp -e ' *)"
     ],
     "additionalDirectories": [
       "c:\\xampp\\htdocs\\sgp\\app\\models"

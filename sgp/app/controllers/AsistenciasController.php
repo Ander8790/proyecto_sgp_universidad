@@ -141,7 +141,7 @@ class AsistenciasController extends Controller
                 dp.apellidos,
                 d.nombre       AS departamento_nombre,
                 dpa.horas_meta,
-                COALESCE(inst.nombre, IF(dpa.institucion_procedencia REGEXP '^[0-9]+$', NULL, dpa.institucion_procedencia)) AS institucion_nombre,
+                COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_nombre,
                 pa.nombre      AS periodo_nombre,
                 a.es_retardo
             FROM asistencias a
@@ -149,8 +149,7 @@ class AsistenciasController extends Controller
             LEFT  JOIN datos_personales  dp  ON dp.usuario_id = u.id
             LEFT  JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos     d   ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
-            LEFT  JOIN instituciones     inst ON dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                                                AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
+            LEFT  JOIN instituciones     inst ON inst.id = dpa.institucion_id
             LEFT  JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
             WHERE a.fecha >= :fecha_inicio AND a.fecha <= :fecha_fin $whereTutor $wherePasante
             ORDER BY a.fecha DESC, a.hora_registro DESC
@@ -869,7 +868,7 @@ class AsistenciasController extends Controller
             LEFT JOIN datos_personales    dp   ON dp.usuario_id   = u.id
             LEFT JOIN datos_pasante       dpa  ON dpa.usuario_id  = u.id
             LEFT JOIN departamentos       d    ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
-            LEFT JOIN instituciones       inst ON inst.id = COALESCE(dpa.institucion_id, CAST(dpa.institucion_procedencia AS UNSIGNED))
+            LEFT JOIN instituciones       inst ON inst.id = dpa.institucion_id
             WHERE  u.rol_id = 3
               AND  u.estado = 'activo'
               AND  COALESCE(dpa.estado_pasantia, 'Sin Asignar') = 'Activo'
@@ -1149,7 +1148,7 @@ class AsistenciasController extends Controller
             LEFT JOIN datos_personales  dp  ON dp.usuario_id = u.id
             LEFT JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos     d   ON d.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones     inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN instituciones     inst ON inst.id = dpa.institucion_id
             LEFT JOIN usuarios          tu  ON tu.id = dpa.tutor_id
             LEFT JOIN datos_personales  tp  ON tp.usuario_id = tu.id
             WHERE u.id = :id AND u.rol_id = 3
@@ -1494,7 +1493,7 @@ class AsistenciasController extends Controller
             LEFT JOIN datos_personales dp  ON dp.usuario_id = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             WHERE u.id = :id AND u.rol_id = 3
             LIMIT 1
         ");

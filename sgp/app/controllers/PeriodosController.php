@@ -108,7 +108,7 @@ class PeriodosController extends Controller
             LEFT JOIN datos_personales dp   ON dp.usuario_id   = u.id
             LEFT JOIN datos_pasante    dpa  ON dpa.usuario_id  = u.id
             LEFT JOIN departamentos    dept ON dept.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             LEFT JOIN asistencias      a    ON a.pasante_id    = u.id
             WHERE dpa.periodo_id = :pid AND u.rol_id = 3
             GROUP BY u.id
@@ -482,7 +482,7 @@ class PeriodosController extends Controller
             LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    dept ON dept.id = dpa.departamento_asignado_id
-            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             WHERE u.id = :uid AND u.rol_id = 3
             LIMIT 1
         ");
@@ -658,7 +658,7 @@ class PeriodosController extends Controller
             LEFT JOIN datos_personales  dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante     dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos     d   ON d.id  = dpa.departamento_asignado_id
-            LEFT JOIN instituciones     inst ON inst.id = dpa.institucion_procedencia
+            LEFT JOIN instituciones     inst ON inst.id = dpa.institucion_id
             LEFT JOIN periodos_academicos pa ON pa.id  = dpa.periodo_id
             WHERE u.id = :uid AND u.rol_id = 3
             LIMIT 1

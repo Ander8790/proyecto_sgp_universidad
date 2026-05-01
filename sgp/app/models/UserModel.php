@@ -961,8 +961,8 @@ class UserModel
             FROM usuarios u
             LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
             LEFT JOIN roles r ON u.rol_id = r.id
-            LEFT JOIN departamentos d ON u.departamento_id = d.id
             LEFT JOIN datos_pasante dpas ON u.id = dpas.usuario_id
+            LEFT JOIN departamentos d ON d.id = COALESCE(dpas.departamento_asignado_id, u.departamento_id)
             LEFT JOIN instituciones inst
                        ON dpas.institucion_procedencia REGEXP '^[0-9]+$'
                       AND inst.id = CAST(dpas.institucion_procedencia AS UNSIGNED)

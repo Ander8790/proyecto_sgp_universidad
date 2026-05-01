@@ -57,10 +57,7 @@ class EvaluacionesController extends Controller {
                 LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
                 LEFT JOIN usuarios         tu  ON tu.id = dpa.tutor_id
                 LEFT JOIN datos_personales tpdp ON tpdp.usuario_id = dpa.tutor_id
-                LEFT JOIN instituciones    inst ON (
-                    dpa.institucion_procedencia REGEXP '^[0-9]+$'
-                    AND inst.id = CAST(dpa.institucion_procedencia AS UNSIGNED)
-                )
+                LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
                 LEFT JOIN (
                     SELECT pasante_id,
                            COUNT(*) AS total_evals,

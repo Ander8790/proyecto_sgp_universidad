@@ -298,7 +298,7 @@
                         <div class="sw-pcard-stats">
                             <div class="sw-stat-box">
                                 <span class="sw-stat-val"><?= (int)$p->dias_presentes ?></span>
-                                <span class="sw-stat-lbl">Aist. Días</span>
+                                <span class="sw-stat-lbl">Asist. Días</span>
                             </div>
                             <div class="sw-stat-box">
                                 <span class="sw-stat-val" style="color:<?= $progColor ?>;"><?= $pctAsist ?>%</span>
@@ -319,7 +319,7 @@
 
                         <!-- Acciones Grid -->
                         <div class="sw-pcard-actions">
-                            <a href="<?= URLROOT ?>/asistencias/almanaque/<?= (int)$p->id ?>" target="_blank" class="btn-p-acti btn-alm" title="Ver Almanaque Personal">
+                            <a href="<?= URLROOT ?>/asistencias/almanaque/<?= (int)$p->id ?>" class="btn-p-acti btn-alm" title="Ver Almanaque Personal">
                                 <i class="ti ti-calendar-stats"></i> Almanaque
                             </a>
                             <button type="button" onclick="abrirModalReporteAsist(<?= (int)$p->id ?>, '<?= addslashes($nombreCompl) ?>')" class="btn-p-acti btn-asis" title="Reporte de Asistencias por Trimestre">
