@@ -230,14 +230,16 @@ class AnaliticasController extends Controller
         // DISTRIBUCIÓN
         // ────────────────────────────────────────────────────────────────
 
-        // Pasantes por departamento
+        // Pasantes por departamento (LEFT JOIN para incluir todos los activos, aunque tengan 0)
         $this->db->query("
-            SELECT d.nombre AS departamento, COUNT(*) AS total
-            FROM datos_pasante dpa
-            JOIN departamentos d ON d.id = dpa.departamento_asignado_id
-            WHERE dpa.estado_pasantia IN ('Activo', 'Pendiente') {$tutorWhere}
+            SELECT d.nombre AS departamento, COUNT(dpa.usuario_id) AS total
+            FROM departamentos d
+            LEFT JOIN datos_pasante dpa
+                ON d.id = dpa.departamento_asignado_id
+               AND dpa.estado_pasantia IN ('Activo', 'Pendiente') {$tutorWhere}
+            WHERE d.activo = 1
             GROUP BY d.id
-            ORDER BY total DESC
+            ORDER BY total DESC, d.nombre ASC
         ");
         $porDepartamento = $this->db->resultSet();
 

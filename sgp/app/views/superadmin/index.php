@@ -151,16 +151,21 @@ foreach ($distribucionAcciones as $row) {
             ['label'=>'Administradores',   'val'=>$data['stats_roles']['Administrador'], 'color'=>'#8b5cf6','icon'=>'ti-user-shield', 'sub'=>'Staff del sistema'],
             ['label'=>'Tutores',           'val'=>$data['stats_roles']['Tutor'],      'color'=>'#10b981', 'icon'=>'ti-user-check',   'sub'=>'Guías académicos'],
             ['label'=>'Pasantes',          'val'=>$data['stats_roles']['Pasante'],    'color'=>'#f59e0b', 'icon'=>'ti-users-group',  'sub'=>'En formación'],
-            ['label'=>'Eventos Hoy',       'val'=>$data['kpis_audit']['hoy'] ?? 0,   'color'=>'#ef4444', 'icon'=>'ti-activity',     'sub'=>'Acciones registradas'],
+            ['label'=>'Eventos Hoy',       'val'=>$data['kpis_audit']['hoy'] ?? 0,   'color'=>'#ef4444', 'icon'=>'ti-activity',     'sub'=>'Acciones registradas', 'onclick'=>'abrirModalEventosHoy()'],
         ];
-        foreach ($kpis as $k): ?>
-        <div class="sa-kpi" style="--kc:<?= $k['color'] ?>;">
+        foreach ($kpis as $k):
+            $esClickable = !empty($k['onclick']);
+        ?>
+        <div class="sa-kpi" style="--kc:<?= $k['color'] ?>;<?= $esClickable ? 'cursor:pointer;transition:transform .15s,box-shadow .15s;' : '' ?>"
+             <?= $esClickable ? 'onclick="' . htmlspecialchars($k['onclick']) . '" title="Ver eventos de hoy"' : '' ?>
+             <?= $esClickable ? 'onmouseover="this.style.transform=\'translateY(-2px)\';this.style.boxShadow=\'0 8px 24px rgba(239,68,68,.18)\'"' : '' ?>
+             <?= $esClickable ? 'onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'"' : '' ?>>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;">
                 <div class="sa-kpi-label"><?= $k['label'] ?></div>
                 <i class="ti <?= $k['icon'] ?>" style="color:<?= $k['color'] ?>;font-size:1.3rem;opacity:.6;"></i>
             </div>
             <div class="sa-kpi-val"><?= $k['val'] ?></div>
-            <div class="sa-kpi-sub"><?= $k['sub'] ?></div>
+            <div class="sa-kpi-sub"><?= $k['sub'] ?><?= $esClickable ? ' <i class="ti ti-arrow-up-right" style="font-size:.65rem;opacity:.5;"></i>' : '' ?></div>
         </div>
         <?php endforeach; ?>
     </div>
@@ -342,6 +347,57 @@ foreach ($distribucionAcciones as $row) {
 
 </div>
 
+<!-- ══════════════════════════════════════════════════════
+     MODAL: Eventos de Hoy (Bitácora)
+     ══════════════════════════════════════════════════════ -->
+<div id="modal-eventos-hoy" class="sgp-modal-overlay"
+     onclick="if(event.target===this)cerrarModalEventosHoy()">
+    <div class="sgp-modal" style="width:min(700px,95vw);max-height:88vh;display:flex;flex-direction:column;overflow:hidden;padding:0;">
+
+        <!-- Cabecera -->
+        <div style="padding:20px 24px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:10px;background:#fef2f2;display:flex;align-items:center;justify-content:center;">
+                    <i class="ti ti-activity" style="color:#ef4444;font-size:1.15rem;"></i>
+                </div>
+                <div>
+                    <div style="font-weight:700;color:#1e293b;font-size:1rem;">Eventos del Día</div>
+                    <div id="eventos-hoy-fecha" style="font-size:.73rem;color:#94a3b8;"></div>
+                </div>
+            </div>
+            <button onclick="cerrarModalEventosHoy()"
+                    style="border:none;background:none;cursor:pointer;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;"
+                    onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='none'">
+                <i class="ti ti-x" style="font-size:1rem;"></i>
+            </button>
+        </div>
+
+        <!-- Subencabezado -->
+        <div id="eventos-hoy-contador" style="padding:12px 24px 0;font-size:.8rem;color:#64748b;flex-shrink:0;"></div>
+
+        <!-- Lista de eventos (scrollable) -->
+        <div id="eventos-hoy-lista" style="overflow-y:auto;padding:16px 24px 20px;flex:1;">
+            <div style="text-align:center;color:#94a3b8;padding:48px 0;font-size:.9rem;">
+                <i class="ti ti-loader-2" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>
+                Cargando eventos...
+            </div>
+        </div>
+
+        <!-- Pie -->
+        <div style="padding:14px 24px;border-top:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;">
+            <a href="<?= URLROOT ?>/bitacora"
+               style="color:#2563eb;font-size:.82rem;font-weight:600;text-decoration:none;display:flex;align-items:center;gap:5px;">
+                <i class="ti ti-external-link" style="font-size:.9rem;"></i> Ver bitácora completa
+            </a>
+            <button onclick="cerrarModalEventosHoy()"
+                    style="padding:8px 20px;border-radius:8px;border:1px solid #e2e8f0;background:white;color:#64748b;font-size:.84rem;font-weight:600;cursor:pointer;">
+                Cerrar
+            </button>
+        </div>
+    </div>
+</div>
+<!-- ══════════════════════════════════════════════════════ -->
+
 <?php
 $lineasLabels = json_encode($diasLabels);
 $lineasData   = json_encode($diasData);
@@ -350,9 +406,6 @@ $mesDataJ     = json_encode($mesData);
 $donutLabelsJ = json_encode($donutLabels);
 $donutDataJ   = json_encode($donutData);
 ?>
-<!-- Cargar ApexCharts (ya que esta vista no usa main_layout.php) -->
-<script src="<?= URLROOT ?>/js/apexcharts.min.js"></script>
-
 <script>
 let chartActividad;
 const dataSemana = { labels: <?= $lineasLabels ?>, series: <?= $lineasData ?> };
@@ -458,6 +511,125 @@ function initPagination(rowClass, itemsPerPage, infoId, btnPrevId, btnNextId, pa
     
     window['render' + rowClass](1);
 }
+
+// ══════════════════════════════════════════════════════
+// Modal: Eventos de Hoy
+// ══════════════════════════════════════════════════════
+const EVENTOS_LABELS = {
+    'LOGIN':'Inicio de Sesión','LOGOUT':'Cierre de Sesión',
+    'RESET_PASSWORD':'Reset Contraseña','RESET_PIN':'Reset PIN',
+    'CREATE_USER':'Usuario Creado','UPDATE_USER':'Usuario Modificado',
+    'DELETE_USER_PERMANENT':'Usuario Eliminado',
+    'TOGGLE_USER_STATUS':'Cambio de Estado',
+    'UPDATE_PROFILE':'Perfil Editado',
+    'CREATE_PASANTE':'Pasante Creado','UPDATE_PASANTE':'Pasante Modificado',
+    'DELETE_PASANTE':'Pasante Eliminado',
+    'MARCAR_ASISTENCIA_KIOSCO':'Asistencia Kiosco',
+    'PERMISO_MODIFICADO':'Permiso Modificado',
+    'PERMISOS_RESET':'Permisos Restablecidos',
+    'CREATE_EVALUACION':'Evaluación Creada',
+    'UPDATE_EVALUACION':'Evaluación Editada',
+    'DELETE_EVALUACION':'Evaluación Eliminada',
+    'EXPORT_CSV':'Exportación CSV',
+    'UPDATE_CONFIG':'Configuración Editada',
+    'CAMBIO_ESTADO_PASANTE':'Cambio Estado Pasante',
+    'MARCAR_ASISTENCIA':'Asistencia Marcada',
+    'UPDATE_ASISTENCIA':'Asistencia Modificada',
+    'SESSION_MAINTENANCE':'Mant. Sesiones',
+};
+
+function eventoColor(accion) {
+    const u = (accion || '').toUpperCase();
+    if (u.includes('LOGIN'))       return '#10b981';
+    if (u.includes('LOGOUT'))      return '#94a3b8';
+    if (u.includes('FAIL'))        return '#f59e0b';
+    if (u.includes('DELETE'))      return '#ef4444';
+    if (u.includes('ASISTENCIA'))  return '#3b82f6';
+    if (u.includes('UPDATE') || u.includes('MODIFICAD') || u.includes('RESET')) return '#8b5cf6';
+    if (u.includes('CREATE') || u.includes('REGISTRAD')) return '#0ea5e9';
+    return '#94a3b8';
+}
+
+window.abrirModalEventosHoy = function() {
+    const modal = document.getElementById('modal-eventos-hoy');
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    // Reset mientras carga
+    document.getElementById('eventos-hoy-fecha').textContent = '';
+    document.getElementById('eventos-hoy-contador').innerHTML = '';
+    document.getElementById('eventos-hoy-lista').innerHTML =
+        '<div style="text-align:center;color:#94a3b8;padding:48px 0;font-size:.9rem;"><i class="ti ti-loader-2" style="font-size:1.5rem;display:block;margin-bottom:8px;"></i>Cargando eventos...</div>';
+
+    fetch('<?= URLROOT ?>/superadmin/eventosHoy', {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(function(json) {
+        if (!json.success) {
+            document.getElementById('eventos-hoy-lista').innerHTML =
+                '<p style="text-align:center;color:#ef4444;padding:48px 0;">' + (json.message || 'Error al cargar.') + '</p>';
+            return;
+        }
+        document.getElementById('eventos-hoy-fecha').textContent = json.fecha;
+        const t = json.total;
+        document.getElementById('eventos-hoy-contador').innerHTML =
+            '<strong style="color:#ef4444;">' + t + '</strong> acción' + (t !== 1 ? 'es' : '') + ' registrada' + (t !== 1 ? 's' : '') + ' hoy';
+        renderEventosHoy(json.eventos);
+    })
+    .catch(function() {
+        document.getElementById('eventos-hoy-lista').innerHTML =
+            '<p style="text-align:center;color:#ef4444;padding:48px 0;">Error de conexión. Intenta de nuevo.</p>';
+    });
+};
+
+window.cerrarModalEventosHoy = function() {
+    document.getElementById('modal-eventos-hoy').classList.remove('active');
+    document.body.style.overflow = '';
+};
+
+function renderEventosHoy(eventos) {
+    const lista = document.getElementById('eventos-hoy-lista');
+    if (!eventos || eventos.length === 0) {
+        lista.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:48px 0;">Sin eventos registrados hoy.</p>';
+        return;
+    }
+
+    lista.innerHTML = eventos.map(function(ev) {
+        const accionUpper = (ev.accion || '').toUpperCase();
+        const label  = EVENTOS_LABELS[accionUpper] || ev.accion;
+        const color  = eventoColor(ev.accion);
+        const hora   = ev.created_at ? ev.created_at.substring(11, 16) : '';
+        const nombre = (ev.usuario_nombre || '').trim() || ev.correo || 'Sistema';
+        const tabla  = ev.tabla_afectada
+            ? '<span style="font-size:.68rem;color:#cbd5e1;margin:0 2px;">·</span><span style="font-size:.68rem;color:#94a3b8;">' + ev.tabla_afectada + '</span>'
+            : '';
+
+        return '<div style="display:flex;gap:12px;padding:10px 0;border-bottom:1px solid #f8fafc;">'
+            + '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;padding-top:5px;">'
+            + '<div style="width:9px;height:9px;border-radius:50%;background:' + color + ';flex-shrink:0;"></div>'
+            + '<div style="width:1px;flex:1;background:#f1f5f9;margin-top:4px;"></div>'
+            + '</div>'
+            + '<div style="flex:1;min-width:0;padding-bottom:4px;">'
+            + '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+            + '<span style="background:' + color + '22;color:' + color + ';border-radius:6px;padding:2px 9px;font-size:.7rem;font-weight:700;">' + label + '</span>'
+            + '<span style="font-size:.7rem;color:#94a3b8;">' + hora + '</span>'
+            + tabla
+            + '</div>'
+            + '<div style="font-size:.76rem;color:#475569;margin-top:3px;display:flex;align-items:center;gap:4px;">'
+            + '<i class="ti ti-user-circle" style="font-size:.82rem;color:#94a3b8;"></i>'
+            + nombre
+            + (ev.ip_address ? '<span style="font-size:.68rem;color:#cbd5e1;margin:0 2px;">·</span><span style="font-size:.68rem;color:#94a3b8;">IP: ' + ev.ip_address + '</span>' : '')
+            + '</div>'
+            + '</div>'
+            + '</div>';
+    }).join('');
+}
+
+// Cerrar con Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') cerrarModalEventosHoy();
+});
 </script>
 
 

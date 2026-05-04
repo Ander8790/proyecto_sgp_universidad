@@ -342,9 +342,16 @@ table.dataTable tbody tr:hover {
                             <?php else: ?>—<?php endif; ?>
                         </td>
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle;">
-                            <span style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
-                                <i class="ti <?= $cfg['icon'] ?>"></i> <?= htmlspecialchars($r->estado) ?>
-                            </span>
+                            <div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                                <span style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                                    <i class="ti <?= $cfg['icon'] ?>"></i> <?= htmlspecialchars($r->estado) ?>
+                                </span>
+                                <?php if ($r->estado === 'Presente' && (int)($r->es_retardo ?? 0) === 1): ?>
+                                <span style="background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;display:inline-flex;align-items:center;gap:3px;">
+                                    <i class="ti ti-clock-exclamation"></i> Retardo
+                                </span>
+                                <?php endif; ?>
+                            </div>
                         </td>
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle; text-align:center;">
                             <button onclick="verDetalle(<?= (int)$r->id ?>,<?= htmlspecialchars(json_encode([
@@ -3794,6 +3801,35 @@ function handleDrop(e) {
     showEvidenciaPreview(file);
 }
 
+/* ── Detección de feriado en el campo de fecha del modal ─────────── */
+(function initFeriadoCheck() {
+    // Escucha el campo de fecha del modal manual (puede llamarse 'manual-fecha' o 'fecha')
+    const campoFecha = document.getElementById('manual-fecha') || document.querySelector('#form-manual input[type="date"]');
+    if (!campoFecha) return;
+
+    campoFecha.addEventListener('change', async function() {
+        const fecha = this.value;
+        if (!fecha) return;
+
+        // Quitar aviso previo
+        const prevAlert = document.getElementById('feriado-alerta-modal');
+        if (prevAlert) prevAlert.remove();
+
+        try {
+            const r = await fetch(URLROOT + '/kiosco/esFeriado?fecha=' + fecha);
+            const d = await r.json();
+            if (d.is_feriado) {
+                // Insertar pequeño aviso inline debajo del campo de fecha
+                const aviso = document.createElement('div');
+                aviso.id = 'feriado-alerta-modal';
+                aviso.style.cssText = 'margin-top:6px;padding:8px 12px;background:#fef3c7;border:1px solid #fcd34d;border-radius:8px;font-size:.82rem;font-weight:600;color:#92400e;display:flex;align-items:center;gap:6px;';
+                aviso.innerHTML = '<i class="ti ti-calendar-event"></i> Feriado: <strong>' + d.nombre + '</strong> — Se registrará como Justificado.';
+                campoFecha.parentNode.appendChild(aviso);
+            }
+        } catch(e) { /* silencioso */ }
+    });
+})();
+
 /* ── Submit del form lateral ——————————————————————————————————————— */
 function enviarManual(e) {
     e.preventDefault();
@@ -3806,8 +3842,20 @@ function enviarManual(e) {
         .then(r => r.json())
         .then(data => {
             if (data.success) {
-                Swal.fire({ icon: 'success', title: '¡Registrado!', text: data.message || 'Asistencia registrada correctamente.', confirmButtonColor: '#162660' })
-                    .then(() => location.reload());
+                // Si es feriado, mostrar aviso adicional antes de recargar
+                if (data.feriado_advertencia && data.feriado_nombre) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Registrado!',
+                        html: (data.message || 'Asistencia registrada correctamente.') +
+                              '<br><br><span style="background:#fef3c7;padding:6px 12px;border-radius:8px;font-size:.85rem;font-weight:600;color:#92400e;">' +
+                              '📅 Nota: La fecha seleccionada es feriado (<strong>' + data.feriado_nombre + '</strong>).</span>',
+                        confirmButtonColor: '#162660'
+                    }).then(() => location.reload());
+                } else {
+                    Swal.fire({ icon: 'success', title: '¡Registrado!', text: data.message || 'Asistencia registrada correctamente.', confirmButtonColor: '#162660' })
+                        .then(() => location.reload());
+                }
             } else {
                 Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'No se pudo registrar.', confirmButtonColor: '#162660' });
                 if (btn) { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Guardar'; }

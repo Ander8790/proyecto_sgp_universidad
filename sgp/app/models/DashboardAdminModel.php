@@ -255,36 +255,35 @@ class DashboardAdminModel
 
     public function getAsistenciaPorDepartamento(): array
     {
-        // % de asistencias por departamento (Presentes / Total * 100)
+        // LEFT JOIN desde departamentos para incluir todos (activos),
+        // aunque no tengan pasantes asignados (aparecerán con 0%)
         $this->db->query("
-            SELECT 
+            SELECT
                 d.nombre AS departamento,
-                COUNT(a.id) AS total_registros,
-                SUM(a.estado = 'Presente') AS total_presentes
-            FROM datos_pasante dpa
-            JOIN departamentos d ON d.id = dpa.departamento_asignado_id
-            LEFT JOIN asistencias a ON a.pasante_id = dpa.usuario_id
+                COUNT(a.id)                      AS total_registros,
+                COALESCE(SUM(a.estado = 'Presente'), 0) AS total_presentes,
+                COUNT(DISTINCT dpa.usuario_id)   AS total_pasantes
+            FROM departamentos d
+            LEFT JOIN datos_pasante dpa ON d.id = dpa.departamento_asignado_id
+            LEFT JOIN asistencias a     ON a.pasante_id = dpa.usuario_id
+            WHERE d.activo = 1
             GROUP BY d.id, d.nombre
-            HAVING total_registros > 0
-            ORDER BY total_presentes DESC
-            LIMIT 4
+            ORDER BY total_presentes DESC, d.nombre ASC
+            LIMIT 6
         ");
-        
+
         $results = $this->db->resultSet();
-        $data = ['labels' => [], 'series' => []];
-        
+        $data = ['labels' => [], 'series' => [], 'pasantes' => []];
+
         foreach ($results as $r) {
-            $data['labels'][] = htmlspecialchars($r->departamento);
-            // Evitar división por cero preventivamente aunque con HAVING > 0 es seguro
-            $porcentaje = ($r->total_registros > 0) ? ROUND(($r->total_presentes / $r->total_registros) * 100) : 0;
-            $data['series'][] = (int)$porcentaje;
+            $data['labels'][]   = htmlspecialchars($r->departamento);
+            $porcentaje = ($r->total_registros > 0)
+                ? (int) round(($r->total_presentes / $r->total_registros) * 100)
+                : 0;
+            $data['series'][]   = $porcentaje;
+            $data['pasantes'][] = (int)$r->total_pasantes;
         }
-        
-        // Si no hay pasantes o no hay registros, pasar un mockup vacío real (zeros)
-        if (empty($data['labels'])) {
-            $data = ['labels' => ['General'], 'series' => [0]];
-        }
-        
+
         return $data;
     }
 

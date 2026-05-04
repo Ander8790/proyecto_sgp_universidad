@@ -325,11 +325,11 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
 /* ═══ DESGLOSE MENSUAL ═════════════════════════════════════════════ */
 .alm-meses-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 10px;
 }
 .alm-mes-card {
-    background: #f8fafc; border-radius: 12px; padding: 12px 10px;
+    background: #f8fafc; border-radius: 12px; padding: 16px 12px;
     text-align: center; border: 2px solid transparent; transition: all .2s;
 }
 .alm-mes-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.06); }
@@ -514,14 +514,13 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
 
         <a href="<?= URLROOT ?>/asistencias/pdfAlmanaque/<?= (int)($pasante->id ?? 0) ?>?anio=<?= $anio ?>"
            target="_blank"
-           title="Descargar reporte PDF del almanaque"
-           style="background:rgba(239,68,68,.22);border:1px solid rgba(239,68,68,.35);
-                  border-radius:10px;padding:9px 16px;color:#fca5a5;font-size:.84rem;
-                  font-weight:600;text-decoration:none;display:flex;align-items:center;gap:6px;
-                  transition:background .2s;white-space:nowrap;"
-           onmouseover="this.style.background='rgba(239,68,68,.35)'"
-           onmouseout="this.style.background='rgba(239,68,68,.22)'">
-            <i class="ti ti-file-type-pdf"></i> Exportar PDF
+           title="Exportar PDF del almanaque"
+           style="width:38px;height:38px;border-radius:10px;background:#dc2626;color:#fff;
+                  text-decoration:none;display:flex;align-items:center;justify-content:center;
+                  font-size:1.15rem;flex-shrink:0;transition:background .2s;"
+           onmouseover="this.style.background='#b91c1c'"
+           onmouseout="this.style.background='#dc2626'">
+            <i class="ti ti-file-type-pdf"></i>
         </a>
 
         <a href="<?= URLROOT ?>/asistencias"
@@ -691,6 +690,7 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
     <div class="alm-kpi" style="border-left:4px solid <?= $kpiColor ?>;">
         <div class="alm-kpi-val" style="color:<?= $kpiColor ?>;"><?= $pct ?>%</div>
         <div class="alm-kpi-lbl">Asistencia <?= $anio ?></div>
+        <div style="font-size:.68rem;color:#94a3b8;margin-top:2px;">días transcurridos</div>
         <div style="height:5px;border-radius:20px;background:#e2e8f0;overflow:hidden;margin-top:6px;">
             <div style="height:100%;border-radius:20px;background:<?= $kpiColor ?>;width:<?= $pct ?>%;transition:width .8s ease;"></div>
         </div>
@@ -727,9 +727,9 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
     </div>
 
     <div class="alm-kpi" style="border-left:4px solid #0891b2;">
-        <div class="alm-kpi-val" style="color:#0891b2;"><?= $rachaActual ?></div>
-        <div class="alm-kpi-lbl">Racha actual</div>
-        <div style="font-size:.72rem;color:#94a3b8;margin-top:4px;">días activos consecutivos</div>
+        <div class="alm-kpi-val" style="color:#0891b2;"><?= $stats['P'] + $stats['J'] ?></div>
+        <div class="alm-kpi-lbl">Días marcados</div>
+        <div style="font-size:.72rem;color:#94a3b8;margin-top:4px;">presentes + justificados</div>
     </div>
 
 </div>
@@ -769,8 +769,17 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
             <i class="ti ti-info-circle" style="color:#2563eb;"></i>
             Faltan <strong style="color:#1e293b;"><?= $horasMeta - $horasAcum ?> horas</strong>
             para completar la pasantía
-            <?php if ($stats['P'] > 0): ?>
-            · promedio de <strong><?= round($horasAcum / max(1,$stats['P']+$stats['J']), 1) ?>h/día</strong>
+            <?php
+            // Promedio correcto: horas acumuladas / días hábiles transcurridos (no P+J)
+            // horas_acumuladas = SUM(horas_calculadas) sobre todos los días hábiles,
+            // por lo que el promedio natural es 8h/día estándar.
+            // Dividir por P+J daba ~16h/día cuando hay feriados/justificados que
+            // doblan el numerador sin incrementar P+J.
+            $promH = $diasTrans > 0 ? round($horasAcum / $diasTrans, 1) : 8.0;
+            ?>
+            <?php if ($diasTrans > 0): ?>
+            · promedio de <strong><?= $promH ?>h/día</strong>
+            <span style="color:#94a3b8;">(jornada 8h)</span>
             <?php endif; ?>
         </div>
         <?php else: ?>
@@ -1100,36 +1109,48 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
 <!-- /COLUMNA DER -->
 </div><!-- /alm-row-mid -->
 
-<!-- ═══ DESGLOSE MENSUAL ══════════════════════════════════════════════════ -->
+<!-- ═══ DESGLOSE MENSUAL COMPLETO (multi-año) ══════════════════════════ -->
 <?php
-$statsMes = [];
-foreach ($grilla as $wk => $dias) {
-    foreach ($dias as $dow => $cell) {
-        if (!$cell || !in_array($cell['estado'], ['P','A','J'])) continue;
-        $mes = (int)substr($cell['fecha'], 5, 2);
-        if (!isset($statsMes[$mes])) $statsMes[$mes] = ['P'=>0,'A'=>0,'J'=>0];
-        $statsMes[$mes][$cell['estado']]++;
-    }
-}
-$mesesNombres = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-if (!empty($statsMes)):
+$mesesNombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+$fi_global = $fi_pasantia ?? ($pasante->fecha_inicio ?? null);
+$ff_global = $ff_pasantia ?? ($pasante->fecha_fin    ?? date('Y-m-d'));
+
+if ($fi_global && !empty($statsDesglose)):
+    $fiY = (int)substr($fi_global, 0, 4);
+    $fiM = (int)substr($fi_global, 5, 2);
+    $ffY = (int)substr($ff_global, 0, 4);
+    $ffM = (int)substr($ff_global, 5, 2);
+    $aniosRango   = range($fiY, $ffY);
+    $esMultiAnio  = count($aniosRango) > 1;
 ?>
 <div class="alm-card">
     <div class="alm-card-title" style="margin-bottom:16px;">
         <i class="ti ti-chart-bar" style="color:#2563eb;"></i>
-        Desglose mensual <?= $anio ?>
+        Desglose mensual
+        <span style="background:#dbeafe;color:#1d4ed8;font-size:.68rem;padding:2px 10px;border-radius:20px;font-weight:700;text-transform:none;letter-spacing:0;">
+            <?= $esMultiAnio ? "{$fiY} – {$ffY}" : $fiY ?>
+        </span>
     </div>
+
     <div class="alm-meses-grid">
-    <?php for ($m = 1; $m <= 12; $m++):
-        $ms  = $statsMes[$m] ?? ['P'=>0,'A'=>0,'J'=>0];
-        $tot = $ms['P'] + $ms['A'] + $ms['J'];
-        $pcm = $tot > 0 ? round(($ms['P']+$ms['J'])/$tot*100) : null;
-        $col = $pcm === null ? '#94a3b8' : ($pcm >= 90 ? '#16a34a' : ($pcm >= 75 ? '#d97706' : '#dc2626'));
+    <?php foreach ($aniosRango as $yrBloque):
+        $mesStart = ($yrBloque === $fiY) ? $fiM : 1;
+        $mesEnd   = ($yrBloque === $ffY) ? $ffM : 12;
+        for ($m = $mesStart; $m <= $mesEnd; $m++):
+            $ms  = $statsDesglose[$yrBloque][$m] ?? ['P'=>0,'A'=>0,'J'=>0];
+            $tot = $ms['P'] + $ms['A'] + $ms['J'];
+            $pcm = $tot > 0 ? round(($ms['P']+$ms['J'])/$tot*100) : null;
+            $col = $pcm === null ? '#94a3b8' : ($pcm >= 90 ? '#16a34a' : ($pcm >= 75 ? '#d97706' : '#dc2626'));
     ?>
     <div class="alm-mes-card <?= $tot > 0 ? 'has-data' : '' ?>">
-        <div style="font-size:.72rem;font-weight:800;color:#64748b;margin-bottom:6px;text-transform:uppercase;">
+        <div style="font-size:.78rem;font-weight:800;color:#64748b;margin-bottom:2px;text-transform:uppercase;line-height:1.2;">
             <?= $mesesNombres[$m-1] ?>
         </div>
+        <?php if ($esMultiAnio): ?>
+        <div style="font-size:.6rem;color:#cbd5e1;font-weight:600;margin-bottom:6px;"><?= $yrBloque ?></div>
+        <?php else: ?>
+        <div style="margin-bottom:6px;"></div>
+        <?php endif; ?>
         <?php if ($tot > 0): ?>
         <div style="font-size:1.35rem;font-weight:900;color:<?= $col ?>;"><?= $pcm ?>%</div>
         <div style="font-size:.66rem;color:#94a3b8;margin-top:3px;display:flex;justify-content:center;gap:4px;">
@@ -1141,7 +1162,7 @@ if (!empty($statsMes)):
         <div style="font-size:.8rem;color:#cbd5e1;margin-top:4px;">—</div>
         <?php endif; ?>
     </div>
-    <?php endfor; ?>
+    <?php endfor; endforeach; ?>
     </div>
 </div>
 <?php endif; ?>
@@ -1163,19 +1184,29 @@ $mesesEs2 = ['01'=>'Ene','02'=>'Feb','03'=>'Mar','04'=>'Abr','05'=>'May','06'=>'
 
 <!-- ────── CARD: Justificaciones ────── -->
 <div class="alm-card" style="min-height:280px;">
-    <div class="alm-card-title" style="margin-bottom:14px;">
+    <div class="alm-card-title" style="margin-bottom:10px;">
         <i class="ti ti-file-certificate" style="color:#d97706;"></i>
-        Justificaciones
+        Justificaciones personales
         <span style="background:#fef3c7;color:#d97706;font-size:.68rem;padding:2px 10px;border-radius:20px;font-weight:700;text-transform:none;letter-spacing:0;">
             <?= count($justificaciones) ?>
         </span>
     </div>
 
+    <!-- Callout informativo inline -->
+    <div style="background:linear-gradient(to right,#f8fafc,#edf2f9);border:1px solid #e2e8f0;border-left:3px solid #2563eb;border-radius:10px;padding:9px 14px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;">
+        <div style="background:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(37,99,235,.12);flex-shrink:0;margin-top:1px;">
+            <i class="ti ti-info-circle" style="color:#2563eb;font-size:.95rem;"></i>
+        </div>
+        <p style="margin:0;color:#64748b;font-size:.74rem;line-height:1.55;">
+            Solo se listan justificaciones personales: <strong style="color:#1e293b;">reposos médicos, récipes y permisos</strong>. Los días feriados se registran automáticamente y se reflejan en el calendario de asistencia.
+        </p>
+    </div>
+
     <?php if (empty($justificaciones)): ?>
     <div style="text-align:center;padding:32px 20px;color:#94a3b8;">
         <i class="ti ti-check-circle" style="font-size:2.5rem;display:block;margin-bottom:10px;opacity:.3;color:#16a34a;"></i>
-        <p style="margin:0;font-weight:600;font-size:.88rem;">Sin justificaciones registradas</p>
-        <p style="margin:4px 0 0;font-size:.75rem;color:#b0bec5;">No hay ausencias justificadas este período</p>
+        <p style="margin:0;font-weight:600;font-size:.88rem;">Sin justificaciones personales</p>
+        <p style="margin:4px 0 0;font-size:.75rem;color:#b0bec5;">No hay excusas médicas u otros documentos cargados</p>
     </div>
     <?php else: ?>
     <div style="display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto;padding-right:4px;">
@@ -1414,8 +1445,8 @@ let fpHistorial = null;
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('histTable')) {
         tableHistorial = $('#histTable').DataTable({
-            "pageLength": 10,
-            "lengthMenu": [[10, 20, 50, -1], [10, 20, 50, "Todos"]],
+            "pageLength": 5,
+            "lengthMenu": [[5, 10, 20, 50, -1], [5, 10, 20, 50, "Todos"]],
             "language": {
                 "sProcessing": "Procesando...",
                 "sLengthMenu": "Mostrar _MENU_ registros",

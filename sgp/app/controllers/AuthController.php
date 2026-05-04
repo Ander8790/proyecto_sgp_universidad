@@ -220,6 +220,36 @@ class AuthController extends Controller
         // Registrar login en bitácora
         AuditModel::log('LOGIN');
 
+        // ── Notificación automática si hoy es feriado ─────────────────────
+        try {
+            $db->query("
+                SELECT id, nombre FROM dias_feriados
+                WHERE fecha = CURDATE()
+                LIMIT 1
+            ");
+            $feriadoHoy = $db->single();
+            if ($feriadoHoy) {
+                require_once APPROOT . '/models/NotificationModel.php';
+                $notifModel = new NotificationModel($db);
+                // Solo insertar si no existe ya una para hoy
+                if (!$notifModel->existeHoy((int)$user['id'], 'feriado_hoy', (int)$feriadoHoy->id)) {
+                    $notifModel->createWithRef(
+                        (int)$user['id'],
+                        'feriado_hoy',
+                        '📅 Hoy es día feriado',
+                        'Hoy (' . date('d/m/Y') . ') es "' . $feriadoHoy->nombre . '". '
+                        . 'No hay asistencias requeridas. El día se contabiliza como Justificado automáticamente.',
+                        URLROOT . '/configuracion#feriados',
+                        (int)$feriadoHoy->id
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            // No bloquear el login si la verificación falla
+            error_log('[SGP-AUTH] Error verificando feriado al login: ' . $e->getMessage());
+        }
+        // ──────────────────────────────────────────────────────────────────
+
         // Redirección al Wizard si requiere cambio de clave O perfil incompleto
         if ($user['requiere_cambio_clave'] == 1 || !$perfilCompletado) {
             if ($isAjax) {

@@ -593,7 +593,7 @@ function abrirModal(modulo, formato) {
         case 'usuarios':
             mFechas.style.display = 'none'; // directorio estático, sin filtro de fechas
             htmlFiltros = `
-                <div class="r-form-group"><label>Rol</label><select name="rol" class="r-form-control"><option value="todos">Todos</option><option value="Admin">Administradores</option><option value="Tutor">Tutores</option></select></div>
+                <div class="r-form-group"><label>Rol</label><select name="rol" class="r-form-control"><option value="todos">Todos</option><option value="Administrador">Administradores</option><option value="Tutor">Tutores</option></select></div>
                 <div class="r-form-group"><label>Departamento</label><select name="departamento" class="r-form-control"><option value="todos">Todos</option>${departamentos.map(d => `<option value="${d.id}">${d.nombre}</option>`).join('')}</select></div>
                 <div class="r-form-group"><label>Estado</label><select name="estado_usuario" class="r-form-control"><option value="">Todos</option><option value="activo">Activos</option><option value="inactivo">Inactivos</option></select></div>`;
             break;
@@ -664,13 +664,71 @@ function abrirModal(modulo, formato) {
         case 'bitacora':
             htmlFiltros = `<div class="r-form-group"><label>Módulo</label><select name="modulo_log" class="r-form-control"><option value="todos">Todos</option><option value="Login">Accesos</option><option value="Pasantes">Pasantes</option></select></div>`;
             break;
-        case 'diaria':
-            htmlFiltros = `<div class="r-form-group"><label>Departamento</label><select name="departamento" class="r-form-control"><option value="todos">Todos</option>${departamentos.map(d => `<option value="${d.id}">${d.nombre}</option>`).join('')}</select></div>`;
-            // Ficha diaria solo necesita una fecha
-            boxFechaFin.style.opacity = '0.3';
-            boxFechaFin.style.pointerEvents = 'none';
-            document.getElementById('fechaFinInput').disabled = true;
+        case 'diaria': {
+            // Fecha de hoy como valor por defecto
+            const hoyD = new Date();
+            const yyyy = hoyD.getFullYear();
+            const mm   = String(hoyD.getMonth() + 1).padStart(2, '0');
+            const dd   = String(hoyD.getDate()).padStart(2, '0');
+            const hoyISO = `${yyyy}-${mm}-${dd}`;
+
+            const diasSemana = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            const meses = ['enero','febrero','marzo','abril','mayo','junio','julio',
+                           'agosto','septiembre','octubre','noviembre','diciembre'];
+
+            htmlFiltros = `
+                <div class="r-form-group">
+                    <label>Departamento</label>
+                    <select name="departamento" class="r-form-control">
+                        <option value="todos">Todos los departamentos</option>
+                        ${departamentos.map(d => `<option value="${d.id}">${d.nombre}</option>`).join('')}
+                    </select>
+                </div>
+                <div class="r-form-group" style="margin-top:8px;">
+                    <label style="display:flex; align-items:center; gap:6px;">
+                        <i class="ti ti-calendar-search" style="color:#2563eb;"></i>
+                        Fecha de la Ficha
+                    </label>
+                    <input type="text"
+                           id="fichaDiariaFecha"
+                           name="fecha_diaria"
+                           class="r-form-control"
+                           value="${hoyISO}"
+                           placeholder="YYYY-MM-DD"
+                           autocomplete="off"
+                           style="font-weight:600; color:#1e3a8a;">
+                    <p style="font-size:0.72rem; color:#64748b; margin:4px 0 0 2px;">
+                        Por defecto muestra el día actual. Puedes seleccionar cualquier fecha.
+                    </p>
+                </div>`;
+
+            // Ocultar bloque de fechas genérico — usamos el input propio de arriba
+            mFechas.style.display = 'none';
+
+            // Inicializar flatpickr en el input específico de la ficha diaria
+            setTimeout(() => {
+                const inputFecha = document.getElementById('fichaDiariaFecha');
+                if (inputFecha && typeof flatpickr !== 'undefined') {
+                    flatpickr(inputFecha, {
+                        dateFormat: 'Y-m-d',
+                        locale: 'es',
+                        defaultDate: hoyISO,
+                        maxDate: hoyISO,   // no permite fechas futuras
+                        allowInput: true,
+                        onChange: function(selectedDates, dateStr) {
+                            // Actualizar etiqueta descriptiva
+                            if (selectedDates.length > 0) {
+                                const d = selectedDates[0];
+                                const lbl = `${diasSemana[d.getDay()]}, ${d.getDate()} de ${meses[d.getMonth()]} de ${d.getFullYear()}`;
+                                const p = inputFecha.nextElementSibling;
+                                if (p) p.textContent = lbl;
+                            }
+                        }
+                    });
+                }
+            }, 80);
             break;
+        }
         case 'constancias':
             htmlFiltros = `
                 <div class="r-form-group">
@@ -1269,14 +1327,25 @@ async function submitConFormato(formato, btn) {
             if (typeof Swal !== 'undefined') {
                 // ── SweetAlert Bento Premium ──
                 // El color/icóno varía según el contexto del módulo
-                const esEval = modulo === 'evaluaciones';
+                const esEval  = modulo === 'evaluaciones';
                 const esConst = modulo === 'constancias';
-                const color   = esEval ? '#ec4899' : (esConst ? '#059669' : '#162660');
+                
+                // Detectar si el mensaje es por día no hábil/feriado en ficha diaria
+                const esNoHabil = json.message && (json.message.includes('no hábil') || json.message.includes('feriado') || json.message.includes('no laborable'));
+
+                const color   = esEval ? '#ec4899' : (esConst ? '#059669' : (esNoHabil ? '#ea580c' : '#162660'));
                 const bgColor = esEval ? 'rgba(236,72,153,0.08)'
-                              : (esConst ? 'rgba(5,150,105,0.08)' : 'rgba(22,38,96,0.07)');
-                const svgPath = esEval
-                    ? '<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>'
-                    : '<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>';
+                              : (esConst ? 'rgba(5,150,105,0.08)' : (esNoHabil ? 'rgba(234,88,12,0.08)' : 'rgba(22,38,96,0.07)'));
+                
+                let svgPath = '<path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>'; // warning
+                if (esEval) {
+                    svgPath = '<path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>'; // doc
+                }
+
+                let tituloAlert = 'Sin registros';
+                if (esEval) tituloAlert = 'Sin Evaluación';
+                else if (esConst) tituloAlert = 'No disponible';
+                else if (esNoHabil) tituloAlert = 'Día no laborable';
 
                 Swal.fire({
                     html: `
@@ -1289,7 +1358,7 @@ async function submitConFormato(formato, btn) {
                                      stroke="${color}" stroke-width="2" stroke-linecap="round">${svgPath}</svg>
                             </div>
                             <div style="font-size:1rem;font-weight:800;color:#0D1424;margin-bottom:6px;">
-                                ${esEval ? 'Sin Evaluación' : (esConst ? 'No disponible' : 'Sin registros')}
+                                ${tituloAlert}
                             </div>
                             <div style="font-size:0.83rem;color:#475569;line-height:1.5;max-width:280px;margin:0 auto;">
                                 ${json.message || 'No hay datos para el período seleccionado.'}

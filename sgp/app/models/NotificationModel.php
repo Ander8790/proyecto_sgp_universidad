@@ -13,27 +13,37 @@ class NotificationModel
     }
 
     /**
-     * Tipos de notificación exclusivos para administradores/tutores.
-     * Los pasantes (role_id = 3) no deben verlos.
+     * Tipos exclusivos solo para Admin (rol 1 / superadmin 0).
+     * Ni tutores ni pasantes los ven.
      */
     private const ADMIN_ONLY_TYPES = [
         'usuario_creado',
         'perfil_actualizado',
         'alerta_sistema',
-        'solicitud_pin',
         'solicitud_recovery',
     ];
 
     /**
-     * Construye la cláusula NOT IN con parámetros nombrados para los tipos admin.
-     * Retorna ['clause' => 'AND tipo NOT IN (:t0,:t1,...)', 'binds' => [':t0' => ..., ...]]
+     * Tipos que los pasantes (rol 3) NO ven.
+     * Los tutores sí pueden verlos (solo lectura).
      */
-    private function buildAdminTypeFilter(): array
+    private const PASANTE_EXCLUDED_TYPES = [
+        'usuario_creado',
+        'perfil_actualizado',
+        'alerta_sistema',
+        'solicitud_recovery',
+        'solicitud_pin',
+    ];
+
+    /**
+     * Construye la cláusula NOT IN con parámetros nombrados.
+     */
+    private function buildTypeFilter(array $types, string $prefix = 'ftype'): array
     {
         $named = [];
         $binds = [];
-        foreach (self::ADMIN_ONLY_TYPES as $i => $tipo) {
-            $key = ':admintype' . $i;
+        foreach ($types as $i => $tipo) {
+            $key = ":{$prefix}{$i}";
             $named[] = $key;
             $binds[$key] = $tipo;
         }
@@ -44,6 +54,24 @@ class NotificationModel
     }
 
     /**
+     * Devuelve el filtro de tipo según el rol del usuario.
+     * rol 0/1 = Admin/SuperAdmin → sin filtro
+     * rol 2   = Tutor           → excluye admin_only (NO solicitud_pin)
+     * rol 3   = Pasante         → excluye todo lo administrativo
+     */
+    private function getFilterForRole(int $role_id): array
+    {
+        if ($role_id <= 1) {
+            return ['clause' => '', 'binds' => []]; // Admin ve todo
+        }
+        if ($role_id === 2) {
+            return $this->buildTypeFilter(self::ADMIN_ONLY_TYPES, 'at'); // Tutor: sin admin_only
+        }
+        return $this->buildTypeFilter(self::PASANTE_EXCLUDED_TYPES, 'pt'); // Pasante: sin nada admin
+    }
+
+
+    /**
      * Get unread notifications for a user, filtered by role.
      * @param int $user_id
      * @param int $role_id  1=Admin, 2=Tutor, 3=Pasante
@@ -51,10 +79,10 @@ class NotificationModel
      */
     public function getUnreadByUser($user_id, $role_id = 1, $limit = 10)
     {
-        $filter = ((int)$role_id === 3) ? $this->buildAdminTypeFilter() : ['clause' => '', 'binds' => []];
+        $filter = $this->getFilterForRole((int)$role_id);
 
         $this->db->query("
-            SELECT id, tipo, titulo, mensaje, url, created_at
+            SELECT id, tipo, titulo, mensaje, url, created_at, referencia_id
             FROM notificaciones
             WHERE usuario_id = :user_id
               AND leida = 0
@@ -75,7 +103,7 @@ class NotificationModel
      */
     public function getCountUnread($user_id, $role_id = 1)
     {
-        $filter = ((int)$role_id === 3) ? $this->buildAdminTypeFilter() : ['clause' => '', 'binds' => []];
+        $filter = $this->getFilterForRole((int)$role_id);
 
         $this->db->query("
             SELECT COUNT(*) as count
@@ -91,6 +119,7 @@ class NotificationModel
         $result = $this->db->single();
         return $result ? $result->count : 0;
     }
+
 
     /**
      * Mark notification as read
@@ -126,22 +155,73 @@ class NotificationModel
     }
 
     /**
-     * Create a new notification
+     * Create a new notification (sin referencia_id)
      */
     public function create($usuario_id, $tipo, $titulo, $mensaje, $url = '#')
     {
+        return $this->createWithRef($usuario_id, $tipo, $titulo, $mensaje, $url, null);
+    }
+
+    /**
+     * Create a notification con referencia_id opcional.
+     * Usar para eventos rastreables (PIN reset, etc.) que deben
+     * resolverse en todos los destinatarios simultáneamente.
+     */
+    public function createWithRef($usuario_id, $tipo, $titulo, $mensaje, $url = '#', $referencia_id = null)
+    {
         $this->db->query("
-            INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, url)
-            VALUES (:usuario_id, :tipo, :titulo, :mensaje, :url)
+            INSERT INTO notificaciones (usuario_id, tipo, titulo, mensaje, url, referencia_id)
+            VALUES (:usuario_id, :tipo, :titulo, :mensaje, :url, :ref_id)
         ");
-        
-        $this->db->bind(':usuario_id', $usuario_id);
-        $this->db->bind(':tipo', $tipo);
-        $this->db->bind(':titulo', $titulo);
-        $this->db->bind(':mensaje', $mensaje);
-        $this->db->bind(':url', $url);
-        
+        $this->db->bind(':usuario_id',  $usuario_id);
+        $this->db->bind(':tipo',        $tipo);
+        $this->db->bind(':titulo',      $titulo);
+        $this->db->bind(':mensaje',     $mensaje);
+        $this->db->bind(':url',         $url);
+        $this->db->bind(':ref_id',      $referencia_id);
         return $this->db->execute();
+    }
+
+    /**
+     * Marcar como leídas TODAS las notificaciones de un evento específico
+     * (por tipo + referencia_id) para todos los usuarios destinatarios.
+     * Se llama cuando el admin resuelve el evento (ej: resetea PIN).
+     *
+     * @param string $tipo         Tipo de notificación (ej: 'solicitud_pin')
+     * @param int    $referencia_id ID del pasante u objeto del evento
+     */
+    public function resolverPorReferencia(string $tipo, int $referencia_id): bool
+    {
+        $this->db->query("
+            UPDATE notificaciones
+            SET leida = 1
+            WHERE tipo = :tipo
+              AND referencia_id = :ref_id
+              AND leida = 0
+        ");
+        $this->db->bind(':tipo',   $tipo);
+        $this->db->bind(':ref_id', $referencia_id);
+        return $this->db->execute();
+    }
+
+    /**
+     * Verificar si ya existe notificación del mismo tipo+referencia para un usuario HOY.
+     * Evita duplicados en notificaciones de feriado por login múltiple.
+     */
+    public function existeHoy(int $usuario_id, string $tipo, ?int $referencia_id = null): bool
+    {
+        $this->db->query("
+            SELECT id FROM notificaciones
+            WHERE usuario_id = :uid
+              AND tipo = :tipo
+              AND DATE(created_at) = CURDATE()
+              AND (:ref IS NULL OR referencia_id = :ref)
+            LIMIT 1
+        ");
+        $this->db->bind(':uid',  $usuario_id);
+        $this->db->bind(':tipo', $tipo);
+        $this->db->bind(':ref',  $referencia_id);
+        return (bool)$this->db->single();
     }
 
     /**

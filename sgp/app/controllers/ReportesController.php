@@ -459,7 +459,17 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 );
             }
 
-            // ── 4. Obtener asistencias del trimestre (query no cambia) ──
+            // ── 4. Obtener asistencias del trimestre ──
+            // El rango de la query se extiende a la semana calendario completa (Dom–Sáb)
+            // para que días previos al inicio del trimestre (p.ej. Lun–Jue cuando el
+            // trimestre empieza en viernes) queden incluidos en la primera fila del PDF.
+            $dow_ini  = (int)$inicio_trim->format('w');            // 0=Dom…6=Sáb
+            $q_inicio = (clone $inicio_trim)->modify("-{$dow_ini} days"); // retroceder al Dom
+
+            $dow_fin_v = (int)$fin_trim->format('w');
+            $dias_hasta_sab = (6 - $dow_fin_v + 7) % 7;           // 0 si ya es Sáb
+            $q_fin = (clone $fin_trim)->modify("+{$dias_hasta_sab} days");
+
             $this->db->query("
                 SELECT fecha, hora_entrada, hora_salida, estado
                 FROM asistencias
@@ -468,8 +478,8 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 ORDER BY fecha ASC
             ");
             $this->db->bind(':pid',    $pasante_id);
-            $this->db->bind(':inicio', $fecha_inicio);
-            $this->db->bind(':fin',    $fecha_fin);
+            $this->db->bind(':inicio', $q_inicio->format('Y-m-d'));
+            $this->db->bind(':fin',    $q_fin->format('Y-m-d'));
             $asistencias_raw = $this->db->resultSet();
 
             // ── 5. Indexar asistencias por [fecha Y-m-d][día semana 0-6] ──
@@ -711,7 +721,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 $this->db->query("
                     SELECT COUNT(*) AS total
                     FROM usuarios u
-                    JOIN roles r ON r.id = u.rol_id
+                    LEFT JOIN roles r ON r.id = u.rol_id
                     WHERE " . implode(' AND ', $uWhere)
                 );
                 foreach ($uBinds as $p => $v) {
@@ -771,7 +781,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 $bWhere = ['1=1'];
                 $bBinds = [];
                 if ($fecha_inicio) {
-                    $bWhere[] = 'b.fecha BETWEEN :fi AND :ff';
+                    $bWhere[] = 'DATE(b.created_at) BETWEEN :fi AND :ff';
                     $bBinds[':fi'] = $fecha_inicio;
                     $bBinds[':ff'] = $fecha_fin;
                 }
@@ -781,8 +791,50 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 break;
 
             case 'diaria':
-                // Siempre hay datos (reporte del día actual)
-                echo json_encode(['success' => true, 'count' => 1, 'message' => 'OK']);
+                $fechaRaw = trim($_POST['fecha_diaria'] ?? '');
+                $fecha    = ($fechaRaw && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaRaw)) ? $fechaRaw : date('Y-m-d');
+                if ($fecha > date('Y-m-d')) $fecha = date('Y-m-d');
+
+                $diaSemana = (int)date('N', strtotime($fecha));
+                if ($diaSemana >= 6) {
+                    $diaLabel = $diaSemana === 6 ? 'Sábado' : 'Domingo';
+                    echo json_encode(['success' => false, 'message' => "La ficha diaria solo refleja días laborables. La fecha seleccionada es $diaLabel, por lo que no hay jornada activa."]);
+                    exit;
+                }
+
+                $this->db->query("SELECT nombre FROM dias_feriados WHERE fecha = :hoy LIMIT 1");
+                $this->db->bind(':hoy', $fecha);
+                $feriado = $this->db->single();
+                if ($feriado) {
+                    echo json_encode(['success' => false, 'message' => "La fecha seleccionada es un día feriado (" . htmlspecialchars($feriado->nombre) . "). No se genera reporte para días feriados."]);
+                    exit;
+                }
+
+                $where = ['a.fecha = :fecha', "a.estado != 'Anulado'"];
+                $binds = [':fecha' => $fecha];
+                $deptoId = $_POST['departamento'] ?? 'todos';
+                
+                if ($deptoId !== 'todos') {
+                    $where[] = 'dpa.departamento_asignado_id = :depto';
+                    $binds[':depto'] = (int)$deptoId;
+                }
+
+                $this->db->query("
+                    SELECT COUNT(*) AS total
+                    FROM asistencias a
+                    JOIN usuarios u ON u.id = a.pasante_id
+                    LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
+                    WHERE " . implode(' AND ', $where) . "
+                ");
+                foreach ($binds as $p => $v) { $this->db->bind($p, $v); }
+                $count = (int)($this->db->single()->total ?? 0);
+                
+                if ($count === 0) {
+                    echo json_encode(['success' => false, 'message' => "No se encontraron registros de asistencia para la fecha " . date('d/m/Y', strtotime($fecha)) . "."]);
+                    exit;
+                }
+                
+                echo json_encode(['success' => true, 'count' => $count, 'message' => 'OK']);
                 exit;
 
             default:
@@ -962,16 +1014,16 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             SELECT
                 u.id,
                 u.cedula,
-                dp.nombres,
-                dp.apellidos,
+                COALESCE(dp.nombres,   '') AS nombres,
+                COALESCE(dp.apellidos, '') AS apellidos,
                 u.correo,
-                r.nombre          AS rol,
+                COALESCE(r.nombre, 'SuperAdmin') AS rol,
                 d.nombre          AS departamento_nombre,
                 u.estado
             FROM usuarios u
-            JOIN datos_personales dp ON dp.usuario_id = u.id
-            JOIN roles            r  ON r.id          = u.rol_id
-            LEFT JOIN departamentos d ON d.id          = u.departamento_id
+            LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
+            LEFT JOIN roles            r  ON r.id          = u.rol_id
+            LEFT JOIN departamentos    d  ON d.id          = u.departamento_id
             {$sqlWhere}
             ORDER BY dp.apellidos ASC, dp.nombres ASC
         ");
@@ -1291,7 +1343,8 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
         $fecha_fin  = !empty($filtros['fecha_fin'])    ? trim($filtros['fecha_fin'])    : date('Y-m-d');
         $tipo       = $filtros['tipo'] ?? 'pdf';
 
-        $where = ['b.fecha BETWEEN :fi AND :ff'];
+        // ── Esquema real de bitacora: created_at (no 'fecha'), detalles (no 'descripcion') ──
+        $where = ['DATE(b.created_at) BETWEEN :fi AND :ff'];
         $binds = [':fi' => $fecha_ini, ':ff' => $fecha_fin];
 
         if ($moduloLog !== 'todos') {
@@ -1301,23 +1354,35 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
 
         $this->db->query("
             SELECT
-                b.fecha,
+                b.created_at                                                AS fecha,
                 b.accion,
-                b.tabla_afectada   AS modulo,
-                b.descripcion,
-                COALESCE(CONCAT(dp.nombres,' ',dp.apellidos), u.correo) AS usuario,
+                b.tabla_afectada                                            AS modulo,
+                b.detalles                                                  AS descripcion,
+                COALESCE(CONCAT(dp.nombres,' ',dp.apellidos), u.correo)    AS usuario,
                 u.cedula
             FROM bitacora b
             LEFT JOIN usuarios         u  ON u.id = b.usuario_id
             LEFT JOIN datos_personales dp ON dp.usuario_id = b.usuario_id
             WHERE " . implode(' AND ', $where) . "
-            ORDER BY b.fecha DESC
+            ORDER BY b.created_at DESC
             LIMIT 500
         ");
         foreach ($binds as $p => $v) { $this->db->bind($p, $v); }
         $registros = $this->db->resultSet();
 
-        $subtitulo_pdf = 'Audit\u00f3r\u00eda del sistema | '
+        // ── Validación: sin registros → mostrar error amigable ────────────────
+        if (empty($registros)) {
+            $this->renderErrorPage(
+                'Sin registros de auditoría',
+                'No se encontraron registros en el período del '
+                    . date('d/m/Y', strtotime($fecha_ini))
+                    . ' al ' . date('d/m/Y', strtotime($fecha_fin))
+                    . '. Amplíe el rango de fechas o seleccione otro módulo.'
+            );
+            return;
+        }
+
+        $subtitulo_pdf = 'Auditoría del sistema | '
             . date('d/m/Y', strtotime($fecha_ini))
             . ' al ' . date('d/m/Y', strtotime($fecha_fin));
 
@@ -1328,16 +1393,16 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             header('Cache-Control: no-store, no-cache');
             $out = fopen('php://output', 'w');
             fputs($out, "\xEF\xBB\xBF");
-            fputcsv($out, ['N\u00b0', 'Fecha/Hora', 'Usuario', 'C\u00e9dula', 'M\u00f3dulo', 'Acci\u00f3n', 'Descripci\u00f3n'], ';');
+            fputcsv($out, ['N°', 'Fecha/Hora', 'Usuario', 'Cédula', 'Módulo', 'Acción', 'Descripción'], ';');
             foreach ($registros as $i => $r) {
                 fputcsv($out, [
                     $i + 1,
-                    $r->fecha        ?? '\u2014',
-                    $r->usuario      ?? '\u2014',
-                    $r->cedula       ?? '\u2014',
-                    $r->modulo       ?? '\u2014',
-                    $r->accion       ?? '\u2014',
-                    $r->descripcion  ?? '\u2014',
+                    $r->fecha       ?? '—',
+                    $r->usuario     ?? '—',
+                    $r->cedula      ?? '—',
+                    $r->modulo      ?? '—',
+                    $r->accion      ?? '—',
+                    $r->descripcion ?? '—',
                 ], ';');
             }
             fclose($out);
@@ -1423,14 +1488,55 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
     }
 
     /**
-     * Ficha Diaria — Asistencias del día por departamento
+     * Ficha Diaria — Asistencias del día por departamento.
+     * Valida fin de semana, feriados y horario laboral antes de generar el PDF.
      */
     private function generarFichaDiaria(array $filtros): void
     {
-        $deptoId = $filtros['departamento'] ?? 'todos';
-        $fecha   = date('Y-m-d'); // siempre hoy
+        $deptoId    = $filtros['departamento'] ?? 'todos';
 
-        $where = ['a.fecha = :fecha', 'a.estado != \'Anulado\''];
+        // Usar la fecha elegida por el usuario; fallback = hoy
+        $fechaRaw   = trim($filtros['fecha_diaria'] ?? '');
+        $fecha      = ($fechaRaw && preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaRaw))
+                        ? $fechaRaw
+                        : date('Y-m-d');
+
+        // Asegurar que no sea fecha futura
+        if ($fecha > date('Y-m-d')) {
+            $fecha = date('Y-m-d');
+        }
+
+        $diaSemana  = (int)date('N', strtotime($fecha));  // 1=Lun … 7=Dom
+        $horaActual = (int)date('H');
+
+        // ── 1. Validar fin de semana ──────────────────────────────────────────
+        if ($diaSemana >= 6) {
+            $diaLabel = $diaSemana === 6 ? 'Sábado' : 'Domingo';
+            $this->renderErrorPage(
+                'Día no hábil — ' . $diaLabel . ' ' . date('d/m/Y'),
+                'La Ficha Diaria de Actividad solo refleja días laborables (lunes a viernes). '
+                . 'Hoy es ' . $diaLabel . ', por lo que no hay jornada activa y no se genera el reporte.'
+            );
+            return;
+        }
+
+        // ── 2. Validar feriado ────────────────────────────────────────────────
+        $this->db->query("SELECT nombre FROM dias_feriados WHERE fecha = :hoy LIMIT 1");
+        $this->db->bind(':hoy', $fecha);
+        $feriado = $this->db->single();
+
+        if ($feriado) {
+            $this->renderErrorPage(
+                'Día Feriado — ' . htmlspecialchars($feriado->nombre),
+                'Hoy ' . date('d/m/Y') . ' es día feriado ('
+                . htmlspecialchars($feriado->nombre)
+                . '). No hay jornada laboral activa; las horas de este día se contabilizan como Justificado automáticamente.'
+            );
+            return;
+        }
+
+        // ── 3. Construir consulta ─────────────────────────────────────────────
+        $where = ['a.fecha = :fecha', "a.estado != 'Anulado'"];
         $binds = [':fecha' => $fecha];
 
         if ($deptoId !== 'todos') {
@@ -1441,8 +1547,10 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
         $this->db->query("
             SELECT
                 dp.apellidos, dp.nombres, u.cedula,
-                d.nombre   AS departamento,
-                a.estado, a.hora_registro,
+                d.nombre         AS departamento,
+                a.fecha,
+                a.estado,
+                a.hora_registro,
                 a.metodo
             FROM asistencias a
             JOIN usuarios          u    ON u.id   = a.pasante_id
@@ -1462,7 +1570,13 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             $porDepto[$dep][] = $r;
         }
 
-        $subtitulo_pdf = 'Ficha Diaria | ' . date('d/m/Y');
+        // ── 4. Variables de contexto para la vista ───────────────────────────
+        $esDiaHabil      = true;
+        
+        // Si el reporte es de un día pasado, la jornada ya cerró, así que los datos son definitivos (no muestra aviso).
+        $esHorarioLaboral = ($fecha < date('Y-m-d')) ? true : ($horaActual >= 7 && $horaActual < 17);
+        
+        $subtitulo_pdf    = 'Ficha Diaria | ' . date('d/m/Y', strtotime($fecha));
 
         ob_start();
         include '../app/views/reportes/pdf_ficha_diaria.php';

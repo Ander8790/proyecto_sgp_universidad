@@ -209,6 +209,9 @@
 </style>
 
 <?php
+// Preservar lista completa (con IDs) antes de transformar para filtros
+$deptos_lista = $departamentos ?? [];
+
 // Extraer Departamentos e Instituciones únicas para los filtros
 $departamentos = [];
 $filtro_inst_nombres = [];
@@ -535,30 +538,60 @@ sort($filtro_inst_nombres);
     <?php echo CsrfHelper::field(); ?>
 </form>
 
-<!-- ======= MODAL: CAMBIAR ESTADO PREMIUM ======= -->
+<!-- ======= MODAL: CAMBIAR ESTADO ======= -->
 <div id="modalCambiarEstado" class="modal-overlay">
-    <div class="modal-box" style="max-width: 460px; min-height: auto;">
+    <div class="modal-box" style="max-width:480px;min-height:auto;">
         <div class="modal-head">
             <div>
                 <h2><i class="ti ti-settings" style="margin-right:8px;"></i>Cambiar Estado</h2>
-                <p id="txt-nombre-pasante">Selecciona el nuevo estado</p>
+                <p id="txt-nombre-pasante">—</p>
             </div>
             <button class="btn-close-modal" onclick="cerrarModalEstado()"><i class="ti ti-x"></i></button>
         </div>
-        <div class="modal-body" style="padding: 30px 40px 40px;">
+        <div class="modal-body" style="padding:24px 32px 32px;">
             <input type="hidden" id="inp-pasante-id">
 
-            <div class="form-group" style="margin-bottom: 25px;">
-                <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Nuevo Estado</label>
-                <select class="form-input no-choices" id="inp-nuevo-estado">
-                    <option value="Pendiente">⏳ Pendiente</option>
-                    <option value="Activo">✅ Activo</option>
-                    <option value="Finalizado">🏆 Finalizado</option>
-                    <option value="Retirado">❌ Retirado</option>
+            <!-- Estado actual badge -->
+            <div style="margin-bottom:18px;display:flex;align-items:center;gap:10px;">
+                <span style="font-size:.78rem;color:#64748b;font-weight:600;">Estado actual:</span>
+                <span id="lbl-estado-actual" style="font-size:.78rem;font-weight:800;padding:3px 12px;border-radius:20px;background:#f1f5f9;color:#334155;">—</span>
+            </div>
+
+            <!-- Mensaje estado terminal -->
+            <div id="estado-terminal-msg" style="display:none;background:linear-gradient(to right,#f8fafc,#edf2f9);border:1px solid #e2e8f0;border-left:3px solid #94a3b8;border-radius:10px;padding:12px 16px;margin-bottom:18px;display:none;align-items:flex-start;gap:10px;">
+                <div style="background:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.08);flex-shrink:0;">
+                    <i class="ti ti-lock" style="color:#64748b;font-size:.95rem;"></i>
+                </div>
+                <p style="margin:0;font-size:.78rem;color:#64748b;line-height:1.55;">
+                    Este estado es <strong style="color:#334155;">definitivo</strong>. Una vez que un pasante está
+                    <strong>Finalizado</strong> o <strong>Retirado</strong>, no es posible modificar su estado.
+                </p>
+            </div>
+
+            <!-- Selector de estado -->
+            <div id="estado-form-group" class="form-group" style="margin-bottom:16px;">
+                <label class="form-label" style="font-size:.85rem;color:#1e3a8a;">Nuevo Estado</label>
+                <select class="form-input no-choices" id="inp-nuevo-estado" onchange="onEstadoChange(this.value)">
+                    <option value="">Seleccione un estado...</option>
                 </select>
             </div>
 
-            <button class="btn-submit" onclick="confirmarCambioEstado()" style="padding: 12px 20px; font-size: 0.9rem; width: auto; margin: 0 auto; display: flex; box-shadow: 0 4px 12px rgba(37,99,235,0.2);">
+            <!-- Motivo de retiro (solo para Retirado) -->
+            <div id="grupo-motivo-retiro" style="display:none;margin-bottom:20px;">
+                <div style="background:#fef2f2;border:1px solid #fecaca;border-left:3px solid #dc2626;border-radius:10px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:flex-start;gap:8px;">
+                    <i class="ti ti-alert-triangle" style="color:#dc2626;font-size:1rem;margin-top:1px;flex-shrink:0;"></i>
+                    <p style="margin:0;font-size:.74rem;color:#b91c1c;line-height:1.5;">
+                        <strong>Acción irreversible.</strong> El pasante quedará retirado definitivamente y no podrá registrar asistencias.
+                    </p>
+                </div>
+                <label class="form-label" style="font-size:.85rem;color:#dc2626;">Motivo de Retiro <span style="color:#dc2626;">*</span></label>
+                <textarea id="inp-motivo-retiro" class="form-input" rows="3"
+                    placeholder="Describe el motivo del retiro..."
+                    style="resize:vertical;font-size:.87rem;"></textarea>
+            </div>
+
+            <button id="btn-guardar-estado" class="btn-submit" onclick="confirmarCambioEstado()"
+                style="padding:12px 20px;font-size:.9rem;width:100%;display:flex;justify-content:center;box-shadow:0 4px 12px rgba(37,99,235,0.2);">
                 <i class="ti ti-device-floppy"></i> Guardar Estado
             </button>
         </div>
@@ -590,13 +623,22 @@ sort($filtro_inst_nombres);
                 <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Teléfono</label>
                 <input type="text" class="form-input" id="edit-telefono" placeholder="Teléfono de contacto">
             </div>
-            <div class="form-group" style="margin-bottom: 25px;">
+            <div class="form-group" style="margin-bottom: 15px;">
                 <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Institución de Procedencia</label>
                 <select class="form-input no-choices" id="edit-institucion">
                     <option value="">Seleccione una institución</option>
                     <?php if(!empty($instituciones)): foreach($instituciones as $inst): ?>
                         <option value="<?= $inst->id ?>"><?= htmlspecialchars($inst->nombre) ?></option>
                     <?php endforeach; endif; ?>
+                </select>
+            </div>
+            <div class="form-group" style="margin-bottom: 25px;">
+                <label class="form-label" style="font-size: 0.85rem; color: #1e3a8a;">Departamento asignado</label>
+                <select class="form-input no-choices" id="edit-departamento">
+                    <option value="">Sin departamento asignado</option>
+                    <?php foreach($deptos_lista as $dep): ?>
+                        <option value="<?= $dep->id ?>"><?= htmlspecialchars($dep->nombre) ?></option>
+                    <?php endforeach; ?>
                 </select>
             </div>
 
@@ -668,11 +710,12 @@ window.abrirModalEditarPasante = async function(pasanteId) {
 
         if (json.success) {
             const data = json.data;
-            document.getElementById('edit-pasante-id').value = pasanteId;
-            document.getElementById('edit-nombres').value = data.nombres || '';
-            document.getElementById('edit-apellidos').value = data.apellidos || '';
-            document.getElementById('edit-telefono').value = data.telefono || '';
-            document.getElementById('edit-institucion').value = data.institucion_id || '';
+            document.getElementById('edit-pasante-id').value   = pasanteId;
+            document.getElementById('edit-nombres').value      = data.nombres    || '';
+            document.getElementById('edit-apellidos').value    = data.apellidos  || '';
+            document.getElementById('edit-telefono').value     = data.telefono   || '';
+            document.getElementById('edit-institucion').value  = data.institucion_id          || '';
+            document.getElementById('edit-departamento').value = data.departamento_asignado_id || '';
             document.getElementById('modalEditarPasante').classList.add('active');
         } else {
             Swal.fire('Error', json.message, 'error');
@@ -693,6 +736,7 @@ async function guardarDatosPasante() {
     const apellidos = document.getElementById('edit-apellidos').value.trim();
     const telefono  = document.getElementById('edit-telefono').value.trim();
     const instId    = document.getElementById('edit-institucion').value;
+    const deptoId   = document.getElementById('edit-departamento').value;
 
     if (!nombres || !apellidos) {
         Swal.fire('Campos requeridos', 'Nombres y apellidos son obligatorios.', 'warning');
@@ -701,11 +745,12 @@ async function guardarDatosPasante() {
 
     try {
         const fd = new FormData();
-        fd.append('id', pasanteId);
-        fd.append('nombres', nombres);
-        fd.append('apellidos', apellidos);
-        fd.append('telefono', telefono);
-        fd.append('institucion_id', instId);
+        fd.append('id',               pasanteId);
+        fd.append('nombres',          nombres);
+        fd.append('apellidos',        apellidos);
+        fd.append('telefono',         telefono);
+        fd.append('institucion_id',   instId);
+        fd.append('departamento_id',  deptoId);
 
         const resp = await fetch(URLROOT + '/pasantes/actualizarDatos', {
             method: 'POST',
@@ -731,57 +776,139 @@ async function guardarDatosPasante() {
 }
 
 // Variable global para Choices.js del modal de estado
-let choicesEstado = null;
+// choicesEstado eliminado — select nativo con opciones dinámicas habilitadas/deshabilitadas
 
-// ── Cambiar Estado del Pasante (MODAL PREMIUM) ──
-function cambiarEstado(pasanteId, nombre) {
-    document.getElementById('inp-pasante-id').value = pasanteId;
-    document.getElementById('txt-nombre-pasante').textContent = 'Pasante: ' + (nombre || 'Seleccionado');
-    document.getElementById('modalCambiarEstado').classList.add('active');
+// ── Cambiar Estado del Pasante ──────────────────────────────────────────
+const ESTADO_ICONS = { 'Pendiente':'⏳', 'Activo':'✅', 'Finalizado':'🏆', 'Retirado':'❌' };
+const ESTADO_COLORES = {
+    'Sin Asignar': { bg:'#f1f5f9', color:'#475569' },
+    'Pendiente':   { bg:'#fef9c3', color:'#854d0e' },
+    'Activo':      { bg:'#dcfce7', color:'#166534' },
+    'Finalizado':  { bg:'#ede9fe', color:'#5b21b6' },
+    'Retirado':    { bg:'#fee2e2', color:'#991b1b' },
+};
 
-    const select = document.getElementById('inp-nuevo-estado');
-    if (!choicesEstado) {
-        choicesEstado = new Choices(select, {
-            searchEnabled: false,
-            itemSelectText: '',
-            position: 'bottom',
-            shouldSort: false
-        });
-    }
+function onEstadoChange(val) {
+    document.getElementById('grupo-motivo-retiro').style.display = val === 'Retirado' ? '' : 'none';
+    if (val !== 'Retirado') document.getElementById('inp-motivo-retiro').value = '';
 }
+
+window.cambiarEstado = async function(encryptedId, nombre) {
+    Swal.fire({ title: 'Cargando...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    try {
+        const resp = await fetch(URLROOT + '/pasantes/obtenerInfoEstado/' + encryptedId);
+        const json = await resp.json();
+        Swal.close();
+
+        if (!json.success) { Swal.fire('Error', json.message, 'error'); return; }
+
+        // Rellenar cabecera
+        document.getElementById('inp-pasante-id').value = encryptedId;
+        document.getElementById('txt-nombre-pasante').textContent = 'Pasante: ' + (nombre || '—');
+
+        // Badge estado actual
+        const lbl = document.getElementById('lbl-estado-actual');
+        const cfg = ESTADO_COLORES[json.estado_actual] || ESTADO_COLORES['Sin Asignar'];
+        lbl.textContent = json.estado_actual;
+        lbl.style.background = cfg.bg;
+        lbl.style.color = cfg.color;
+
+        const terminalMsg  = document.getElementById('estado-terminal-msg');
+        const formGroup    = document.getElementById('estado-form-group');
+        const btnGuardar   = document.getElementById('btn-guardar-estado');
+        const grupoMotivo  = document.getElementById('grupo-motivo-retiro');
+        const select       = document.getElementById('inp-nuevo-estado');
+
+        // Resetear
+        select.value = '';
+        grupoMotivo.style.display = 'none';
+        document.getElementById('inp-motivo-retiro').value = '';
+
+        if (json.es_terminal) {
+            terminalMsg.style.display = 'flex';
+            formGroup.style.display   = 'none';
+            btnGuardar.style.display  = 'none';
+        } else {
+            terminalMsg.style.display = 'none';
+            formGroup.style.display   = '';
+            btnGuardar.style.display  = '';
+
+            // Solo agregar las transiciones permitidas — sin opciones deshabilitadas
+            select.innerHTML = '<option value="">Seleccione un estado...</option>';
+            json.transiciones.forEach(function(st) {
+                const opt       = document.createElement('option');
+                opt.value       = st;
+                opt.textContent = (ESTADO_ICONS[st] || '') + ' ' + st;
+                select.appendChild(opt);
+            });
+        }
+
+        document.getElementById('modalCambiarEstado').classList.add('active');
+
+    } catch(e) {
+        Swal.close();
+        Swal.fire('Error de conexión', 'Intenta de nuevo.', 'error');
+    }
+};
 
 function cerrarModalEstado() {
     document.getElementById('modalCambiarEstado').classList.remove('active');
 }
 
 async function confirmarCambioEstado() {
-    const pasanteId = document.getElementById('inp-pasante-id').value;
+    const pasanteId   = document.getElementById('inp-pasante-id').value;
     const nuevoEstado = document.getElementById('inp-nuevo-estado').value;
+    const motivo      = document.getElementById('inp-motivo-retiro').value.trim();
+
+    if (!nuevoEstado) {
+        Swal.fire('Selecciona un estado', 'Elige el nuevo estado antes de guardar.', 'warning');
+        return;
+    }
+
+    // Confirmación extra para Retirado
+    if (nuevoEstado === 'Retirado') {
+        if (!motivo) {
+            Swal.fire('Motivo requerido', 'Debes indicar el motivo del retiro.', 'warning');
+            document.getElementById('inp-motivo-retiro').focus();
+            return;
+        }
+        const confirm = await Swal.fire({
+            icon: 'warning',
+            title: '¿Confirmar retiro?',
+            html: '<p style="color:#475569;font-size:.9rem;line-height:1.6;">Esta acción es <strong style="color:#dc2626;">irreversible</strong>.<br>El pasante quedará retirado definitivamente.</p>',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, retirar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc2626',
+        });
+        if (!confirm.isConfirmed) return;
+    }
 
     try {
-        var fd = new FormData();
+        const fd = new FormData();
         fd.append('pasante_id', pasanteId);
-        fd.append('estado', nuevoEstado);
+        fd.append('estado',     nuevoEstado);
+        fd.append('motivo',     motivo);
 
         const resp = await fetch(URLROOT + '/pasantes/cambiarEstado', {
-            method: 'POST',
-            body: fd,
+            method: 'POST', body: fd,
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         });
+        const json = await resp.json();
 
-        var json = await resp.json();
         if (json.success) {
             cerrarModalEstado();
             if (typeof NotificationService !== 'undefined') {
-                NotificationService.success('¡Estado Actualizado!', json.message);
+                NotificationService.success('Estado actualizado', json.message);
             } else {
-                await Swal.fire({ icon: 'success', title: '¡Estado Actualizado!', text: json.message, confirmButtonColor: '#2563eb' });
+                await Swal.fire({ icon: 'success', title: 'Estado actualizado', text: json.message, confirmButtonColor: '#2563eb' });
             }
             window.location.reload();
         } else {
-            Swal.fire({ icon: 'error', title: 'Error', text: json.message || 'No se pudo cambiar el estado.', confirmButtonColor: '#2563eb' });
+            Swal.fire({ icon: 'error', title: 'No se pudo cambiar', text: json.message, confirmButtonColor: '#2563eb' });
         }
-    } catch (err) {
+    } catch(err) {
         Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'Intenta de nuevo.', confirmButtonColor: '#2563eb' });
     }
 }

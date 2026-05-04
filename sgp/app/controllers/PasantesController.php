@@ -169,6 +169,60 @@ class PasantesController extends Controller
     }
 
     /**
+     * AJAX: Obtener estado actual y transiciones permitidas
+     * GET /pasantes/obtenerInfoEstado/{encryptedId}
+     */
+    public function obtenerInfoEstado($encryptedId = ''): void
+    {
+        header('Content-Type: application/json');
+
+        $pasanteId = (int)UrlSecurity::decrypt($encryptedId);
+        if (!$pasanteId) {
+            echo json_encode(['success' => false, 'message' => 'ID inválido.']);
+            exit;
+        }
+
+        $this->db->query("
+            SELECT dpa.estado_pasantia, dpa.departamento_asignado_id,
+                   dpa.tutor_id, dpa.fecha_inicio_pasantia
+            FROM datos_pasante dpa
+            WHERE dpa.usuario_id = :id
+        ");
+        $this->db->bind(':id', $pasanteId);
+        $info = $this->db->single();
+
+        $this->db->query("SELECT COUNT(*) AS total FROM asistencias
+                          WHERE pasante_id = :id AND estado != 'Anulado'");
+        $this->db->bind(':id', $pasanteId);
+        $conteo = $this->db->single();
+
+        $estadoActual    = $info->estado_pasantia ?? 'Sin Asignar';
+        $tieneAsistencias = (int)($conteo->total ?? 0) > 0;
+
+        $mapa = [
+            'Sin Asignar' => ['Pendiente'],
+            'Pendiente'   => ['Activo', 'Retirado'],
+            'Activo'      => ['Finalizado', 'Retirado'],
+            'Finalizado'  => [],
+            'Retirado'    => [],
+        ];
+
+        $permitidas = $mapa[$estadoActual] ?? [];
+        if ($tieneAsistencias) {
+            $permitidas = array_values(array_filter($permitidas, fn($e) => $e !== 'Pendiente'));
+        }
+
+        echo json_encode([
+            'success'          => true,
+            'estado_actual'    => $estadoActual,
+            'tiene_asistencias'=> $tieneAsistencias,
+            'transiciones'     => $permitidas,
+            'es_terminal'      => empty($permitidas),
+        ]);
+        exit;
+    }
+
+    /**
      * AJAX: Cambiar Estado de Pasantía
      * POST /pasantes/cambiarEstado
      */
@@ -182,11 +236,10 @@ class PasantesController extends Controller
         }
 
         $encryptedId = trim($_POST['pasante_id'] ?? '');
-        $estado      = trim($_POST['estado'] ?? '');
+        $estado      = trim($_POST['estado']     ?? '');
+        $motivo      = trim($_POST['motivo']     ?? '');
 
-        // VULN-03: Desencriptar ID (llega encriptado desde el frontend)
         $pasanteId = (int)UrlSecurity::decrypt($encryptedId);
-
         if (!$pasanteId) {
             echo json_encode(['success' => false, 'message' => 'ID de pasante inválido.']);
             exit;
@@ -198,48 +251,99 @@ class PasantesController extends Controller
             exit;
         }
 
-        // VULN-01: Validar prerequisitos antes de activar
-        if ($estado === 'Activo') {
-            $this->db->query("SELECT departamento_asignado_id, fecha_inicio_pasantia 
-                              FROM datos_pasante WHERE usuario_id = :id");
-            $this->db->bind(':id', $pasanteId);
-            $asignacion = $this->db->single();
+        // ── Obtener estado actual ─────────────────────────────────────
+        $this->db->query("SELECT estado_pasantia, departamento_asignado_id,
+                                 tutor_id, fecha_inicio_pasantia
+                          FROM datos_pasante WHERE usuario_id = :id");
+        $this->db->bind(':id', $pasanteId);
+        $actual = $this->db->single();
 
-            if (!$asignacion || !$asignacion->departamento_asignado_id || !$asignacion->fecha_inicio_pasantia) {
-                echo json_encode([
-                    'success' => false,
-                    'message' => 'No se puede activar: el pasante no tiene asignación completa (departamento y fecha de inicio).'
-                ]);
+        if (!$actual) {
+            echo json_encode(['success' => false, 'message' => 'Pasante no encontrado.']);
+            exit;
+        }
+
+        $estadoActual = $actual->estado_pasantia ?? 'Sin Asignar';
+
+        // ── Estados terminales — no modificables ─────────────────────
+        if (in_array($estadoActual, ['Finalizado', 'Retirado'])) {
+            echo json_encode(['success' => false, 'message' => "El estado '{$estadoActual}' es definitivo y no puede modificarse."]);
+            exit;
+        }
+
+        // ── Máquina de estados ────────────────────────────────────────
+        $mapa = [
+            'Sin Asignar' => ['Pendiente'],
+            'Pendiente'   => ['Activo', 'Retirado'],
+            'Activo'      => ['Finalizado', 'Retirado'],
+        ];
+        $permitidas = $mapa[$estadoActual] ?? [];
+
+        // Si ya tiene asistencias registradas no puede volver a Pendiente
+        $this->db->query("SELECT COUNT(*) AS total FROM asistencias
+                          WHERE pasante_id = :id AND estado != 'Anulado'");
+        $this->db->bind(':id', $pasanteId);
+        $conteo = $this->db->single();
+        if ((int)($conteo->total ?? 0) > 0) {
+            $permitidas = array_values(array_filter($permitidas, fn($e) => $e !== 'Pendiente'));
+        }
+
+        if (!in_array($estado, $permitidas)) {
+            echo json_encode(['success' => false, 'message' => "Transición no permitida: de '{$estadoActual}' a '{$estado}'."]);
+            exit;
+        }
+
+        // ── Prerequisitos para Activo ─────────────────────────────────
+        if ($estado === 'Activo') {
+            if (!$actual->departamento_asignado_id || !$actual->fecha_inicio_pasantia) {
+                echo json_encode(['success' => false, 'message' => 'No se puede activar: falta departamento asignado o fecha de inicio.']);
                 exit;
             }
         }
 
-        $this->db->query("UPDATE datos_pasante SET estado_pasantia = :estado WHERE usuario_id = :id");
-        $this->db->bind(':estado', $estado);
-        $this->db->bind(':id', $pasanteId);
+        // ── Motivo obligatorio para Retirado ──────────────────────────
+        if ($estado === 'Retirado' && empty($motivo)) {
+            echo json_encode(['success' => false, 'message' => 'El motivo de retiro es obligatorio.']);
+            exit;
+        }
 
-        if ($this->db->execute()) {
-            // --- Notificar al Pasante ---
+        // ── Ejecutar cambio ───────────────────────────────────────────
+        try {
+            $this->db->beginTransaction();
+
+            if ($estado === 'Retirado') {
+                $this->db->query("UPDATE datos_pasante
+                                  SET estado_pasantia = :estado,
+                                      observaciones   = :obs
+                                  WHERE usuario_id = :id");
+                $this->db->bind(':obs', 'Motivo de retiro: ' . $motivo);
+            } else {
+                $this->db->query("UPDATE datos_pasante SET estado_pasantia = :estado WHERE usuario_id = :id");
+            }
+            $this->db->bind(':estado', $estado);
+            $this->db->bind(':id',     $pasanteId);
+            $this->db->execute();
+
+            $this->db->commit();
+
             require_once APPROOT . '/models/NotificationModel.php';
             $notificationModel = new NotificationModel($this->db);
             $notificationModel->create(
-                $pasanteId,
-                'info',
+                $pasanteId, 'info',
                 'Actualización de Estado',
                 "El estado de tu pasantía ha cambiado a: {$estado}.",
                 URLROOT . '/perfil'
             );
 
-            AuditModel::log('CHANGE_PASANTE_STATUS', "Pasante ID $pasanteId → Estado: $estado");
-            echo json_encode([
-                'success' => true,
-                'message' => "Estado actualizado a '$estado'."
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false,
-                'message' => 'Error al actualizar el estado.'
-            ]);
+            AuditModel::log('CHANGE_PASANTE_STATUS',
+                "Pasante ID $pasanteId: {$estadoActual} → {$estado}" .
+                ($motivo ? " | Motivo: {$motivo}" : ''));
+
+            echo json_encode(['success' => true, 'message' => "Estado actualizado a '{$estado}'."]);
+
+        } catch (Exception $e) {
+            $this->db->rollBack();
+            echo json_encode(['success' => false, 'message' => 'Error interno al actualizar el estado.']);
         }
         exit;
     }
@@ -260,7 +364,8 @@ class PasantesController extends Controller
         $this->db->query("
             SELECT dp.nombres, dp.apellidos, dp.telefono,
                    dpa.institucion_procedencia,
-                   dpa.institucion_id
+                   dpa.institucion_id,
+                   dpa.departamento_asignado_id
             FROM datos_personales dp
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = dp.usuario_id
             WHERE dp.usuario_id = :id
@@ -300,11 +405,12 @@ class PasantesController extends Controller
             exit;
         }
 
-        $id        = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
-        $nombres   = trim($_POST['nombres'] ?? '');
-        $apellidos = trim($_POST['apellidos'] ?? '');
-        $telefono  = trim($_POST['telefono'] ?? '');
-        $institucion = filter_input(INPUT_POST, 'institucion', FILTER_VALIDATE_INT);
+        $id           = filter_input(INPUT_POST, 'id',            FILTER_VALIDATE_INT);
+        $nombres      = trim($_POST['nombres']   ?? '');
+        $apellidos    = trim($_POST['apellidos'] ?? '');
+        $telefono     = trim($_POST['telefono']  ?? '');
+        $institucion  = filter_input(INPUT_POST, 'institucion_id',   FILTER_VALIDATE_INT);
+        $departamento = filter_input(INPUT_POST, 'departamento_id',  FILTER_VALIDATE_INT);
 
         if (!$id || empty($nombres) || empty($apellidos)) {
             echo json_encode(['success' => false, 'message' => 'Nombres y apellidos son obligatorios.']);
@@ -327,17 +433,17 @@ class PasantesController extends Controller
             // Execute returns bool, if row count is 0 it's still true.
             $this->db->execute(); 
 
-            // 2. Actualizar institucion en datos_pasante
-            if ($institucion) {
-                $this->db->query("
-                    UPDATE datos_pasante 
-                    SET institucion_procedencia = :inst
-                    WHERE usuario_id = :id
-                ");
-                $this->db->bind(':inst', $institucion);
-                $this->db->bind(':id', $id);
-                $this->db->execute();
-            }
+            // 2. Actualizar institucion y departamento en datos_pasante
+            $this->db->query("
+                UPDATE datos_pasante
+                SET institucion_id            = COALESCE(:inst, institucion_id),
+                    departamento_asignado_id  = COALESCE(:depto, departamento_asignado_id)
+                WHERE usuario_id = :id
+            ");
+            $this->db->bind(':inst',  $institucion  ?: null);
+            $this->db->bind(':depto', $departamento ?: null);
+            $this->db->bind(':id',    $id);
+            $this->db->execute();
 
             $this->db->commit();
             AuditModel::log('UPDATE_PASANTE_DATA', "Pasante ID $id");

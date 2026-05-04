@@ -208,7 +208,7 @@ class SuperAdminController extends Controller
 
         $permisosModel = $this->model('Permisos');
         $permisos      = $permisosModel->getPermisosDetalleUsuario($userId, (int)$user['role_id']);
-        $modulos       = $permisosModel->getModulosConAcciones((int)$user['role_id']);
+        $modulos       = $permisosModel->getModulosConAcciones(); // null = todos los módulos
 
         echo json_encode([
             'success'  => true,
@@ -343,7 +343,7 @@ class SuperAdminController extends Controller
 
         $userModel     = $this->model('User');
         $permisosModel = $this->model('Permisos');
-        $modulos       = $permisosModel->getModulosConAcciones($rolId);
+        $modulos       = $permisosModel->getModulosConAcciones(); // null = todos los módulos
         $usuarios      = $userModel->getUsersByRoles([$rolId]);
 
         // Cargar permisos de cada usuario
@@ -356,6 +356,46 @@ class SuperAdminController extends Controller
             'success'  => true,
             'usuarios' => $usuarios,
             'modulos'  => $modulos,
+        ]);
+        exit;
+    }
+
+    /**
+     * API: Retorna todos los eventos de la bitácora registrados hoy.
+     * GET /superadmin/eventosHoy
+     */
+    public function eventosHoy(): void
+    {
+        $this->guardSuperAdmin();
+        header('Content-Type: application/json');
+
+        $auditModel = $this->model('Audit');
+        $db = $auditModel->getDb();
+
+        $db->query("
+            SELECT
+                b.accion,
+                b.tabla_afectada,
+                b.registro_id,
+                b.ip_address,
+                b.detalles,
+                b.created_at,
+                TRIM(CONCAT(COALESCE(dp.nombres,''), ' ', COALESCE(dp.apellidos,''))) AS usuario_nombre,
+                u.correo
+            FROM bitacora b
+            LEFT JOIN usuarios u ON b.usuario_id = u.id
+            LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+            WHERE DATE(b.created_at) = CURDATE()
+            ORDER BY b.created_at DESC
+            LIMIT 200
+        ");
+        $eventos = $db->resultSet() ?: [];
+
+        echo json_encode([
+            'success' => true,
+            'total'   => count($eventos),
+            'fecha'   => date('d/m/Y'),
+            'eventos' => $eventos,
         ]);
         exit;
     }

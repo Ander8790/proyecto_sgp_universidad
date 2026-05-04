@@ -621,6 +621,25 @@ class AsistenciasController extends Controller
             exit;
         }
 
+        // ── Validar que la fecha no cae en fin de semana ──────────
+        $diaSemana = (int)(new DateTime($fecha))->format('N'); // 1=Lun…7=Dom
+        if ($diaSemana >= 6) {
+            $nombreDia = $diaSemana === 6 ? 'sábado' : 'domingo';
+            echo json_encode([
+                'success' => false,
+                'message' => "La fecha seleccionada es {$nombreDia}. Solo se permite registrar asistencia en días hábiles (lunes a viernes).",
+            ]);
+            exit;
+        }
+
+        // ── Verificar si la fecha es un día feriado ───────────────
+        $this->db->query("SELECT nombre FROM dias_feriados WHERE fecha = :fecha LIMIT 1");
+        $this->db->bind(':fecha', $fecha);
+        $esFeriado = $this->db->single();
+        // Nota: el admin PUEDE registrar en feriados (override), pero se le advierte.
+        // El flag 'feriado_advertencia' en el JSON indica al JS que pida confirmación.
+        $feriadoNombre = $esFeriado ? $esFeriado->nombre : null;
+
         // ── Upload de evidencia (récipe médico) ────────────────────
         $rutaEvidencia = null;
 
@@ -721,10 +740,12 @@ class AsistenciasController extends Controller
         // NO se modifica horas_acumuladas en datos_pasante — eliminamos el anti-patrón de suma/resta.
 
         echo json_encode([
-            'success' => $ok,
-            'message' => $ok
+            'success'              => $ok,
+            'message'              => $ok
                 ? ($existente ? '✅ Registro actualizado correctamente.' : '✅ Asistencia manual registrada.')
                 : 'Error al guardar el registro.',
+            'feriado_advertencia'  => $feriadoNombre !== null,
+            'feriado_nombre'       => $feriadoNombre,
         ]);
 
         exit;
@@ -1379,13 +1400,14 @@ class AsistenciasController extends Controller
         $this->db->bind(':ff',  $fechaFin);
         $historialCompleto = $this->db->resultSet();
 
-        // ── Justificaciones con evidencia (para la card Bento) ────
+        // ── Justificaciones personales (excluye feriados auto-generados) ──
         $this->db->query("
             SELECT fecha, motivo_justificacion, ruta_evidencia, metodo
             FROM asistencias
             WHERE pasante_id = :pid
               AND estado = 'Justificado'
               AND estado != 'Anulado'
+              AND COALESCE(es_auto_fill, 0) = 0
             ORDER BY fecha DESC
         ");
         $this->db->bind(':pid', $pasanteId);
@@ -1419,6 +1441,33 @@ class AsistenciasController extends Controller
         $this->db->query("SELECT id, nombre FROM instituciones ORDER BY nombre ASC");
         $instituciones = $this->db->resultSet();
 
+        // ── Desglose mensual completo (toda la pasantía, multi-año) ──
+        $fi_desglose = $pasante->fecha_inicio ?? "{$anio}-01-01";
+        $ff_desglose = $pasante->fecha_fin    ?? date('Y-m-d');
+
+        $this->db->query("
+            SELECT fecha, estado
+            FROM asistencias
+            WHERE pasante_id = :pid
+              AND fecha >= :fi AND fecha <= :ff
+              AND estado IN ('Presente','Ausente','Justificado')
+            ORDER BY fecha ASC
+        ");
+        $this->db->bind(':pid', $pasanteId);
+        $this->db->bind(':fi',  $fi_desglose);
+        $this->db->bind(':ff',  $ff_desglose);
+        $registrosDesglose = $this->db->resultSet();
+
+        $statsDesglose = [];
+        foreach ($registrosDesglose as $r) {
+            $yrD  = (int)substr($r->fecha, 0, 4);
+            $mesD = (int)substr($r->fecha, 5, 2);
+            if (!isset($statsDesglose[$yrD])) $statsDesglose[$yrD] = [];
+            if (!isset($statsDesglose[$yrD][$mesD])) $statsDesglose[$yrD][$mesD] = ['P'=>0,'A'=>0,'J'=>0];
+            $letraD = $r->estado === 'Presente' ? 'P' : ($r->estado === 'Justificado' ? 'J' : 'A');
+            $statsDesglose[$yrD][$mesD][$letraD]++;
+        }
+
         $this->view('asistencias/almanaque', [
             'title'            => 'Almanaque — ' . trim(($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? '')),
             'pasante'          => $pasante,
@@ -1439,6 +1488,9 @@ class AsistenciasController extends Controller
             'justificaciones'  => $justificaciones,
             'evaluaciones'     => $evaluaciones,
             'instituciones'    => $instituciones,
+            'statsDesglose'    => $statsDesglose,
+            'fi_pasantia'      => $fi_desglose,
+            'ff_pasantia'      => $ff_desglose,
         ]);
     }
 

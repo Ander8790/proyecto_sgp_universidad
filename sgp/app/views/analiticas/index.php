@@ -793,33 +793,46 @@ $metricas  = [
     }).render();
 
     // ── 2. BARRAS: Pasantes por Departamento ─────────────────────
-    const deptLabels = <?= $jsDeptLabels ?>;
-    const deptData   = <?= $jsDeptData ?>;
-    const deptEl     = document.getElementById('chart-depto-bar');
-    if (deptData.length > 0 && deptEl) {
-        const deptTotal = deptData.reduce((a, b) => a + b, 0);
-        const deptMax   = Math.max(...deptData);
+    const deptLabels   = <?= $jsDeptLabels ?>;
+    const deptData     = <?= $jsDeptData ?>;
+    const deptEl       = document.getElementById('chart-depto-bar');
+    if (deptLabels.length > 0 && deptEl) {
+        const deptTotal  = deptData.reduce((a, b) => a + b, 0);
+        const deptMax    = Math.max(...deptData.filter(v => v > 0), 1);
+        // Barras fantasma: 30% del máximo para departamentos sin pasantes (efecto visual)
+        const phantom    = Math.max(1, Math.round(deptMax * 0.30));
+        const chartVals  = deptData.map(v => v === 0 ? phantom : v);
+        const isPhantom  = deptData.map(v => v === 0);
+
         new ApexCharts(deptEl, {
             ...chartOptions,
-            chart: { ...chartOptions.chart, type: 'bar', height: Math.max(200, deptData.length * 54) },
+            chart: { ...chartOptions.chart, type: 'bar', height: Math.max(200, deptLabels.length * 50) },
             plotOptions: {
                 bar: {
                     horizontal: true,
-                    barHeight: '62%',
+                    barHeight: '58%',
                     borderRadius: 8,
                     distributed: true,
                     dataLabels: { position: 'center' }
                 }
             },
-            series: [{ name: 'Pasantes', data: deptLabels.map((l, i) => ({ x: l, y: deptData[i] })) }],
-            colors: PALETTE,
+            series: [{ name: 'Pasantes', data: deptLabels.map((l, i) => ({ x: l, y: chartVals[i] })) }],
+            colors: isPhantom.map((ph, i) => ph
+                ? (PALETTE[i % PALETTE.length] + '40')   // color propio al 25% opacidad (hex alpha)
+                : PALETTE[i % PALETTE.length]
+            ),
             dataLabels: {
                 enabled: true,
-                formatter: (v) => {
-                    const pct = deptTotal > 0 ? Math.round(v / deptTotal * 100) : 0;
-                    return `${v}  (${pct}%)`;
+                formatter: (v, { dataPointIndex }) => {
+                    if (isPhantom[dataPointIndex]) return 'Sin pasantes';
+                    const real = deptData[dataPointIndex];
+                    const pct  = deptTotal > 0 ? Math.round(real / deptTotal * 100) : 0;
+                    return `${real}  (${pct}%)`;
                 },
-                style: { fontSize: '11px', fontFamily: FONT, fontWeight: 700, colors: ['#fff'] }
+                style: {
+                    fontSize: '11px', fontFamily: FONT, fontWeight: 700,
+                    colors: isPhantom.map(ph => ph ? '#94a3b8' : '#fff')
+                }
             },
             xaxis: {
                 max: deptMax + 1,
@@ -827,19 +840,24 @@ $metricas  = [
                 axisBorder: { show: false },
                 axisTicks: { show: false }
             },
-            yaxis: { labels: { style: { colors: '#1e293b', fontSize: '12px', fontFamily: FONT, fontWeight: 700 } } },
+            yaxis: { labels: { style: {
+                colors: isPhantom.map(ph => ph ? '#94a3b8' : '#1e293b'),
+                fontSize: '12px', fontFamily: FONT, fontWeight: 700
+            }}},
             legend: { show: false },
             grid: { show: false },
             tooltip: {
                 theme: 'light',
-                y: { formatter: (v) => {
-                    const pct = deptTotal > 0 ? Math.round(v / deptTotal * 100) : 0;
-                    return `${v} pasante${v !== 1 ? 's' : ''} · ${pct}% del total`;
+                y: { formatter: (v, { dataPointIndex }) => {
+                    if (isPhantom[dataPointIndex]) return 'Sin pasantes asignados';
+                    const real = deptData[dataPointIndex];
+                    const pct  = deptTotal > 0 ? Math.round(real / deptTotal * 100) : 0;
+                    return `${real} pasante${real !== 1 ? 's' : ''} · ${pct}% del total`;
                 }}
             }
         }).render();
     } else if (deptEl) {
-        deptEl.innerHTML = '<p style="text-align:center;padding:30px;color:#94a3b8;font-size:0.85rem;">Sin datos</p>';
+        deptEl.innerHTML = '<p style="text-align:center;padding:30px;color:#94a3b8;font-size:0.85rem;">Sin departamentos registrados</p>';
     }
 
     // ── 3. ÁREA filtrable: Asistencias por mes/día ───────────────

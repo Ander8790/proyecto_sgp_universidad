@@ -768,7 +768,7 @@
             $infoLbl  = 'Institución';
         }
     ?>
-    <div class="bcu-card">
+    <div class="bcu-card" data-rol="<?= htmlspecialchars($rol) ?>" data-estado="<?= htmlspecialchars($estado) ?>">
 
         <!-- Encabezado: avatar + nombre + badge rol -->
         <div class="bcu-header">
@@ -1612,26 +1612,54 @@ function obtenerIndiceColumna(dt, nombreColumna) {
 }
 
 window.filtrarPorRol = function(rolSeleccionado) {
+    // ── 1. DataTable (desktop) — índice fijo: col 1 = ROL ──────────────
     let dt = getSGPDataTable();
-    if (!dt) return;
-
-    let colIndex = obtenerIndiceColumna(dt, 'ROL');
-    if (colIndex === -1) {
-        console.error('No se encontró la columna ROL');
-        return;
+    if (dt) {
+        if (!rolSeleccionado || rolSeleccionado === 'Todos') {
+            dt.column(1).search('').draw();
+        } else {
+            let rolBuscar = 'Pasante';
+            const rolStr = String(rolSeleccionado).toLowerCase();
+            if (rolStr.includes('admin')) rolBuscar = 'Administrador';
+            else if (rolStr.includes('tutor')) rolBuscar = 'Tutor';
+            dt.column(1).search('^\\s*' + rolBuscar + '\\s*$', true, false, true).draw();
+        }
     }
 
-    if (!rolSeleccionado || rolSeleccionado === 'Todos') {
-        dt.column(colIndex).search('').draw(); 
-        return;
-    } 
-    
-    let rolStr = String(rolSeleccionado).toLowerCase();
-    let rolBuscar = 'Pasante'; 
-    if (rolStr.includes('admin')) rolBuscar = 'Administrador';
-    if (rolStr.includes('tutor')) rolBuscar = 'Tutor';
+    // ── 2. Tarjetas móvil (sgp-solo-mobile) — filtrar por data-rol ────
+    const cards = document.querySelectorAll('#cardsUsers .bcu-card');
+    cards.forEach(function(card) {
+        if (!rolSeleccionado || rolSeleccionado === 'Todos') {
+            card.style.display = '';
+        } else {
+            const cardRol = (card.dataset.rol || '').toLowerCase();
+            const filtro  = String(rolSeleccionado).toLowerCase();
+            let coincide  = false;
+            if (filtro.includes('admin') && cardRol.includes('admin')) coincide = true;
+            else if (filtro.includes('tutor') && cardRol.includes('tutor')) coincide = true;
+            else if (filtro.includes('pasante') && cardRol.includes('pasante')) coincide = true;
+            else if (filtro === 'todos') coincide = true;
+            card.style.display = coincide ? '' : 'none';
+        }
+    });
 
-    dt.column(colIndex).search('^\\s*' + rolBuscar + '\\s*$', true, false, true).draw();
+    // ── 3. Visual: actualizar pill activo ────────────────────────────────
+    document.querySelectorAll('.vento-pill').forEach(function(p) {
+        const pRol = (p.dataset.role || '').toLowerCase();
+        const sel  = String(rolSeleccionado || 'todos').toLowerCase();
+        const isActive = (!sel || sel === 'todos')
+            ? (!pRol)  // pill "Todos" activo
+            : sel.includes(pRol) && pRol !== '';
+        if (isActive) {
+            p.classList.add('active');
+            p.style.background = '#2563eb';
+            p.style.color = 'white';
+        } else {
+            p.classList.remove('active');
+            p.style.background = '#f1f5f9';
+            p.style.color = '#475569';
+        }
+    });
 };
 
     function openSearchModal() {

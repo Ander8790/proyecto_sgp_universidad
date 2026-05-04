@@ -340,6 +340,24 @@ class ConfiguracionController extends Controller {
             $feriados     = array_map(fn($f) => (array) $f, $feriadoModel->obtenerVigentes());
         } catch (Exception $e) { /* tabla feriados puede no existir aún */ }
 
+        // Pasantes activos sin marcar asistencia hoy (para el reloj de mantenimiento)
+        try {
+            $this->db->query("
+                SELECT COUNT(*) AS total
+                FROM usuarios u
+                INNER JOIN datos_pasante dpa ON dpa.usuario_id = u.id
+                WHERE u.rol_id = 3
+                  AND u.estado = 'activo'
+                  AND dpa.estado_pasantia = 'Activo'
+                  AND NOT EXISTS (
+                      SELECT 1 FROM asistencias a
+                      WHERE a.pasante_id = u.id AND a.fecha = CURDATE()
+                  )
+            ");
+            $row = $this->db->single();
+            $statsDB['sin_marcar_hoy'] = (int)($row->total ?? 0);
+        } catch (Exception $e) { $statsDB['sin_marcar_hoy'] = 0; }
+
         // Estadísticas básicas para la card de mantenimiento
         try {
             $this->db->query("SELECT COUNT(*) AS total FROM usuarios");
@@ -456,10 +474,15 @@ class ConfiguracionController extends Controller {
                 if (class_exists('AuditModel')) {
                     AuditModel::log('RESET_PIN_KIOSCO', "Se reseteó el PIN del pasante ID: $id desde Configuración");
                 }
-                
+
+                // Resolver notificaciones de solicitud_pin para todos (admin + tutor)
+                require_once APPROOT . '/models/NotificationModel.php';
+                $notifModel = new NotificationModel($this->db);
+                $notifModel->resolverPorReferencia('solicitud_pin', $id);
+
                 echo json_encode([
-                    'success' => true, 
-                    'message' => 'PIN restablecido correctamente.',
+                    'success'  => true,
+                    'message'  => 'PIN restablecido correctamente.',
                     'nuevo_pin' => $nuevoPin
                 ]);
             } else {

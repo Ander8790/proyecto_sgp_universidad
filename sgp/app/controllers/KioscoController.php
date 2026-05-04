@@ -74,6 +74,36 @@ class KioscoController extends Controller
             exit;
         }
 
+        // ── Validar que no es fin de semana ───────────────────────
+        $diaSemana = (int)date('N'); // 1=Lun … 5=Vie, 6=Sáb, 7=Dom
+        if ($diaSemana >= 6) {
+            $nombreDia = $diaSemana === 6 ? 'sábado' : 'domingo';
+            echo json_encode([
+                'success' => false,
+                'message' => "Hoy es {$nombreDia}. No se registra asistencia los fines de semana — solo días hábiles de lunes a viernes.",
+            ]);
+            exit;
+        }
+
+        // ── Validar que no es feriado ─────────────────────────────
+        $hoyFecha = date('Y-m-d');
+        $this->db->query("
+            SELECT nombre FROM dias_feriados
+            WHERE fecha = :hoy
+            LIMIT 1
+        ");
+        $this->db->bind(':hoy', $hoyFecha);
+        $feriadoHoy = $this->db->single();
+        if ($feriadoHoy) {
+            echo json_encode([
+                'success'    => false,
+                'is_feriado' => true,
+                'message'    => "Hoy es feriado: {$feriadoHoy->nombre}. La asistencia de este día se registrará automáticamente como Justificado.",
+                'feriado'    => $feriadoHoy->nombre,
+            ]);
+            exit;
+        }
+
         // ── Buscar pasante activo por cédula (3NF: JOINs a tablas normalizadas) ──
         $this->db->query("
             SELECT
@@ -213,8 +243,11 @@ class KioscoController extends Controller
             // NO se suma ni resta a horas_acumuladas — 'asistencias' es la única fuente de verdad.
             echo json_encode([
                 'success' => true,
-                'message' => '¡Asistencia registrada exitosamente!',
+                'message' => $esRetardo
+                    ? '¡Registro exitoso! Recuerda llegar antes de las 9:00 AM.'
+                    : '¡Asistencia registrada exitosamente!',
                 'hora'    => date('h:i A'),
+                'retardo' => (bool)$esRetardo,
                 'pasante' => [
                     'nombres'      => $pasante->nombres,
                     'apellidos'    => $pasante->apellidos,
@@ -225,6 +258,39 @@ class KioscoController extends Controller
             echo json_encode(['success' => false, 'message' => 'Error al guardar el registro. Intenta de nuevo.']);
         }
 
+        exit;
+    }
+
+    /**
+     * Endpoint JSON — Consultar si hoy (o una fecha dada) es feriado.
+     * GET /kiosco/esFeriado
+     * GET /kiosco/esFeriado?fecha=YYYY-MM-DD
+     *
+     * Responde: { is_feriado: bool, nombre: string|null, fecha: string }
+     */
+    public function esFeriado(): void
+    {
+        header('Content-Type: application/json');
+        header('Cache-Control: no-store');
+
+        $fecha = trim($_GET['fecha'] ?? date('Y-m-d'));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) {
+            $fecha = date('Y-m-d');
+        }
+
+        $this->db->query("
+            SELECT nombre FROM dias_feriados
+            WHERE fecha = :fecha
+            LIMIT 1
+        ");
+        $this->db->bind(':fecha', $fecha);
+        $feriado = $this->db->single();
+
+        echo json_encode([
+            'is_feriado' => (bool)$feriado,
+            'nombre'     => $feriado ? $feriado->nombre : null,
+            'fecha'      => $fecha,
+        ]);
         exit;
     }
 
@@ -272,19 +338,21 @@ class KioscoController extends Controller
         $mensaje = "El pasante {$pasante->nombres} {$pasante->apellidos} (V-{$cedula}) ha olvidado su PIN y solicita un reseteo.";
         $url = URLROOT . "/configuracion#restablecer-pin";
 
-        // Admin (se asume ID 1 o rol 1, enviaremos a todos los admins)
+        // Admin (enviamos a todos los admins activos)
         $this->db->query("SELECT id FROM usuarios WHERE rol_id = 1 AND estado = 'activo'");
         $admins = $this->db->resultSet();
         foreach ($admins as $admin) {
-            $this->notificationModel->create(
-                $admin->id, 'solicitud_pin', $titulo, $mensaje, $url
+            $this->notificationModel->createWithRef(
+                $admin->id, 'solicitud_pin', $titulo, $mensaje, $url,
+                $pasante->id  // referencia_id = pasante para resolución global
             );
         }
 
-        // Tutor
+        // Tutor (si existe)
         if (!empty($pasante->tutor_id)) {
-            $this->notificationModel->create(
-                $pasante->tutor_id, 'solicitud_pin', $titulo, $mensaje, $url
+            $this->notificationModel->createWithRef(
+                $pasante->tutor_id, 'solicitud_pin', $titulo, $mensaje, $url,
+                $pasante->id
             );
         }
 

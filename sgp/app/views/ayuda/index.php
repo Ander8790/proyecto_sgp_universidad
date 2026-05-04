@@ -182,6 +182,9 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
     <a class="toc-link" data-sec="sec-bitacora" onclick="mostrarSeccion('sec-bitacora')"><i class="ti ti-clipboard-list"></i> Bitácora</a>
     <a class="toc-link" data-sec="sec-configuracion" onclick="mostrarSeccion('sec-configuracion')"><i class="ti ti-settings"></i> Configuración</a>
     <?php endif; ?>
+    <?php if ($rolId == 0): ?>
+    <a class="toc-link" data-sec="sec-permisos" onclick="mostrarSeccion('sec-permisos')"><i class="ti ti-shield-cog"></i> Permisos</a>
+    <?php endif; ?>
     <?php if ($esPasante): ?>
     <div class="toc-sep"></div>
     <a class="toc-link" data-sec="sec-pasante-asist" onclick="mostrarSeccion('sec-pasante-asist')"><i class="ti ti-clock-check"></i> Mi Asistencia</a>
@@ -469,6 +472,52 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
 </div>
 <?php endif; ?>
 
+<?php if ($rolId == 0): ?>
+<!-- ═══ PERMISOS (SUPERADMIN) ═══ -->
+<div class="man-sec" id="sec-permisos" data-keywords="permisos superadmin acceso granular rbac módulos toggles roles tutor admin bitácora respaldo acceso elevado">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="ti ti-shield-cog"></i></div>
+        <div><p class="man-sec-title">Gestión de Permisos</p><p class="man-sec-sub">Control granular de accesos por usuario — exclusivo SuperAdmin</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">Este módulo te permite definir exactamente qué puede ver y hacer cada usuario del sistema, de forma individual. Se basa en un modelo de <strong>permisos granulares por rol con sobrescritura individual</strong>.</p>
+
+        <p class="man-h3"><i class="ti ti-layers-intersect"></i> Cómo funciona el modelo de permisos</p>
+        <p class="man-p">Cada acción del sistema tiene un <strong>valor por defecto según el rol</strong> (Administrador o Tutor). Encima de ese default puedes aplicar un <strong>override individual</strong> para cualquier usuario específico — habilitando o deshabilitando permisos que normalmente no tendría.</p>
+        <table class="man-table">
+            <thead><tr><th>Capa</th><th>Descripción</th><th>Prioridad</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Default de rol</strong></td><td>Permisos base asignados a todos los usuarios del mismo rol</td><td><span class="man-badge mb-slate">Base</span></td></tr>
+                <tr><td><strong>Override individual</strong></td><td>Permiso personalizado para un usuario específico</td><td><span class="man-badge mb-blue">Prevalece</span></td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>El punto <strong style="color:#a855f7;">●</strong> naranja junto a un toggle o en la lista de usuarios indica que ese permiso tiene un override activo — difiere del default de su rol.</p></div>
+
+        <p class="man-h3"><i class="ti ti-user-cog"></i> Pasos para editar permisos de un usuario</p>
+        <div class="man-steps">
+            <div class="man-step"><p>Entra a <strong>SuperAdmin → Gestión de Permisos</strong>.</p></div>
+            <div class="man-step"><p>Selecciona la tarjeta del rol: <strong>Administrador</strong> o <strong>Tutor</strong>.</p></div>
+            <div class="man-step"><p>En la lista de la izquierda, haz clic en el usuario que deseas configurar.</p></div>
+            <div class="man-step"><p>En el panel derecho verás los módulos del sistema organizados en tarjetas. Cada tarjeta tiene:<br>
+                • Un <strong>toggle principal "Menú"</strong> — controla si el módulo aparece en el menú lateral del usuario.<br>
+                • <strong>Toggles de función</strong> (crear, editar, exportar, etc.) — controlan acciones dentro del módulo.
+            </p></div>
+            <div class="man-step"><p>Activa o desactiva el toggle deseado. El cambio se guarda automáticamente en tiempo real — no hay botón de guardar.</p></div>
+        </div>
+
+        <p class="man-h3"><i class="ti ti-shield-half-filled"></i> Acceso elevado para Tutores</p>
+        <p class="man-p">Los tutores por defecto solo tienen acceso a sus módulos propios. Sin embargo, puedes concederle a un tutor acceso a módulos de administrador (como Bitácora o Respaldo) habilitando el toggle correspondiente. Estos módulos aparecen marcados con la etiqueta naranja <strong style="color:#c2410c;">Acceso elevado</strong>.</p>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>Otorgar acceso elevado a un tutor le da visibilidad real sobre esos módulos. Úsalo solo cuando sea estrictamente necesario y revisa periódicamente los permisos activos.</p></div>
+
+        <p class="man-h3"><i class="ti ti-refresh"></i> Restablecer permisos</p>
+        <p class="man-p">El botón <strong>Restablecer</strong> (rojo, en la cabecera del panel de permisos) elimina todos los overrides del usuario y lo devuelve a los defaults de su rol. Esta acción es inmediata e irreversible.</p>
+
+        <p class="man-h3"><i class="ti ti-eye-off"></i> ¿Por qué no aparece el SuperAdmin en la lista de usuarios?</p>
+        <p class="man-p">La cuenta SuperAdmin no aparece en el módulo de usuarios ni en la gestión de permisos — esto es intencional por seguridad. El SuperAdmin tiene acceso total al sistema sin restricciones y su cuenta no puede ser editada, desactivada ni restringida por ningún otro usuario.</p>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php if ($esPasante): ?>
 <!-- ═══ MI ASISTENCIA ═══ -->
 <div class="man-sec" id="sec-pasante-asist" data-keywords="mi asistencia ver historial días horas estado">
@@ -507,22 +556,78 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
 <?php endif; ?>
 
 <!-- ═══ ÍCONOS DE AYUDA ═══ -->
-<div class="man-sec" id="sec-tooltips" data-keywords="tooltips ayuda iconos formularios ayuda en linea requerimientos campo">
+<div class="man-sec" id="sec-tooltips" data-keywords="tooltips ayuda iconos formularios ayuda en linea requerimientos campo sgp-tip help-circle cédula pin período actividad tutor asistencia">
     <div class="man-sec-hd">
         <div class="man-sec-icon" style="background:#eff6ff;color:#2563eb;"><i class="ti ti-help-circle"></i></div>
-        <div><p class="man-sec-title">Íconos de Ayuda en Formularios</p><p class="man-sec-sub">Cómo interpretar los indicadores de cada campo</p></div>
+        <div><p class="man-sec-title">Íconos de Ayuda en Formularios</p><p class="man-sec-sub">Dónde aparecen y qué significan</p></div>
     </div>
     <div class="man-sec-body">
-        <p class="man-p">En los formularios del sistema verás íconos <strong style="background:#dbeafe;color:#1e40af;padding:1px 7px;border-radius:50%;font-size:.75rem;">?</strong> junto a ciertos campos. Pasa el cursor sobre ellos para ver ayuda contextual.</p>
+        <p class="man-p">El sistema tiene dos tipos de íconos de ayuda en línea. Al pasar el cursor sobre ellos aparece una explicación del campo sin necesidad de abrir ningún modal.</p>
+
+        <p class="man-h3"><i class="ti ti-circle-dot"></i> Tipo 1 — Burbuja <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;padding:1px 8px;font-size:.75rem;font-weight:800;">?</span></p>
+        <p class="man-p">Aparece junto al <strong>título del campo</strong>. Al hacer hover muestra una descripción detallada del formato esperado o la función del campo.</p>
+
+        <table class="man-table">
+            <thead><tr><th>Módulo</th><th>Formulario</th><th>Campos con <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;padding:0 5px;font-size:.72rem;font-weight:800;">?</span></th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Actividades Extras</strong></td>
+                    <td>Crear / Editar Actividad de Servicio</td>
+                    <td>Nombre/Título, Tipo, Institución, Fecha Inicio, Fecha Fin</td>
+                </tr>
+                <tr>
+                    <td><strong>Actividades Extras</strong></td>
+                    <td>Registrar Pasante en Actividad</td>
+                    <td>Cédula, Correo, Carrera, Horas Meta</td>
+                </tr>
+                <tr>
+                    <td><strong>Períodos</strong></td>
+                    <td>Crear / Editar Período Académico</td>
+                    <td>Nombre del Período/Cohorte, Descripción de Referencia, Fecha de Inicio</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="man-h3"><i class="ti ti-help-circle"></i> Tipo 2 — Ícono <i class="ti ti-help-circle" style="color:#2563eb;font-size:1rem;vertical-align:middle;"></i> azul</p>
+        <p class="man-p">Aparece <strong>dentro del label</strong> o al final del campo de entrada. Al hacer hover muestra una pista breve sobre qué ingresar.</p>
+
+        <table class="man-table">
+            <thead><tr><th>Módulo</th><th>Formulario</th><th>Campos con <i class="ti ti-help-circle" style="color:#2563eb;font-size:.9rem;vertical-align:middle;"></i></th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Tutor — Mis Pasantes</strong></td>
+                    <td>Buscador de pasantes</td>
+                    <td>Campo de búsqueda por nombre</td>
+                </tr>
+                <tr>
+                    <td><strong>Tutor — Mis Pasantes</strong></td>
+                    <td>Cambiar PIN de asistencia</td>
+                    <td>Nuevo PIN (4 dígitos), Confirmar PIN</td>
+                </tr>
+                <tr>
+                    <td><strong>Tutor — Asistencias</strong></td>
+                    <td>Registrar asistencia manual</td>
+                    <td>Selector de fecha, Pasante, Estado, Motivo de Justificación</td>
+                </tr>
+                <tr>
+                    <td><strong>Tutor — Asistencias</strong></td>
+                    <td>Filtro del almanaque</td>
+                    <td>Selector de fecha a consultar</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="man-h3"><i class="ti ti-input-check"></i> Validación en tiempo real</p>
+        <p class="man-p">En los campos de <strong>cédula</strong> y <strong>correo</strong> de formularios de registro, el sistema verifica en tiempo real si el valor ya existe:</p>
         <table class="man-table">
             <thead><tr><th>Indicador</th><th>Significado</th></tr></thead>
             <tbody>
-                <tr><td><span style="background:#e0e7ff;color:#4338ca;border-radius:50%;padding:1px 6px;font-size:.75rem;font-weight:800;">?</span></td><td>Información sobre el formato requerido del campo</td></tr>
-                <tr><td><span style="color:#059669;font-weight:700;">✔ Disponible</span></td><td>El valor ingresado no existe en el sistema (correo/cédula únicos)</td></tr>
+                <tr><td><span style="color:#059669;font-weight:700;">✔ Disponible</span></td><td>El valor no existe en el sistema — puedes usarlo</td></tr>
                 <tr><td><span style="color:#dc2626;font-weight:700;">✖ Ya registrado</span></td><td>El valor ya existe — debes usar otro</td></tr>
-                <tr><td><span style="color:#d97706;font-weight:700;">⏳ Verificando…</span></td><td>El sistema está comprobando el valor en tiempo real</td></tr>
+                <tr><td><span style="color:#d97706;font-weight:700;">⏳ Verificando…</span></td><td>El sistema está comprobando en tiempo real</td></tr>
             </tbody>
         </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Los campos con validación en tiempo real son: <strong>Cédula</strong> y <strong>Correo</strong> en el formulario de registro de usuario y en el wizard de primer acceso.</p></div>
     </div>
 </div>
 

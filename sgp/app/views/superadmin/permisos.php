@@ -100,86 +100,76 @@ require_once APPROOT . '/views/inc/header.php';
 .perms-empty i { font-size: 3rem; }
 .perms-empty p { font-size: .9rem; font-weight: 500; }
 
-/* Bento Grid y Tarjetas */
-.perms-bento-grid {
+/* ── Toggle Switch ───────────────────────────────── */
+.sgp-toggle { position:relative; display:inline-block; cursor:pointer; }
+.sgp-toggle input { opacity:0; width:0; height:0; position:absolute; }
+.sgp-toggle-slider {
+    display:block; width:42px; height:24px;
+    background:#cbd5e1; border-radius:12px; transition:background .2s;
+    position:relative;
+}
+.sgp-toggle-slider::before {
+    content:''; position:absolute; width:20px; height:20px;
+    left:2px; top:2px; background:white; border-radius:50%;
+    transition:transform .2s; box-shadow:0 1px 3px rgba(0,0,0,0.2);
+}
+.sgp-toggle input:checked + .sgp-toggle-slider { background:var(--toggle-color,#2563eb); }
+.sgp-toggle input:checked + .sgp-toggle-slider::before { transform:translateX(18px); }
+.sgp-toggle.sm .sgp-toggle-slider { width:32px; height:18px; border-radius:9px; }
+.sgp-toggle.sm .sgp-toggle-slider::before { width:14px; height:14px; }
+.sgp-toggle.sm input:checked + .sgp-toggle-slider::before { transform:translateX(14px); }
+
+/* ── Module Cards Grid ───────────────────────────── */
+.mod-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    padding: 16px;
-    background: #f8fafc;
-    border-radius: 0 0 16px 16px;
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+    gap: 14px; padding: 16px;
+    background: #f8fafc; border-radius: 0 0 16px 16px;
 }
-.perm-bento-card {
-    background: white;
-    border-radius: 16px;
-    padding: 18px;
+.mod-card {
+    background: white; border-radius: 14px;
     border: 1px solid #f1f5f9;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden; transition: box-shadow .2s, transform .2s;
 }
-.perm-bento-card:hover {
-    box-shadow: 0 8px 16px rgba(0,0,0,0.06);
-    transform: translateY(-2px);
+.mod-card:hover { box-shadow: 0 8px 20px rgba(0,0,0,0.07); transform: translateY(-2px); }
+.mod-card-header {
+    padding: 13px 16px; display: flex; align-items: center; gap: 11px; background: white;
 }
-.perm-bento-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-.perm-bento-icon {
-    width: 42px; height: 42px;
-    border-radius: 12px;
+.mod-card-icon {
+    width: 40px; height: 40px; border-radius: 10px;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.3rem; color: var(--mod-color, #2563eb);
-    background: var(--mod-bg, #eff6ff);
-    flex-shrink: 0;
+    font-size: 1.2rem; flex-shrink: 0;
 }
-.perm-bento-title {
-    font-size: .95rem; font-weight: 700; color: #1e293b; line-height: 1.2;
+.mod-card-info { flex: 1; min-width: 0; }
+.mod-card-name { font-size: .88rem; font-weight: 700; color: #1e293b; }
+.mod-group-badge {
+    display: inline-block; margin-top: 3px;
+    padding: 1px 8px; border-radius: 50px;
+    font-size: .62rem; font-weight: 700;
 }
-.perm-bento-group {
-    font-size: .7rem; color: #64748b; font-weight: 600; letter-spacing: .5px; margin-top: 2px; text-transform: none;
-}
-.perm-action-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-/* Chips Interactivos */
-.perm-chip {
-    padding: 6px 12px;
-    border-radius: 50px;
-    font-size: .75rem;
-    font-weight: 600;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: all 0.2s;
-    user-select: none;
-    border: 1px solid transparent;
-}
-.perm-chip.enabled {
-    background: var(--mod-bg, #eff6ff);
-    color: var(--mod-color, #2563eb);
-    border-color: rgba(0,0,0,0.05);
-}
-.perm-chip.disabled {
-    background: #f8fafc;
-    color: #94a3b8;
-    border: 1px dashed #cbd5e1;
-    opacity: 0.8;
-}
-.perm-chip i { font-size: 1rem; }
+.mod-card-toggle-wrap { display: flex; flex-direction: column; align-items: center; gap: 3px; flex-shrink: 0; }
+.mod-menu-lbl { font-size: .58rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em; color: #94a3b8; }
+.mod-card-body { border-top: 1px solid #f1f5f9; padding: 10px 16px 12px; }
+.mod-fn-header { font-size: .66rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 8px; }
+.mod-fn-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #f8fafc; }
+.mod-fn-row:last-child { border-bottom: none; }
+.mod-fn-label { display: flex; align-items: center; gap: 6px; font-size: .8rem; font-weight: 600; color: #475569; }
+.mod-fn-row.dimmed .mod-fn-label { opacity: .45; }
 .perm-override-dot {
     width: 6px; height: 6px; border-radius: 50%;
-    background: #f59e0b;
-    box-shadow: 0 0 0 2px white;
-    margin-left: 2px;
+    background: #f59e0b; box-shadow: 0 0 0 2px white; margin-left: 3px; display: inline-block;
 }
+
+/* Badge módulo elevado (admin concedido a tutor) */
+.mod-elevated-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    margin-top: 3px; padding: 2px 7px; border-radius: 50px;
+    font-size: .58rem; font-weight: 800; letter-spacing: .04em;
+    background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
+}
+.mod-card.elevated { border-color: #fed7aa; }
+.mod-card.elevated .mod-card-header { background: #fffaf5; }
 
 /* Btn Reset */
 .btn-reset-user {
@@ -333,29 +323,51 @@ require_once APPROOT . '/views/inc/header.php';
     'use strict';
     const URLROOT = '<?= URLROOT ?>';
 
-    // Traducciones de acciones
+    // Traducciones de acciones (claves reales de la BD)
     const accionLabels = {
-        'CHANGE_PASANTE_STATUS': 'Cambiar Estado de Pasante',
-        'CREATE_USER': 'Crear Usuarios',
-        'DELETE_USER': 'Eliminar Usuarios',
-        'LOGIN': 'Iniciar Sesión',
-        'LOGOUT': 'Cerrar Sesión',
-        'RESET_PASSWORD': 'Restablecer Contraseñas',
-        'RESET_PIN': 'Restablecer PIN',
-        'TOGGLE_USER_STATUS': 'Alternar Estado de Usuarios',
-        'UPDATE_PROFILE': 'Editar Perfil',
-        'UPDATE_USER': 'Modificar Usuarios',
-        'CREATE_PASANTE': 'Registrar Pasantes',
-        'UPDATE_PASANTE': 'Modificar Pasantes',
-        'DELETE_PASANTE': 'Eliminar Pasantes',
-        'CREATE_EVALUACION': 'Crear Evaluaciones',
-        'UPDATE_EVALUACION': 'Editar Evaluaciones',
-        'DELETE_EVALUACION': 'Eliminar Evaluaciones',
-        'EXPORT_CSV': 'Exportar CSV',
-        'UPDATE_CONFIG': 'Cambiar Configuración',
-        'VIEW_BITACORA': 'Ver Bitácora',
-        'VIEW_ANALITICAS': 'Ver Analíticas',
-        'VIEW_REPORTES': 'Ver Reportes',
+        'ver_usuarios':        'Ver Usuarios',
+        'crear_usuario':       'Crear Usuario',
+        'editar_usuario':      'Editar Usuario',
+        'desactivar_usuario':  'Desactivar Usuario',
+        'ver_pasantes':        'Ver Pasantes',
+        'editar_pasante':      'Editar Pasante',
+        'exportar_pasantes':   'Exportar Lista',
+        'ver_asistencias':     'Ver Asistencias',
+        'modificar_asistencia':'Modificar Asistencia',
+        'exportar_asistencias':'Exportar Asistencias',
+        'ver_asignaciones':    'Ver Asignaciones',
+        'crear_asignacion':    'Crear Asignación',
+        'editar_asignacion':   'Editar Asignación',
+        'ver_evaluaciones':    'Ver Evaluaciones',
+        'exportar_evaluacion': 'Exportar PDF Evaluación',
+        'ver_reportes':        'Ver Reportes',
+        'exportar_reporte':    'Exportar Reporte',
+        'ver_analiticas':      'Ver Analíticas',
+        'ver_backup':          'Ver Backups',
+        'crear_backup':        'Crear Backup',
+        'descargar_backup':    'Descargar Backup',
+        'ver_bitacora':        'Ver Bitácora',
+        'exportar_bitacora':   'Exportar Bitácora',
+        'ver_configuracion':   'Ver Configuración',
+        'editar_configuracion':'Editar Configuración',
+        'ver_periodos':        'Ver Períodos',
+        'crear_periodo':       'Crear Período',
+        'ver_actividades':     'Ver Actividades',
+        'crear_actividad':     'Crear Actividad',
+        'ver_mis_pasantes':    'Ver Mis Pasantes',
+        'ver_mis_evaluaciones':'Ver Mis Evaluaciones',
+        'registrar_evaluacion':'Registrar Evaluación',
+        'ver_perfil_pasante':  'Ver Mi Perfil',
+        'descargar_constancia':'Descargar Constancia',
+    };
+
+    // Ícono por tipo de acción
+    const tipoIconos = {
+        'ver':      'ti-eye',
+        'crear':    'ti-circle-plus',
+        'editar':   'ti-pencil',
+        'eliminar': 'ti-trash',
+        'exportar': 'ti-download',
     };
 
     let currentUserId  = null;
@@ -441,7 +453,7 @@ require_once APPROOT . '/views/inc/header.php';
         renderPermisos(u.permisos || {}, currentModulos);
     };
 
-    // ── Renderizar permisos del usuario ─────────────
+    // ── Renderizar permisos del usuario (diseño modular con switches) ──
     function renderPermisos(permisos, modulos) {
         const body = document.getElementById('perms-body');
         if (!modulos || !Object.keys(modulos).length) {
@@ -450,82 +462,124 @@ require_once APPROOT . '/views/inc/header.php';
         }
 
         const colorRules = {
-            'Administración': { bg: '#f5f3ff', color: '#7c3aed', icon: 'ti-shield-lock' },
-            'Pasantías':      { bg: '#ecfdf5', color: '#10b981', icon: 'ti-users-group' },
-            'Informes':       { bg: '#eff6ff', color: '#3b82f6', icon: 'ti-chart-pie' },
-            'Sistema':        { bg: '#fef2f2', color: '#ef4444', icon: 'ti-server-cog' },
-            'Académico':      { bg: '#fffbeb', color: '#f59e0b', icon: 'ti-book' },
-            'Tutor':          { bg: '#ecfeff', color: '#06b6d4', icon: 'ti-user-check' },
+            'Administración': { bg: '#eff6ff',  color: '#2563eb' },
+            'Pasantías':      { bg: '#ecfdf5',  color: '#059669' },
+            'Informes':       { bg: '#eef2ff',  color: '#4f46e5' },
+            'Sistema':        { bg: '#fef2f2',  color: '#dc2626' },
+            'Académico':      { bg: '#fffbeb',  color: '#d97706' },
+            'Tutor':          { bg: '#ecfeff',  color: '#0891b2' },
         };
-        const defaultRule = { bg: '#f1f5f9', color: '#64748b', icon: 'ti-folder' };
+        const defaultRule = { bg: '#f1f5f9', color: '#64748b' };
 
-        let html = '<div class="perms-bento-grid">';
+        let html = '<div class="mod-grid">';
+
         for (const [grupo, modulosGrupo] of Object.entries(modulos)) {
             for (const [modId, acciones] of Object.entries(modulosGrupo)) {
                 if (!acciones.length) continue;
-                
-                const rule = colorRules[grupo] || defaultRule;
-                const modName = acciones[0].modulo_nombre || 'Módulo';
-                const modIcon = acciones[0].icono || rule.icon;
-                
-                let chipsHtml = '';
-                for (const accion of acciones) {
-                    const perm    = permisos[accion.clave] || {};
-                    const checked = perm.habilitado === true;
+
+                const rule       = colorRules[grupo] || defaultRule;
+                const modName    = acciones[0].modulo_nombre || 'Módulo';
+                const modIcon    = acciones[0].icono || 'ti-folder';
+                // Módulo elevado: pertenece a un rol de mayor privilegio que el usuario actual
+                const rolBase    = parseInt(acciones[0].rol_base) || 1;
+                const isElevated = currentRolId !== null && rolBase < currentRolId;
+
+                // Separar la acción "ver" (acceso al menú) de las demás funciones
+                const accionVer = acciones.find(a => a.tipo === 'ver');
+                const funciones = acciones.filter(a => a.tipo !== 'ver');
+
+                // Estado del toggle de menú
+                const verPerm       = accionVer ? (permisos[accionVer.clave] || {}) : null;
+                const verHabilitado = verPerm ? !!verPerm.habilitado : false;
+                const verOverride   = verPerm ? !!verPerm.es_override : false;
+
+                // Toggle principal "Menú lateral"
+                const mainToggleHtml = accionVer ? `
+                <div class="mod-card-toggle-wrap">
+                    <label class="sgp-toggle" title="Habilitar módulo en el menú lateral">
+                        <input type="checkbox"
+                            data-clave="${accionVer.clave}"
+                            data-habilitado="${verHabilitado}"
+                            ${verHabilitado ? 'checked' : ''}
+                            onchange="togglePermiso(this, '${modId}')">
+                        <span class="sgp-toggle-slider" style="--toggle-color:${rule.color};"></span>
+                    </label>
+                    <span class="mod-menu-lbl" style="color:${rule.color};">Menú</span>
+                    ${verOverride ? '<span class="perm-override-dot" title="Permiso personalizado" style="margin-top:1px;"></span>' : ''}
+                </div>` : '';
+
+                // Filas de funciones
+                let fnRowsHtml = '';
+                for (const accion of funciones) {
+                    const perm       = permisos[accion.clave] || {};
+                    const checked    = !!perm.habilitado;
                     const isOverride = !!perm.es_override;
-                    const label = accionLabels[accion.clave?.toUpperCase()] || accion.accion_nombre;
-                    
-                    const chipClass = checked ? 'enabled' : 'disabled';
-                    const iconClass = checked ? 'ti-check' : 'ti-x';
-                    
-                    chipsHtml += `
-                    <div class="perm-chip ${chipClass}" 
-                         data-clave="${accion.clave}" 
-                         data-habilitado="${checked}"
-                         onclick="togglePermiso(this)">
-                        <i class="ti ${iconClass}"></i>
-                        ${label}
-                        ${isOverride ? '<span class="perm-override-dot" title="Permiso personalizado"></span>' : ''}
+                    const label      = accionLabels[accion.clave] || accion.accion_nombre;
+                    const tipoIcon   = tipoIconos[accion.tipo] || 'ti-circle-dot';
+                    const dimClass   = !verHabilitado ? ' dimmed' : '';
+
+                    fnRowsHtml += `
+                    <div class="mod-fn-row${dimClass}" id="fnrow-${accion.accion_id}">
+                        <span class="mod-fn-label">
+                            <i class="ti ${tipoIcon}" style="color:${rule.color};font-size:.9rem;"></i>
+                            ${label}
+                            ${isOverride ? '<span class="perm-override-dot" title="Permiso personalizado"></span>' : ''}
+                        </span>
+                        <label class="sgp-toggle sm">
+                            <input type="checkbox"
+                                data-clave="${accion.clave}"
+                                data-habilitado="${checked}"
+                                ${checked ? 'checked' : ''}
+                                onchange="togglePermiso(this)">
+                            <span class="sgp-toggle-slider" style="--toggle-color:${rule.color};"></span>
+                        </label>
                     </div>`;
                 }
-                
+
                 html += `
-                <div class="perm-bento-card" style="--mod-bg:${rule.bg}; --mod-color:${rule.color};">
-                    <div class="perm-bento-header">
-                        <div class="perm-bento-icon"><i class="ti ${modIcon}"></i></div>
-                        <div>
-                            <div class="perm-bento-title">${modName}</div>
-                            <div class="perm-bento-group">${grupo}</div>
+                <div class="mod-card${isElevated ? ' elevated' : ''}" data-mod-id="${modId}">
+                    <div class="mod-card-header">
+                        <div class="mod-card-icon" style="background:${rule.bg};color:${rule.color};">
+                            <i class="ti ${modIcon}"></i>
                         </div>
+                        <div class="mod-card-info">
+                            <div class="mod-card-name">${modName}</div>
+                            <span class="mod-group-badge" style="background:${rule.bg};color:${rule.color};">${grupo}</span>
+                            ${isElevated ? '<span class="mod-elevated-badge"><i class="ti ti-shield-half-filled"></i> Acceso elevado</span>' : ''}
+                        </div>
+                        ${mainToggleHtml}
                     </div>
-                    <div class="perm-action-list">
-                        ${chipsHtml}
-                    </div>
+                    ${funciones.length > 0 ? `
+                    <div class="mod-card-body">
+                        <div class="mod-fn-header">Funciones del módulo</div>
+                        ${fnRowsHtml}
+                    </div>` : ''}
                 </div>`;
             }
         }
+
         html += '</div>';
         body.innerHTML = html;
     }
 
-    // ── Guardar permiso al hacer clic en un Chip ────────────
-    window.togglePermiso = function(chip) {
+    // ── Guardar permiso al cambiar un toggle ───────────────────
+    window.togglePermiso = function(input, modId) {
         if (!currentUserId) return;
-        
-        const clave = chip.dataset.clave;
-        const habilitadoActual = chip.dataset.habilitado === 'true';
-        const nuevoHabilitado = !habilitadoActual;
-        
-        // Optimistic UI update
-        chip.dataset.habilitado = nuevoHabilitado;
-        if (nuevoHabilitado) {
-            chip.classList.remove('disabled');
-            chip.classList.add('enabled');
-            chip.querySelector('i').className = 'ti ti-check';
-        } else {
-            chip.classList.remove('enabled');
-            chip.classList.add('disabled');
-            chip.querySelector('i').className = 'ti ti-x';
+
+        const clave           = input.dataset.clave;
+        const nuevoHabilitado = input.checked;
+        const anterior        = !nuevoHabilitado;
+
+        input.dataset.habilitado = nuevoHabilitado;
+
+        // Si es toggle de menú (modId presente), actualizar dim en filas de funciones
+        if (modId !== undefined) {
+            const card = document.querySelector(`.mod-card[data-mod-id="${modId}"]`);
+            if (card) {
+                card.querySelectorAll('.mod-fn-row').forEach(row => {
+                    nuevoHabilitado ? row.classList.remove('dimmed') : row.classList.add('dimmed');
+                });
+            }
         }
 
         fetch(`${URLROOT}/superadmin/savePermiso`, {
@@ -541,33 +595,37 @@ require_once APPROOT . '/views/inc/header.php';
                     if (!usersCache[currentUserId].permisos) usersCache[currentUserId].permisos = {};
                     usersCache[currentUserId].permisos[clave] = { habilitado: nuevoHabilitado, es_override: true };
                 }
+                // Marcar usuario con override
                 const item = document.querySelector(`.md-user-item[data-uid="${currentUserId}"]`);
                 if (item && !item.querySelector('.md-override-dot')) {
                     item.insertAdjacentHTML('beforeend', '<div class="md-override-dot" title="Tiene permisos personalizados"></div>');
                 }
-                if (!chip.querySelector('.perm-override-dot')) {
-                    chip.insertAdjacentHTML('beforeend', '<span class="perm-override-dot" title="Permiso personalizado"></span>');
+                // Añadir indicador de override en el label de la función (si no existe)
+                const label = input.closest('label');
+                const row = label ? label.closest('.mod-fn-row, .mod-card-toggle-wrap') : null;
+                if (row && !row.querySelector('.perm-override-dot')) {
+                    label.insertAdjacentHTML('afterend', '<span class="perm-override-dot" title="Permiso personalizado"></span>');
                 }
             } else {
                 if (window.NotificationService) window.NotificationService.error(res.message);
-                revertChip(chip, habilitadoActual);
+                input.checked = anterior;
+                input.dataset.habilitado = anterior;
+                // Revertir dim si fue toggle de menú
+                if (modId !== undefined) {
+                    const card = document.querySelector(`.mod-card[data-mod-id="${modId}"]`);
+                    if (card) {
+                        card.querySelectorAll('.mod-fn-row').forEach(row => {
+                            anterior ? row.classList.remove('dimmed') : row.classList.add('dimmed');
+                        });
+                    }
+                }
             }
         })
-        .catch(() => { revertChip(chip, habilitadoActual); });
+        .catch(() => {
+            input.checked = anterior;
+            input.dataset.habilitado = anterior;
+        });
     };
-
-    function revertChip(chip, state) {
-        chip.dataset.habilitado = state;
-        if (state) {
-            chip.classList.remove('disabled');
-            chip.classList.add('enabled');
-            chip.querySelector('i').className = 'ti ti-check';
-        } else {
-            chip.classList.remove('enabled');
-            chip.classList.add('disabled');
-            chip.querySelector('i').className = 'ti ti-x';
-        }
-    }
 
     // ── Restablecer permisos del usuario actual ──────
     window.resetCurrentUser = function () {

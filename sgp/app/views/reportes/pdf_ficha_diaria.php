@@ -41,18 +41,55 @@ tr:nth-child(even) td { background: #f8fafc; }
 
 <?php include __DIR__ . '/comunes/header.php'; ?>
 
+<?php
+$diasEs    = ['','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+$mesesEs   = ['','enero','febrero','marzo','abril','mayo','junio',
+               'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+$diaNombre = $diasEs[(int)date('N', strtotime($fecha))];
+$diaNum    = (int)date('j', strtotime($fecha));
+$mesNombre = $mesesEs[(int)date('n', strtotime($fecha))];
+$anio      = date('Y', strtotime($fecha));
+?>
 <p style="text-align:center; font-size:13px; font-weight:bold; color:#162660;
    text-transform:uppercase; margin:10px 0 4px;">
     Ficha Diaria de Actividad
 </p>
-<p style="text-align:center; font-size:9px; color:#7480A0; margin:0 0 14px;">
-    <?= htmlspecialchars($subtitulo_pdf ?? '') ?>
-    &nbsp;|&nbsp; Generado: <?= date('d/m/Y H:i') ?>
-</p>
+
+<!-- ── BLOQUE DE FECHA PROMINENTE ─────────────────────────── -->
+<div style="display:flex; justify-content:center; margin:6px 0 14px;">
+    <div style="background:linear-gradient(135deg,#162660 0%,#2563eb 100%);
+                border-radius:12px; padding:10px 28px; text-align:center;
+                display:inline-block;">
+        <div style="font-size:8px; color:rgba(255,255,255,0.7); text-transform:uppercase;
+                    letter-spacing:1.5px; margin-bottom:3px;">
+            Fecha de Asistencia
+        </div>
+        <div style="font-size:17px; font-weight:900; color:#ffffff; letter-spacing:0.5px;">
+            <?= $diaNombre ?>, <?= $diaNum ?> de <?= $mesNombre ?> de <?= $anio ?>
+        </div>
+        <div style="font-size:8px; color:rgba(255,255,255,0.6); margin-top:3px;">
+            Generado: <?= date('d/m/Y h:i A') ?>
+        </div>
+    </div>
+</div>
+
+<?php if (!($esHorarioLaboral ?? true)): ?>
+<div style="background:#fef9c3; border:1px solid #fde047; border-radius:8px;
+     padding:8px 12px; margin-bottom:12px; font-size:8.5px; color:#854d0e;
+     display:flex; align-items:center; gap:8px;">
+    <strong>⚠ Aviso:</strong>
+    Este reporte fue generado fuera del horario laboral (<?= date('h:i A') ?>).
+    Los datos mostrados corresponden a los registros cargados hasta este momento —
+    la jornada aún puede no haber iniciado o ya finalizó.
+</div>
+<?php endif; ?>
 
 <?php if (empty($porDepto)): ?>
 <div style="text-align:center; padding:30px; color:#94a3b8; font-size:11px;">
-    No hay registros de asistencia para hoy (<?= date('d/m/Y') ?>).
+    No hay registros de asistencia para la fecha <?= date('d/m/Y', strtotime($fecha)) ?>.<br>
+    <span style="font-size:9px; margin-top:6px; display:block;">
+        Si la jornada aún no ha iniciado, los registros aparecerán una vez que los pasantes marquen asistencia.
+    </span>
 </div>
 <?php else:
     $totalPresentes  = 0;
@@ -80,10 +117,11 @@ tr:nth-child(even) td { background: #f8fafc; }
         <tr>
             <th style="width:4%;">N°</th>
             <th style="width:10%;">Cédula</th>
-            <th style="width:28%;">Apellidos y Nombres</th>
-            <th style="width:15%;">Hora Registro</th>
-            <th style="width:12%;">Método</th>
-            <th style="width:12%;">Estado</th>
+            <th style="width:26%;">Apellidos y Nombres</th>
+            <th style="width:12%;">Fecha</th>
+            <th style="width:11%;">Hora Registro</th>
+            <th style="width:11%;">Método</th>
+            <th style="width:11%;">Estado</th>
         </tr>
     </thead>
     <tbody>
@@ -95,8 +133,11 @@ tr:nth-child(even) td { background: #f8fafc; }
         <td style="text-align:center; color:#94a3b8;"><?= $idx + 1 ?></td>
         <td><?= htmlspecialchars($r->cedula ?? '—') ?></td>
         <td><?= htmlspecialchars(mb_strtoupper(($r->apellidos ?? '') . ', ' . ($r->nombres ?? ''), 'UTF-8')) ?></td>
+        <td style="text-align:center; color:#475569; font-weight:600;">
+            <?= isset($r->fecha) ? date('d/m/Y', strtotime($r->fecha)) : '—' ?>
+        </td>
         <td style="text-align:center;">
-            <?= htmlspecialchars($r->hora_registro ? date('H:i', strtotime($r->hora_registro)) : '—') ?>
+            <?= htmlspecialchars($r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—') ?>
         </td>
         <td style="text-align:center; color:#64748b;">
             <?= htmlspecialchars(ucfirst($r->metodo ?? '—')) ?>

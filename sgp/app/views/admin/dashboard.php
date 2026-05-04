@@ -192,18 +192,17 @@ $periodos           = $data['periodos']           ?? [];
             </div>
             <div class="chart-wrapper pt-3">
                 <?php
-                $deptData = $data['metricas_graficos']['asistenciaDepartamento'] ?? ['labels' => [], 'series' => []];
-                $labels = $deptData['labels'] ?? [];
-                $series = $deptData['series'] ?? [];
+                $deptData   = $data['metricas_graficos']['asistenciaDepartamento'] ?? ['labels' => [], 'series' => [], 'pasantes' => []];
+                $labels     = $deptData['labels']   ?? [];
+                $series     = $deptData['series']   ?? [];
+                $pasantes   = $deptData['pasantes'] ?? [];
                 ?>
-                <?php if (empty($labels) || (count($labels) === 1 && $labels[0] === 'General' && empty($series[0]))): ?>
-                    <p class="text-center text-muted p-4" style="font-size:0.85rem;">No hay datos departamentales</p>
+                <?php if (empty($labels)): ?>
+                    <p class="text-center text-muted p-4" style="font-size:0.85rem;">No hay departamentos registrados</p>
                 <?php else: ?>
                     <style>
                         @keyframes fillProgressAnim { from { width: 0%; } }
                         .progress-bar-animated { animation: fillProgressAnim 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
-                        
-                        /* Resplandor KPI Cards */
                         .kpi-card-blue, .kpi-card-yellow, .kpi-card-green, .kpi-card-red {
                             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
                         }
@@ -211,16 +210,12 @@ $periodos           = $data['periodos']           ?? [];
                         .kpi-card-yellow:hover { transform: translateY(-4px) !important; box-shadow: 0 12px 20px -8px rgba(245, 158, 11, 0.5) !important; }
                         .kpi-card-green:hover { transform: translateY(-4px) !important; box-shadow: 0 12px 20px -8px rgba(16, 185, 129, 0.5) !important; }
                         .kpi-card-red:hover { transform: translateY(-4px) !important; box-shadow: 0 12px 20px -8px rgba(239, 68, 68, 0.5) !important; }
-
-                        /* Micro-interacción Departamentos */
                         .dept-progress-item {
                             padding: 8px;
                             border-radius: 8px;
                             transition: background-color 0.2s ease;
                         }
-                        .dept-progress-item:hover {
-                            background-color: #f8fafc;
-                        }
+                        .dept-progress-item:hover { background-color: #f8fafc; }
                         .dept-percentage {
                             transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
                         }
@@ -228,32 +223,56 @@ $periodos           = $data['periodos']           ?? [];
                             transform: scale(1.15);
                             color: #1e293b !important;
                         }
+                        .dept-empty-badge {
+                            font-size: 0.68rem;
+                            color: #94a3b8;
+                            background: #f1f5f9;
+                            border-radius: 20px;
+                            padding: 1px 8px;
+                            font-weight: 600;
+                        }
                     </style>
                     <?php
                     $gradients = [
-                        'linear-gradient(90deg, #3b82f6, #8b5cf6)', // Azul a Púrpura (Premium)
-                        'linear-gradient(90deg, #10b981, #34d399)', // Esmeralda (Success)
-                        'linear-gradient(90deg, #f59e0b, #fbbf24)', // Ámbar (Warning)
-                        'linear-gradient(90deg, #ec4899, #f43f5e)', // Rosa a Rojo (Danger/Accent)
-                        'linear-gradient(90deg, #6366f1, #a855f7)'  // Índigo a Violeta
+                        ['full' => 'linear-gradient(90deg, #3b82f6, #8b5cf6)', 'muted' => 'linear-gradient(90deg, rgba(59,130,246,0.22), rgba(139,92,246,0.14))',  'pill_bg' => 'rgba(59,130,246,0.12)',  'pill_border' => 'rgba(59,130,246,0.35)',  'pill_color' => '#2563eb'],
+                        ['full' => 'linear-gradient(90deg, #10b981, #34d399)', 'muted' => 'linear-gradient(90deg, rgba(16,185,129,0.22), rgba(52,211,153,0.14))',  'pill_bg' => 'rgba(16,185,129,0.12)',  'pill_border' => 'rgba(16,185,129,0.35)',  'pill_color' => '#059669'],
+                        ['full' => 'linear-gradient(90deg, #f59e0b, #fbbf24)', 'muted' => 'linear-gradient(90deg, rgba(245,158,11,0.22), rgba(251,191,36,0.14))',  'pill_bg' => 'rgba(245,158,11,0.12)',  'pill_border' => 'rgba(245,158,11,0.35)',  'pill_color' => '#d97706'],
+                        ['full' => 'linear-gradient(90deg, #ec4899, #f43f5e)', 'muted' => 'linear-gradient(90deg, rgba(236,72,153,0.22), rgba(244,63,94,0.14))',   'pill_bg' => 'rgba(236,72,153,0.12)',  'pill_border' => 'rgba(236,72,153,0.35)',  'pill_color' => '#db2777'],
+                        ['full' => 'linear-gradient(90deg, #6366f1, #a855f7)', 'muted' => 'linear-gradient(90deg, rgba(99,102,241,0.22), rgba(168,85,247,0.14))',  'pill_bg' => 'rgba(99,102,241,0.12)',  'pill_border' => 'rgba(99,102,241,0.35)',  'pill_color' => '#4f46e5'],
+                        ['full' => 'linear-gradient(90deg, #06b6d4, #3b82f6)', 'muted' => 'linear-gradient(90deg, rgba(6,182,212,0.22), rgba(59,130,246,0.14))',   'pill_bg' => 'rgba(6,182,212,0.12)',   'pill_border' => 'rgba(6,182,212,0.35)',   'pill_color' => '#0891b2'],
                     ];
                     $colorIndex = 0;
                     ?>
-                    <?php foreach ($labels as $index => $label): ?>
-                        <?php 
-                        $porcentaje = $series[$index] ?? 0;
-                        $currentGradient = $gradients[$colorIndex % count($gradients)]; 
-                        $colorIndex++; 
-                        ?>
-                        <div class="dept-progress-item mb-4">
-                            <div class="d-flex justify-content-between align-items-end mb-1">
-                                <span class="fw-bold text-dark" style="font-size: 0.85rem;"><?= htmlspecialchars($label) ?></span>
-                                <span class="fw-bold dept-percentage" style="font-size: 0.85rem; color: #475569;"><?= $porcentaje ?>%</span>
+                    <?php foreach ($labels as $index => $label):
+                        $porcentaje    = $series[$index] ?? 0;
+                        $totalPasantes = $pasantes[$index] ?? 0;
+                        $sinDatos      = $totalPasantes === 0;
+                        $g             = $gradients[$colorIndex % count($gradients)];
+                        $colorIndex++;
+                    ?>
+                        <div class="dept-progress-item mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="fw-bold text-dark" style="font-size: 0.83rem; <?= $sinDatos ? 'opacity:0.65;' : '' ?>">
+                                    <?= htmlspecialchars($label) ?>
+                                </span>
+                                <?php if ($sinDatos): ?>
+                                    <span style="font-size:0.68rem;font-weight:700;padding:2px 9px;border-radius:20px;border:1px solid <?= $g['pill_border'] ?>;background:<?= $g['pill_bg'] ?>;color:<?= $g['pill_color'] ?>;">
+                                        Sin pasantes
+                                    </span>
+                                <?php else: ?>
+                                    <span class="fw-bold dept-percentage" style="font-size: 0.85rem; color: #475569;"><?= $porcentaje ?>%</span>
+                                <?php endif; ?>
                             </div>
-                            <div class="progress" style="height: 14px; border-radius: 50rem; background-color: #f1f5f9; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
-                                <div class="progress-bar progress-bar-animated" role="progressbar" 
-                                     style="width: <?= $porcentaje ?>%; border-radius: 50rem; background: <?= $currentGradient ?>; transition: width 1.5s ease-in-out;" 
+                            <div class="progress" style="height: 12px; border-radius: 50rem; background-color: #f1f5f9; box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);">
+                                <?php if (!$sinDatos): ?>
+                                <div class="progress-bar progress-bar-animated" role="progressbar"
+                                     style="width: <?= $porcentaje ?>%; border-radius: 50rem; background: <?= $g['full'] ?>;"
                                      aria-valuenow="<?= $porcentaje ?>" aria-valuemin="0" aria-valuemax="100"></div>
+                                <?php else: ?>
+                                <div role="progressbar"
+                                     style="width:55%;border-radius:50rem;background:<?= $g['muted'] ?>;opacity:0.85;"
+                                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -323,7 +342,7 @@ $periodos           = $data['periodos']           ?? [];
                 <?php else: ?>
                     <div style="display: flex; flex-direction: column; gap: 12px;">
                     <?php foreach ($alertas_pendientes as $alerta): 
-                        $isSinAsignar = ($alerta->estado === 'Sin Asignar' || empty($alerta->estado));
+                        $isSinAsignar = $alerta->estado === 'Sin Asignar' || empty($alerta->estado);
                         $icon = $isSinAsignar ? 'user-exclamation' : 'clock-exclamation';
                         $iconColor = $isSinAsignar ? '#D97706' : '#DC2626';
                         $iconBg = $isSinAsignar ? '#FEF3C7' : '#FEE2E2';

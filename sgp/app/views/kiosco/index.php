@@ -178,9 +178,10 @@
         margin: 0 auto 16px;
         font-size: 2.5rem;
     }
-    .resultado-ok   { background: rgba(5,150,105,0.12); border: 3px solid #10b981; color: #059669; }
-    .resultado-warn { background: rgba(245,158,11,0.12); border: 3px solid #f59e0b; color: #d97706; }
-    .resultado-err  { background: rgba(239,68,68,0.12);  border: 3px solid #ef4444; color: #dc2626; }
+    .resultado-ok      { background: rgba(5,150,105,0.12);  border: 3px solid #10b981; color: #059669; }
+    .resultado-retardo { background: rgba(234,88,12,0.12);  border: 3px solid #f97316; color: #ea580c; }
+    .resultado-warn    { background: rgba(245,158,11,0.12); border: 3px solid #f59e0b; color: #d97706; }
+    .resultado-err     { background: rgba(239,68,68,0.12);  border: 3px solid #ef4444; color: #dc2626; }
     .resultado-nombre { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin-bottom: 4px; }
     .resultado-depto  { color: #64748b; font-size: 0.88rem; margin-bottom: 12px; }
     .resultado-hora   {
@@ -240,6 +241,21 @@
     .btn-outline-cancel:hover {
         background: #f8fafc; color: #1e293b; border-color: #cbd5e1;
     }
+    /* ===== BANNER FERIADO ===== */
+    #bannerFeriado {
+        display: none;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff;
+        border-radius: 14px;
+        padding: 16px 20px;
+        margin-bottom: 20px;
+        text-align: center;
+        animation: fadeInUp 0.4s ease;
+    }
+    #bannerFeriado .bf-icon { font-size: 2rem; margin-bottom: 6px; }
+    #bannerFeriado .bf-title { font-size: 1rem; font-weight: 800; margin-bottom: 2px; }
+    #bannerFeriado .bf-desc { font-size: 0.82rem; font-weight: 500; opacity: 0.92; line-height: 1.4; }
+    #panelFormulario.bloqueado { opacity: 0.45; pointer-events: none; filter: grayscale(0.4); }
     </style>
 </head>
 <body class="auth-wrapper">
@@ -266,6 +282,13 @@
         <div class="auth-header" style="margin-bottom: 24px;">
             <h1 class="auth-title" style="font-size: 1.4rem;">Registro de Asistencia</h1>
             <p class="auth-subtitle">Ingresa tu cédula y PIN para marcar tu entrada</p>
+        </div>
+
+        <!-- ── BANNER FERIADO (oculto por defecto, visible si hoy es feriado) ── -->
+        <div id="bannerFeriado">
+            <div class="bf-icon">🎉</div>
+            <div class="bf-title" id="bfNombre">Día Feriado</div>
+            <div class="bf-desc">Este es un día no laborable. La asistencia se registrará automáticamente como Justificado.</div>
         </div>
 
         <!-- ── PANEL FORMULARIO ── -->
@@ -418,9 +441,34 @@
         }
     }
 
+    // ── Verificar feriado al cargar la página ─────────────────────
+    (async function verificarFeriado() {
+        try {
+            var r = await fetch(URLROOT + '/kiosco/esFeriado');
+            var d = await r.json();
+            if (d.is_feriado) {
+                document.getElementById('bfNombre').textContent = d.nombre;
+                document.getElementById('bannerFeriado').style.display = 'block';
+                document.getElementById('panelFormulario').classList.add('bloqueado');
+                // Cambiar badge de estado a modo feriado
+                document.querySelector('.kiosco-status span').textContent = '🎉 Hoy es día feriado — No laborable';
+                document.querySelector('.status-dot').style.background = '#f59e0b';
+            }
+        } catch(e) { /* silencioso */ }
+    })();
+
     // ── Marcar Asistencia (AJAX real) ─────────────────────────────
     async function marcarAsistencia(e) {
         e.preventDefault();
+
+        // Validación frontend: bloquear fines de semana
+        var dow = new Date().getDay(); // 0=Dom, 6=Sáb
+        if (dow === 0 || dow === 6) {
+            var nombreDia = dow === 6 ? 'sábado' : 'domingo';
+            mostrarResultado({ success: false, message: 'Hoy es ' + nombreDia + '. No se registra asistencia los fines de semana — solo días hábiles de lunes a viernes.' });
+            return;
+        }
+
         var btn  = document.getElementById('btnMarcar');
         var txt  = document.getElementById('btnText');
         btn.disabled = true;
@@ -445,9 +493,28 @@
 
     // ── Mostrar panel de resultado ─────────────────────────────────
     function mostrarResultado(json) {
-        var tipo = json.success ? 'ok' : (json.ya_registro ? 'warn' : 'err');
-        var iconMap  = { ok: 'ti-check',      warn: 'ti-clock',      err: 'ti-x' };
-        var classMap = { ok: 'resultado-ok',  warn: 'resultado-warn', err: 'resultado-err' };
+        var tipo;
+        if (json.success) {
+            tipo = json.retardo ? 'retardo' : 'ok';
+        } else if (json.is_feriado) {
+            tipo = 'feriado';
+        } else {
+            tipo = json.ya_registro ? 'warn' : 'err';
+        }
+        var iconMap  = {
+            ok:       'ti-check',
+            retardo:  'ti-clock-exclamation',
+            warn:     'ti-clock',
+            feriado:  'ti-calendar-event',
+            err:      'ti-x'
+        };
+        var classMap = {
+            ok:       'resultado-ok',
+            retardo:  'resultado-retardo',
+            warn:     'resultado-warn',
+            feriado:  'resultado-warn',
+            err:      'resultado-err'
+        };
 
         var iconEl = document.getElementById('resultIcon');
         iconEl.className = 'resultado-icon ' + classMap[tipo];
@@ -471,7 +538,7 @@
         document.getElementById('panelFormulario').style.display = 'none';
         document.getElementById('panelResultado').style.display  = 'block';
 
-        // Auto-volver en 8 s si fue exitoso
+        // Auto-volver en 8 s si fue exitoso (ok o retardo)
         if (json.success) setTimeout(volverFormulario, 8000);
     }
 

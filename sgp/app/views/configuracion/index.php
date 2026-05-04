@@ -1014,23 +1014,267 @@ $hoy             = date('Y-m-d');
                     </button>
                 </div>
 
-                <!-- Acceso rápido a Bitácora -->
-                <div style="background:#f5f3ff;border-radius:12px;padding:14px;border:1px solid #ddd6fe;transition:all 0.2s;">
+                <!-- Reloj Personalizado: Ventana de Asistencia -->
+                <style>
+                /* ── Dígitos del reloj (green) ──────────────────── */
+                .mfc-digit {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 36px;
+                    height: 54px;
+                    background: #4c1d95;
+                    border-radius: 8px;
+                    box-shadow: 0 3px 10px rgba(124,58,237,0.3);
+                    flex-shrink: 0;
+                    transition: transform 0.08s ease;
+                }
+                .mfc-digit::before {
+                    content: attr(data-v);
+                    font-family: 'Courier New', Courier, monospace !important;
+                    font-size: 2rem;
+                    font-weight: 900;
+                    color: #ede9fe;
+                    line-height: 1;
+                }
+                .mfc-digit.flip { transform: scaleY(0.82); }
+                .mfc-sep-char {
+                    font-size: 1.8rem;
+                    font-weight: 900;
+                    color: #4c1d95;
+                    line-height: 1;
+                    padding: 0 1px;
+                    align-self: flex-start;
+                    margin-top: 8px;
+                }
+                .mfc-label {
+                    font-size: 0.6rem;
+                    font-weight: 800;
+                    color: #7c3aed;
+                    text-transform: uppercase;
+                    letter-spacing: 0.07em;
+                    margin-top: 5px;
+                    text-align: center;
+                }
+                @keyframes mfcPulse{0%,100%{box-shadow:0 2px 8px rgba(220,38,38,0.2);}50%{box-shadow:0 2px 18px rgba(220,38,38,0.55);}}
+                /* ── Mobile ─────────────────────────────────────── */
+                @media (max-width: 480px) {
+                    .mfc-digit { width: 26px; height: 40px; }
+                    .mfc-digit::before { font-size: 1.3rem; }
+                    .mfc-sep-char { font-size: 1.3rem; margin-top: 5px; }
+                    .mfc-period-badge { font-size: 0.62rem; padding: 2px 5px; margin-top: 5px; }
+                }
+                </style>
+
+                <div style="background:#f5f3ff;border-radius:12px;padding:16px;border:1px solid #ddd6fe;">
+                    <!-- Encabezado -->
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
                         <div>
-                            <p style="margin:0;font-size:0.85rem;font-weight:800;color:#4c1d95;">Bitácora del Sistema</p>
-                            <p style="margin:2px 0 0;font-size:0.73rem;color:#8b5cf6;">Registro de actividades del sistema</p>
+                            <p style="margin:0;font-size:0.85rem;font-weight:800;color:#4c1d95;">Ventana de Asistencia</p>
+                            <p id="mfc-subtitle" style="margin:2px 0 0;font-size:0.72rem;color:#8b5cf6;">Tiempo restante hoy — cierre a las 00:00</p>
                         </div>
-                        <div style="width:36px;height:36px;background:rgba(139,92,246,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;">
-                            <i class="ti ti-clipboard-list" style="font-size:1.3rem;color:#7c3aed;"></i>
+                        <button onclick="mostrarLeyendaReloj()"
+                            title="Ver cómo funciona este módulo"
+                            style="width:34px;height:34px;background:rgba(139,92,246,0.15);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;transition:all .2s;flex-shrink:0;"
+                            onmouseover="this.style.background='rgba(139,92,246,0.28)'"
+                            onmouseout="this.style.background='rgba(139,92,246,0.15)'">
+                            <i class="ti ti-info-circle" style="font-size:1.25rem;color:#7c3aed;"></i>
+                        </button>
+                    </div>
+
+                    <!-- Estado fin de semana (oculto por defecto, JS lo muestra si aplica) -->
+                    <div id="mfc-weekend" style="display:none;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 10px;margin:8px 0 14px;background:#f8fafc;border-radius:12px;border:1px dashed #cbd5e1;">
+                        <i class="ti ti-calendar-off" style="font-size:2rem;color:#94a3b8;"></i>
+                        <span id="mfc-weekend-label" style="font-size:0.82rem;font-weight:700;color:#64748b;text-align:center;">Fin de semana — sin asistencia</span>
+                        <span style="font-size:0.72rem;color:#94a3b8;text-align:center;">El sistema retoma el lunes</span>
+                    </div>
+
+                    <!-- Dígitos del reloj -->
+                    <div id="mfc-wrap" style="display:flex;align-items:flex-end;justify-content:center;gap:5px;margin:8px 0 14px;flex-wrap:nowrap;overflow:hidden;">
+                        <!-- Horas -->
+                        <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="display:flex;gap:3px;">
+                                <span class="mfc-digit" id="mfc-h1" data-v="0"></span>
+                                <span class="mfc-digit" id="mfc-h2" data-v="0"></span>
+                            </div>
+                            <span class="mfc-label">Horas</span>
+                        </div>
+                        <span class="mfc-sep-char">:</span>
+                        <!-- Minutos -->
+                        <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="display:flex;gap:3px;">
+                                <span class="mfc-digit" id="mfc-m1" data-v="0"></span>
+                                <span class="mfc-digit" id="mfc-m2" data-v="0"></span>
+                            </div>
+                            <span class="mfc-label">Min</span>
+                        </div>
+                        <span class="mfc-sep-char">:</span>
+                        <!-- Segundos -->
+                        <div style="display:flex;flex-direction:column;align-items:center;">
+                            <div style="display:flex;gap:3px;">
+                                <span class="mfc-digit" id="mfc-s1" data-v="0"></span>
+                                <span class="mfc-digit" id="mfc-s2" data-v="0"></span>
+                            </div>
+                            <span class="mfc-label">Seg</span>
                         </div>
                     </div>
+
+                    <!-- Barra de progreso del día -->
+                    <div id="mfc-bar-wrap" style="width:100%;margin-bottom:10px;">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:3px;">
+                            <span style="font-size:0.65rem;font-weight:700;color:#8b5cf6;">Día transcurrido</span>
+                            <span id="mfc-pct-label" style="font-size:0.65rem;font-weight:700;color:#8b5cf6;">0%</span>
+                        </div>
+                        <div style="width:100%;background:#ede9fe;border-radius:50rem;height:6px;overflow:hidden;">
+                            <div id="mfc-daybar" style="height:100%;border-radius:50rem;background:linear-gradient(90deg,#7c3aed,#a78bfa);transition:width 1s linear;width:0%;"></div>
+                        </div>
+                    </div>
+
+                    <!-- Badge sin marcar -->
+                    <div id="mfc-sinmarcar-box" style="width:100%;padding:8px 12px;border-radius:9px;background:white;box-shadow:0 2px 8px rgba(139,92,246,0.14);display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <span id="mfc-badge-label" style="display:flex;align-items:center;gap:5px;font-size:0.75rem;font-weight:700;color:#6d28d9;">
+                            <i class="ti ti-users" style="font-size:1rem;"></i>
+                            Pasantes sin marcar hoy
+                        </span>
+                        <span style="display:flex;align-items:center;gap:4px;">
+                            <span id="mfc-count" style="font-size:1.1rem;font-weight:900;color:#7c3aed;"><?= (int)($data['statsDB']['sin_marcar_hoy'] ?? 0) ?></span>
+                            <i id="mfc-count-icon" class="ti ti-circle-check" style="font-size:1rem;color:#10b981;"></i>
+                        </span>
+                    </div>
+
+                    <!-- Link bitácora -->
                     <a href="<?= URLROOT ?>/bitacora"
-                        style="width:100%;padding:9px;border:none;border-radius:9px;background:white;color:#7c3aed;font-size:0.85rem;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s;text-decoration:none;box-shadow:0 2px 6px rgba(139,92,246,0.1);"
-                        onmouseover="this.style.background='#ede9fe';this.style.transform='translateY(-1px)'" onmouseout="this.style.background='white';this.style.transform='none'">
-                        <i class="ti ti-external-link"></i> Ir a Bitácora
+                        style="width:100%;padding:7px;border-radius:9px;background:white;color:#7c3aed;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;gap:5px;text-decoration:none;box-shadow:0 2px 6px rgba(139,92,246,0.1);transition:all .2s;"
+                        onmouseover="this.style.background='#ede9fe';this.style.transform='translateY(-1px)'"
+                        onmouseout="this.style.background='white';this.style.transform='none'">
+                        <i class="ti ti-clipboard-list"></i> Ver Bitácora del Sistema
                     </a>
                 </div>
+
+                <script>
+                (function(){
+                    // ── Detectar fin de semana (0=Dom, 6=Sáb) ──────────
+                    var hoyDow = new Date().getDay();
+                    var esFinDeSemana = (hoyDow === 0 || hoyDow === 6);
+
+                    if (esFinDeSemana) {
+                        var nombreDia = hoyDow === 6 ? 'Sábado' : 'Domingo';
+                        document.getElementById('mfc-weekend-label').textContent = nombreDia + ' — sin asistencia';
+                        document.getElementById('mfc-weekend').style.display  = 'flex';
+                        document.getElementById('mfc-wrap').style.display     = 'none';
+                        document.getElementById('mfc-bar-wrap').style.display = 'none';
+                        document.getElementById('mfc-sinmarcar-box').style.display = 'none';
+                        document.getElementById('mfc-subtitle').textContent   = 'Día no hábil — el sistema retoma el lunes';
+                        document.getElementById('mfc-subtitle').style.color   = '#94a3b8';
+                        return; // No iniciar el reloj
+                    }
+
+                    function setDigit(id, val) {
+                        var el = document.getElementById(id);
+                        if (!el) return;
+                        var v = String(val);
+                        if (el.dataset.v === v) return;
+                        el.dataset.v = v;
+                        el.classList.add('flip');
+                        setTimeout(function(){ el.classList.remove('flip'); }, 80);
+                    }
+
+                    function updateClock() {
+                        var now = new Date(), mid = new Date(now);
+                        mid.setHours(24, 0, 0, 0);
+                        var rem = Math.max(0, Math.floor((mid - now) / 1000));
+
+                        /* 12h format */
+                        var h24  = Math.floor(rem / 3600);
+                        var h12  = h24 % 12 || 12;
+                        var mins = Math.floor((rem % 3600) / 60);
+                        var secs = rem % 60;
+
+                        setDigit('mfc-h1', Math.floor(h12 / 10));
+                        setDigit('mfc-h2', h12 % 10);
+                        setDigit('mfc-m1', Math.floor(mins / 10));
+                        setDigit('mfc-m2', mins % 10);
+                        setDigit('mfc-s1', Math.floor(secs / 10));
+                        setDigit('mfc-s2', secs % 10);
+
+                        /* Progress bar */
+                        var pct    = Math.round((86400 - rem) / 864);
+                        var bar    = document.getElementById('mfc-daybar');
+                        var pctLbl = document.getElementById('mfc-pct-label');
+                        if (bar)    bar.style.width = pct + '%';
+                        if (pctLbl) pctLbl.textContent = pct + '%';
+
+                        /* Urgency colors (bar + subtitle + pct label) */
+                        var color, barColor;
+                        if (rem > 14400) {
+                            color = '#16a34a'; barColor = 'linear-gradient(90deg,#16a34a,#22c55e)';
+                        } else if (rem > 3600) {
+                            color = '#d97706'; barColor = 'linear-gradient(90deg,#d97706,#f59e0b)';
+                        } else {
+                            color = '#dc2626'; barColor = 'linear-gradient(90deg,#dc2626,#ef4444)';
+                        }
+                        if (pctLbl) pctLbl.style.color = color;
+                        if (bar)    bar.style.background = barColor;
+                        var sub = document.getElementById('mfc-subtitle');
+                        if (sub) sub.style.color = color;
+
+                        /* Badge sin marcar */
+                        var sinMarcar = parseInt(document.getElementById('mfc-count').textContent) || 0;
+                        var box = document.getElementById('mfc-sinmarcar-box');
+                        var lbl = document.getElementById('mfc-badge-label');
+                        var ico = document.getElementById('mfc-count-icon');
+                        if (sinMarcar > 0 && rem < 7200) {
+                            if (box) { box.style.animation = 'mfcPulse 1.4s ease-in-out infinite'; box.style.border = '1px solid rgba(220,38,38,0.25)'; }
+                            if (lbl) lbl.style.color = '#dc2626';
+                            if (ico) { ico.className = 'ti ti-alert-triangle'; ico.style.color = '#dc2626'; }
+                        } else if (sinMarcar > 0) {
+                            if (box) { box.style.animation = ''; box.style.border = 'none'; }
+                            if (lbl) lbl.style.color = '#d97706';
+                            if (ico) { ico.className = 'ti ti-alert-circle'; ico.style.color = '#d97706'; }
+                        } else {
+                            if (box) { box.style.animation = ''; box.style.border = 'none'; }
+                            if (lbl) lbl.style.color = '#059669';
+                            if (ico) { ico.className = 'ti ti-circle-check'; ico.style.color = '#10b981'; }
+                        }
+                    }
+
+                    updateClock();
+                    setInterval(updateClock, 1000);
+                })();
+
+                function mostrarLeyendaReloj(){
+                    Swal.fire({
+                        title: 'Ventana de Asistencia',
+                        icon: 'info',
+                        html: '<div style="text-align:left;font-size:0.82rem;line-height:1.55;max-height:55vh;overflow-y:auto;padding-right:4px;">'
+                            + '<p style="margin:0 0 8px;color:#475569;">Muestra el <b style="color:#1e293b;">tiempo restante del día</b> hasta las 00:00 en formato 12h. Al llegar a cero, los pasantes sin asistencia quedan como <b style="color:#1e293b;">Ausentes</b> automáticamente.</p>'
+                            + '<hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0;">'
+                            + '<p style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:0.78rem;text-transform:uppercase;letter-spacing:.4px;">Urgencia — barra de progreso</p>'
+                            + '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">'
+                            +   '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#f5f3ff;border-radius:7px;border-left:3px solid #7c3aed;">'
+                            +     '<span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0;"></span>'
+                            +     '<span><b style="color:#7c3aed;">Morado</b> &mdash; Más de 4 horas</span>'
+                            +   '</div>'
+                            +   '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#fffbeb;border-radius:7px;border-left:3px solid #d97706;">'
+                            +     '<span style="width:8px;height:8px;border-radius:50%;background:#d97706;flex-shrink:0;"></span>'
+                            +     '<span><b style="color:#d97706;">Naranja</b> &mdash; Entre 1 y 4 horas</span>'
+                            +   '</div>'
+                            +   '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#fef2f2;border-radius:7px;border-left:3px solid #dc2626;">'
+                            +     '<span style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;"></span>'
+                            +     '<span><b style="color:#dc2626;">Rojo</b> &mdash; Menos de 1 hora</span>'
+                            +   '</div>'
+                            + '</div>'
+                            + '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:#fffbeb;border-radius:7px;border:1px solid #fde68a;">'
+                            +   '<i class="ti ti-calendar-off" style="color:#b45309;font-size:1rem;flex-shrink:0;margin-top:1px;"></i>'
+                            +   '<span style="color:#92400e;font-size:0.78rem;"><b>Solo días hábiles.</b> Sábados, domingos y feriados registrados no generan asistencia automática.</span>'
+                            + '</div>'
+                            + '</div>',
+                        confirmButtonText: 'Entendido',
+                        confirmButtonColor: '#7c3aed',
+                        width: 400
+                    });
+                }
+                </script>
 
             </div>
         </div>
