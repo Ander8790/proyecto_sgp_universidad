@@ -229,13 +229,21 @@ public function update()
 
     // 2a. Protección de integridad: bloquear cambio de rol entre familias incompatibles
     $nuevoRolId = (int)($_POST['rol_id'] ?? 0);
-    if ($nuevoRolId) {
-        $db = Database::getInstance();
-        $db->query("SELECT rol_id FROM usuarios WHERE id = :id LIMIT 1");
-        $db->bind(':id', $id);
-        $currentRow = $db->single();
-        $rolActual  = (int)($currentRow->rol_id ?? 0);
+    $db = Database::getInstance();
+    $db->query("SELECT rol_id, cedula FROM usuarios WHERE id = :id LIMIT 1");
+    $db->bind(':id', $id);
+    $currentRow = $db->single();
+    $rolActual  = (int)($currentRow->rol_id ?? 0);
+    $cedulaActual = $currentRow->cedula ?? '';
 
+    // Validar privilegio de edición de cédula
+    $currentRole = (int)Session::get('role_id');
+    $nuevaCedula = trim($_POST['cedula'] ?? '');
+    if ($currentRole !== 0 && $nuevaCedula !== $cedulaActual) {
+        $this->jsonResponse(false, 'Acceso Denegado: Solo el SuperAdmin tiene privilegios para modificar la cédula de un usuario.');
+    }
+
+    if ($nuevoRolId) {
         // Familia A: Admin(1) y Tutor(2) | Familia B: Pasante(3)
         $familiaActual = ($rolActual === 3) ? 'B' : 'A';
         $familiaNew    = ($nuevoRolId  === 3) ? 'B' : 'A';
@@ -276,13 +284,15 @@ public function update()
         $this->jsonResponse(false, 'Error al actualizar usuario');
     }
     
-    // Save cedula directly to usuarios
-    $config = require '../app/config/config.php';
-    $db = new Database($config['db']);
-    $db->query("UPDATE usuarios SET cedula = :cedula WHERE id = :id");
-    $db->bind(':cedula', $cedula);
-    $db->bind(':id', $id);
-    $db->execute(); // best-effort, no stop on error
+    // Save cedula directly to usuarios (Only if superadmin)
+    if ($currentRole === 0 && $cedula !== $cedulaActual) {
+        $config = require '../app/config/config.php';
+        $db = new Database($config['db']);
+        $db->query("UPDATE usuarios SET cedula = :cedula WHERE id = :id");
+        $db->bind(':cedula', $cedula);
+        $db->bind(':id', $id);
+        $db->execute(); // best-effort, no stop on error
+    }
     
     // Update or insert datos_personales (nombres, apellidos — NO cedula)
     $db->query("SELECT id FROM datos_personales WHERE usuario_id = :uid");
@@ -497,10 +507,9 @@ public function update()
         // Si es pasante (rol 3), cascade completo
         if ((int)$usuario->rol_id === 3) {
             foreach ([
-                "DELETE FROM asistencias             WHERE pasante_id  = :id",
-                "DELETE FROM evaluaciones             WHERE pasante_id  = :id",
-                "DELETE FROM actividad_participantes  WHERE usuario_id  = :id",
-                "DELETE FROM datos_pasante            WHERE usuario_id  = :id",
+                "DELETE FROM asistencias  WHERE pasante_id = :id",
+                "DELETE FROM evaluaciones WHERE pasante_id = :id",
+                "DELETE FROM datos_pasante WHERE usuario_id = :id",
             ] as $sql) {
                 $db->query($sql);
                 $db->bind(':id', $id);

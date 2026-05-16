@@ -20,6 +20,16 @@ $userApellidos     = htmlspecialchars($data['user']->apellidos ?? '');
 $userCedula        = htmlspecialchars($data['user']->cedula    ?? 'No registrada');
 $userCorreo        = htmlspecialchars($data['user']->correo    ?? '');
 
+// Campos ya registrados → se muestran bloqueados, solo se edita lo que falta
+$u              = $data['user'];
+$tieneTelefono  = !empty($u->telefono);
+$tieneFecha     = !empty($u->fecha_nacimiento);
+$tieneGenero    = !empty($u->genero);
+$tieneCargo     = !empty($u->cargo);
+$tienePin       = !empty($u->pin_asistencia);
+$tieneInst      = !empty($u->institucion_procedencia) && (int)$u->institucion_procedencia > 0;
+$generoLabels   = ['M' => 'Masculino', 'F' => 'Femenino', 'Otro' => 'Prefiero no decirlo'];
+
 // Estado inicial de los indicadores
 $si1Class = $creadoPorAdmin ? 'active' : 'completed';
 $si2Class = $creadoPorAdmin ? ''       : 'completed';
@@ -308,6 +318,22 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
             goBack('step3','step4','si-step3','si-step4');
         };
 
+        // ── Verificar en tiempo real que nueva ≠ temporal ────────────
+        window.verificarNoEsTemporal = function(npInput) {
+            var cur   = document.getElementById('current_password');
+            var msg   = document.getElementById('new-pass-temp-error');
+            if (!cur || !msg) return;
+            var esTemporal = npInput.value.length > 0 && npInput.value === cur.value.trim();
+            if (esTemporal) {
+                npInput.classList.add('is-invalid');
+                npInput.classList.remove('is-valid');
+                msg.style.display = 'flex';
+            } else {
+                npInput.classList.remove('is-invalid');
+                msg.style.display = 'none';
+            }
+        };
+
         // ── Validar Paso 1 (contraseña) ─────────────────────────────
         window.validarPaso1 = function() {
             var cur = document.getElementById('current_password');
@@ -315,6 +341,7 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
             var cp  = document.getElementById('confirm_password');
             if (!cur || !cur.value.trim()) { NotificationService.warning('Ingresa tu contraseña actual'); cur && cur.focus(); return false; }
             if (!np  || !np.value)         { NotificationService.warning('Ingresa una nueva contraseña'); np && np.focus(); return false; }
+            if (np.value === cur.value.trim()) { NotificationService.error('La nueva contraseña no puede ser igual a la contraseña temporal'); np.focus(); return false; }
             if (np.value.length < 8)       { NotificationService.error('La contraseña debe tener al menos 8 caracteres'); np.focus(); return false; }
             if (!cp || !cp.value)          { NotificationService.warning('Confirma tu nueva contraseña'); cp && cp.focus(); return false; }
             if (np.value !== cp.value)     { NotificationService.error('Las contraseñas no coinciden'); cp.focus(); return false; }
@@ -351,7 +378,14 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
             if (rolId === 3) {
                 var pin  = document.getElementById('pin_asistencia');
                 var inst = document.getElementById('institucion_id');
-                if (!pin || !/^[0-9]{4}$/.test(pin.value)) { NotificationService.warning('El PIN debe tener exactamente 4 dígitos numéricos.'); pin && pin.focus(); return false; }
+                var pinExistente = document.querySelector('[name="pin_tiene_existente"]');
+                // PIN es opcional si ya existe; si se ingresó algo, debe ser 4 dígitos
+                if (!pinExistente && (!pin || !/^[0-9]{4}$/.test(pin.value))) {
+                    NotificationService.warning('El PIN debe tener exactamente 4 dígitos numéricos.'); pin && pin.focus(); return false;
+                }
+                if (pin && pin.value && !/^[0-9]{4}$/.test(pin.value)) {
+                    NotificationService.warning('El PIN debe tener exactamente 4 dígitos numéricos.'); pin.focus(); return false;
+                }
                 if (!inst || !inst.value) { NotificationService.warning('Selecciona tu institución de procedencia.'); inst && inst.focus(); return false; }
             } else {
                 var cargo = document.getElementById('cargo');
@@ -510,13 +544,18 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                 </span>
 
                 <div class="form-group has-toggle">
-                    <input type="password" name="new_password" id="new_password" class="input-modern" placeholder=" " required oninput="window.actualizarFortaleza(this)">
+                    <input type="password" name="new_password" id="new_password" class="input-modern" placeholder=" " required
+                        oninput="window.actualizarFortaleza(this); window.verificarNoEsTemporal(this); var _c=document.getElementById('confirm_password'); if(_c && _c.value) window.validarConfirmacion(this,_c);">
                     <label for="new_password" class="label-floating">
                         <i class="ti ti-lock" style="margin-right:8px;font-size:18px;"></i>Nueva Contraseña
                     </label>
                     <i class="ti ti-eye password-toggle" onclick="window.togglePass('new_password', this)"></i>
                 </div>
-                <span class="password-hint" style="display:block;margin-top:-16px;margin-bottom:8px;">
+                <div id="new-pass-temp-error" style="display:none;align-items:center;gap:6px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:8px 12px;margin-top:-12px;margin-bottom:10px;font-size:0.8rem;color:#dc2626;font-weight:500;">
+                    <i class="ti ti-alert-circle" style="font-size:1rem;flex-shrink:0;"></i>
+                    No puedes usar la misma contraseña temporal. Elige una contraseña nueva.
+                </div>
+                <span class="password-hint" style="display:block;margin-top:0;margin-bottom:8px;">
                     Mín. 8 caracteres: mayúscula, minúscula, número y símbolo
                 </span>
 
@@ -646,11 +685,24 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                     </div>
                 </div>
 
-                <!-- ── Campos editables en 2 columnas ── -->
+                <!-- ── Campos: bloqueados si ya existen, editables si faltan ── -->
                 <div class="step3-grid">
-                    <!-- Teléfono — ocupa columna completa -->
+
+                    <!-- Teléfono -->
+                    <?php if ($tieneTelefono): ?>
                     <div class="form-group full-col">
-                        <!-- Wrapper relativo solo al input — los iconos se anclan aquí -->
+                        <label class="readonly-label">
+                            <i class="ti ti-phone" style="margin-right:6px;"></i>Teléfono
+                            <span class="readonly-badge"><i class="ti ti-lock" style="font-size:.65rem;"></i> Registrado</span>
+                        </label>
+                        <div class="input-readonly-wrap">
+                            <div class="input-readonly"><?= htmlspecialchars($u->telefono) ?></div>
+                            <i class="ti ti-lock input-readonly-lock"></i>
+                        </div>
+                        <input type="hidden" id="telefono" name="telefono" value="<?= htmlspecialchars($u->telefono) ?>">
+                    </div>
+                    <?php else: ?>
+                    <div class="form-group full-col">
                         <div style="position:relative;">
                             <input type="tel" name="telefono" id="telefono" class="input-modern" placeholder=" " required inputmode="numeric" maxlength="12" style="padding-right:44px;" oninput="this.value = this.value.replace(/[^0-9]/g, '').replace(/^(\d{4})(\d)/, '$1-$2').slice(0, 12);">
                             <label for="telefono" class="label-floating">
@@ -665,8 +717,22 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                             <i class="ti ti-alert-circle"></i> Este número ya está registrado en el sistema.
                         </small>
                     </div>
+                    <?php endif; ?>
 
-                    <!-- Fecha de Nacimiento (3 Inputs Bento UI) -->
+                    <!-- Fecha de Nacimiento -->
+                    <?php if ($tieneFecha): ?>
+                    <div class="form-group">
+                        <label class="readonly-label">
+                            <i class="ti ti-calendar" style="margin-right:6px;"></i>Fecha de Nacimiento
+                            <span class="readonly-badge"><i class="ti ti-lock" style="font-size:.65rem;"></i> Registrado</span>
+                        </label>
+                        <div class="input-readonly-wrap">
+                            <div class="input-readonly"><?= date('d/m/Y', strtotime($u->fecha_nacimiento)) ?></div>
+                            <i class="ti ti-lock input-readonly-lock"></i>
+                        </div>
+                        <input type="hidden" id="fecha_nacimiento" name="fecha_nacimiento" value="<?= htmlspecialchars($u->fecha_nacimiento) ?>">
+                    </div>
+                    <?php else: ?>
                     <div class="form-group">
                         <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
                             <i class="ti ti-calendar" style="margin-right:6px;"></i>Fecha de Nacimiento *
@@ -674,8 +740,22 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                         <input type="text" id="fecha_nacimiento_mask" class="input-modern" placeholder="DD / MM / AAAA" inputmode="numeric" required>
                         <input type="hidden" id="fecha_nacimiento" name="fecha_nacimiento" required>
                     </div>
+                    <?php endif; ?>
 
                     <!-- Género -->
+                    <?php if ($tieneGenero): ?>
+                    <div class="form-group">
+                        <label class="readonly-label">
+                            <i class="ti ti-gender-androgyne" style="margin-right:6px;"></i>Género
+                            <span class="readonly-badge"><i class="ti ti-lock" style="font-size:.65rem;"></i> Registrado</span>
+                        </label>
+                        <div class="input-readonly-wrap">
+                            <div class="input-readonly"><?= htmlspecialchars($generoLabels[$u->genero] ?? $u->genero) ?></div>
+                            <i class="ti ti-lock input-readonly-lock"></i>
+                        </div>
+                        <input type="hidden" id="genero" name="genero" value="<?= htmlspecialchars($u->genero) ?>">
+                    </div>
+                    <?php else: ?>
                     <div class="form-group">
                         <label class="readonly-label" style="font-weight:600;color:#374151;">
                             <i class="ti ti-gender-androgyne" style="margin-right:6px;"></i>Género *
@@ -687,6 +767,8 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                             <option value="Otro">Prefiero no decirlo</option>
                         </select>
                     </div>
+                    <?php endif; ?>
+
                 </div>
 
                 <div style="display:flex;gap:1rem;margin-top:1.5rem;">
@@ -726,6 +808,27 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                     <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
                         <i class="ti ti-school" style="margin-right:6px;"></i>Institución de Procedencia *
                     </label>
+                    <?php if ($tieneInst):
+                        // Buscar nombre de la institución ya guardada
+                        $instIdExistente = (int)$u->institucion_procedencia;
+                        $instNombreExistente = '';
+                        foreach ($data['instituciones'] as $_inst) {
+                            if ((int)$_inst->id === $instIdExistente) {
+                                $instNombreExistente = $_inst->nombre;
+                                if (!empty($_inst->direccion)) $instNombreExistente .= ' (' . $_inst->direccion . ')';
+                                break;
+                            }
+                        }
+                    ?>
+                    <div class="input-readonly-wrap">
+                        <div class="input-readonly"><?= htmlspecialchars($instNombreExistente ?: 'Institución registrada') ?></div>
+                        <i class="ti ti-lock input-readonly-lock"></i>
+                    </div>
+                    <input type="hidden" id="institucion_id" name="institucion_id" value="<?= $instIdExistente ?>">
+                    <p style="color:#2563eb;font-size:0.78rem;margin-top:5px;display:flex;align-items:center;gap:4px;">
+                        <i class="ti ti-lock"></i> Institución registrada. Contacta al administrador si necesitas cambiarla.
+                    </p>
+                    <?php else: ?>
                     <select name="institucion_id" id="institucion_id" class="input-modern" required style="cursor:pointer;">
                         <option value="">Selecciona tu liceo / escuela técnica...</option>
                         <?php foreach ($data['instituciones'] as $inst): ?>
@@ -740,14 +843,26 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                         <i class="ti ti-alert-triangle"></i> No hay instituciones registradas. Contacta al administrador.
                     </p>
                     <?php endif; ?>
+                    <?php endif; ?>
                 </div>
 
                 <!-- PIN con toggle ojito -->
                 <div class="form-group" style="margin-bottom:1rem;">
                     <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
-                        <i class="ti ti-device-mobile" style="margin-right:6px;"></i>PIN del Registro de Asistencia *
+                        <i class="ti ti-device-mobile" style="margin-right:6px;"></i>PIN del Registro de Asistencia
+                        <?= $tienePin ? '' : ' *' ?>
                     </label>
 
+                    <?php if ($tienePin): ?>
+                    <input type="hidden" name="pin_tiene_existente" value="1">
+                    <div class="info-alert" style="background:linear-gradient(135deg,rgba(5,150,105,.08),rgba(5,150,105,.04));border-color:rgba(5,150,105,.2);">
+                        <i class="ti ti-shield-check info-alert-icon" style="color:#059669;"></i>
+                        <div class="info-alert-body" style="color:#374151;">
+                            Ya tienes un <strong style="color:#059669;">PIN configurado</strong>.
+                            Déjalo vacío para conservarlo, o ingresa 4 dígitos nuevos para cambiarlo.
+                        </div>
+                    </div>
+                    <?php else: ?>
                     <div class="info-alert">
                         <i class="ti ti-info-circle info-alert-icon"></i>
                         <div class="info-alert-body">
@@ -756,14 +871,15 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                             No lo compartas con nadie.
                         </div>
                     </div>
+                    <?php endif; ?>
 
                     <div class="pin-wrapper">
                         <input type="password" name="pin_asistencia" id="pin_asistencia"
                             maxlength="4" pattern="[0-9]{4}" inputmode="numeric"
                             class="input-modern"
-                            placeholder="••••"
+                            placeholder="<?= $tienePin ? '(sin cambios)' : '••••' ?>"
                             style="letter-spacing:0.6em;font-size:1.4rem;text-align:center;padding-right:48px;"
-                            required>
+                            <?= $tienePin ? '' : 'required' ?>>
                         <button type="button" class="pin-toggle" id="pin-toggle-btn"
                             onclick="window.togglePass('pin_asistencia', document.getElementById('pin-toggle-icon'))"
                             title="Mostrar/Ocultar PIN">
@@ -771,7 +887,7 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                         </button>
                     </div>
                     <p style="font-size:0.76rem;color:#9ca3af;margin-top:6px;text-align:center;">
-                        Solo números — 4 dígitos
+                        Solo números — 4 dígitos<?= $tienePin ? ' · Opcional si no deseas cambiarlo' : '' ?>
                     </p>
                 </div>
 
@@ -781,9 +897,20 @@ $startStep3 = $creadoPorAdmin ? 'none' : 'block';
                     <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">
                         <i class="ti ti-briefcase" style="margin-right:6px;"></i>Cargo / Puesto *
                     </label>
+                    <?php if ($tieneCargo): ?>
+                    <div class="input-readonly-wrap">
+                        <div class="input-readonly"><?= htmlspecialchars($u->cargo) ?></div>
+                        <i class="ti ti-lock input-readonly-lock"></i>
+                    </div>
+                    <input type="hidden" id="cargo" name="cargo" value="<?= htmlspecialchars($u->cargo) ?>">
+                    <p style="color:#2563eb;font-size:0.78rem;margin-top:5px;display:flex;align-items:center;gap:4px;">
+                        <i class="ti ti-lock"></i> Dato registrado. Modifícalo desde tu Perfil si necesitas cambiarlo.
+                    </p>
+                    <?php else: ?>
                     <input type="text" name="cargo" id="cargo" class="input-modern" required
                         maxlength="100"
                         placeholder="Ej: Jefe de Soporte, Profesor, Analista de Redes...">
+                    <?php endif; ?>
                 </div>
                 <div class="form-group" style="margin-bottom:1.2rem;">
                     <label class="form-label" style="display:block;margin-bottom:.5rem;font-weight:600;color:#374151;">

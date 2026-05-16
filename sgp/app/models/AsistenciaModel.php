@@ -90,7 +90,11 @@ class AsistenciaModel
                    CONCAT(COALESCE(td.nombres, ''), ' ', COALESCE(td.apellidos, '')) AS tutor_nombre,
                    dpa.fecha_inicio_pasantia AS fecha_inicio,
                    dpa.fecha_fin_estimada    AS fecha_fin,
-                   COALESCE(dpa.horas_meta, 1440) AS horas_meta
+                   COALESCE(
+                       NULLIF(dpa.horas_meta, 0),
+                       ROUND(DATEDIFF(pa.fecha_fin, pa.fecha_inicio) * 5/7) * 8,
+                       1440
+                   ) AS horas_meta
             FROM   usuarios u
             INNER JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT  JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
@@ -227,6 +231,7 @@ class AsistenciaModel
             SELECT fecha, nombre AS descripcion
             FROM   dias_feriados
             WHERE  fecha >= :inicio AND fecha <= :fin
+              AND  es_laborable = 0
             ORDER  BY fecha ASC
         ");
         $this->db->bind(':inicio', $fechaInicio);

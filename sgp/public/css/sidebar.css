@@ -396,10 +396,10 @@ body.sidebar-collapsed .nav-link:hover::before {
 }
 
 /* ========================================
-   DESKTOP (≥ 992px)
+   DESKTOP (≥ 1200px)
    ======================================== */
 
-@media (min-width: 992px) {
+@media (min-width: 1200px) {
     .main-sidebar {
         top: var(--header-height);
         height: calc(100vh - var(--header-height));
@@ -427,10 +427,10 @@ body.sidebar-collapsed .nav-link:hover::before {
 }
 
 /* ========================================
-   MOBILE (< 992px)
+   TABLET / PANTALLAS MEDIAS (< 1200px)
    ======================================== */
 
-@media (max-width: 991px) {
+@media (max-width: 1199px) {
     .main-sidebar {
         left: -100%;
         top: 0;

@@ -32,7 +32,7 @@ function initAllSelects() {
     // Buscar todos los select que NO tengan ya la clase choices__input (para no duplicar)
     // Opcionalmente podemos ignorar los select que tengan la clase 'no-choices'
     // También ignoramos explícitamente los selects internos de Flatpickr para que no se rompan
-    const selects = document.querySelectorAll('select:not(.no-choices):not(.flatpickr-monthDropdown-months)');
+    const selects = document.querySelectorAll('select:not(.no-choices):not(.flatpickr-monthDropdown-months):not(.swal2-select)');
 
     selects.forEach(selectElement => {
         // No inicializar Choices en el selector de paginación de DataTables
@@ -128,7 +128,7 @@ window.SGPChoices = {
      */
     initContainer: function (containerElement) {
         if (!containerElement) return;
-        const selects = containerElement.querySelectorAll('select:not(.no-choices):not(.flatpickr-monthDropdown-months)');
+        const selects = containerElement.querySelectorAll('select:not(.no-choices):not(.flatpickr-monthDropdown-months):not(.swal2-select)');
         selects.forEach(s => {
             if (s.closest('.dataTables_length')) return;
             window.SGPChoices.reinit(s);

@@ -36,9 +36,22 @@ class AnaliticasController extends Controller
         $isAdmin    = in_array($this->rolId, [0, 1]);
         $tutorId    = $this->tutorId;
 
-        // Filtros SQL dinámicos según rol
-        $tutorJoin  = $isAdmin ? '' : "INNER JOIN datos_pasante _dp2 ON _dp2.usuario_id = a.pasante_id AND _dp2.tutor_id = {$tutorId}";
-        $tutorWhere = $isAdmin ? '' : "AND dpa.tutor_id = {$tutorId}";
+        // Para tutores: obtener el departamento_id y filtrar por él
+        $deptId = null;
+        if (!$isAdmin && $tutorId) {
+            $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :uid LIMIT 1");
+            $this->db->bind(':uid', $tutorId);
+            $deptId = (int)($this->db->single()->departamento_id ?? 0);
+        }
+
+        // Filtros SQL dinámicos según rol (por departamento, no por tutor_id)
+        $tutorJoin  = (!$isAdmin && $deptId)
+            ? "INNER JOIN datos_pasante _dp2 ON _dp2.usuario_id = a.pasante_id AND _dp2.departamento_asignado_id = {$deptId}"
+            : '';
+        $tutorWhere = (!$isAdmin && $deptId)
+            ? "AND dpa.departamento_asignado_id = {$deptId}"
+            : '';
+
 
         // ────────────────────────────────────────────────────────────────
         // KPIs
@@ -61,11 +74,11 @@ class AnaliticasController extends Controller
             ? round(($asist->presentes / $totalAsistencias) * 100, 1)
             : 0;
 
-        // KPI 2: Pasantes activos
+        // KPI 2: Pasantes activos en el periodo
         $this->db->query("
             SELECT COUNT(*) AS total
-            FROM datos_pasante
-            WHERE estado_pasantia = 'Activo' {$tutorWhere}
+            FROM datos_pasante dpa
+            WHERE dpa.estado_pasantia = 'Activo' {$tutorWhere}
         ");
         $kpiActivos = (int)($this->db->single()->total ?? 0);
 
@@ -100,7 +113,7 @@ class AnaliticasController extends Controller
         ");
         $kpiProgreso = (float)($this->db->single()->promedio ?? 0);
 
-        // KPI 5: Promedio evaluaciones
+        // KPI 5: Promedio evaluaciones del periodo
         $this->db->query("
             SELECT ROUND(AVG(e.promedio_final), 2) AS promedio
             FROM evaluaciones e
@@ -389,12 +402,12 @@ class AnaliticasController extends Controller
         ");
         $sinEvaluacion = $this->db->resultSet();
 
-        // Distribución por estado de pasantía
+        // Distribución por estado de pasantía en el periodo
         $this->db->query("
-            SELECT estado_pasantia, COUNT(*) AS total
-            FROM datos_pasante
+            SELECT dpa.estado_pasantia, COUNT(*) AS total
+            FROM datos_pasante dpa
             WHERE 1=1 {$tutorWhere}
-            GROUP BY estado_pasantia
+            GROUP BY dpa.estado_pasantia
         ");
         $estadosPasantia = $this->db->resultSet();
 

@@ -68,12 +68,17 @@ class EvaluacionesController extends Controller {
         ";
 
         if ($rol_id === 2) {
+            // Obtener departamento del tutor
+            $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+            $this->db->bind(':tid', $tutorActualId);
+            $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
             $this->db->query($baseSelect . "
                 WHERE u.rol_id = 3 AND u.estado = 'activo'
-                  AND dpa.tutor_id = :tutor_id
+                  AND dpa.departamento_asignado_id = :dept_id
                 ORDER BY eval_stats.total_evals ASC, IFNULL(dp.apellidos, u.correo) ASC
             ");
-            $this->db->bind(':tutor_id', $tutorActualId);
+            $this->db->bind(':dept_id', $deptId);
         } else {
             $this->db->query($baseSelect . "
                 WHERE u.rol_id = 3 AND u.estado = 'activo'
@@ -121,6 +126,11 @@ class EvaluacionesController extends Controller {
         if ($pasanteId <= 0) {
             $tutorActualId = ($rol_id === 2) ? (int)Session::get('user_id') : null;
             if ($rol_id === 2) {
+                // Obtener departamento del tutor
+                $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+                $this->db->bind(':tid', $tutorActualId);
+                $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
                 $this->db->query("
                     SELECT u.id, dp.nombres, dp.apellidos, u.cedula,
                            d.nombre AS departamento
@@ -129,10 +139,10 @@ class EvaluacionesController extends Controller {
                     INNER JOIN datos_pasante dpa ON dpa.usuario_id = u.id
                     LEFT JOIN departamentos d ON d.id = dpa.departamento_asignado_id
                     WHERE u.rol_id = 3 AND u.estado = 'activo'
-                      AND dpa.tutor_id = :tutor_id AND dpa.estado_pasantia = 'Activo'
+                      AND dpa.departamento_asignado_id = :dept_id AND dpa.estado_pasantia = 'Activo'
                     ORDER BY IFNULL(dp.apellidos, u.correo) ASC
                 ");
-                $this->db->bind(':tutor_id', $tutorActualId);
+                $this->db->bind(':dept_id', $deptId);
             } else {
                 $this->db->query("
                     SELECT u.id, dp.nombres, dp.apellidos, u.cedula,
@@ -283,12 +293,16 @@ class EvaluacionesController extends Controller {
             return;
         }
 
-        // Tutor: verificar que el pasante esté asignado a él
+        // Tutor: verificar que el pasante pertenezca a su departamento
         if ($rolId === 2) {
-            $this->db->query("SELECT tutor_id FROM datos_pasante WHERE usuario_id = :pid LIMIT 1");
+            $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+            $this->db->bind(':tid', $userId);
+            $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
+            $this->db->query("SELECT dpa.departamento_asignado_id FROM datos_pasante dpa WHERE dpa.usuario_id = :pid LIMIT 1");
             $this->db->bind(':pid', $pasanteId);
             $dpa = $this->db->single();
-            if (!$dpa || (int)($dpa->tutor_id ?? 0) !== $userId) {
+            if (!$dpa || (int)($dpa->departamento_asignado_id ?? 0) !== $deptId) {
                 http_response_code(403);
                 echo json_encode(['success' => false, 'message' => 'No tienes permiso para evaluar a este pasante']);
                 return;
@@ -444,6 +458,69 @@ class EvaluacionesController extends Controller {
             }
         } catch (\Exception $e) {
             error_log('[SGP-EVAL] Error al actualizar evaluación: ' . $e->getMessage());
+            echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // POST /evaluaciones/eliminar — Eliminar evaluación (AJAX)
+    // ─────────────────────────────────────────────────────────
+    public function eliminar(): void
+    {
+        header('Content-Type: application/json');
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            return;
+        }
+
+        $rolId  = (int)(Session::get('role_id') ?? 0);
+        $userId = (int)(Session::get('user_id') ?? 0);
+        if (!in_array($rolId, [0, 1, 2])) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Sin permiso para eliminar evaluaciones']);
+            return;
+        }
+
+        $token = $_POST['_csrf'] ?? $_SERVER['HTTP_X_CSRF_TOKEN'] ?? '';
+        if (!Session::validateCsrfToken($token)) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'Token CSRF inválido. Recarga la página.']);
+            return;
+        }
+
+        $id = (int)($_POST['evaluacion_id'] ?? 0);
+        if ($id <= 0) {
+            echo json_encode(['success' => false, 'message' => 'ID de evaluación inválido']);
+            return;
+        }
+
+        $ev = $this->evaluacionModel->getById($id);
+        if (!$ev) {
+            echo json_encode(['success' => false, 'message' => 'Evaluación no encontrada']);
+            return;
+        }
+
+        // Tutor: solo puede eliminar evaluaciones que él registró
+        if ($rolId === 2 && (int)($ev->tutor_id ?? 0) !== $userId) {
+            http_response_code(403);
+            echo json_encode(['success' => false, 'message' => 'No tienes permiso para eliminar esta evaluación']);
+            return;
+        }
+
+        try {
+            if ($this->evaluacionModel->eliminar($id)) {
+                AuditModel::log('ELIMINAR_EVALUACION', 'evaluaciones', $id, [
+                    'pasante_id' => $ev->pasante_id,
+                    'tutor_id'   => $ev->tutor_id,
+                    'promedio'   => $ev->promedio_final,
+                ]);
+                echo json_encode(['success' => true, 'message' => 'Evaluación eliminada correctamente']);
+            } else {
+                echo json_encode(['success' => false, 'message' => 'Error al eliminar en la base de datos']);
+            }
+        } catch (\Exception $e) {
+            error_log('[SGP-EVAL] Error al eliminar evaluación: ' . $e->getMessage());
             echo json_encode(['success' => false, 'message' => 'Error interno del servidor']);
         }
     }

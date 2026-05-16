@@ -92,8 +92,11 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
     display: flex; align-items: center; justify-content: space-between;
 }
 /* El slide ocupa el 50% del slider (200% de ancho total) */
-#vistaDashboard  { width: 50%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; align-items: start; margin-bottom: 20px; }
-#vistaEvaluacion { width: 50%; display: flex; flex-direction: column; padding-bottom: 24px; }
+#evalOuter          { height: calc(100vh - 310px); min-height: 420px; }
+#vistaDashboard     { width: 50%; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; height: 100%; box-sizing: border-box; padding-bottom: 16px; }
+#vistaDashboard > div { height: 100%; box-sizing: border-box; }
+#vistaEvaluacion    { width: 50%; display: flex; flex-direction: column; overflow-y: auto; }
+.ev-list-scroll     { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; }
 .ev-panel-b-grid { display: grid; grid-template-columns: 1fr 290px; gap: 16px; align-items: start; }
 .ev-sidebar      { position: sticky; top: 86px; display: flex; flex-direction: column; gap: 14px; }
 
@@ -109,6 +112,7 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
     .ev-banner-btn    { width: 100%; }
     .ev-banner-btn button { width: 100%; justify-content: center; }
     .ev-kpi-grid      { grid-template-columns: 1fr 1fr; gap: 12px; }
+    #evalOuter        { height: calc(100vh - 460px); min-height: 320px; }
 }
 
 /* ── MÓVIL ≤ 767px — Navegación push nativa ─────────────────────── */
@@ -118,9 +122,10 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
     .ev-kpi-grid { grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
     .ev-kpi-grid .ev-kpi-card { padding: 14px 12px !important; }
     .ev-kpi-grid .ev-kpi-val  { font-size: 1.5rem !important; }
-    #vistaDashboard { grid-template-columns: 1fr !important; gap: 12px !important; width: 100% !important; }
-    .ev-list-scroll { height: 280px !important; min-height: 160px !important; }
-    #evalOuter  { overflow: visible !important; }
+    #vistaDashboard { grid-template-columns: 1fr !important; gap: 12px !important; width: 100% !important; height: auto !important; padding-bottom: 0 !important; }
+    #vistaDashboard > div { height: auto !important; }
+    .ev-list-scroll { height: 280px !important; min-height: 160px !important; flex: none !important; }
+    #evalOuter  { height: auto !important; overflow: visible !important; }
     #evalSlider { display: block !important; width: 100% !important; transform: none !important; transition: none !important; }
 
     /* ════ PANEL B — full-screen push desde la derecha ════ */
@@ -271,7 +276,7 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
         box-sizing: border-box !important; width: 100% !important;
         overflow: hidden !important; text-overflow: ellipsis !important;
     }
-    /* Fecha + Lapso: columna unica en movil */
+    /* Fecha + Periodo: siempre columna única */
     .ev-meta-grid { grid-template-columns: 1fr !important; gap: 5px !important; }
     /* Span de texto dentro del campo: permite truncar con ellipsis */
     .ev-field-ro > span { white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; min-width: 0 !important; flex: 1 !important; }
@@ -443,7 +448,7 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
 
 <!-- ═══ SLIDER CONTAINER ═══════════════════════════════════════════════════════ -->
 <div id="evalOuter" style="overflow:hidden;position:relative;">
-<div id="evalSlider" style="display:flex;width:200%;transition:transform .48s cubic-bezier(.4,0,.2,1);">
+<div id="evalSlider" style="display:flex;width:200%;transition:transform .48s cubic-bezier(.4,0,.2,1);height:100%;">
 
     <!-- ══ PANEL A — DASHBOARD: Pendientes | Historial ══════════════════════ -->
     <div id="vistaDashboard">
@@ -460,9 +465,9 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
                 </span>
             </div>
 
-            <div class="ev-list-scroll" style="height:calc(100vh - 390px);min-height:220px;overflow-y:auto;overflow-x:hidden;">
+            <div class="ev-list-scroll" style="min-height:220px;">
                 <?php if (empty($sinEvaluar)): ?>
-                <div style="min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:32px;">
+                <div style="height:100%;min-height:200px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:32px;">
                     <div style="width:72px;height:72px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
@@ -527,9 +532,9 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
                 </span>
             </div>
 
-            <div class="ev-list-scroll" style="height:calc(100vh - 390px);min-height:220px;overflow-y:auto;overflow-x:hidden;">
+            <div class="ev-list-scroll" style="min-height:220px;">
                 <?php if (empty($evaluaciones)): ?>
-                <div style="min-height:180px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:32px;">
+                <div style="height:100%;min-height:200px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:16px;padding:32px;">
                     <div style="width:72px;height:72px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
                         <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -574,6 +579,23 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
                             onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'"
                             title="Editar evaluación">
                             <i class="ti ti-pencil"></i>
+                        </button>
+                        <form method="POST" action="<?= URLROOT ?>/reportes/exportar" target="_blank" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="<?= Session::generateCsrfToken() ?>">
+                            <input type="hidden" name="modulo" value="evaluaciones">
+                            <input type="hidden" name="pasante_id" value="<?= (int)$ev->pasante_id ?>">
+                            <button type="submit"
+                                style="background:#fff7ed;border:none;border-radius:8px;padding:5px 9px;cursor:pointer;color:#ea580c;font-size:0.8rem;transition:background .15s;margin-left:4px;"
+                                onmouseover="this.style.background='#ffedd5'" onmouseout="this.style.background='#fff7ed'"
+                                title="Exportar evaluación PDF">
+                                <i class="ti ti-file-type-pdf"></i>
+                            </button>
+                        </form>
+                        <button onclick="EvalApp.eliminarEvaluacion(<?= (int)$ev->id ?>, <?= htmlspecialchars(json_encode(trim(($ev->pasante_nombres ?? '') . ' ' . ($ev->pasante_apellidos ?? ''))), ENT_QUOTES) ?>)"
+                            style="background:#fef2f2;border:none;border-radius:8px;padding:5px 9px;cursor:pointer;color:#dc2626;font-size:0.8rem;transition:background .15s;margin-left:4px;"
+                            onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'"
+                            title="Eliminar evaluación">
+                            <i class="ti ti-trash"></i>
                         </button>
                     </div>
                 </div>
@@ -773,28 +795,25 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
                                     </option>
                                     <?php endforeach; ?>
                                 </select>
-                            <?php else:
-                                $tutorNombre = 'Automático (Tutor Asignado)';
-                                if ($tutorActualId) {
-                                    foreach ($tutores as $t) {
-                                        if ((int)$t->id === (int)$tutorActualId) {
-                                            $tutorNombre = trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? ''));
-                                            break;
-                                        }
-                                    }
-                                }
-                            ?>
-                                <div class="ev-field-ro" style="width:100%;padding:9px 12px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.83rem;color:#64748b;background:#F8FAFD;display:flex;align-items:center;gap:8px;">
-                                    <i class="ti ti-lock" style="font-size:0.9rem;flex-shrink:0;"></i>
-                                    <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($tutorNombre) ?></span>
-                                    <span class="ev-auto-badge" style="margin-left:auto;background:#e2e8f0;color:#64748b;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;flex-shrink:0;">Auto</span>
-                                </div>
-                                <input type="hidden" name="tutor_id" id="fTutorId" value="<?= (int)$tutorActualId ?>">
+                            <?php else: ?>
+                                <select name="tutor_id" id="fTutorId" required
+                                    style="width:100%;padding:9px 12px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.83rem;color:#0D1424;background:#F8FAFD;transition:all .3s;outline:none;"
+                                    onfocus="this.style.borderColor='#1D4ED8';this.style.background='#fff';this.style.boxShadow='0 0 0 4px rgba(29,78,216,0.07)'" onblur="this.style.borderColor='#f1f5f9';this.style.background='#F8FAFD';this.style.boxShadow='none'">
+                                    <option value="">— Automático (Tutor Asignado) —</option>
+                                    <?php foreach ($tutores as $t): ?>
+                                    <option value="<?= (int)$t->id ?>" <?= ($tutorActualId && (int)$t->id === (int)$tutorActualId) ? 'selected' : '' ?>>
+                                        <?= htmlspecialchars(trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? ''))) ?>
+                                    </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small style="color:#94a3b8;font-size:0.68rem;margin-top:4px;display:block;">
+                                    <i class="ti ti-info-circle"></i> Por defecto: tutor asignado al pasante.
+                                </small>
                             <?php endif; ?>
                         </div>
 
-                        <!-- Fecha + Lapso — automáticos (read-only) -->
-                        <div class="ev-meta-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                        <!-- Fecha + Periodo — automáticos (read-only), apilados -->
+                        <div class="ev-meta-grid" style="display:grid;grid-template-columns:1fr;gap:10px;">
                             <div>
                                 <label style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;margin-bottom:7px;">
                                     <i class="ti ti-calendar-event" style="color:#1D4ED8;font-size:0.8rem;"></i> Fecha
@@ -808,7 +827,7 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
                             </div>
                             <div>
                                 <label style="font-size:0.72rem;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.8px;display:flex;align-items:center;gap:5px;margin-bottom:7px;">
-                                    <i class="ti ti-school" style="color:#1D4ED8;font-size:0.8rem;"></i> Lapso
+                                    <i class="ti ti-school" style="color:#1D4ED8;font-size:0.8rem;"></i> Periodo
                                 </label>
                                 <div class="ev-field-ro" style="width:100%;padding:8px 10px;border:2px solid #f1f5f9;border-radius:12px;font-size:0.8rem;color:#0D1424;background:#F8FAFD;box-sizing:border-box;display:flex;align-items:center;gap:6px;">
                                     <i class="ti ti-check" style="color:#10b981;font-size:0.85rem;flex-shrink:0;"></i>
@@ -891,9 +910,9 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
 
 
 <script>
-const EVALS_DATA      = <?= $evalsJs ?>;
-const TUTORES_DATA    = <?= $tutoresJs ?>;
-const TOTAL_CRITERIOS = <?= $totalCriterios ?>;
+var EVALS_DATA      = <?= $evalsJs ?>;
+var TUTORES_DATA    = <?= $tutoresJs ?>;
+var TOTAL_CRITERIOS = <?= $totalCriterios ?>;
 </script>
 <script src="<?= URLROOT ?>/js/evaluaciones.js?v=<?= time() ?>"></script>
 <script>
@@ -944,6 +963,8 @@ const TOTAL_CRITERIOS = <?= $totalCriterios ?>;
                     ocultarPanelB();
                 } else {
                     document.getElementById('evalSlider').style.transform = 'translateX(0)';
+                    document.body.style.overflow = '';
+                    if (typeof EvalApp !== 'undefined') EvalApp._restaurarPanelA();
                 }
                 return;
             }
@@ -971,6 +992,8 @@ const TOTAL_CRITERIOS = <?= $totalCriterios ?>;
                         ocultarPanelB();
                     } else {
                         document.getElementById('evalSlider').style.transform = 'translateX(0)';
+                        document.body.style.overflow = '';
+                        if (typeof EvalApp !== 'undefined') EvalApp._restaurarPanelA();
                     }
                 }
             });

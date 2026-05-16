@@ -74,6 +74,12 @@ class KioscoController extends Controller
             exit;
         }
 
+        // ── Normalizar cédula: extraer solo los dígitos numéricos ──
+        // El usuario ingresa solo números (ej: 12345678), pero en la BD
+        // puede estar guardada como "V-12345678", "V12345678" o "12345678".
+        // Se normaliza para buscar el sufijo numérico en ambos casos.
+        $cedulaNumeros = preg_replace('/[^0-9]/', '', $cedula);
+
         // ── Validar que no es fin de semana ───────────────────────
         $diaSemana = (int)date('N'); // 1=Lun … 5=Vie, 6=Sáb, 7=Dom
         if ($diaSemana >= 6) {
@@ -105,24 +111,26 @@ class KioscoController extends Controller
         }
 
         // ── Buscar pasante activo por cédula (3NF: JOINs a tablas normalizadas) ──
+        // FIX: Comparamos el sufijo numérico de la cédula para tolerar prefijos
+        // como "V-", "E-", "V", etc., que pueden existir en la BD.
         $this->db->query("
             SELECT
                 u.id,
-                dp.nombres,
-                dp.apellidos,
+                COALESCE(dp.nombres, u.correo)  AS nombres,
+                COALESCE(dp.apellidos, '')        AS apellidos,
                 u.pin_asistencia,
                 COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
                 d.nombre AS departamento_nombre
             FROM   usuarios u
-            INNER JOIN datos_personales dp  ON dp.usuario_id  = u.id
+            LEFT  JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT  JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos    d   ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
-            WHERE  u.cedula = :cedula
+            WHERE  REGEXP_REPLACE(u.cedula, '[^0-9]', '') = :cedula_num
               AND  u.rol_id  = 3
-              AND  u.estado  = 'activo'
+              AND  LOWER(u.estado) = 'activo'
             LIMIT 1
         ");
-        $this->db->bind(':cedula', $cedula);
+        $this->db->bind(':cedula_num', $cedulaNumeros);
         $pasante = $this->db->single();
 
         // ── Verificar que existe ───────────────────────────────────
@@ -132,7 +140,8 @@ class KioscoController extends Controller
         }
 
         // ── Verificar que está activo (asignado a departamento) ───
-        if (($pasante->estado_pasantia ?? '') !== 'Activo') {
+        // FIX: Comparación case-insensitive para tolerar variaciones de capitalización
+        if (strtolower($pasante->estado_pasantia ?? '') !== 'activo') {
             echo json_encode([
                 'success' => false,
                 'message' => 'Tu pasantía aún no ha sido activada. Contacta al Administrador.',
@@ -140,8 +149,34 @@ class KioscoController extends Controller
             exit;
         }
 
+        // ── Verificar que el período académico del pasante está activo ─
+        $this->db->query("
+            SELECT pa.estado FROM datos_pasante dp
+            LEFT JOIN periodos_academicos pa ON dp.periodo_id = pa.id
+            WHERE dp.usuario_id = :pid
+            LIMIT 1
+        ");
+        $this->db->bind(':pid', (int)$pasante->id);
+        $periodo = $this->db->single();
+        if ($periodo && !in_array(strtolower($periodo->estado ?? ''), ['activo', 'planificado'])) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'El período académico actual no está activo. Contacta al Administrador.',
+            ]);
+            exit;
+        }
+
+        // ── Verificar que el pasante tenga PIN configurado ────────
+        if (empty($pasante->pin_asistencia)) {
+            echo json_encode([
+                'success' => false,
+                'message' => 'No tienes un PIN de asistencia configurado. Contacta al Administrador para que te asigne uno.',
+            ]);
+            exit;
+        }
+
         // ── Verificar PIN (BCRYPT hash) ───────────────────────────
-        if (!password_verify($pin, $pasante->pin_asistencia ?? '')) {
+        if (!password_verify($pin, $pasante->pin_asistencia)) {
             echo json_encode(['success' => false, 'message' => 'PIN incorrecto. Inténtalo de nuevo.']);
             exit;
         }
@@ -237,6 +272,32 @@ class KioscoController extends Controller
                 // El log de bitácora nunca debe interrumpir el flujo principal
                 error_log('[SGP-KIOSCO] bitacora log error: ' . $e->getMessage());
             }
+
+            // ── Notificación en campana al pasante ───────────────────────────
+            try {
+                require_once '../app/models/NotificationModel.php';
+                $notifModel = new NotificationModel($this->db);
+                $horaFmt    = date('h:i A');
+                if ($esRetardo) {
+                    $notifModel->create(
+                        $pasanteId,
+                        'asistencia_registrada',
+                        'Asistencia registrada con retardo',
+                        "Llegaste a las {$horaFmt}. Recuerda llegar antes de las 9:00 AM.",
+                        URLROOT . '/pasante/asistencia'
+                    );
+                } else {
+                    $notifModel->create(
+                        $pasanteId,
+                        'asistencia_registrada',
+                        'Asistencia registrada',
+                        "Tu asistencia del día de hoy fue registrada a las {$horaFmt}.",
+                        URLROOT . '/pasante/asistencia'
+                    );
+                }
+            } catch (\Throwable $e) {
+                error_log('[SGP-KIOSCO] notif error: ' . $e->getMessage());
+            }
             // ────────────────────────────────────────────────────────────────
 
             // ✅ PRO-RATA: El progreso se calcula dinámicamente desde la tabla 'asistencias'.
@@ -315,15 +376,24 @@ class KioscoController extends Controller
             exit;
         }
 
+        // FIX: Normalizar cédula (solo dígitos) para tolerar prefijos V-, E-, etc.
+        $cedulaNumerosPinReset = preg_replace('/[^0-9]/', '', $cedula);
+
         // Buscar pasante interactuando con 3NF
+        // FIX: LEFT JOIN para tolerar pasantes sin datos_personales completos
         $this->db->query("
-            SELECT u.id, dp.nombres, dp.apellidos, dpa.tutor_id
+            SELECT u.id,
+                   COALESCE(dp.nombres, u.correo) AS nombres,
+                   COALESCE(dp.apellidos, '')      AS apellidos,
+                   dpa.tutor_id
             FROM usuarios u
-            INNER JOIN datos_personales dp ON dp.usuario_id = u.id
+            LEFT JOIN datos_personales dp ON dp.usuario_id = u.id
             LEFT JOIN datos_pasante dpa ON dpa.usuario_id = u.id
-            WHERE u.cedula = :cedula AND u.rol_id = 3 AND u.estado = 'activo'
+            WHERE REGEXP_REPLACE(u.cedula, '[^0-9]', '') = :cedula_num
+              AND u.rol_id = 3
+              AND LOWER(u.estado) = 'activo'
         ");
-        $this->db->bind(':cedula', $cedula);
+        $this->db->bind(':cedula_num', $cedulaNumerosPinReset);
         $pasante = $this->db->single();
 
         if (!$pasante) {

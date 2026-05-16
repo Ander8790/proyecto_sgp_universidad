@@ -351,6 +351,32 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
         color: #162660;
         font-size: 20px;
     }
+
+    /* ==================== BADGES ==================== */
+    .badge {
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-manual {
+        background: #E0E7FF;
+        color: #4338CA;
+        border: 1px solid #C7D2FE;
+    }
+
+    .badge-safety {
+        background: #FEF3C7;
+        color: #92400E;
+        border: 1px solid #FDE68A;
+    }
+
+    .tr-safety {
+        background-color: #FFFBEB !important;
+    }
 </style>
 
 <div class="dashboard-container" style="width: 100%; max-width: 100%; padding: 0;">
@@ -442,7 +468,7 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
             </div>
             <div class="stat-content">
                 <h3><?= !empty($backups) ? date('d/m/Y', $backups[0]['timestamp']) : 'N/A' ?></h3>
-                <p>Último Respaldo</p>
+                <p>Hora: <?= !empty($backups) ? date('H:i:s', $backups[0]['timestamp']) : '--:--' ?></p>
             </div>
         </div>
         
@@ -463,6 +489,7 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
             <thead>
                 <tr>
                     <th><i class="ti ti-file-text" style="margin-right: 8px;"></i>Nombre del Archivo</th>
+                    <th><i class="ti ti-tag" style="margin-right: 8px;"></i>Tipo</th>
                     <th><i class="ti ti-calendar" style="margin-right: 8px;"></i>Fecha de Creación</th>
                     <th><i class="ti ti-database-export" style="margin-right: 8px;"></i>Tamaño</th>
                     <th style="text-align: center;"><i class="ti ti-settings" style="margin-right: 8px;"></i>Acciones</th>
@@ -478,10 +505,17 @@ $totalSizeFormatted = round($bytes, 2) . ' ' . $units[$pow];
                 </tr>
                 <?php else: ?>
                     <?php foreach ($backups as $backup): ?>
-                    <tr>
+                    <tr class="<?= $backup['is_safety'] ? 'tr-safety' : '' ?>">
                         <td data-label="Archivo">
                             <i class="ti ti-file-database file-icon"></i>
                             <strong><?= htmlspecialchars($backup['filename']) ?></strong>
+                        </td>
+                        <td data-label="Tipo">
+                            <?php if($backup['is_safety']): ?>
+                                <span class="badge badge-safety" title="Generado automáticamente por el sistema">Seguridad</span>
+                            <?php else: ?>
+                                <span class="badge badge-manual" title="Generado manualmente">Manual</span>
+                            <?php endif; ?>
                         </td>
                         <td data-label="Creacin"><?= htmlspecialchars($backup['date']) ?></td>
                         <td data-label="Tamao"><strong><?= htmlspecialchars($backup['size']) ?></strong></td>

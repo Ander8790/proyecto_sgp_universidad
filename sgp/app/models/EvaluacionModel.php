@@ -139,6 +139,15 @@ class EvaluacionModel {
     }
 
     /**
+     * Eliminar una evaluación por ID
+     */
+    public function eliminar(int $id): bool {
+        $this->db->query("DELETE FROM evaluaciones WHERE id = :id");
+        $this->db->bind(':id', $id);
+        return $this->db->execute();
+    }
+
+    /**
      * Obtener una evaluación por ID con todos sus criterios y nombres
      */
     public function getById(int $id) {

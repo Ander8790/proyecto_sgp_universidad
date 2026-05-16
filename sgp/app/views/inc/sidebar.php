@@ -85,79 +85,98 @@ function isActive($url, $exact = false) {
             <?php endif; ?>
 
             <?php if (in_array($role, ['Administrador', 'SuperAdministrador'])): ?>
-            <!-- Menú Administrador / SuperAdministrador -->
+            <!-- Menú Administrador / SuperAdministrador — respeta permisos granulares -->
+            <?php if (RoleMiddleware::hasPermission('ver_usuarios')): ?>
             <li>
-                <a href="<?= URLROOT ?>/users" 
+                <a href="<?= URLROOT ?>/users"
                    class="nav-link <?= isActive('/users') ?>"
                    data-tooltip="Usuarios">
                     <i class="ti ti-users"></i>
                     <span class="menu-text">Usuarios</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_pasantes')): ?>
             <li>
-                <a href="<?= URLROOT ?>/pasantes" 
+                <a href="<?= URLROOT ?>/pasantes"
                    class="nav-link <?= isActive('/pasantes') ?>"
                    data-tooltip="Pasantes">
                     <i class="ti ti-user-check"></i>
                     <span class="menu-text">Pasantes</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_asistencias')): ?>
             <li>
-                <a href="<?= URLROOT ?>/asistencias" 
+                <a href="<?= URLROOT ?>/asistencias"
                    class="nav-link <?= isActive('/asistencias') ?>"
                    data-tooltip="Asistencias">
                     <i class="ti ti-calendar-stats"></i>
                     <span class="menu-text">Asistencias</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_asignaciones') && RoleMiddleware::hasAnyRole([0, 1])): ?>
             <li>
                 <a href="<?= URLROOT ?>/asignaciones"
                    class="nav-link <?= isActive('/asignaciones') ?>"
                    data-tooltip="Asignaciones">
-                    <i class="ti ti-link"></i>
+                    <i class="ti ti-user-cog"></i>
                     <span class="menu-text">Asignaciones</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_evaluaciones')): ?>
             <li>
-                <a href="<?= URLROOT ?>/evaluaciones" 
+                <a href="<?= URLROOT ?>/evaluaciones"
                    class="nav-link <?= isActive('/evaluaciones') ?>"
                    data-tooltip="Evaluaciones">
                     <i class="ti ti-star"></i>
                     <span class="menu-text">Evaluaciones</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_reportes')): ?>
             <li>
-                <a href="<?= URLROOT ?>/reportes" 
+                <a href="<?= URLROOT ?>/reportes"
                    class="nav-link <?= isActive('/reportes') ?>"
                    data-tooltip="Centro de Reportes">
                     <i class="ti ti-file-analytics"></i>
                     <span class="menu-text">Reportes</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_analiticas')): ?>
             <li>
-                <a href="<?= URLROOT ?>/analiticas" 
+                <a href="<?= URLROOT ?>/analiticas"
                    class="nav-link <?= isActive('/analiticas') ?>"
                    data-tooltip="Analíticas">
                     <i class="ti ti-chart-dots"></i>
                     <span class="menu-text">Analíticas</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_backup')): ?>
             <li>
-                <a href="<?= URLROOT ?>/backup" 
+                <a href="<?= URLROOT ?>/backup"
                    class="nav-link <?= isActive('/backup') ?>"
                    data-tooltip="Respaldos">
                     <i class="ti ti-database"></i>
                     <span class="menu-text">Respaldos</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_bitacora')): ?>
             <li>
-                <a href="<?= URLROOT ?>/bitacora" 
+                <a href="<?= URLROOT ?>/bitacora"
                    class="nav-link <?= isActive('/bitacora') ?>"
                    data-tooltip="Bitácora">
                     <i class="ti ti-file-analytics"></i>
                     <span class="menu-text">Bitácora</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_configuracion')): ?>
             <li>
                 <a href="<?= URLROOT ?>/configuracion"
                    class="nav-link <?= isActive('/configuracion') ?>"
@@ -166,7 +185,9 @@ function isActive($url, $exact = false) {
                     <span class="menu-text">Configuración</span>
                 </a>
             </li>
-            <!-- Módulos Extras — al final por ser funcionalidades secundarias -->
+            <?php endif; ?>
+            <!-- Módulos Extras -->
+            <?php if (RoleMiddleware::hasPermission('ver_periodos') && RoleMiddleware::hasAnyRole([0, 1])): ?>
             <li style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
                 <a href="<?= URLROOT ?>/periodos"
                    class="nav-link <?= isActive('/periodos') ?>"
@@ -175,12 +196,23 @@ function isActive($url, $exact = false) {
                     <span class="menu-text">Períodos</span>
                 </a>
             </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_actividades')): ?>
             <li>
                 <a href="<?= URLROOT ?>/actividades"
                    class="nav-link <?= isActive('/actividades') ?>"
                    data-tooltip="Actividades Extras">
                     <i class="ti ti-briefcase"></i>
                     <span class="menu-text">Act. Extras</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            <li>
+                <a href="<?= URLROOT ?>/examenes"
+                   class="nav-link <?= isActive('/examenes') ?>"
+                   data-tooltip="Exámenes Rápidos">
+                    <i class="ti ti-notebook"></i>
+                    <span class="menu-text">Exámenes</span>
                 </a>
             </li>
             <li style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
@@ -195,13 +227,10 @@ function isActive($url, $exact = false) {
 
             <?php if ($role == 'Tutor'): ?>
             <!-- ========================================
-                 MENÚ TUTOR — Solo módulos autorizados
-                 (Matriz de Roles v2 — Multi-Tenant)
-                 Permitido: Inicio, Mis Pasantes, Asistencias, Evaluaciones, Reportes
-                 Oculto:    Usuarios, Asignaciones, Analíticas, Respaldos, Bitácora, Configuración
+                 MENÚ TUTOR — Base + permisos granulares
                  ======================================== -->
             <li>
-                <a href="<?= URLROOT ?>/tutor/pasantes" 
+                <a href="<?= URLROOT ?>/tutor/pasantes"
                    class="nav-link <?= isActive('/tutor/pasantes') ?>"
                    data-tooltip="Mis Pasantes">
                     <i class="ti ti-users-group"></i>
@@ -240,6 +269,55 @@ function isActive($url, $exact = false) {
                     <span class="menu-text">Reportes</span>
                 </a>
             </li>
+            <!-- Accesos extra concedidos por el SuperAdmin -->
+            <?php if (RoleMiddleware::hasPermission('ver_pasantes') && !RoleMiddleware::hasPermission('ver_mis_pasantes')): ?>
+            <li>
+                <a href="<?= URLROOT ?>/pasantes"
+                   class="nav-link <?= isActive('/pasantes') ?>"
+                   data-tooltip="Pasantes">
+                    <i class="ti ti-user-check"></i>
+                    <span class="menu-text">Pasantes</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_asignaciones') && RoleMiddleware::hasAnyRole([0, 1])): ?>
+            <li>
+                <a href="<?= URLROOT ?>/asignaciones"
+                   class="nav-link <?= isActive('/asignaciones') ?>"
+                   data-tooltip="Asignaciones">
+                    <i class="ti ti-user-cog"></i>
+                    <span class="menu-text">Asignaciones</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_analiticas')): ?>
+            <li>
+                <a href="<?= URLROOT ?>/analiticas"
+                   class="nav-link <?= isActive('/analiticas') ?>"
+                   data-tooltip="Analíticas">
+                    <i class="ti ti-chart-dots"></i>
+                    <span class="menu-text">Analíticas</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            <?php if (RoleMiddleware::hasPermission('ver_periodos') && RoleMiddleware::hasAnyRole([0, 1])): ?>
+            <li>
+                <a href="<?= URLROOT ?>/periodos"
+                   class="nav-link <?= isActive('/periodos') ?>"
+                   data-tooltip="Períodos">
+                    <i class="ti ti-calendar-month"></i>
+                    <span class="menu-text">Períodos</span>
+                </a>
+            </li>
+            <?php endif; ?>
+            <li>
+                <a href="<?= URLROOT ?>/examenes"
+                   class="nav-link <?= isActive('/examenes') ?>"
+                   data-tooltip="Exámenes Rápidos">
+                    <i class="ti ti-notebook"></i>
+                    <span class="menu-text">Exámenes</span>
+                </a>
+            </li>
             <li style="margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.08);">
                 <a href="<?= URLROOT ?>/ayuda"
                    class="nav-link <?= isActive('/ayuda') ?>"
@@ -260,6 +338,14 @@ function isActive($url, $exact = false) {
                 </a>
             </li>
             <li>
+                <a href="<?= URLROOT ?>/pasante/misActividades"
+                   class="nav-link <?= isActive('/pasante/misActividades') ?>"
+                   data-tooltip="Mis Actividades">
+                    <i class="ti ti-writing"></i>
+                    <span class="menu-text">Mis Actividades</span>
+                </a>
+            </li>
+            <li>
                 <a href="<?= URLROOT ?>/pasante/analiticas"
                    class="nav-link <?= isActive('/pasante/analiticas') ?>"
                    data-tooltip="Mis Analíticas">
@@ -273,6 +359,14 @@ function isActive($url, $exact = false) {
                    data-tooltip="Mis Evaluaciones">
                     <i class="ti ti-star"></i>
                     <span class="menu-text">Mis Evaluaciones</span>
+                </a>
+            </li>
+            <li>
+                <a href="<?= URLROOT ?>/pasante/misExamenes"
+                   class="nav-link <?= isActive('/pasante/misExamenes') ?>"
+                   data-tooltip="Exámenes">
+                    <i class="ti ti-notebook"></i>
+                    <span class="menu-text">Exámenes</span>
                 </a>
             </li>
             <li>
@@ -319,9 +413,64 @@ function isActive($url, $exact = false) {
     </div>
     <nav class="dock-sheet-nav" aria-label="Navegación adicional">
 
+        <?php if ($role == 'SuperAdministrador'): ?>
+        <a href="<?= URLROOT ?>/pasantes" class="dock-sheet-item" data-href="/pasantes">
+            <span class="dock-sheet-icon"><i class="ti ti-users-group"></i></span>
+            <span class="dock-sheet-label">Pasantes</span>
+        </a>
+        <a href="<?= URLROOT ?>/asistencias" class="dock-sheet-item" data-href="/asistencias">
+            <span class="dock-sheet-icon"><i class="ti ti-calendar-stats"></i></span>
+            <span class="dock-sheet-label">Asistencias</span>
+        </a>
+        <?php if (RoleMiddleware::hasAnyRole([0, 1])): ?>
+        <a href="<?= URLROOT ?>/asignaciones" class="dock-sheet-item" data-href="/asignaciones">
+            <span class="dock-sheet-icon"><i class="ti ti-user-cog"></i></span>
+            <span class="dock-sheet-label">Asignaciones</span>
+        </a>
+        <?php endif; ?>
+        <a href="<?= URLROOT ?>/evaluaciones" class="dock-sheet-item" data-href="/evaluaciones">
+            <span class="dock-sheet-icon"><i class="ti ti-star"></i></span>
+            <span class="dock-sheet-label">Evaluaciones</span>
+        </a>
+        <a href="<?= URLROOT ?>/reportes" class="dock-sheet-item" data-href="/reportes">
+            <span class="dock-sheet-icon"><i class="ti ti-file-analytics"></i></span>
+            <span class="dock-sheet-label">Reportes</span>
+        </a>
+        <a href="<?= URLROOT ?>/analiticas" class="dock-sheet-item" data-href="/analiticas">
+            <span class="dock-sheet-icon"><i class="ti ti-chart-dots"></i></span>
+            <span class="dock-sheet-label">Analíticas</span>
+        </a>
+        <a href="<?= URLROOT ?>/backup" class="dock-sheet-item" data-href="/backup">
+            <span class="dock-sheet-icon"><i class="ti ti-database"></i></span>
+            <span class="dock-sheet-label">Respaldos</span>
+        </a>
+        <a href="<?= URLROOT ?>/bitacora" class="dock-sheet-item" data-href="/bitacora">
+            <span class="dock-sheet-icon"><i class="ti ti-clipboard-list"></i></span>
+            <span class="dock-sheet-label">Bitácora</span>
+        </a>
+        <a href="<?= URLROOT ?>/configuracion" class="dock-sheet-item" data-href="/configuracion">
+            <span class="dock-sheet-icon"><i class="ti ti-settings"></i></span>
+            <span class="dock-sheet-label">Configuración</span>
+        </a>
+        <?php if (RoleMiddleware::hasAnyRole([0, 1])): ?>
+        <a href="<?= URLROOT ?>/periodos" class="dock-sheet-item" data-href="/periodos">
+            <span class="dock-sheet-icon"><i class="ti ti-calendar-month"></i></span>
+            <span class="dock-sheet-label">Períodos</span>
+        </a>
+        <?php endif; ?>
+        <a href="<?= URLROOT ?>/actividades" class="dock-sheet-item" data-href="/actividades">
+            <span class="dock-sheet-icon"><i class="ti ti-briefcase"></i></span>
+            <span class="dock-sheet-label">Act. Extras</span>
+        </a>
+        <a href="<?= URLROOT ?>/superadmin/permisos" class="dock-sheet-item" data-href="/superadmin/permisos">
+            <span class="dock-sheet-icon"><i class="ti ti-shield-cog"></i></span>
+            <span class="dock-sheet-label">Permisos</span>
+        </a>
+        <?php endif; ?>
+
         <?php if ($role == 'Administrador'): ?>
         <a href="<?= URLROOT ?>/asignaciones" class="dock-sheet-item" data-href="/asignaciones">
-            <span class="dock-sheet-icon"><i class="ti ti-link"></i></span>
+            <span class="dock-sheet-icon"><i class="ti ti-user-cog"></i></span>
             <span class="dock-sheet-label">Asignaciones</span>
         </a>
         <a href="<?= URLROOT ?>/evaluaciones" class="dock-sheet-item" data-href="/evaluaciones">
@@ -348,10 +497,12 @@ function isActive($url, $exact = false) {
             <span class="dock-sheet-icon"><i class="ti ti-settings"></i></span>
             <span class="dock-sheet-label">Configuración</span>
         </a>
+        <?php if (RoleMiddleware::hasAnyRole([0, 1])): ?>
         <a href="<?= URLROOT ?>/periodos" class="dock-sheet-item" data-href="/periodos">
             <span class="dock-sheet-icon"><i class="ti ti-calendar-month"></i></span>
             <span class="dock-sheet-label">Períodos</span>
         </a>
+        <?php endif; ?>
         <a href="<?= URLROOT ?>/actividades" class="dock-sheet-item" data-href="/actividades">
             <span class="dock-sheet-icon"><i class="ti ti-briefcase"></i></span>
             <span class="dock-sheet-label">Act. Extras</span>
@@ -367,6 +518,10 @@ function isActive($url, $exact = false) {
             <span class="dock-sheet-icon"><i class="ti ti-file-analytics"></i></span>
             <span class="dock-sheet-label">Reportes</span>
         </a>
+        <a href="<?= URLROOT ?>/examenes" class="dock-sheet-item" data-href="/examenes">
+            <span class="dock-sheet-icon"><i class="ti ti-notebook"></i></span>
+            <span class="dock-sheet-label">Exámenes</span>
+        </a>
         <?php endif; ?>
 
         <?php if ($role == 'Pasante'): ?>
@@ -377,6 +532,10 @@ function isActive($url, $exact = false) {
         <a href="<?= URLROOT ?>/pasante/misEvaluaciones" class="dock-sheet-item" data-href="/pasante/misEvaluaciones">
             <span class="dock-sheet-icon"><i class="ti ti-star"></i></span>
             <span class="dock-sheet-label">Mis Evaluaciones</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasante/misExamenes" class="dock-sheet-item" data-href="/pasante/misExamenes">
+            <span class="dock-sheet-icon"><i class="ti ti-notebook"></i></span>
+            <span class="dock-sheet-label">Exámenes</span>
         </a>
         <a href="<?= URLROOT ?>/pasante/constancia" class="dock-sheet-item" data-href="/pasante/constancia">
             <span class="dock-sheet-icon"><i class="ti ti-file-certificate"></i></span>
@@ -396,6 +555,12 @@ function isActive($url, $exact = false) {
         </a>
         <?php endif; ?>
 
+        <!-- Ayuda — visible para todos los roles -->
+        <a href="<?= URLROOT ?>/ayuda" class="dock-sheet-item" data-href="/ayuda">
+            <span class="dock-sheet-icon"><i class="ti ti-lifebuoy"></i></span>
+            <span class="dock-sheet-label">Ayuda</span>
+        </a>
+
     </nav>
     <div class="dock-sheet-divider"></div>
     <div style="padding: 4px 16px 8px;">
@@ -410,7 +575,26 @@ function isActive($url, $exact = false) {
 <nav id="sgpMobileDock" class="sgp-mobile-dock" role="navigation" aria-label="Navegación principal">
     <div class="dock-indicator"></div>
 
-    <?php if ($role == 'Administrador'): ?>
+    <?php if ($role == 'SuperAdministrador'): ?>
+        <!-- SUPERADMIN: Usuarios | Pasantes | [FAB: Dashboard] | Bitácora | Más -->
+        <a href="<?= URLROOT ?>/users" class="dock-item" data-href="/users" title="Usuarios">
+            <i class="ti ti-user-cog"></i>
+            <span>Usuarios</span>
+        </a>
+        <a href="<?= URLROOT ?>/pasantes" class="dock-item" data-href="/pasantes" title="Pasantes">
+            <i class="ti ti-users-group"></i>
+            <span>Pasantes</span>
+        </a>
+        <a href="<?= URLROOT ?>/superadmin" class="dock-item dock-fab-item" data-href="/superadmin" title="Dashboard">
+            <div class="dock-fab"><i class="ti ti-home"></i></div>
+            <span>Inicio</span>
+        </a>
+        <a href="<?= URLROOT ?>/bitacora" class="dock-item" data-href="/bitacora" title="Bitácora">
+            <i class="ti ti-clipboard-list"></i>
+            <span>Bitácora</span>
+        </a>
+
+    <?php elseif ($role == 'Administrador'): ?>
         <!-- ADMIN: Asistencias | Pasantes | [FAB: Inicio] | Usuarios | Más -->
         <a href="<?= URLROOT ?>/asistencias" class="dock-item" data-href="/asistencias" title="Asistencias">
             <i class="ti ti-calendar-stats"></i>

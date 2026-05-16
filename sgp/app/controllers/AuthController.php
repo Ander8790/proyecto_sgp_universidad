@@ -170,14 +170,26 @@ class AuthController extends Controller
         }
         
         if (($user['estado'] ?? 'activo') === 'inactivo') {
+            // Diferenciar: ¿pasante cuyo período finalizó, o cuenta desactivada manualmente?
             $errorMsg = 'Esta cuenta ha sido desactivada. Contacte al administrador.';
-            
+            if ((int)($user['role_id'] ?? $user['rol_id'] ?? 99) === 3) {
+                try {
+                    $db->query("SELECT estado_pasantia FROM datos_pasante WHERE usuario_id = :uid LIMIT 1");
+                    $db->bind(':uid', $user['id']);
+                    $dpRow = $db->single();
+                    if ($dpRow && $dpRow->estado_pasantia === 'Finalizado') {
+                        $errorMsg = 'Tu período de pasantía ha finalizado y tu acceso fue cerrado automáticamente. '
+                                  . 'Si tienes alguna consulta, comunícate con el administrador.';
+                    }
+                } catch (\Throwable $e) { /* no interrumpir el flujo */ }
+            }
+
             if ($isAjax) {
                 header('Content-Type: application/json');
                 echo json_encode(['success' => false, 'message' => $errorMsg]);
                 exit;
             }
-            
+
             Session::setFlash('login_error', $errorMsg);
             $this->view('auth/login', [], false);
             return;
@@ -212,6 +224,7 @@ class AuthController extends Controller
         $permisosModel = $this->model('Permisos');
         $permisos = $permisosModel->getPermisosUsuario((int)$user['id'], (int)$user['role_id']);
         Session::set('permisos', $permisos);
+        Session::set('permisos_ts', time());
 
         // Verificar si el perfil está completo
         $perfilCompletado = $userModel->verificarPerfilCompleto((int)$user['id']);
@@ -220,25 +233,34 @@ class AuthController extends Controller
         // Registrar login en bitácora
         AuditModel::log('LOGIN');
 
-        // ── Notificación automática si hoy es feriado ─────────────────────
+        // ── Notificación automática si hoy es feriado (solo roles 0, 1, 2) ──
         try {
             $db->query("
-                SELECT id, nombre FROM dias_feriados
+                SELECT id, nombre, es_laborable FROM dias_feriados
                 WHERE fecha = CURDATE()
                 LIMIT 1
             ");
             $feriadoHoy = $db->single();
-            if ($feriadoHoy) {
+            if ($feriadoHoy && in_array((int)$user['rol_id'], [0, 1, 2])) {
                 require_once APPROOT . '/models/NotificationModel.php';
                 $notifModel = new NotificationModel($db);
                 // Solo insertar si no existe ya una para hoy
                 if (!$notifModel->existeHoy((int)$user['id'], 'feriado_hoy', (int)$feriadoHoy->id)) {
+                    $esLaborable = (int)$feriadoHoy->es_laborable === 1;
+                    if ($esLaborable) {
+                        $titulo  = '📅 Hoy es día feriado (laborable)';
+                        $cuerpo  = 'Hoy (' . date('d/m/Y') . ') es "' . $feriadoHoy->nombre . '". '
+                                 . 'Es un feriado laborable — las asistencias se registran con normalidad.';
+                    } else {
+                        $titulo  = '📅 Hoy es día feriado';
+                        $cuerpo  = 'Hoy (' . date('d/m/Y') . ') es "' . $feriadoHoy->nombre . '". '
+                                 . 'No se requiere asistencia. El día no cuenta en el cómputo de horas de pasantía.';
+                    }
                     $notifModel->createWithRef(
                         (int)$user['id'],
                         'feriado_hoy',
-                        '📅 Hoy es día feriado',
-                        'Hoy (' . date('d/m/Y') . ') es "' . $feriadoHoy->nombre . '". '
-                        . 'No hay asistencias requeridas. El día se contabiliza como Justificado automáticamente.',
+                        $titulo,
+                        $cuerpo,
                         URLROOT . '/configuracion#feriados',
                         (int)$feriadoHoy->id
                     );

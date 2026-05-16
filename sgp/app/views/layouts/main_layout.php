@@ -4,6 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
     <!-- SGP-FIX [sesión_inactividad / 1.1] CSRF meta tag para fetch() JS -->
     <?php echo CsrfHelper::meta(); ?>
     <title>SGP - Sistema de Gestión de Pasantías</title>
@@ -50,6 +51,99 @@
     .sgp-tip{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#3b82f6;color:#fff;font-size:9px;font-weight:800;cursor:help;position:relative;vertical-align:middle;margin-left:5px;flex-shrink:0;line-height:1;font-style:normal;font-family:inherit;text-transform:none;letter-spacing:normal;user-select:none;}
     .sgp-tip:hover{background:#1d4ed8;}
     .sgp-tip-popup{display:none;position:fixed;background:#0f172a;color:#f8fafc;padding:8px 12px;border-radius:9px;font-size:.73rem;font-weight:500;line-height:1.45;width:220px;z-index:99999;box-shadow:0 8px 24px rgba(0,0,0,.3);pointer-events:none;opacity:0;transition:opacity .15s;text-transform:none;letter-spacing:normal;}
+    </style>
+
+    <!-- ══ SGP Global Responsive Layer ══════════════════════════════════════
+         Reglas unificadas para banners, grids KPI y brecha de 1024px.
+         Aplica a TODAS las vistas. No editar por vista — editar aquí.
+    ════════════════════════════════════════════════════════════════════════ -->
+    <style>
+    /* ── Banner base ───────────────────────────────────────────────── */
+    .pasantes-banner,.admin-banner,.dashboard-banner,.module-banner,.users-banner{
+        box-sizing:border-box;
+    }
+    /* ── 1024px gap — entre tablet y desktop ─────────────────────── */
+    @media (max-width:1024px) and (min-width:769px){
+        .pasantes-banner,.admin-banner,.dashboard-banner,.module-banner,.users-banner{
+            padding:22px 26px !important;
+        }
+        .dashboard-kpi-grid{ grid-template-columns:repeat(2,1fr) !important; }
+        .sa-dash-grid-top   { grid-template-columns:repeat(2,1fr) !important; }
+        .kpi-users-grid     { grid-template-columns:repeat(2,1fr) !important; }
+        .kpi-pasantes-grid  { grid-template-columns:repeat(2,1fr) !important; }
+        .charts-grid-50,.sa-charts-row,.bottom-grid-60-40,.sa-bottom-row{
+            grid-template-columns:1fr !important;
+        }
+    }
+    /* ── 768px — tablet portrait ─────────────────────────────────── */
+    @media (max-width:768px){
+        .pasantes-banner,.admin-banner,.dashboard-banner,.module-banner,.users-banner{
+            flex-direction:column !important;
+            align-items:flex-start !important;
+            padding:18px 20px !important;
+            gap:14px !important;
+        }
+        /* Acciones del banner: fila envolvente */
+        .pasantes-banner-actions,.users-banner-actions{
+            width:100% !important;
+            flex-wrap:wrap !important;
+            gap:8px !important;
+        }
+        .pasantes-banner-actions > div,
+        .pasantes-banner-actions > a,
+        .pasantes-banner-actions > button,
+        .users-banner-actions > button{
+            flex:1 1 auto !important;
+            justify-content:center !important;
+            min-width:0 !important;
+        }
+        /* Estadísticas puras (fecha/hora, contadores sin acción) → ocultar */
+        .admin-banner > div:last-child{
+            display:none !important;
+        }
+    }
+    /* ── 480px — móvil pequeño ───────────────────────────────────── */
+    @media (max-width:480px){
+        .pasantes-banner,.admin-banner,.dashboard-banner,.module-banner,.users-banner{
+            padding:14px 16px !important;
+            border-radius:14px !important;
+            margin-bottom:16px !important;
+        }
+        .pasantes-banner h1,.admin-banner h1,.dashboard-banner h1,
+        .module-banner h1,.users-banner h1{
+            font-size:clamp(1rem,4.5vw,1.3rem) !important;
+            line-height:1.3 !important;
+        }
+        /* Ícono del banner: más compacto */
+        .pasantes-banner .banner-icon-wrap,
+        .admin-banner > div:nth-child(2) > div:first-child,
+        .users-banner > div:nth-child(2) > div:first-child,
+        .pasantes-banner > div:nth-child(2) > div:first-child{
+            padding:10px !important;
+        }
+        .pasantes-banner > div:nth-child(2) > div:first-child i,
+        .admin-banner > div:nth-child(2) > div:first-child i,
+        .users-banner > div:nth-child(2) > div:first-child i{
+            font-size:22px !important;
+        }
+        /* Subtítulo del banner: ocultar badge contador */
+        .pasantes-banner p span[style*="white-space:nowrap"],
+        .users-banner p span#totalUsersBadge{
+            display:none !important;
+        }
+        /* Acciones: columna completa */
+        .pasantes-banner-actions{
+            flex-direction:column !important;
+            width:100% !important;
+        }
+        .pasantes-banner-actions > div{
+            width:100% !important;
+        }
+        .pasantes-banner-actions button{
+            width:100% !important;
+            justify-content:center !important;
+        }
+    }
     </style>
 
     <!-- Scripts Core (JQuery debe cargar ANTES del contenido por si las vistas inyectan scripts) -->
@@ -129,6 +223,10 @@
     <script src="<?= URLROOT ?>/js/choices-init.js"></script>
     <!-- SGP-PJAX: Navegación fluida sin recarga de página -->
     <script src="<?= URLROOT ?>/js/sgp-pjax.js?v=3"></script>
+    <!-- Rol del usuario autenticado (usado por scripts de notificaciones) -->
+    <script>window.SGP_ROLE = <?= (int)Session::get('role_id') ?>;</script>
+    <!-- Notificaciones de escritorio -->
+    <script src="<?= URLROOT ?>/js/desktop-notifications.js?v=7"></script>
 
     <!-- FIX PARA APEXCHARTS - Previene error "attribute r: A negative value" -->
     <script>
@@ -318,24 +416,11 @@
     <script>
     (function(){
         var flashes = <?= json_encode($sgpPendingFlashes, JSON_UNESCAPED_UNICODE) ?>;
-        var iconMap  = { success:'success', error:'error', warning:'warning', info:'info' };
-        var colorMap = { success:'#10b981', error:'#ef4444', warning:'#f59e0b', info:'#3b82f6' };
+        var titleMap = { success:'¡Éxito!', error:'Error', warning:'Atención', info:'Información' };
         function showFlash(f) {
-            if (typeof Swal === 'undefined') return;
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: iconMap[f.type] || 'info',
-                title: f.msg,
-                showConfirmButton: false,
-                timer: 4500,
-                timerProgressBar: true,
-                customClass: { popup: 'sgp-swal-toast' },
-                didOpen: function(toast) {
-                    toast.addEventListener('mouseenter', Swal.stopTimer);
-                    toast.addEventListener('mouseleave', Swal.resumeTimer);
-                }
-            });
+            if (typeof NotificationService === 'undefined') return;
+            var type  = f.type in titleMap ? f.type : 'info';
+            NotificationService.show(type, titleMap[type], f.msg, 5000);
         }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', function(){ flashes.forEach(showFlash); });

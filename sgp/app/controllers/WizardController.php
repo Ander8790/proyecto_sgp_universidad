@@ -57,17 +57,26 @@ class WizardController extends Controller
         $this->db->bind(':uid', $userId);
         $user = $this->db->single();
 
-        // Detectar si es un restablecimiento de contraseña de usuario con perfil ya completo
-        // En ese caso, solo se piden pasos 1 y 2 (contraseña + preguntas de seguridad)
+        // Detectar si es un restablecimiento de contraseña de usuario con perfil ya completo.
+        // Criterio definitivo: el usuario YA tiene preguntas de seguridad guardadas.
+        //   - Usuario NUEVO (creado por admin, nunca usó el wizard): 0 preguntas → wizard completo (4 pasos).
+        //   - Usuario EXISTENTE (password reseteado): tiene 3 preguntas → solo pasos 1 y 2.
+        // Esta lógica es robusta independientemente de si cargo/departamento/teléfono están rellenos.
         $rolId = (int)($user->rol_id ?? 0);
         $soloPasswordReset = false;
         if ($user && $user->requiere_cambio_clave == 1) {
-            $tienePersonal = !empty($user->telefono) && !empty($user->fecha_nacimiento) && !empty($user->genero);
-            if ($tienePersonal) {
+            $this->db->query("SELECT COUNT(id) AS cnt FROM usuarios_respuestas WHERE usuario_id = :uid");
+            $this->db->bind(':uid', $userId);
+            $respRow      = $this->db->single();
+            $tienePreguntas = ($respRow && (int)$respRow->cnt >= 3);
+
+            if ($tienePreguntas) {
                 if ($rolId === 3) {
-                    $soloPasswordReset = !empty($user->pin_asistencia) && !empty($user->institucion_procedencia);
+                    // Pasante: además debe tener PIN; si no lo tiene necesita el wizard completo
+                    $soloPasswordReset = !empty($user->pin_asistencia);
                 } else {
-                    $soloPasswordReset = !empty($user->cargo) && !empty($user->departamento_id);
+                    // Admin / Tutor / SuperAdmin
+                    $soloPasswordReset = true;
                 }
             }
         }
@@ -230,10 +239,18 @@ class WizardController extends Controller
 
             // PASO 4: PERFIL PROFESIONAL
             if ($rolId === 3) {
-                $pinAsistencia = trim($_POST['pin_asistencia'] ?? '');
-                $institucionId = (int)($_POST['institucion_id'] ?? 0);
+                $pinAsistencia    = trim($_POST['pin_asistencia']     ?? '');
+                $pinTieneExistente= (int)($_POST['pin_tiene_existente'] ?? 0) === 1;
+                $institucionId    = (int)($_POST['institucion_id']    ?? 0);
 
-                if (!preg_match('/^[0-9]{4}$/', $pinAsistencia)) {
+                // PIN obligatorio para usuarios nuevos; opcional si ya tiene uno configurado
+                if (!$pinTieneExistente && !preg_match('/^[0-9]{4}$/', $pinAsistencia)) {
+                    Session::setFlash('error', 'El PIN debe tener exactamente 4 dígitos numéricos.');
+                    $this->redirect('/wizard/index');
+                    return;
+                }
+                // Si entró algo pero no son 4 dígitos exactos → error igualmente
+                if ($pinAsistencia && !preg_match('/^[0-9]{4}$/', $pinAsistencia)) {
                     Session::setFlash('error', 'El PIN debe tener exactamente 4 dígitos numéricos.');
                     $this->redirect('/wizard/index');
                     return;
@@ -317,16 +334,22 @@ class WizardController extends Controller
 
             } elseif ($rolId === 3) {
                 // ── PASANTE ──────────────────────────────────────────────
-                // A. usuarios: hashear pin_asistencia y flag
-                $pinHasheado = password_hash($pinAsistencia, PASSWORD_BCRYPT);
-                $this->db->query("
-                    UPDATE usuarios
-                    SET pin_asistencia        = :pin,
-                        requiere_cambio_clave = 0
-                    WHERE id = :user_id
-                ");
-                $this->db->bind(':pin',      $pinHasheado);
-                $this->db->bind(':user_id',  $userId);
+                // A. usuarios: actualizar PIN solo si se ingresó uno nuevo
+                if ($pinAsistencia) {
+                    $pinHasheado = password_hash($pinAsistencia, PASSWORD_BCRYPT);
+                    $this->db->query("
+                        UPDATE usuarios
+                        SET pin_asistencia        = :pin,
+                            requiere_cambio_clave = 0
+                        WHERE id = :user_id
+                    ");
+                    $this->db->bind(':pin',     $pinHasheado);
+                    $this->db->bind(':user_id', $userId);
+                } else {
+                    // PIN existente conservado — solo limpiar el flag
+                    $this->db->query("UPDATE usuarios SET requiere_cambio_clave = 0 WHERE id = :user_id");
+                    $this->db->bind(':user_id', $userId);
+                }
 
                 if (!$this->db->execute()) {
                     throw new Exception('Error al actualizar registro del pasante.');

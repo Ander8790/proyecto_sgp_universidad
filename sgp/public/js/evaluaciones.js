@@ -76,10 +76,21 @@ const EvalApp = {
         // Deslizar al Panel B
         document.getElementById('evalSlider').style.transform = 'translateX(-50%)';
 
+        // Desktop: expandir contenedor para scroll natural de página (sin scroll interno)
+        if (window.innerWidth > 767) {
+            window.scrollTo(0, 0);
+            const outer  = document.getElementById('evalOuter');
+            const slider = document.getElementById('evalSlider');
+            const vistaB = document.getElementById('vistaEvaluacion');
+            if (outer)  { outer.style.height = 'auto'; }
+            if (slider) { slider.style.height = 'auto'; slider.style.alignItems = 'flex-start'; }
+            if (vistaB) { vistaB.style.overflowY = 'visible'; }
+        }
+
         // Scroll al inicio del panel B
         setTimeout(() => {
             const vistaB = document.getElementById('vistaEvaluacion');
-            if (vistaB) vistaB.querySelector('form').scrollTop = 0;
+            if (vistaB) vistaB.scrollTop = 0;
         }, 480);
     },
 
@@ -435,6 +446,7 @@ const EvalApp = {
                 const saveBar = document.querySelector('.ev-save-bar');
                 if (saveBar) saveBar.classList.remove('ev-save-active');
                 document.body.style.overflow = '';
+                this._restaurarPanelA();
 
                 // Calcular promedio para mostrarlo en el modal
                 const starInputs = Array.from(document.querySelectorAll('#formEvaluacion .star-input'));
@@ -496,6 +508,71 @@ const EvalApp = {
         }
     },
 
+    // ── Eliminar evaluación ───────────────────────────────────────────────
+    async eliminarEvaluacion(id, nombrePasante) {
+        const result = await Swal.fire({
+            title: '¿Eliminar evaluación?',
+            html: `<p style="color:#475569;font-size:0.9rem;margin:0;">Se eliminará definitivamente la evaluación de <strong>${nombrePasante || 'este pasante'}</strong>. Esta acción no se puede deshacer.</p>`,
+            icon: 'warning',
+            iconColor: '#ef4444',
+            showCancelButton: true,
+            confirmButtonColor: '#ef4444',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: '<i class="ti ti-trash"></i> Sí, eliminar',
+            cancelButtonText: '<i class="ti ti-x"></i> Cancelar',
+            reverseButtons: true,
+            customClass: {
+                popup:         'swal-eval-popup',
+                confirmButton: 'swal-eval-btn-confirm',
+                cancelButton:  'swal-eval-btn-cancel',
+            }
+        });
+
+        if (!result.isConfirmed) return;
+
+        try {
+            const fd = new FormData();
+            fd.append('evaluacion_id', id);
+            fd.append('_csrf', document.querySelector('input[name="_csrf"]')?.value || '');
+
+            const resp = await fetch(URLROOT + '/evaluaciones/eliminar', {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: fd
+            });
+            const data = await resp.json();
+
+            if (data.success) {
+                this._toast('Evaluación eliminada correctamente', 'success');
+                setTimeout(() => window.location.reload(), 900);
+            } else {
+                this._toast(data.message || 'Error al eliminar', 'error');
+            }
+        } catch (e) {
+            this._toast('Error de conexión. Intenta de nuevo.', 'error');
+        }
+    },
+
+    // ── Ajustar altura de #evalOuter al espacio real disponible ─────────
+    _fitEvalOuter() {
+        const outer = document.getElementById('evalOuter');
+        if (!outer || window.innerWidth <= 767) return;
+        const top = outer.getBoundingClientRect().top;
+        outer.style.height = Math.max(window.innerHeight - top - 16, 300) + 'px';
+    },
+
+    // ── Restaurar Panel A (modo listas con scroll interno) ───────────────
+    _restaurarPanelA() {
+        if (window.innerWidth <= 767) return;
+        const outer  = document.getElementById('evalOuter');
+        const slider = document.getElementById('evalSlider');
+        const vistaB = document.getElementById('vistaEvaluacion');
+        if (outer)  { outer.style.height = ''; }
+        if (slider) { slider.style.height = '100%'; slider.style.alignItems = ''; }
+        if (vistaB) { vistaB.style.overflowY = ''; }
+        this._fitEvalOuter();
+    },
+
     // ── Helpers internos ──────────────────────────────────────────────────
     _mostrarError(msg) {
         const el  = document.getElementById('panelError');
@@ -524,6 +601,10 @@ const EvalApp = {
     // ── Init ──────────────────────────────────────────────────────────────
     init() {
         this.initStars();
+        if (window.innerWidth > 767) {
+            this._fitEvalOuter();
+            window.addEventListener('resize', () => this._fitEvalOuter());
+        }
     },
 };
 

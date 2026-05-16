@@ -136,7 +136,7 @@
 .rpt-date-input:focus { border-color: #1D4ED8; background: #fff; box-shadow: 0 0 0 4px rgba(29,78,216,0.07); }
 </style>
 
-<div class="dashboard-container" style="width: 100%; max-width: 1600px; margin: 0 auto; padding: 20px;">
+<div class="dashboard-container">
 
     <?php
     // Estado visual del periodo

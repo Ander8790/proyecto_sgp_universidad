@@ -286,31 +286,31 @@ table.dataTable tbody tr:hover {
             <div class="asist-diaria-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
 
         <!-- Marcaron Hoy -->
-        <div style="background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); overflow: hidden; margin-bottom: 24px; border: 1px solid #f1f5f9;">
-            <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size:0.95rem;font-weight:700;color:#1e293b;margin:0;">
-                    <i class="ti ti-check" style="color: #10b981; margin-right: 8px;"></i> Marcaron Hoy
+        <div style="background: white; border-radius: 18px; box-shadow: 0 10px 25px -5px rgba(15,23,42,0.05); overflow: hidden; margin-bottom: 24px; border: 1px solid #e2e8f0; border-top: 4px solid #10b981; transition: all 0.3s ease;">
+            <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <h3 style="font-size:1rem;font-weight:800;color:#1e293b;margin:0; display:flex; align-items:center; letter-spacing: 0.3px;">
+                    <i class="ti ti-check" style="color: #10b981; margin-right: 8px; font-size: 1.3rem;"></i> Marcaron Hoy
                 </h3>
-                <span style="background:#eff6ff;color:#162660;padding:4px 12px;border-radius:20px;font-size:0.78rem;font-weight:600;">
+                <span style="background:#ecfdf5;color:#059669;padding:5px 14px;border-radius:20px;font-size:0.78rem;font-weight:700; border: 1px solid #d1fae5;">
                     <?= count($registrosHoy) ?> registros
                 </span>
             </div>
 
             <?php if (empty($registrosHoy)): ?>
             <div style="padding:48px 24px;text-align:center;">
-                <i class="ti ti-calendar-off" style="font-size:40px;color:#cbd5e1;display:block;margin-bottom:12px;"></i>
-                <p style="color:#94a3b8;margin:0;font-size:0.9rem;">Ningún pasante ha marcado aún hoy</p>
+                <i class="ti ti-calendar-off" style="font-size:48px;color:#cbd5e1;display:block;margin-bottom:12px;"></i>
+                <p style="color:#94a3b8;margin:0;font-size:0.95rem; font-weight:600;">Ningún pasante ha marcado aún hoy</p>
             </div>
             <?php else: ?>
-            <div style="overflow-x:auto;max-height:380px;overflow-y:auto;">
+            <div style="overflow-x:auto;max-height:380px;overflow-y:auto; scrollbar-width: thin;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead style="position:sticky;top:0;z-index:10;">
                         <tr>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: left; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Pasante</th>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: left; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Hora</th>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: left; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Método</th>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: left; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Estado</th>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: center; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Acción</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Pasante</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Hora</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Método</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Estado</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: center; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -321,33 +321,33 @@ table.dataTable tbody tr:hover {
                     ?>
                     <tr style="transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle;">
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#162660,#2563eb);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.78rem;flex-shrink:0;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#162660,#2563eb);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:0.8rem;flex-shrink:0; box-shadow: 0 2px 4px rgba(37,99,235,0.2);">
                                     <?= htmlspecialchars($iniciales) ?>
                                 </div>
                                 <div>
-                                    <div style="font-weight:600;color:#1e293b;font-size:0.85rem;"><?= htmlspecialchars($nombre) ?></div>
-                                    <div style="color:#94a3b8;font-size:0.75rem;"><?= htmlspecialchars($r->cedula ?? '—') ?></div>
+                                    <div style="font-weight:700;color:#1e293b;font-size:0.88rem;"><?= htmlspecialchars($nombre) ?></div>
+                                    <div style="color:#64748b;font-size:0.75rem; font-weight: 500;"><?= htmlspecialchars($r->cedula ?? '—') ?></div>
                                 </div>
                             </div>
                         </td>
-                        <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle; font-weight:600;">
-                            <?= $r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—' ?>
+                        <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle; font-weight:700;">
+                            <i class="ti ti-clock" style="color: #94a3b8; margin-right: 4px;"></i> <?= $r->hora_registro ? date('h:i A', strtotime($r->hora_registro)) : '—' ?>
                         </td>
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle;">
                             <?php if ($r->metodo): ?>
-                            <span style="background:#eff6ff;color:#162660;padding:3px 10px;border-radius:20px;font-size:0.75rem;font-weight:600;">
+                            <span style="background:#f1f5f9;color:#475569;padding:4px 10px;border-radius:6px;font-size:0.75rem;font-weight:700; border: 1px solid #e2e8f0; display: inline-flex; align-items: center; gap: 4px;">
                                 <i class="ti ti-device-desktop"></i> <?= htmlspecialchars($r->metodo) ?>
                             </span>
                             <?php else: ?>—<?php endif; ?>
                         </td>
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle;">
                             <div style="display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                                <span style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;display:inline-flex;align-items:center;gap:4px;">
+                                <span style="background:<?= $cfg['bg'] ?>;color:<?= $cfg['color'] ?>;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:800;display:inline-flex;align-items:center;gap:4px;">
                                     <i class="ti <?= $cfg['icon'] ?>"></i> <?= htmlspecialchars($r->estado) ?>
                                 </span>
                                 <?php if ($r->estado === 'Presente' && (int)($r->es_retardo ?? 0) === 1): ?>
-                                <span style="background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;display:inline-flex;align-items:center;gap:3px;">
+                                <span style="background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;padding:3px 8px;border-radius:20px;font-size:0.7rem;font-weight:800;display:inline-flex;align-items:center;gap:3px;">
                                     <i class="ti ti-clock-exclamation"></i> Retardo
                                 </span>
                                 <?php endif; ?>
@@ -364,7 +364,7 @@ table.dataTable tbody tr:hover {
                                 'motivo'     => $r->motivo_justificacion ?? '',
                                 'pasante_id' => (int)($r->pasante_id ?? 0)
                             ]), ENT_QUOTES) ?>)"
-                                style="background: #f1f5f9; color: #3b82f6; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#f1f5f9'"
+                                style="background: #f8fafc; color: #3b82f6; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#bfdbfe';" onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0';"
                                 title="Ver detalle">
                                 <i class="ti ti-eye"></i> Ver
                             </button>
@@ -378,29 +378,37 @@ table.dataTable tbody tr:hover {
         </div>
 
         <!-- Sin Marcar Hoy -->
-        <div style="background: white; border-radius: 16px; box-shadow: 0 4px 6px rgba(0,0,0,0.04); overflow: hidden; margin-bottom: 24px; border: 1px solid #f1f5f9;">
-            <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size:0.95rem;font-weight:700;color:#1e293b;margin:0;">
-                    <i class="ti ti-alert-circle" style="color: #ef4444; margin-right: 8px;"></i> Sin Marcar Hoy
-                </h3>
-                <span style="background:#fef2f2;color:#ef4444;padding:4px 12px;border-radius:20px;font-size:0.78rem;font-weight:600;">
-                    <?= count($sinMarcar) ?> pasantes
-                </span>
+        <div style="background: white; border-radius: 18px; box-shadow: 0 10px 25px -5px rgba(15,23,42,0.05); overflow: hidden; margin-bottom: 24px; border: 1px solid #e2e8f0; border-top: 4px solid #ef4444; transition: all 0.3s ease;">
+            <div style="padding: 20px 24px; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <h3 style="font-size:1rem;font-weight:800;color:#1e293b;margin:0; display:flex; align-items:center; letter-spacing: 0.3px;">
+                        <i class="ti ti-alert-circle" style="color: #ef4444; margin-right: 8px; font-size: 1.3rem;"></i> Sin Marcar Hoy
+                    </h3>
+                    <span style="background:#fef2f2;color:#dc2626;padding:5px 14px;border-radius:20px;font-size:0.78rem;font-weight:700; border: 1px solid #fecaca;">
+                        <?= count($sinMarcar) ?> pasantes
+                    </span>
+                </div>
+                <?php if (!empty($sinMarcar)): ?>
+                <!-- Botón Marcar Todos (Diaria) -->
+                <button onclick="marcarTodosDiaria('Presente')" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s; box-shadow: 0 4px 6px -1px rgba(16,185,129,0.25); display: flex; align-items: center; gap: 6px;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 12px -2px rgba(16,185,129,0.35)'" onmouseout="this.style.transform='none'; this.style.boxShadow='0 4px 6px -1px rgba(16,185,129,0.25)'" title="Registrar asistencia masiva para los que faltan">
+                    <i class="ti ti-checks" style="font-size: 1.1rem;"></i> Marcar todos (Presente)
+                </button>
+                <?php endif; ?>
             </div>
 
             <?php if (empty($sinMarcar)): ?>
             <div style="padding:48px 24px;text-align:center;">
-                <i class="ti ti-circle-check" style="font-size:40px;color:#10b981;display:block;margin-bottom:12px;"></i>
-                <p style="color:#10b981;margin:0;font-size:0.9rem;font-weight:600;">¡Todos los pasantes marcaron hoy! 🎉</p>
+                <i class="ti ti-circle-check" style="font-size:48px;color:#10b981;display:block;margin-bottom:12px;"></i>
+                <p style="color:#10b981;margin:0;font-size:0.95rem;font-weight:700;">¡Todos los pasantes marcaron hoy! 🎉</p>
             </div>
             <?php else: ?>
-            <div style="overflow-x:auto;max-height:380px;overflow-y:auto;">
+            <div style="overflow-x:auto;max-height:380px;overflow-y:auto; scrollbar-width: thin;">
                 <table style="width: 100%; border-collapse: collapse;">
                     <thead style="position:sticky;top:0;z-index:10;">
                         <tr>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: left; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Pasante</th>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: left; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Departamento</th>
-                            <th style="text-transform: uppercase; font-size: 0.75rem; font-weight: 700; color: #64748b; padding: 16px 24px; text-align: center; background: #f8fafc; border-bottom: 1px solid #e2e8f0;">Acción</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Pasante</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: left; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Departamento</th>
+                            <th style="text-transform: uppercase; font-size: 0.72rem; font-weight: 800; color: #64748b; padding: 14px 24px; text-align: center; background: #f8fafc; border-bottom: 2px solid #e2e8f0; letter-spacing: 0.5px;">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -410,22 +418,22 @@ table.dataTable tbody tr:hover {
                     ?>
                     <tr style="transition:background 0.2s;" onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle;">
-                            <div style="display:flex;align-items:center;gap:10px;">
-                                <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#ef4444,#dc2626);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.78rem;flex-shrink:0;">
+                            <div style="display:flex;align-items:center;gap:12px;">
+                                <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#ef4444,#b91c1c);display:flex;align-items:center;justify-content:center;color:white;font-weight:800;font-size:0.8rem;flex-shrink:0; box-shadow: 0 2px 4px rgba(239,68,68,0.2);">
                                     <?= htmlspecialchars($iniciales) ?>
                                 </div>
                                 <div>
-                                    <div style="font-weight:600;color:#1e293b;font-size:0.85rem;"><?= htmlspecialchars($nombre) ?></div>
-                                    <div style="color:#94a3b8;font-size:0.75rem;"><?= htmlspecialchars($p->cedula ?? '—') ?></div>
+                                    <div style="font-weight:700;color:#1e293b;font-size:0.88rem;"><?= htmlspecialchars($nombre) ?></div>
+                                    <div style="color:#64748b;font-size:0.75rem; font-weight: 500;"><?= htmlspecialchars($p->cedula ?? '—') ?></div>
                                 </div>
                             </div>
                         </td>
-                        <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #64748b; font-size: 0.83rem; vertical-align: middle;">
-                            <?= htmlspecialchars($p->departamento_nombre ?? 'Sin asignar') ?>
+                        <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #475569; font-size: 0.85rem; vertical-align: middle; font-weight: 600;">
+                            <i class="ti ti-building-community" style="color: #94a3b8; margin-right: 4px;"></i> <?= htmlspecialchars($p->departamento_nombre ?? 'Sin asignar') ?>
                         </td>
                         <td style="padding: 16px 24px; border-bottom: 1px solid #f1f5f9; color: #334155; font-size: 0.9rem; vertical-align: middle; text-align:center;">
                             <button onclick="abrirModalManual(<?= (int)$p->id ?>, '<?= addslashes($nombre) ?>')"
-                                style="background: #f1f5f9; color: #3b82f6; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#f1f5f9'"
+                                style="background: #f8fafc; color: #3b82f6; border: 1px solid #e2e8f0; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 4px;" onmouseover="this.style.background='#eff6ff'; this.style.borderColor='#bfdbfe';" onmouseout="this.style.background='#f8fafc'; this.style.borderColor='#e2e8f0';"
                                 title="Registrar manualmente">
                                 <i class="ti ti-plus"></i> Registrar
                             </button>
@@ -437,6 +445,76 @@ table.dataTable tbody tr:hover {
             </div>
             <?php endif; ?>
         </div>
+        
+        <script>
+        // Script agregado para procesar "Marcar todos" en la vista Diaria
+        window.marcarTodosDiaria = async function(estado) {
+            const pasantes = <?= json_encode(array_values(array_map(function($p){ return ['id'=>$p->id, 'nombre'=>trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? ''))]; }, $sinMarcar ?? []))) ?>;
+            
+            if (!pasantes || !pasantes.length) return;
+
+            const { isConfirmed } = await Swal.fire({
+                title: `¿Marcar ${pasantes.length} pasantes como Presente?`,
+                text: 'Se registrará su asistencia como Presente para el día de hoy.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, marcar todos',
+                cancelButtonText: 'Cancelar',
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b'
+            });
+
+            if (!isConfirmed) return;
+
+            Swal.fire({
+                title: 'Procesando...',
+                html: `Procesando <b id="swal-progreso-diaria">0</b> de ${pasantes.length} registros`,
+                allowOutsideClick: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            let completados = 0;
+            let errores = 0;
+            const fechaHoy = '<?= date('Y-m-d') ?>';
+
+            async function processNext(i) {
+                if (i >= pasantes.length) {
+                    Swal.fire({
+                        icon: errores > 0 ? 'warning' : 'success',
+                        title: 'Proceso completado',
+                        text: `${completados} marcados correctamente.`,
+                        confirmButtonColor: '#2563eb'
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                    return;
+                }
+
+                let p = pasantes[i];
+                let fd = new FormData();
+                fd.append('pasante_id', p.id);
+                fd.append('fecha', fechaHoy);
+                fd.append('estado', estado);
+                fd.append('observacion', 'Marcado masivo (Diaria)');
+
+                try {
+                    let r = await fetch('<?= URLROOT ?>/asistencias/registro_manual', { method:'POST', body:fd });
+                    let res = await r.json();
+                    if (res.success) completados++;
+                    else errores++;
+                } catch(e) {
+                    errores++;
+                }
+
+                let label = document.getElementById('swal-progreso-diaria');
+                if (label) label.textContent = completados + errores;
+
+                processNext(i + 1);
+            }
+
+            processNext(0);
+        };
+        </script>
 
             </div>
         <?php elseif ($vistaActual === 'semanal'): ?>
@@ -1208,66 +1286,86 @@ table.dataTable tbody tr:hover {
         $coloresDepto = ['#2563eb','#059669','#d97706','#7c3aed','#0284c7','#dc2626','#0891b2','#0f766e'];
         $deptoDonut = [];
         $ciD = 0;
+        // Inyectar todos los departamentos activos para garantizar que aparezcan los ghost rings
+        $todosDeptos = $data['todosDeptos'] ?? [];
+        foreach ($todosDeptos as $td) {
+            if (!isset($resumenDeptosJS[$td])) {
+                $resumenDeptosJS[$td] = ['p'=>0, 'f'=>0, 'j'=>0, 't'=>0];
+            }
+        }
+
         if (!empty($resumenDeptosJS)) {
             foreach ($resumenDeptosJS as $dep => $d) {
-                $tot = ($d['p'] ?? 0) + ($d['f'] ?? $d['a'] ?? 0) + ($d['j'] ?? 0);
-                $pp  = $tot > 0 ? round((($d['p'] ?? 0) + ($d['j'] ?? 0)) / $tot * 100) : 0;
-                $deptoDonut[] = ['label' => $dep, 'pct' => $pp, 'color' => $coloresDepto[$ciD % count($coloresDepto)]];
+                $pp_p = (int)($d['p'] ?? 0);
+                $pp_a = (int)($d['f'] ?? $d['a'] ?? 0);
+                $pp_j = (int)($d['j'] ?? 0);
+                $tot  = $pp_p + $pp_a + $pp_j;
+                $pp   = $tot > 0 ? round(($pp_p + $pp_j) / $tot * 100) : 0;
+                $deptoDonut[] = ['label' => $dep, 'pct' => $pp, 'color' => $coloresDepto[$ciD % count($coloresDepto)], 'p' => $pp_p, 'j' => $pp_j, 'a' => $pp_a];
                 $ciD++;
             }
         }
+        $globalP = array_sum(array_column($deptoDonut, 'p'));
+        $globalJ = array_sum(array_column($deptoDonut, 'j'));
+        $globalA = array_sum(array_column($deptoDonut, 'a'));
         $donutJS = json_encode($deptoDonut, JSON_HEX_TAG | JSON_HEX_QUOT | JSON_HEX_APOS | JSON_HEX_AMP);
         if ($donutJS === false) { $donutJS = '[]'; }
         ?>
-        <div class="men-card" style="text-align:center;">
-            <div class="men-card-title" style="justify-content:center;"><i class="ti ti-chart-donut" style="color:<?= $hiColor ?>;"></i> Asistencia global</div>
-            <!-- ApexCharts Radial Bar (Apple Watch style) -->
-            <div id="radialAppleWatch" style="margin:0 auto; display:flex; justify-content:center; align-items:center;"></div>
-            <span style="background:<?= $hiColor ?>18;color:<?= $hiColor ?>;font-size:.65rem;font-weight:800;padding:2px 10px;border-radius:20px;"><?= $hiLabel ?></span>
-            <!-- Leyenda depto donut -->
-            <div id="menDonutLey" style="margin-top:10px;text-align:left;display:flex;flex-direction:column;gap:4px;"></div>
+        <div class="men-card" style="display:flex;flex-direction:column;flex:1;">
+            <!-- Header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                <div class="men-card-title" style="margin-bottom:0;">
+                    <i class="ti ti-chart-donut" style="color:<?= $hiColor ?>;"></i> Asistencia global
+                </div>
+                <span id="menDonutGlobalLabel" style="background:<?= $hiColor ?>18;color:<?= $hiColor ?>;font-size:.65rem;font-weight:800;padding:2px 10px;border-radius:20px;flex-shrink:0;"><?= $hiLabel ?></span>
+            </div>
+            <!-- Filtros -->
+            <div class="men-filter-pills" id="menDonutPills" style="margin-bottom:10px;">
+                <button class="men-filter-pill active" onclick="menFiltrarDonut('Todos', this)" title="Todos">Todos</button>
+                <?php foreach ($deptosDisp as $dept): if($dept === 'Todos') continue; ?>
+                <button class="men-filter-pill" onclick="menFiltrarDonut(<?= htmlspecialchars(json_encode($dept), ENT_QUOTES, 'UTF-8') ?>, this)" title="<?= htmlspecialchars($dept) ?>"><?= htmlspecialchars(getFriendlyName($dept, 'cal')) ?></button>
+                <?php endforeach; ?>
+            </div>
+            <!-- Donut -->
+            <div style="display:flex;justify-content:center;">
+                <div id="radialAppleWatch"></div>
+            </div>
+            <!-- Leyenda -->
+            <div class="men-radar-scroll" id="menDonutLey" style="margin-top:6px;"></div>
         </div>
 
-        <!-- MAYOR RETARDO (Reemplazo de En Riesgo) -->
+
+        <!-- MAYOR RETARDO -->
         <div class="men-card" style="flex:1; display:flex; flex-direction:column;">
-            <div class="men-card-title" style="margin-bottom:6px; justify-content:space-between;">
-                <span><i class="ti ti-clock-stop" style="color:#f59e0b;"></i> Retardos del mes</span>
-                <div class="men-card-nav">
-                    <button class="men-card-btn" onclick="menPaginarRetardos(-1)" id="btnRetAnt" title="Anterior"><i class="ti ti-chevron-left"></i></button>
-                    <button class="men-card-btn" onclick="menPaginarRetardos(1)" id="btnRetSig" title="Siguiente"><i class="ti ti-chevron-right"></i></button>
-                </div>
+            <div class="men-card-title" style="margin-bottom:6px;">
+                <i class="ti ti-clock-stop" style="color:#f59e0b;"></i> Retardos del mes
             </div>
-            <div class="men-filter-pills" id="menRetardoPills">
+            <div class="men-filter-pills" id="menRetardoPills" style="margin-bottom:6px;">
                 <button class="men-filter-pill active" data-dep="Todos" title="Todos" onclick="menFiltrarRetardos(this)">Todos</button>
                 <?php foreach (array_unique(array_column($pctPorPasante, 'depto')) as $dp): ?>
                 <button class="men-filter-pill" data-dep="<?= htmlspecialchars($dp) ?>" title="<?= htmlspecialchars($dp) ?>" onclick="menFiltrarRetardos(this)"><?= htmlspecialchars(getFriendlyName($dp, 'card')) ?></button>
                 <?php endforeach; ?>
             </div>
-            <div class="men-radar-scroll" id="menRetardoList">
+            <div id="menRetardoList" style="flex:1;overflow-y:auto;scrollbar-width:thin;padding-right:4px;">
                 <?php if (empty($pasantesRetardos)): ?>
-                <div style="text-align:center;padding:24px 8px;color:#94a3b8;">
-                    <i class="ti ti-circle-check" style="font-size:1.6rem;display:block;margin-bottom:4px;color:#16a34a;opacity:.5;"></i>
+                <div style="text-align:center;padding:32px 8px;color:#94a3b8;">
+                    <i class="ti ti-circle-check" style="font-size:1.8rem;display:block;margin-bottom:6px;color:#16a34a;opacity:.5;"></i>
                     <p style="margin:0;font-size:.72rem;font-weight:600;">Sin retardos registrados</p>
                 </div>
                 <?php else: foreach ($pasantesRetardos as $idx => $p): ?>
-                <div class="men-pasante-row men-ret-row" data-dep="<?= htmlspecialchars($p['depto']) ?>" data-idx="<?= $idx ?>" style="display:<?= $idx < 5 ? 'flex' : 'none' ?>;">
+                <div class="men-pasante-row men-ret-row" data-dep="<?= htmlspecialchars($p['depto']) ?>" style="padding:8px 0;">
                     <div class="men-av" style="background:#f59e0b;"><?= htmlspecialchars($p['iniciales']) ?></div>
                     <div style="min-width:0;flex:1;">
                         <div style="font-size:.73rem;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><?= htmlspecialchars($p['nombre']) ?></div>
                         <div style="font-size:.59rem;color:#94a3b8;"><?= htmlspecialchars($p['depto']) ?></div>
                     </div>
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <button class="men-card-btn" style="width:28px;height:28px;background:#fff7ed;color:#f59e0b;border-color:#ffedd5;" 
-                                onclick="menVerDetalleRetardos(
-                                    <?= (int)($p['id'] ?? 0) ?>,
-                                    '<?= addslashes($p['nombre']) ?>',
-                                    '<?= addslashes($p['iniciales']) ?>',
-                                    '<?= addslashes($p['depto']) ?>',
-                                    <?= (int)$p['retardos'] ?>
-                                )" title="Ver historial de retardos">
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <button class="men-card-btn" style="width:28px;height:28px;background:#fff7ed;color:#f59e0b;border-color:#ffedd5;"
+                                onclick="menVerDetalleRetardos(<?= (int)($p['id'] ?? 0) ?>,'<?= addslashes($p['nombre']) ?>','<?= addslashes($p['iniciales']) ?>','<?= addslashes($p['depto']) ?>',<?= (int)$p['retardos'] ?>)"
+                                title="Ver historial">
                             <i class="ti ti-eye"></i>
                         </button>
-                        <span class="men-pct-badge" style="background:#fff7ed;color:#9a3412;"><?= $p['retardos'] ?> retarco<?= $p['retardos'] != 1 ? 's' : '' ?></span>
+                        <span class="men-pct-badge" style="background:#fff7ed;color:#9a3412;"><?= $p['retardos'] ?> ret.</span>
                     </div>
                 </div>
                 <?php endforeach; endif; ?>
@@ -1281,7 +1379,123 @@ table.dataTable tbody tr:hover {
         <div class="men-card" style="flex:1;">
             <div class="men-card-title"><i class="ti ti-building" style="color:#0891b2;"></i> Por departamento</div>
             <p style="font-size:.62rem;color:#94a3b8;margin-top:-6px;margin-bottom:12px;">Promedio de asistencia grupal por equipo.</p>
-            <div id="menDeptoChart" style="min-height: 250px; width: 100%; margin-top: 10px;"></div>
+            <div style="margin-top:8px;">
+            <?php
+            $sgpGradients = [
+                ['bar'=>'linear-gradient(90deg,#3b82f6,#8b5cf6)','muted'=>'linear-gradient(90deg,rgba(59,130,246,.2),rgba(139,92,246,.15))','color'=>'#2563eb'],
+                ['bar'=>'linear-gradient(90deg,#10b981,#34d399)','muted'=>'linear-gradient(90deg,rgba(16,185,129,.2),rgba(52,211,153,.15))','color'=>'#059669'],
+                ['bar'=>'linear-gradient(90deg,#f59e0b,#fbbf24)','muted'=>'linear-gradient(90deg,rgba(245,158,11,.2),rgba(251,191,36,.15))','color'=>'#d97706'],
+                ['bar'=>'linear-gradient(90deg,#ec4899,#f43f5e)','muted'=>'linear-gradient(90deg,rgba(236,72,153,.2),rgba(244,63,94,.15))','color'=>'#db2777'],
+                ['bar'=>'linear-gradient(90deg,#6366f1,#a855f7)','muted'=>'linear-gradient(90deg,rgba(99,102,241,.2),rgba(168,85,247,.15))','color'=>'#4f46e5'],
+                ['bar'=>'linear-gradient(90deg,#06b6d4,#3b82f6)','muted'=>'linear-gradient(90deg,rgba(6,182,212,.2),rgba(59,130,246,.15))','color'=>'#0891b2'],
+            ];
+            $deptSorted = $deptoDonut;
+            usort($deptSorted, fn($a,$b) => $b['pct'] - $a['pct']);
+            if (empty($deptSorted)): ?>
+                <p style="text-align:center;color:#94a3b8;font-size:.75rem;padding:28px 0;">Sin datos este mes</p>
+            <?php else: ?>
+            <style>
+                @keyframes sgpFillBar{from{width:0}}
+                @keyframes sgpTipIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+                .sgp-dept-bar{animation:sgpFillBar 1s cubic-bezier(.22,1,.36,1) forwards;transition:filter .25s,transform .25s}
+                .sgp-dept-row{
+                    position:relative;padding:10px 12px;border-radius:10px;cursor:default;
+                    border:1.5px solid #e2e8f0;
+                    transition:background .2s,transform .2s cubic-bezier(.34,1.56,.64,1),box-shadow .2s,border-color .2s;
+                }
+                .sgp-dept-row:hover{
+                    background:#f0f9ff;transform:translateY(-2px);
+                    box-shadow:0 4px 14px rgba(0,0,0,.07);
+                    border-color:var(--dept-color);
+                }
+                .sgp-dept-row:hover .sgp-dept-pct{transform:scale(1.18);filter:brightness(1.1);}
+                .sgp-dept-row:hover .sgp-dept-bar{filter:brightness(1.12) saturate(1.2);transform:scaleY(1.25);transform-origin:center;}
+                .sgp-dept-row:hover .sgp-dept-track{box-shadow:inset 0 1px 2px rgba(0,0,0,.05),0 0 0 2px rgba(99,102,241,.12);}
+                .sgp-dept-row:hover .sgp-dept-name{color:var(--dept-color) !important;}
+                .sgp-dept-pct{transition:transform .2s cubic-bezier(.34,1.56,.64,1),filter .2s;display:inline-block}
+                .sgp-dept-track{transition:box-shadow .2s;}
+                /* Tooltip */
+                .sgp-dept-tip{
+                    display:none;position:absolute;bottom:calc(100% + 10px);left:50%;
+                    transform:translateX(-50%);
+                    background:#fff;color:#1e293b;border-radius:12px;
+                    padding:11px 15px;white-space:nowrap;z-index:99;
+                    box-shadow:0 8px 28px rgba(0,0,0,.12);
+                    border:1px solid #e2e8f0;
+                    pointer-events:none;min-width:170px;
+                }
+                .sgp-dept-tip::before{
+                    content:'';position:absolute;top:100%;left:50%;transform:translateX(-50%);
+                    border:7px solid transparent;border-top-color:#e2e8f0;
+                }
+                .sgp-dept-tip::after{
+                    content:'';position:absolute;top:calc(100% - 1px);left:50%;transform:translateX(-50%);
+                    border:7px solid transparent;border-top-color:#fff;
+                }
+                .sgp-dept-row:hover .sgp-dept-tip{
+                    display:block;animation:sgpTipIn .18s ease forwards;
+                }
+            </style>
+            <?php foreach ($deptSorted as $ci => $dd):
+                $g  = $sgpGradients[$ci % count($sgpGradients)];
+                $has = ($dd['p'] + $dd['j'] + $dd['a']) > 0;
+                $tot = $dd['p'] + $dd['j'] + $dd['a'];
+            ?>
+            <div class="sgp-dept-row" style="margin-bottom:8px;--dept-color:<?= $g['color'] ?>;">
+                <!-- Tooltip -->
+                <div class="sgp-dept-tip">
+                    <div style="font-size:.72rem;font-weight:800;color:<?= $g['color'] ?>;margin-bottom:6px;border-bottom:1px solid #f1f5f9;padding-bottom:5px;"><?= htmlspecialchars($dd['label']) ?></div>
+                    <?php if ($has): ?>
+                    <div style="display:flex;flex-direction:column;gap:5px;">
+                        <div style="display:flex;justify-content:space-between;gap:16px;font-size:.68rem;">
+                            <span style="color:#16a34a;font-weight:600;">✔ Presentes</span>
+                            <span style="font-weight:800;color:#1e293b;"><?= $dd['p'] ?> <span style="color:#94a3b8;font-weight:500;">(<?= $tot>0?round($dd['p']/$tot*100):0 ?>%)</span></span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;gap:16px;font-size:.68rem;">
+                            <span style="color:#dc2626;font-weight:600;">✖ Ausentes</span>
+                            <span style="font-weight:800;color:#1e293b;"><?= $dd['a'] ?> <span style="color:#94a3b8;font-weight:500;">(<?= $tot>0?round($dd['a']/$tot*100):0 ?>%)</span></span>
+                        </div>
+                        <div style="display:flex;justify-content:space-between;gap:16px;font-size:.68rem;">
+                            <span style="color:#2563eb;font-weight:600;">📄 Justificados</span>
+                            <span style="font-weight:800;color:#1e293b;"><?= $dd['j'] ?> <span style="color:#94a3b8;font-weight:500;">(<?= $tot>0?round($dd['j']/$tot*100):0 ?>%)</span></span>
+                        </div>
+                        <div style="margin-top:4px;padding-top:5px;border-top:1px solid #f1f5f9;font-size:.68rem;display:flex;justify-content:space-between;align-items:center;">
+                            <span style="color:#64748b;font-weight:600;">Asistencia efectiva</span>
+                            <span style="font-weight:900;color:<?= $g['color'] ?>;font-size:.8rem;"><?= $dd['pct'] ?>%</span>
+                        </div>
+                    </div>
+                    <?php else: ?>
+                    <span style="font-size:.68rem;color:#94a3b8;">Sin registros este mes</span>
+                    <?php endif; ?>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                    <span class="sgp-dept-name" style="font-size:.72rem;font-weight:700;color:#1e293b;transition:color .2s;<?= $has ? '' : 'opacity:.5;' ?>"><?= htmlspecialchars($dd['label']) ?></span>
+                    <?php if ($has): ?>
+                    <span class="sgp-dept-pct" style="font-size:.78rem;font-weight:800;color:<?= $g['color'] ?>;"><?= $dd['pct'] ?>%</span>
+                    <?php else: ?>
+                    <span style="font-size:.62rem;font-weight:700;color:<?= $g['color'] ?>;background:<?= $g['color'] ?>18;padding:1px 8px;border-radius:20px;">Sin datos</span>
+                    <?php endif; ?>
+                </div>
+                <div class="sgp-dept-track" style="height:10px;border-radius:999px;background:#f1f5f9;overflow:hidden;box-shadow:inset 0 1px 2px rgba(0,0,0,.05);">
+                    <?php if ($has): ?>
+                    <div class="sgp-dept-bar" style="height:100%;border-radius:999px;background:<?= $g['bar'] ?>;width:<?= $dd['pct'] ?>%;"></div>
+                    <?php else: ?>
+                    <div style="height:100%;border-radius:999px;background:<?= $g['muted'] ?>;width:50%;"></div>
+                    <?php endif; ?>
+                </div>
+                <?php if ($has): ?>
+                <div style="display:flex;gap:8px;margin-top:4px;font-size:.6rem;font-weight:700;color:#94a3b8;">
+                    <span style="color:#16a34a;"><?= $dd['p'] ?> Pres</span>
+                    <span>·</span>
+                    <span style="color:#dc2626;"><?= $dd['a'] ?> Aus</span>
+                    <span>·</span>
+                    <span style="color:#2563eb;"><?= $dd['j'] ?> Just</span>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+            <?php endif; ?>
+            </div>
         </div>
 
         <!-- MEJOR ASISTENCIA -->
@@ -1482,188 +1696,140 @@ window.cargarMesAjax = function(url) {
 (function(){
 'use strict';
 const MES    = <?= $mesDataJS ?? '{}' ?>;
-const DONUT  = <?= !empty($donutJS) ? $donutJS : '[]' ?>;
+const DONUT       = <?= !empty($donutJS) ? $donutJS : '[]' ?>;
+const GLOBAL_DONUT = {p: <?= (int)($globalP ?? 0) ?>, j: <?= (int)($globalJ ?? 0) ?>, a: <?= (int)($globalA ?? 0) ?>};
 const DEPTOS_DATA = <?= json_encode($resumenDeptosJS ?? []) ?>;
 const DEPTOS_COLORS = <?= json_encode($coloresDepto ?? []) ?>;
 const URL_RM = '<?= URLROOT ?>/asistencias/registro_manual';
 const grid   = document.getElementById('menCalGrid');
 const tip    = document.getElementById('menTooltip');
 
-/* ── Donut SVG radial (Apple Watch ApexChart) ── */
+/* ── Donut Chart de Asistencia Global ── */
 (function buildApexDonut() {
-    if (typeof ApexCharts === 'undefined') {
-        setTimeout(buildApexDonut, 100);
-        return;
-    }
+    if (typeof ApexCharts === 'undefined') { setTimeout(buildApexDonut, 100); return; }
     var cont = document.getElementById('radialAppleWatch');
-    var ley = document.getElementById('menDonutLey');
-    if (!cont || !DONUT.length) return;
-    
-    var sData = [], cData = [], lData = [];
-    DONUT.forEach(function(d){
-        sData.push(d.pct);
-        cData.push(d.color);
-        lData.push(d.label);
-        
-        var row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:.62rem;font-weight:700;color:#475569;';
-        row.innerHTML = '<div style="width:8px;height:8px;border-radius:2px;flex-shrink:0;background:'+d.color+';"></div>'
-                      + '<span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + d.label + '</span>'
-                      + '<span style="color:'+d.color+';font-weight:800;">' + d.pct + '%</span>';
-        if (ley) ley.appendChild(row);
-    });
+    if (!cont) return;
 
-    var options = {
-        series: sData, 
-        chart: {
-            height: 300,
-            type: 'radialBar',
-            animations: {
-                enabled: true, easing: 'easeinout', speed: 800,
-                animateGradually: { enabled: true, delay: 150 },
-                dynamicAnimation: { enabled: true, speed: 350 }
-            }
-        },
-        plotOptions: {
-            radialBar: {
-                hollow: { margin: 15, size: '35%', background: 'transparent' },
-                track: { show: true, background: '#f1f5f9', strokeWidth: '100%', opacity: 1, margin: 10 },
-                dataLabels: {
-                    show: true,
-                    name: { offsetY: 22, show: true, color: '#94a3b8', fontSize: '11px', fontWeight: 700 },
-                    value: { offsetY: -6, color: '<?= $hiColor ?>', fontSize: '32px', fontWeight: '900', show: true },
-                    total: {
-                        show: true,
-                        label: 'GLOBAL',
-                        color: '#94a3b8',
-                        formatter: function (w) { return "<?= $hi ?>%"; }
+    function calcPct(p, j, a) {
+        var tot = p + j + a;
+        return tot > 0 ? Math.round((p + j) / tot * 100) : 0;
+    }
+    function getHiColor(pct) {
+        return pct >= 85 ? '#16a34a' : (pct >= 60 ? '#d97706' : '#dc2626');
+    }
+    function buildOptions(p, j, a, centerLabel, centerColor) {
+        var pct = calcPct(p, j, a);
+        return {
+            series: [p, j, a],
+            chart: { type: 'donut', height: 200, toolbar: { show: false }, animations: { enabled: true, speed: 500 } },
+            labels: ['Presente', 'Justificado', 'Ausente'],
+            colors: ['#16a34a', '#2563eb', '#dc2626'],
+            plotOptions: {
+                pie: {
+                    donut: {
+                        size: '68%',
+                        labels: {
+                            show: true,
+                            name:  { show: true, fontSize: '11px', color: '#94a3b8', fontWeight: 700, offsetY: 18 },
+                            value: { show: true, fontSize: '26px', fontWeight: 900, color: centerColor, offsetY: -12,
+                                     formatter: function() { return pct + '%'; } },
+                            total: { show: true, label: centerLabel, color: '#94a3b8', fontSize: '11px', fontWeight: 700,
+                                     formatter: function() { return pct + '%'; } }
+                        }
                     }
                 }
-            }
-        },
-        stroke: { lineCap: 'round' },
-        colors: cData,
-        labels: lData,
-    };
-    new ApexCharts(cont, options).render();
-})();
-
-/* ── Gráfico ApexCharts Por Departamento ── */
-(function buildApexDepto() {
-    if (typeof ApexCharts === 'undefined') {
-        setTimeout(buildApexDepto, 100);
-        return;
+            },
+            dataLabels: { enabled: false },
+            legend: { show: false },
+            stroke: { width: 2, colors: ['#fff'] },
+            tooltip: { enabled: true, y: { formatter: function(val) { return val + ' registros'; } } }
+        };
     }
-    var cont = document.getElementById('menDeptoChart');
-    if (!cont || Object.keys(DEPTOS_DATA).length === 0) {
-        if(cont) cont.innerHTML = '<p style="color:#94a3b8;font-size:.75rem;text-align:center;padding:30px 0;">Sin datos este mes</p>';
-        return;
-    }
-
-    let seriesData = [];
-    let categories = [];
-    let colors = [];
-    let i = 0;
-    
-    // Sort array by attendance percentage (descending)
-    let sortedDeptos = Object.keys(DEPTOS_DATA).map(dep => {
-        let d = DEPTOS_DATA[dep];
-        let tot = (d.p || 0) + (d.f || d.a || 0) + (d.j || 0);
-        let pct = tot > 0 ? Math.round(((d.p || 0) + (d.j || 0)) / tot * 100) : 0;
-        return { dep, pct, d };
-    }).sort((a, b) => b.pct - a.pct);
-
-    sortedDeptos.forEach(item => {
-        seriesData.push({
-            x: item.dep,
-            y: item.pct,
-            p: item.d.p || 0,
-            a: item.d.f || item.d.a || 0,
-            j: item.d.j || 0
+    function buildDeptoLey() {
+        var ley = document.getElementById('menDonutLey');
+        if (!ley) return;
+        ley.innerHTML = '';
+        DONUT.forEach(function(d) {
+            var has      = (d.p + d.j + d.a) > 0;
+            var initial  = d.label.charAt(0).toUpperCase();
+            var pctColor = d.pct >= 85 ? '#16a34a' : (d.pct >= 60 ? '#d97706' : '#dc2626');
+            var pctBg    = d.pct >= 85 ? '#dcfce7' : (d.pct >= 60 ? '#fef3c7' : '#fee2e2');
+            var row = document.createElement('div');
+            row.className = 'men-pasante-row';
+            row.innerHTML =
+                '<div class="men-av" style="background:'+d.color+';flex-shrink:0;">'+initial+'</div>'
+              + '<div style="min-width:0;flex:1;">'
+              +   '<div style="font-size:.72rem;font-weight:700;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+d.label+'</div>'
+              +   '<div style="font-size:.58rem;color:#94a3b8;">'+(has ? d.p+' Pres · '+d.a+' Aus · '+d.j+' Just' : 'Sin registros')+'</div>'
+              + '</div>'
+              + (has
+                  ? '<span class="men-pct-badge" style="background:'+pctBg+';color:'+pctColor+';">'+d.pct+'%</span>'
+                  : '<span class="men-pct-badge" style="background:#f1f5f9;color:#94a3b8;">—</span>');
+            ley.appendChild(row);
         });
-        categories.push(item.dep);
-        colors.push(DEPTOS_COLORS[i % DEPTOS_COLORS.length]);
-        i++;
-    });
-    
-    var options = {
-        series: [{ name: 'Asistencia', data: seriesData }],
-        chart: {
-            type: 'bar',
-            height: Math.max(250, categories.length * 45),
-            toolbar: { show: false },
-            parentHeightOffset: 0,
-            animations: { enabled: true, dynamicAnimation: { speed: 400 } },
-            events: {
-                dataPointSelection: function(event, chartContext, config) {
-                    let dep = categories[config.dataPointIndex];
-                    let pills = document.querySelectorAll('.men-dept-pill');
-                    pills.forEach(p => {
-                        if (p.textContent.trim() === dep) {
-                            window.menFiltrarDepto(p, dep);
-                            p.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                        }
-                    });
-                }
-            }
-        },
-        plotOptions: {
-            bar: {
-                borderRadius: 6,
-                horizontal: true,
-                distributed: true,
-                dataLabels: { position: 'center' },
-                barHeight: '70%'
-            }
-        },
-        colors: colors,
-        dataLabels: {
-            enabled: true,
-            textAnchor: 'middle',
-            style: { colors: ['#ffffff'], fontSize: '11px', fontFamily: 'inherit', fontWeight: 800 },
-            formatter: function (val, opt) { return val + "%" },
-            dropShadow: { enabled: true, top: 1, left: 1, blur: 1, opacity: 0.3 }
-        },
-        xaxis: {
-            categories: categories,
-            labels: { show: false },
-            axisBorder: { show: false },
-            axisTicks: { show: false },
-            max: 100
-        },
-        yaxis: {
-            labels: {
-                style: { fontWeight: 700, fontSize: '11px', fontFamily: 'inherit', colors: '#475569' },
-                maxWidth: 130,
-                formatter: function (val) {
-                    return val.length > 18 ? val.substring(0, 18) + '...' : val;
-                }
-            }
-        },
-        grid: { show: false, padding: { top: 0, right: 20, bottom: 0, left: 10 } },
-        tooltip: {
-            theme: 'light',
-            custom: function({series, seriesIndex, dataPointIndex, w}) {
-                let data = w.config.series[seriesIndex].data[dataPointIndex];
-                let color = w.config.colors[dataPointIndex];
-                return `<div style="padding: 12px 16px; border-radius: 10px; font-family: inherit; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #f1f5f9;">
-                    <strong style="color: #1e293b; font-size: 0.8rem;">${data.x}</strong><br/>
-                    <div style="font-size: 1.5rem; font-weight: 900; color: ${color}; line-height: 1.2; margin: 4px 0;">${data.y}%</div>
-                    <div style="font-size: 0.75rem; color: #64748b; font-weight: 600;">
-                        <span style="color:#16a34a">${data.p} Pres</span> &middot; 
-                        <span style="color:#dc2626">${data.a} Aus</span> &middot; 
-                        <span style="color:#2563eb">${data.j} Just</span>
-                    </div>
-                </div>`;
-            }
-        },
-        legend: { show: false },
-        states: {
-            hover: { filter: { type: 'darken', value: 0.9 } }
-        }
-    };
-    new ApexCharts(cont, options).render();
+    }
+
+    var hiColor = '<?= $hiColor ?>';
+    window.radialDonutChart = new ApexCharts(cont, buildOptions(GLOBAL_DONUT.p, GLOBAL_DONUT.j, GLOBAL_DONUT.a, 'GLOBAL', hiColor));
+    window.radialDonutChart.render();
+    buildDeptoLey();
+
+    window._donutBuildOptions  = buildOptions;
+    window._donutCalcPct       = calcPct;
+    window._donutGetHiColor    = getHiColor;
+    window._donutBuildDeptoLey = buildDeptoLey;
 })();
+
+window.menFiltrarDonut = function(dep, btn) {
+    document.querySelectorAll('#menDonutPills .men-filter-pill').forEach(p => p.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    if (!window.radialDonutChart || !window._donutBuildOptions) return;
+
+    var lbl = document.getElementById('menDonutGlobalLabel');
+
+    if (dep === 'Todos') {
+        var pct    = window._donutCalcPct(GLOBAL_DONUT.p, GLOBAL_DONUT.j, GLOBAL_DONUT.a);
+        var hColor = window._donutGetHiColor(pct);
+        var hLabel = pct >= 85 ? 'Excelente' : (pct >= 60 ? 'Regular' : 'Crítico');
+        window.radialDonutChart.updateOptions(
+            window._donutBuildOptions(GLOBAL_DONUT.p, GLOBAL_DONUT.j, GLOBAL_DONUT.a, 'GLOBAL', hColor)
+        );
+        if (lbl) { lbl.textContent = hLabel; lbl.style.background = hColor+'18'; lbl.style.color = hColor; }
+        window._donutBuildDeptoLey();
+    } else {
+        var d = DONUT.find(function(x) { return x.label === dep; });
+        if (!d) return;
+        var shortLabel = d.label.length > 14 ? d.label.substring(0, 11) + '…' : d.label;
+        var hLColor    = window._donutGetHiColor(d.pct);
+        var hLabel     = d.pct >= 85 ? 'Excelente' : (d.pct >= 60 ? 'Regular' : 'Crítico');
+        window.radialDonutChart.updateOptions(
+            window._donutBuildOptions(d.p, d.j, d.a, shortLabel, d.color)
+        );
+        if (lbl) { lbl.textContent = hLabel; lbl.style.background = hLColor+'18'; lbl.style.color = hLColor; }
+        var ley = document.getElementById('menDonutLey');
+        if (ley) {
+            ley.innerHTML = '';
+            var total = d.p + d.j + d.a;
+            [{label:'Presente', val:d.p, color:'#16a34a', icon:'ti-user-check'},
+             {label:'Justificado', val:d.j, color:'#2563eb', icon:'ti-file-check'},
+             {label:'Ausente', val:d.a, color:'#dc2626', icon:'ti-x'}]
+            .forEach(function(s) {
+                var pct = total > 0 ? Math.round(s.val / total * 100) : 0;
+                var row = document.createElement('div');
+                row.className = 'men-pasante-row';
+                row.innerHTML =
+                    '<div class="men-av" style="background:'+s.color+';flex-shrink:0;"><i class="ti '+s.icon+'" style="font-size:.7rem;"></i></div>'
+                  + '<div style="min-width:0;flex:1;">'
+                  +   '<div style="font-size:.72rem;font-weight:700;color:#1e293b;">'+s.label+'</div>'
+                  +   '<div style="font-size:.58rem;color:#94a3b8;">'+s.val+' registros este mes</div>'
+                  + '</div>'
+                  + '<span class="men-pct-badge" style="background:'+s.color+'18;color:'+s.color+';">'+pct+'%</span>';
+                ley.appendChild(row);
+            });
+        }
+    }
+};
+
 
 /* ── Calendario 5 columnas (solo L-V) ── */
 function getColor(d, dep) {
@@ -1745,42 +1911,26 @@ function menFiltrarLista(listId, dep) {
     return count;
 }
 
-/* ── Paginación y Filtros para Tarjetas (Retardos y Top) ── */
-let currentRetPage = 0;
+/* ── Filtros para Tarjetas (Retardos y Top) ── */
 let currentTopPage = 0;
 const PAGE_SIZE = 5;
 
 window.menFiltrarRetardos = function(btn) {
     document.querySelectorAll('#menRetardoPills .men-filter-pill').forEach(p => p.classList.remove('active'));
     btn.classList.add('active');
-    currentRetPage = 0;
-    actualizarVistaRetardos();
-};
-
-window.menPaginarRetardos = function(dir) {
-    currentRetPage += dir;
-    actualizarVistaRetardos();
+    const dep = btn.dataset.dep;
+    document.querySelectorAll('#menRetardoList .men-ret-row').forEach(r => {
+        r.style.display = (dep === 'Todos' || r.dataset.dep === dep) ? 'flex' : 'none';
+    });
 };
 
 window.actualizarVistaRetardos = function() {
     const pillEl = document.querySelector('#menRetardoPills .men-filter-pill.active');
-    if (!pillEl) return; // Guard: solo en vista mensual
+    if (!pillEl) return;
     const dep = pillEl.dataset.dep;
-    const allRows = document.querySelectorAll('.men-ret-row');
-    const filteredRows = Array.from(allRows).filter(r => dep === 'Todos' || r.dataset.dep === dep);
-    const totalFiltered = filteredRows.length;
-
-    if (currentRetPage < 0) currentRetPage = 0;
-    const maxPage = Math.ceil(totalFiltered / PAGE_SIZE) - 1;
-    if (currentRetPage > maxPage && maxPage >= 0) currentRetPage = maxPage;
-
-    allRows.forEach(r => r.style.display = 'none');
-    filteredRows.slice(currentRetPage * PAGE_SIZE, (currentRetPage + 1) * PAGE_SIZE).forEach(r => r.style.display = 'flex');
-
-    const btnAnt = document.getElementById('btnRetAnt');
-    const btnSig = document.getElementById('btnRetSig');
-    if (btnAnt) btnAnt.disabled = currentRetPage <= 0;
-    if (btnSig) btnSig.disabled = currentRetPage >= maxPage || totalFiltered === 0;
+    document.querySelectorAll('#menRetardoList .men-ret-row').forEach(r => {
+        r.style.display = (dep === 'Todos' || r.dataset.dep === dep) ? 'flex' : 'none';
+    });
 };
 
 window.menFiltrarTop = function(btn) {
@@ -2630,10 +2780,34 @@ window.menMarcarMasivoConConfirmacion = async function(estado) {
                 }
             }
             
-            // Navegación de Año
-            $anioActual = (int)($paramsUrl['anio'] ?? date('Y'));
-            $urlAnioAnt = URLROOT . "/asistencias?vista=anual&anio=" . ($anioActual - 1);
-            $urlAnioSig = URLROOT . "/asistencias?vista=anual&anio=" . ($anioActual + 1);
+            // Navegación de Período Académico
+            $periodosFiltro = $periodosFiltro ?? [];
+            $periodoSeleccionado = $periodoSeleccionado ?? null;
+            $periodoIdSel = $periodoIdSel ?? 0;
+            
+            $idxActual = -1;
+            foreach ($periodosFiltro as $i => $p) {
+                if ($p->id == $periodoIdSel) { $idxActual = $i; break; }
+            }
+            
+            $btnAnt = '<span class="sw-nav-btn" style="opacity:0.3; cursor:not-allowed;"><i class="ti ti-chevron-left"></i></span>';
+            $btnSig = '<span class="sw-nav-btn" style="opacity:0.3; cursor:not-allowed;"><i class="ti ti-chevron-right"></i></span>';
+            
+            if ($idxActual !== -1) {
+                $tituloVista = $periodoSeleccionado->nombre;
+                // Anterior = más viejo (índice mayor, pues están DESC)
+                if (isset($periodosFiltro[$idxActual + 1])) {
+                    $pAnt = $periodosFiltro[$idxActual + 1];
+                    $btnAnt = '<a href="'.URLROOT.'/asistencias?vista=anual&periodo_id='.$pAnt->id.'" class="sw-nav-btn" title="'.htmlspecialchars($pAnt->nombre).'"><i class="ti ti-chevron-left"></i></a>';
+                }
+                // Siguiente = más nuevo (índice menor)
+                if (isset($periodosFiltro[$idxActual - 1])) {
+                    $pSig = $periodosFiltro[$idxActual - 1];
+                    $btnSig = '<a href="'.URLROOT.'/asistencias?vista=anual&periodo_id='.$pSig->id.'" class="sw-nav-btn" title="'.htmlspecialchars($pSig->nombre).'"><i class="ti ti-chevron-right"></i></a>';
+                }
+            } else {
+                $tituloVista = !empty($periodosFiltro) ? $periodosFiltro[0]->nombre : "Sin Períodos";
+            }
             ?>
             <div class="muro-premium">
                 <!-- Header / Navigation -->
@@ -2641,14 +2815,14 @@ window.menMarcarMasivoConConfirmacion = async function(estado) {
                     <div>
                         <h3 style="margin: 0 0 12px 0; color: var(--p-ink); font-weight: 800; font-size: 1.4rem; display: flex; align-items: center; gap: 10px;">
                             <i class="ti ti-chart-dots" style="color: var(--p-blue); font-size: 1.6rem;"></i> 
-                            Histórico Anual <span style="color: var(--p-ink-4); font-weight: 300;">/</span> <?= $anioActual ?>
+                            Histórico Total <span style="color: var(--p-ink-4); font-weight: 300;">/</span> <?= htmlspecialchars($tituloVista) ?>
                         </h3>
                         <div style="display: flex; gap: 12px; align-items: center;">
-                            <!-- Navegador de Año (Estándar SGP) -->
+                            <!-- Navegador de Período -->
                             <div class="sw-nav-pill">
-                                <a href="<?= $urlAnioAnt ?>" class="sw-nav-btn"><i class="ti ti-chevron-left"></i> <?= $anioActual-1 ?></a>
-                                <span class="sw-nav-label"><?= $anioActual ?></span>
-                                <a href="<?= $urlAnioSig ?>" class="sw-nav-btn"><?= $anioActual+1 ?> <i class="ti ti-chevron-right"></i></a>
+                                <?= $btnAnt ?>
+                                <span class="sw-nav-label"><?= htmlspecialchars($tituloVista) ?></span>
+                                <?= $btnSig ?>
                             </div>
                             
                             <!-- Filtros por Chips (Premium) -->
@@ -3013,7 +3187,7 @@ window.menMarcarMasivoConConfirmacion = async function(estado) {
 @keyframes slideUp { from { transform:translateY(24px);opacity:0; } to { transform:translateY(0);opacity:1; } }
 
 .modal-box {
-    background: white; border-radius: 24px; width: 90%; max-width: 580px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 32px 80px rgba(15,23,42,0.3); animation: slideUp 0.3s ease;
+    background: white; border-radius: 24px; width: 90%; max-width: 660px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 32px 80px rgba(15,23,42,0.3); animation: slideUp 0.3s ease;
 }
 
 .modal-head {
@@ -3030,7 +3204,7 @@ window.menMarcarMasivoConConfirmacion = async function(estado) {
 .btn-close-modal i { color: white !important; }
 
 .modal-body {
-    padding: 28px 32px; overflow-y: auto; flex: 1;
+    padding: 28px 32px; overflow-y: auto; flex: 1; min-height: 320px;
 }
 
 .form-group { margin-bottom: 20px; }
@@ -3097,6 +3271,7 @@ window.menMarcarMasivoConConfirmacion = async function(estado) {
                     <label class="form-label" style="display:flex; align-items:center; gap:6px;"><i class="ti ti-activity" style="font-size:1.1rem;"></i> Estado *</label>
                     <select id="manual-estado" name="estado" required class="form-input" style="width: 100%; cursor: pointer;" onchange="toggleMotivo(this.value)">
                         <option value="Presente">✅ Presente</option>
+                        <option value="Ausente">❌ Ausente</option>
                         <option value="Justificado">📄 Justificado</option>
                     </select>
                 </div>
@@ -3188,7 +3363,25 @@ window.menMarcarMasivoConConfirmacion = async function(estado) {
                 </div>
                 <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:12px;">
                     <span style="display:block; font-size:0.7rem; font-weight:700; color:#94a3b8; text-transform:uppercase; margin-bottom:4px;">Estado</span>
-                    <strong id="detalle-estado" style="font-size:0.85rem;"></strong>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <strong id="detalle-estado" style="font-size:0.85rem;"></strong>
+                        <button id="btnEditarEstado" onclick="abrirEditarEstado()" title="Editar estado" style="background:#eff6ff; border:none; border-radius:8px; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; color:#2563eb; transition:background 0.2s; flex-shrink:0;">
+                            <i class="ti ti-pencil" style="font-size:0.85rem;"></i>
+                        </button>
+                    </div>
+                    <!-- Mini-form edición de estado -->
+                    <div id="panelEditarEstado" style="display:none; margin-top:10px; background:#f0f9ff; border:1px solid #bfdbfe; border-radius:10px; padding:10px;">
+                        <select id="selectNuevoEstado" class="no-choices" style="width:100%; padding:7px 10px; border:1.5px solid #bfdbfe; border-radius:8px; font-size:0.85rem; font-weight:600; color:#1e293b; margin-bottom:8px; outline:none;" onchange="toggleMotivoDetalle(this.value)">
+                            <option value="Presente">✅ Presente</option>
+                            <option value="Ausente">❌ Ausente</option>
+                            <option value="Justificado">📄 Justificado</option>
+                        </select>
+                        <textarea id="motivoNuevoEstado" placeholder="Motivo de justificación..." rows="2" style="display:none; width:100%; padding:7px 10px; border:1.5px solid #bfdbfe; border-radius:8px; font-size:0.85rem; color:#1e293b; resize:none; box-sizing:border-box; margin-bottom:8px; outline:none;"></textarea>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="guardarNuevoEstado()" style="flex:1; padding:7px; background:linear-gradient(135deg,#172554,#2563eb); color:white; border:none; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer;"><i class="ti ti-device-floppy"></i> Guardar</button>
+                            <button onclick="cerrarEditarEstado()" style="flex:1; padding:7px; background:#f1f5f9; color:#64748b; border:none; border-radius:8px; font-weight:700; font-size:0.8rem; cursor:pointer;">Cancelar</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -3206,7 +3399,62 @@ window.menMarcarMasivoConConfirmacion = async function(estado) {
     </div>
 </div>
 
+<!-- Script editor de estado en modal detalle -->
+<script>
+let _detalleRegistroId = null;
+let _detallePasanteId  = null;
+let _detalleFecha      = null;
+
+function abrirEditarEstado() {
+    const panel = document.getElementById('panelEditarEstado');
+    const sel   = document.getElementById('selectNuevoEstado');
+    const estadoActual = document.getElementById('detalle-estado').dataset.rawEstado || 'Presente';
+    sel.value = estadoActual;
+    toggleMotivoDetalle(estadoActual);
+    panel.style.display = 'block';
+}
+function cerrarEditarEstado() {
+    document.getElementById('panelEditarEstado').style.display = 'none';
+    document.getElementById('motivoNuevoEstado').value = '';
+}
+function toggleMotivoDetalle(val) {
+    const t = document.getElementById('motivoNuevoEstado');
+    t.style.display = val === 'Justificado' ? 'block' : 'none';
+    if (val !== 'Justificado') t.value = '';
+}
+async function guardarNuevoEstado() {
+    const nuevoEstado = document.getElementById('selectNuevoEstado').value;
+    const motivo      = document.getElementById('motivoNuevoEstado').value.trim();
+    if (nuevoEstado === 'Justificado' && !motivo) { alert('El motivo de justificación es obligatorio.'); return; }
+    const fd = new FormData();
+    fd.append('pasante_id', _detallePasanteId);
+    fd.append('fecha',      _detalleFecha);
+    fd.append('estado',     nuevoEstado);
+    fd.append('motivo_justificacion', motivo);
+    if (_detalleRegistroId) fd.append('registro_id', _detalleRegistroId);
+    const btn = document.querySelector('#panelEditarEstado button');
+    btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Guardando...';
+    try {
+        const res  = await fetch(`${URLROOT}/asistencias/registro_manual`, { method:'POST', body:fd, headers:{'X-Requested-With':'XMLHttpRequest'} });
+        const data = await res.json();
+        if (data.success) {
+            cerrarModalDetalle();
+            Swal.fire({
+                icon: 'success',
+                title: 'Estado actualizado',
+                text: 'El registro fue actualizado correctamente.',
+                confirmButtonColor: '#162660',
+                timer: 1800,
+                showConfirmButton: false
+            }).then(() => location.reload());
+        } else { alert('❌ ' + (data.message || 'Error al guardar.')); }
+    } catch(e) { alert('Error de red. Intenta de nuevo.'); }
+    finally { btn.disabled = false; btn.innerHTML = '<i class="ti ti-device-floppy"></i> Guardar'; }
+}
+</script>
+
 <!-- ===== ESTILOS (herencia diseño backup) ===== -->
+
 <style>
 .btn-banner-primary {
     background: white;
@@ -3897,6 +4145,11 @@ function enviarRegistroManual(pasanteId, estado, motivo) {
 
 /* ── Modal de detalle ─────────────────────────────────────────────── */
 function verDetalle(id, info) {
+    // Guardar variables globales para la edición de estado
+    _detalleRegistroId = id;
+    _detallePasanteId  = info.pasante_id;
+    _detalleFecha      = '<?= $hoy ?>';
+
     // Iniciales para el avatar
     const parts = info.nombre.split(',').map(s => s.trim());
     let iniciales = '?';
@@ -3917,6 +4170,7 @@ function verDetalle(id, info) {
     // Configurar color del estado
     const estadoEl = document.getElementById('detalle-estado');
     estadoEl.textContent = info.estado;
+    estadoEl.dataset.rawEstado = info.estado;
     if(info.estado === 'Presente') estadoEl.style.color = '#10b981';
     else if(info.estado === 'Justificado') estadoEl.style.color = '#2563eb';
     else estadoEl.style.color = '#ef4444';

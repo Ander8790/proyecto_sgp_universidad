@@ -14,7 +14,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notyf.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css?v=<?= filemtime(APPROOT.'/../public/css/style.css') ?>">
     <link rel="stylesheet" href="<?= URLROOT ?>/assets/libs/choices/choices.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/choices-sgp.css">
     

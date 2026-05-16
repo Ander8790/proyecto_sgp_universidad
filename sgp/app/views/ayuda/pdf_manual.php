@@ -11,7 +11,7 @@ $anioDoc   = date('Y');
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Manual de Usuario — SGP v2.0</title>
+<title>Manual de Usuario — Registro y Control de Asistencias de Pasantes | ISP Bolívar</title>
 <style>
 /* ═══════════════════════════════════════════════════════
    RESET & BASE
@@ -395,7 +395,7 @@ body {
 ═══════════════════════════════════════════════════════ */
 @page {
     @top-right {
-        content: "SGP — Manual de Usuario v2.0";
+        content: "ISP Bolívar — Manual de Usuario v2.0";
         font-size: 7.5pt;
         color: #94a3b8;
         font-family: 'Segoe UI', Arial, sans-serif;
@@ -407,7 +407,7 @@ body {
         font-family: 'Segoe UI', Arial, sans-serif;
     }
     @bottom-left {
-        content: "Copyleft <?= $anioDoc ?> Instituto Superior de Tecnología Agro-Industrial del Estado Bolívar";
+        content: "Copyleft <?= $anioDoc ?> Instituto de Salud Pública del Estado Bolívar";
         font-size: 7pt;
         color: #cbd5e1;
         font-family: 'Segoe UI', Arial, sans-serif;
@@ -468,14 +468,14 @@ body {
     <div class="cover-deco-bot"></div>
 
     <div class="cover-header">
-        <div class="cover-inst-icon">SGP</div>
-        <div class="cover-inst-name">Instituto Superior de Tecnología<br>Agro-Industrial del Estado Bolívar</div>
+        <div class="cover-inst-icon">ISP</div>
+        <div class="cover-inst-name">Instituto de Salud Pública<br>del Estado Bolívar</div>
     </div>
 
     <div class="cover-main">
         <span class="cover-tag">Documento Oficial</span>
         <h1 class="cover-title">Manual de<br>Usuario</h1>
-        <p class="cover-subtitle">Sistema de Gestión de Pasantías<br>Plataforma Web SGP</p>
+        <p class="cover-subtitle">Registro y Control de Asistencias de Pasantes<br>División de Soporte Técnico — ISP Bolívar</p>
         <div class="cover-divider"></div>
         <div class="cover-meta">
             <div class="cover-meta-item">
@@ -510,7 +510,7 @@ body {
             <tr><th>Campo</th><th>Valor</th></tr>
         </thead>
         <tbody>
-            <tr><td><strong>Título</strong></td><td>Manual de Usuario — Sistema de Gestión de Pasantías (SGP)</td></tr>
+            <tr><td><strong>Título</strong></td><td>Manual de Usuario — Aplicación Web para el Registro y Control de Asistencias de Pasantes (SGP)</td></tr>
             <tr><td><strong>Código</strong></td><td>SGP-MAN-001</td></tr>
             <tr><td><strong>Versión</strong></td><td>2.0</td></tr>
             <tr><td><strong>Fecha de emisión</strong></td><td><?= $fechaDoc ?></td></tr>
@@ -535,7 +535,7 @@ body {
 
     <div class="note-box info">
         <span class="note-icon">ℹ️</span>
-        <p>Este documento es de <strong>uso interno exclusivo</strong> del Instituto Superior de Tecnología Agro-Industrial del Estado Bolívar. Su reproducción o distribución fuera de la institución requiere autorización expresa de la Coordinación de TI.</p>
+        <p>Este documento es de <strong>uso interno exclusivo</strong> del Instituto de Salud Pública del Estado Bolívar. Su reproducción o distribución fuera de la institución requiere autorización expresa de la Coordinación de TI.</p>
     </div>
 </div>
 
@@ -573,10 +573,11 @@ body {
     <div class="toc-line"><span class="toc-num">13.</span><span class="toc-text">Perfil de Usuario</span><span class="toc-dots"></span><span class="toc-pg">15</span></div>
     <div class="toc-line"><span class="toc-num">14.</span><span class="toc-text">Bitácora (Pasante)</span><span class="toc-dots"></span><span class="toc-pg">15</span></div>
     <div class="toc-line"><span class="toc-num">15.</span><span class="toc-text">Solución de Problemas Frecuentes</span><span class="toc-dots"></span><span class="toc-pg">16</span></div>
+    <div class="toc-line"><span class="toc-num">16.</span><span class="toc-text">Notificaciones de Escritorio</span><span class="toc-dots"></span><span class="toc-pg">17</span></div>
 
     <div class="toc-section">Apéndices</div>
-    <div class="toc-line"><span class="toc-num">A.</span><span class="toc-text">Glosario de Términos</span><span class="toc-dots"></span><span class="toc-pg">17</span></div>
-    <div class="toc-line"><span class="toc-num">B.</span><span class="toc-text">Referencias y Normativa</span><span class="toc-dots"></span><span class="toc-pg">18</span></div>
+    <div class="toc-line"><span class="toc-num">A.</span><span class="toc-text">Glosario de Términos</span><span class="toc-dots"></span><span class="toc-pg">18</span></div>
+    <div class="toc-line"><span class="toc-num">B.</span><span class="toc-text">Referencias y Normativa</span><span class="toc-dots"></span><span class="toc-pg">19</span></div>
 </div>
 
 <!-- ════════════════════════════════════════════════════
@@ -591,7 +592,7 @@ body {
         </div>
     </div>
 
-    <p class="doc-p">El <strong>Sistema de Gestión de Pasantías (SGP)</strong> es una aplicación web institucional desarrollada para el Instituto Superior de Tecnología Agro-Industrial del Estado Bolívar. Su propósito central es digitalizar y centralizar la administración de las pasantías y el servicio comunitario, garantizando trazabilidad, eficiencia operativa y cumplimiento de los estándares académicos.</p>
+    <p class="doc-p">El <strong>Sistema de Gestión de Pasantías (SGP)</strong> es una aplicación web institucional desarrollada para el Instituto de Salud Pública del Estado Bolívar. Su propósito central es digitalizar y centralizar la administración de las pasantías y el servicio comunitario, garantizando trazabilidad, eficiencia operativa y cumplimiento de los estándares académicos.</p>
 
     <div class="sec-title"><span class="sec-n">1.1</span> Propósito y Alcance</div>
     <p class="doc-p">El SGP integra en una sola plataforma los procesos de: registro y control de pasantes, seguimiento de asistencias diarias, gestión de actividades académicas, administración de períodos académicos, generación de reportes certificados y control de acceso por roles.</p>
@@ -912,7 +913,7 @@ body {
         <li>Filtrar pasantes por departamento, estado o tutor</li>
         <li>Ver el progreso de horas de cada pasante en un solo vistazo</li>
         <li>Exportar a <strong>PDF (Nómina Global)</strong> o <strong>Excel</strong> con un clic</li>
-        <li>Acceder al kardex individual de cada pasante</li>
+        <li>Acceder a la ficha personal individual de cada pasante</li>
     </ul>
 </div>
 
@@ -1048,7 +1049,7 @@ body {
     <table class="doc-table">
         <thead><tr><th>Reporte</th><th>Descripción</th><th>Acceso</th></tr></thead>
         <tbody>
-            <tr><td><strong>Kardex Individual</strong></td><td>Registro detallado de asistencias de un pasante por mes y semana</td><td><span class="badge badge-admin">Admin</span> <span class="badge badge-tutor">Tutor</span></td></tr>
+            <tr><td><strong>Ficha Personal Individual</strong></td><td>Registro detallado de asistencias de un pasante por mes y semana</td><td><span class="badge badge-admin">Admin</span> <span class="badge badge-tutor">Tutor</span></td></tr>
             <tr><td><strong>Nómina Global (PDF)</strong></td><td>Listado consolidado de todos los pasantes del período activo con sus horas</td><td><span class="badge badge-admin">Admin</span></td></tr>
             <tr><td><strong>Nómina Global (Excel)</strong></td><td>Exportación en formato .xlsx de la nómina global para procesamiento externo</td><td><span class="badge badge-admin">Admin</span></td></tr>
             <tr><td><strong>Evaluación ISP</strong></td><td>Planilla de evaluación de desempeño en formato oficial institucional</td><td><span class="badge badge-admin">Admin</span> <span class="badge badge-tutor">Tutor</span></td></tr>
@@ -1057,7 +1058,7 @@ body {
         </tbody>
     </table>
 
-    <div class="sec-title"><span class="sec-n">11.2</span> Generar Kardex Individual</div>
+    <div class="sec-title"><span class="sec-n">11.2</span> Generar Ficha Personal</div>
     <div class="steps">
         <div class="step"><p>Desde el módulo de <strong>Asistencias</strong>, buscar y seleccionar el pasante.</p></div>
         <div class="step"><p>Hacer clic en el botón <span class="kbd">PDF</span> (rojo) en la sección de acciones del pasante.</p></div>
@@ -1213,12 +1214,76 @@ body {
                 <td>El usuario intenta acceder a una sección fuera de su rol</td>
                 <td>Verificar el rol del usuario. Si el acceso es legítimo, contactar al Administrador para ajustar los permisos.</td>
             </tr>
+            <tr>
+                <td>Las notificaciones de escritorio no aparecen</td>
+                <td>Permiso del navegador bloqueado o notificaciones de Windows desactivadas</td>
+                <td>Verificar el permiso en el ícono del candado de la barra de URL → Notificaciones → Permitir. También revisar Configuración de Windows → Sistema → Notificaciones y comprobar que Chrome/Edge están habilitados.</td>
+            </tr>
         </tbody>
     </table>
 
     <div class="note-box info">
         <span class="note-icon">📞</span>
         <p>Si el problema persiste después de aplicar las soluciones indicadas, contactar al <strong>Departamento de Tecnología de la Información</strong> del instituto, describiendo el error exacto, la acción que lo generó y el rol del usuario afectado.</p>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════
+     CAPÍTULO 16 — NOTIFICACIONES DE ESCRITORIO
+════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div>
+            <div class="ch-num">Capítulo 16</div>
+            <div class="ch-title">Notificaciones de Escritorio</div>
+            <div class="ch-sub">Avisos automáticos en Windows vía navegador — exclusivo Administrador</div>
+        </div>
+    </div>
+
+    <p>El sistema SGP incluye un módulo de notificaciones de escritorio que envía avisos emergentes directamente al escritorio de Windows a través del navegador web, sin necesidad de instalar ninguna aplicación adicional. Esta función está disponible exclusivamente para usuarios con rol <strong>Administrador</strong> o <strong>SuperAdministrador</strong> y requiere que el sistema esté abierto con sesión activa.</p>
+
+    <div class="sec-title"><span class="sec-n">16.1</span> Activación del Permiso</div>
+    <p>Al iniciar sesión como Administrador por primera vez, el navegador mostrará automáticamente un cuadro de diálogo solicitando permiso para mostrar notificaciones. Es necesario hacer clic en <strong>Permitir</strong> para habilitar la función. Esta solicitud aparece una sola vez por navegador y dispositivo.</p>
+    <p>Si el permiso fue bloqueado accidentalmente, puede restablecerse desde el ícono del candado en la barra de direcciones del navegador → <em>Configuración del sitio</em> → <em>Notificaciones</em> → seleccionar <strong>Permitir</strong>.</p>
+
+    <div class="sec-title"><span class="sec-n">16.2</span> Tipos de Notificaciones</div>
+    <table class="doc-table">
+        <thead><tr><th>Tipo</th><th>Disparador</th><th>Hora</th><th>Mensaje ejemplo</th></tr></thead>
+        <tbody>
+            <tr>
+                <td><strong>Asistencia registrada</strong></td>
+                <td>Un pasante marca asistencia desde el Kiosco público</td>
+                <td>Tiempo real (cada 30 seg)</td>
+                <td><em>"Juan Pérez — 08:32 AM"</em></td>
+            </tr>
+            <tr>
+                <td><strong>Pasantes sin asignar</strong></td>
+                <td>Existen pasantes activos sin tutor asignado</td>
+                <td>12:00 PM (una vez al día)</td>
+                <td><em>"Tienes 3 pasantes sin tutor asignado"</em></td>
+            </tr>
+            <tr>
+                <td><strong>Próximo día feriado</strong></td>
+                <td>Hay un feriado registrado en los próximos 7 días</td>
+                <td>Al iniciar sesión (una vez al día)</td>
+                <td><em>"En 3 días: Día de las Madres (10/05). No habrá asistencia ese día."</em></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">16.3</span> Condiciones de Funcionamiento</div>
+    <p>Las notificaciones respetan automáticamente las reglas del sistema:</p>
+    <ul style="margin:8px 0 8px 20px;line-height:1.9;">
+        <li>No se envían los <strong>sábados ni domingos</strong>.</li>
+        <li>No se envían en <strong>días feriados</strong> registrados en el módulo de días feriados.</li>
+        <li>Se detienen si la <strong>sesión se cierra</strong> por inactividad (25 minutos) o cierre manual.</li>
+        <li>La notificación de asistencia solo se activa cuando el pasante marca desde el <strong>Kiosco público</strong>, no desde el panel administrativo.</li>
+        <li>Cada notificación periódica (mediodía, feriado) se muestra <strong>una sola vez por día</strong> aunque el usuario inicie sesión varias veces.</li>
+    </ul>
+
+    <div class="note-box warning">
+        <span class="note-icon">⚠️</span>
+        <p>Las notificaciones de escritorio requieren que la sesión esté activa en el navegador. No funcionan cuando el navegador está cerrado (esto requeriría HTTPS y Service Workers, disponibles en implementación con dominio propio).</p>
     </div>
 </div>
 
@@ -1255,7 +1320,7 @@ body {
         <div class="glos-def">Total de horas de pasantía que el pasante debe completar para aprobar el período. Varía según el tipo de período (Regular: generalmente 280–320 horas; Intensivo: 120–180 horas).</div>
     </div>
     <div class="glos-entry">
-        <div class="glos-term">Kardex</div>
+        <div class="glos-term">Ficha Personal</div>
         <div class="glos-def">Reporte PDF que muestra el historial completo de asistencias de un pasante, organizado por semanas y meses, con resumen de horas acumuladas y porcentaje de avance.</div>
     </div>
     <div class="glos-entry">
@@ -1314,7 +1379,7 @@ body {
 
     <div class="sec-title" style="margin-top:0;">Marco Legal y Académico</div>
     <ul class="doc-ul">
-        <li><strong>Reglamento de Pasantías y Servicio Comunitario</strong> — Instituto Superior de Tecnología Agro-Industrial del Estado Bolívar. Coordinación Académica, vigente.</li>
+        <li><strong>Reglamento de Pasantías y Servicio Comunitario</strong> — Instituto de Salud Pública del Estado Bolívar. Coordinación Académica, vigente.</li>
         <li><strong>Ley Orgánica de Educación (LOE)</strong> — República Bolivariana de Venezuela. Gaceta Oficial Extraordinaria N.° 5.929, agosto 2009.</li>
         <li><strong>Ley del Servicio Comunitario del Estudiante de Educación Superior</strong> — G.O. N.° 38.272, septiembre 2005.</li>
         <li><strong>Reglamento sobre Pasantías Estudiantiles</strong> — CNU / OPSU, Venezuela.</li>
@@ -1338,8 +1403,8 @@ body {
     <div class="sep"></div>
 
     <div style="text-align:center; padding:24px 0; color:#64748b;">
-        <p style="font-size:10pt; font-weight:700; color:#1e293b; margin-bottom:6px;">Sistema de Gestión de Pasantías — SGP v2.0</p>
-        <p style="font-size:9pt;">Instituto Superior de Tecnología Agro-Industrial del Estado Bolívar</p>
+        <p style="font-size:10pt; font-weight:700; color:#1e293b; margin-bottom:6px;">Registro y Control de Asistencias de Pasantes — SGP v2.0</p>
+        <p style="font-size:9pt;">Instituto de Salud Pública del Estado Bolívar</p>
         <p style="font-size:9pt; margin-top:4px;">Departamento de Tecnología de la Información &nbsp;·&nbsp; <?= $fechaDoc ?></p>
         <p style="font-size:8pt; margin-top:12px; color:#94a3b8;">Documento de uso interno. Prohibida su reproducción o distribución sin autorización.</p>
     </div>

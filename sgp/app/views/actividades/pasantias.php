@@ -18,7 +18,7 @@ $csrfToken           = $data['csrfToken']            ?? '';
 @keyframes pc-fadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
 @keyframes pc-pulse  { 0%,100%{opacity:1}50%{opacity:.4} }
 
-.pc-wrap { width:100%;max-width:1600px;margin:0 auto;padding:20px; }
+.pc-wrap { width:100%; }
 
 /* Banner */
 .pc-banner { background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:28px 36px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;overflow:hidden; }
@@ -327,9 +327,18 @@ $restD = max(0, $totD - $trnD);
     </div>
     <div class="pm-body">
         <div id="tempPassBox" class="temp-pass-box">
-            <div class="lbl"><i class="ti ti-key"></i> Contraseña temporal generada</div>
-            <div class="val" id="tempPassVal">—</div>
-            <div style="font-size:.72rem;color:#065f46;margin-top:5px;">Anótala antes de cerrar. El pasante deberá cambiarla al primer ingreso.</div>
+            <div class="lbl"><i class="ti ti-key"></i> Credenciales generadas — anótalas antes de cerrar</div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:4px;">
+                <div>
+                    <div style="font-size:.71rem;color:#065f46;font-weight:700;margin-bottom:3px;">Contraseña temporal (sistema)</div>
+                    <div class="val" id="tempPassVal">—</div>
+                </div>
+                <div>
+                    <div style="font-size:.71rem;color:#065f46;font-weight:700;margin-bottom:3px;">PIN de Kiosco (asistencia)</div>
+                    <div class="val" id="pinKioscoVal">—</div>
+                </div>
+            </div>
+            <div style="font-size:.72rem;color:#065f46;margin-top:6px;">El pasante usará el PIN para marcar asistencia desde el kiosco desde el primer día.</div>
         </div>
 
         <div class="f-section-lbl"><i class="ti ti-id-badge"></i> Datos del Pasante</div>
@@ -685,6 +694,7 @@ async function guardarNuevoPasante() {
     const res = await r.json();
     if (res.success) {
         document.getElementById('tempPassVal').textContent = res.temp_password;
+        document.getElementById('pinKioscoVal').textContent = res.pin_kiosco;
         const box = document.getElementById('tempPassBox');
         box.style.display='block'; box.scrollIntoView({behavior:'smooth'});
         pcToast('success', `${nombres} ${apellidos} registrado correctamente.`);

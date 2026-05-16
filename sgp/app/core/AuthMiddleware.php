@@ -113,12 +113,63 @@ class AuthMiddleware
     public static function verificarEstado(): void
     {
         Session::start();
-        
+
         // Si no hay sesión, no hacer nada
         if (!Session::get('user_id')) {
             return;
         }
-        
+
+        // NIVEL 0: Verificar que la cuenta siga activa en BD (cache 60 s para no golpear la BD en cada request)
+        $now = time();
+        if (!Session::get('_estado_check_ts') || ($now - (int)Session::get('_estado_check_ts')) > 60) {
+            try {
+                $db = Database::getInstance();
+                $db->query("SELECT estado FROM usuarios WHERE id = :uid LIMIT 1");
+                $db->bind(':uid', Session::get('user_id'));
+                $row = $db->single();
+                Session::set('_estado_check_ts', $now);
+
+                if ($row && $row->estado === 'inactivo') {
+                    // Cuenta desactivada mientras el usuario tenía sesión abierta
+                    $uid    = Session::get('user_id');
+                    $roleId = (int)Session::get('role_id');
+                    Session::destroy();
+                    Session::start();
+
+                    $msg = 'Tu sesión fue cerrada porque tu cuenta fue desactivada.';
+                    if ($roleId === 3) {
+                        // Consultar si fue por fin de período
+                        try {
+                            $db->query("SELECT estado_pasantia FROM datos_pasante WHERE usuario_id = :uid LIMIT 1");
+                            $db->bind(':uid', $uid);
+                            $dp = $db->single();
+                            if ($dp && $dp->estado_pasantia === 'Finalizado') {
+                                $msg = 'Tu período de pasantía ha finalizado. Tu sesión fue cerrada automáticamente. '
+                                     . 'Comunícate con el administrador para más información.';
+                            }
+                        } catch (\Throwable $e) {}
+                    }
+
+                    if (self::isAjaxRequest()) {
+                        header('Content-Type: application/json');
+                        echo json_encode([
+                            'success'          => false,
+                            'message'          => $msg,
+                            'redirect'         => URLROOT . '/auth/login',
+                            'session_expired'  => true,
+                        ]);
+                        exit;
+                    }
+
+                    Session::setFlash('login_error', $msg);
+                    header('Location: ' . URLROOT . '/auth/login');
+                    exit;
+                }
+            } catch (\Throwable $e) {
+                // Si la BD no responde, no bloqueamos al usuario
+            }
+        }
+
         // NIVEL 1: LA JAULA - Cambio de Clave Obligatorio O Perfil Incompleto
         if (Session::get('requiere_cambio_clave') == 1 || Session::get('perfil_completado') === false) {
             /**

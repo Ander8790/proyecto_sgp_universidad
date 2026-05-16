@@ -13,12 +13,36 @@ class ConfiguracionController extends Controller {
     }
 
     public function index() {
+        RoleMiddleware::authorize([0, 1, 2]);
+
+        // ── POST: Guardar Datos de ISP ────────────────────────────────────
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'guardar_isp') {
+            $nuevoIsp = [
+                'nombre'    => trim($_POST['isp_nombre'] ?? ''),
+                'rif'       => trim($_POST['isp_rif'] ?? ''),
+                'estado'    => trim($_POST['isp_estado'] ?? ''),
+                'ciudad'    => trim($_POST['isp_ciudad'] ?? ''),
+                'direccion' => trim($_POST['isp_direccion'] ?? '')
+            ];
+            $ispFile = APPROOT . '/config/isp_info.json';
+            if (!is_dir(APPROOT . '/config')) {
+                mkdir(APPROOT . '/config', 0777, true);
+            }
+            if (file_put_contents($ispFile, json_encode($nuevoIsp, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE))) {
+                Session::setFlash('success', '✅ Datos de la Institución actualizados.');
+            } else {
+                Session::setFlash('error', '❌ Error al guardar los datos.');
+            }
+            header('Location: ' . URLROOT . '/configuracion');
+            exit;
+        }
 
         // ── POST: Agregar feriado ─────────────────────────────────────────
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'agregar_feriado') {
             $fecha       = trim($_POST['fecha']       ?? '');
             $nombre      = trim($_POST['nombre']      ?? '');
             $tipo        = trim($_POST['tipo']        ?? 'Nacional');
+            $esLaborable = isset($_POST['es_laborable']) && $_POST['es_laborable'] === '1' ? 1 : 0;
 
             $tiposValidos = ['Nacional', 'Regional', 'Institucional'];
             if (!in_array($tipo, $tiposValidos, true)) $tipo = 'Nacional';
@@ -34,7 +58,7 @@ class ConfiguracionController extends Controller {
                         if ($feriadoModel->existeFecha($fecha)) {
                             Session::setFlash('error', '⚠️ Ya existe un feriado registrado para esa fecha.');
                         } else {
-                            $feriadoModel->crear($fecha, $nombre, $tipo);
+                            $feriadoModel->crear($fecha, $nombre, $tipo, $esLaborable);
                             Session::setFlash('success', '✅ Feriado "' . htmlspecialchars($nombre) . '" registrado correctamente.');
                             if (class_exists('AuditModel')) {
                                 AuditModel::log('AGREGAR_FERIADO', "Feriado registrado: $nombre ($fecha)");
@@ -55,11 +79,12 @@ class ConfiguracionController extends Controller {
             exit;
         }
 
-        // ── POST: Editar feriado (nombre y tipo solamente) ───────────────
+        // ── POST: Editar feriado (nombre, tipo y laborabilidad) ─────────
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'editar_feriado') {
-            $id     = (int)($_POST['id']     ?? 0);
-            $nombre = trim($_POST['nombre']  ?? '');
-            $tipo   = trim($_POST['tipo']    ?? 'Nacional');
+            $id          = (int)($_POST['id']     ?? 0);
+            $nombre      = trim($_POST['nombre']  ?? '');
+            $tipo        = trim($_POST['tipo']    ?? 'Nacional');
+            $esLaborable = isset($_POST['es_laborable']) && $_POST['es_laborable'] === '1' ? 1 : 0;
 
             $tiposValidos = ['Nacional', 'Regional', 'Institucional'];
             if (!in_array($tipo, $tiposValidos, true)) $tipo = 'Nacional';
@@ -71,7 +96,7 @@ class ConfiguracionController extends Controller {
                     if (!$feriado) {
                         Session::setFlash('error', '⚠️ Feriado no encontrado.');
                     } else {
-                        $feriadoModel->actualizar($id, $nombre, $tipo);
+                        $feriadoModel->actualizar($id, $nombre, $tipo, $esLaborable);
                         Session::setFlash('success', '✅ Feriado actualizado correctamente.');
                         if (class_exists('AuditModel')) {
                             AuditModel::log('EDITAR_FERIADO', "Feriado editado ID: $id → \"$nombre\" ($tipo)");
@@ -388,6 +413,22 @@ class ConfiguracionController extends Controller {
             $kioscoActivo = (int)(Session::get('kiosco_activo') ?? 1);
         }
 
+        // ── Leer Datos de Institución (ISP) ──────────────────────────────
+        $ispFile = APPROOT . '/config/isp_info.json';
+        $ispInfo = [
+            'nombre'    => 'Instituto de Salud Pública del Estado Bolívar (ISP)',
+            'rif'       => 'G-20000366-9',
+            'estado'    => 'Bolívar',
+            'ciudad'    => 'Ciudad Bolívar',
+            'direccion' => 'Paseo Meneses, Torre ISP, Piso 3'
+        ];
+        if (file_exists($ispFile)) {
+            $json = json_decode(file_get_contents($ispFile), true);
+            if (is_array($json)) {
+                $ispInfo = array_merge($ispInfo, $json);
+            }
+        }
+
         $data = [
             'title'         => 'Configuración del Sistema',
             'instituciones' => $instituciones,
@@ -395,6 +436,7 @@ class ConfiguracionController extends Controller {
             'feriados'      => $feriados,
             'statsDB'       => $statsDB,
             'kioscoActivo'  => $kioscoActivo,
+            'ispInfo'       => $ispInfo,
         ];
 
         $this->view('configuracion/index', $data);
@@ -412,31 +454,37 @@ class ConfiguracionController extends Controller {
             exit;
         }
 
+        // FIX: Normalizar cédula (solo dígitos) para tolerar prefijos V-, E-, etc.
+        $cedulaNumeros = preg_replace('/[^0-9]/', '', $cedula);
+
         try {
             $this->db->query("
-                SELECT u.id, u.cedula, dp.nombres, dp.apellidos 
-                FROM usuarios u 
-                JOIN datos_personales dp ON u.id = dp.usuario_id 
-                WHERE u.cedula = :cedula AND u.rol_id = 3
+                SELECT u.id, u.cedula,
+                       COALESCE(dp.nombres, u.correo) AS nombres,
+                       COALESCE(dp.apellidos, '')      AS apellidos
+                FROM usuarios u
+                LEFT JOIN datos_personales dp ON u.id = dp.usuario_id
+                WHERE REGEXP_REPLACE(u.cedula, '[^0-9]', '') = :cedula_num
+                  AND u.rol_id = 3
                 LIMIT 1
             ");
-            $this->db->bind(':cedula', $cedula);
+            $this->db->bind(':cedula_num', $cedulaNumeros);
             $pasante = $this->db->single();
 
             if ($pasante) {
                 echo json_encode([
                     'success' => true, 
                     'pasante' => [
-                        'id' => $pasante->id,
-                        'nombre' => $pasante->nombres . ' ' . $pasante->apellidos,
+                        'id'     => $pasante->id,
+                        'nombre' => trim($pasante->nombres . ' ' . $pasante->apellidos),
                         'cedula' => $pasante->cedula
                     ]
                 ]);
             } else {
-                echo json_encode(['success' => false, 'message' => 'Pasante no encontrado o no es un pasante activo']);
+                echo json_encode(['success' => false, 'message' => 'Pasante no encontrado. Verifica la cédula.']);
             }
         } catch (Exception $e) {
-            echo json_encode(['success' => false, 'message' => 'Error en la búsqueda']);
+            echo json_encode(['success' => false, 'message' => 'Error en la búsqueda: ' . $e->getMessage()]);
         }
         exit;
     }
@@ -472,7 +520,10 @@ class ConfiguracionController extends Controller {
             if ($this->db->execute()) {
                 // Registrar en bitácora
                 if (class_exists('AuditModel')) {
-                    AuditModel::log('RESET_PIN_KIOSCO', "Se reseteó el PIN del pasante ID: $id desde Configuración");
+                    $this->db->query("SELECT CONCAT(dp.nombres,' ',dp.apellidos) AS nombre FROM datos_personales dp WHERE dp.usuario_id = :pid LIMIT 1");
+                    $this->db->bind(':pid', $id);
+                    $nombrePas = trim($this->db->single()->nombre ?? "ID:$id");
+                    AuditModel::log('RESET_PIN_KIOSCO', "PIN reseteado — $nombrePas (desde Configuración)");
                 }
 
                 // Resolver notificaciones de solicitud_pin para todos (admin + tutor)
@@ -624,6 +675,7 @@ class ConfiguracionController extends Controller {
     // GET /configuracion/calendario_feriados — Vista Almanaque
     // ─────────────────────────────────────────────────────────
     public function calendario_feriados() {
+        RoleMiddleware::authorize([0, 1, 2]);
         $year = isset($_GET['y']) && is_numeric($_GET['y']) ? (int)$_GET['y'] : (int)date('Y');
         
         $feriadoModel = new FeriadoModel($this->db);
@@ -748,6 +800,85 @@ class ConfiguracionController extends Controller {
             'total_api'   => $totalApi,
             'nota'        => 'Los feriados regionales (Aniversario Ciudad Bolívar, etc.) '
                            . 'no están en la API. Agrégalos manualmente si es necesario.',
+        ]);
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // GET /configuracion/getFeriadosParaConfig?anio=XXXX
+    // Devuelve todos los feriados del año para el modal de configuración
+    // ─────────────────────────────────────────────────────────
+    public function getFeriadosParaConfig(): void
+    {
+        header('Content-Type: application/json');
+        RoleMiddleware::authorize([0, 1]);
+
+        $anio = (int)($_GET['anio'] ?? date('Y'));
+        if ($anio < 2020 || $anio > 2035) {
+            echo json_encode(['success' => false, 'message' => 'Año inválido.']);
+            exit;
+        }
+
+        $this->db->query(
+            "SELECT id, fecha, nombre, tipo, es_laborable
+             FROM   dias_feriados
+             WHERE  YEAR(fecha) = :anio
+             ORDER  BY fecha ASC"
+        );
+        $this->db->bind(':anio', $anio);
+        $feriados = $this->db->resultSet();
+
+        echo json_encode([
+            'success'  => true,
+            'feriados' => $feriados ? array_map(fn($r) => (array)$r, $feriados) : [],
+        ]);
+        exit;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // POST /configuracion/actualizarLaborables
+    // Actualización batch de es_laborable para múltiples feriados
+    // Body JSON: [{id: N, es_laborable: 0|1}, ...]
+    // ─────────────────────────────────────────────────────────
+    public function actualizarLaborables(): void
+    {
+        header('Content-Type: application/json');
+        RoleMiddleware::authorize([0, 1]);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            echo json_encode(['success' => false, 'message' => 'Método no permitido']);
+            exit;
+        }
+
+        $json = file_get_contents('php://input');
+        $data = json_decode($json, true);
+
+        if (!is_array($data) || empty($data)) {
+            echo json_encode(['success' => false, 'message' => 'Datos inválidos.']);
+            exit;
+        }
+
+        $actualizados = 0;
+        foreach ($data as $item) {
+            $id          = (int)($item['id']          ?? 0);
+            $esLaborable = ((int)($item['es_laborable'] ?? 0) === 1) ? 1 : 0;
+            if (!$id) continue;
+
+            $this->db->query("UPDATE dias_feriados SET es_laborable = :es_lab WHERE id = :id");
+            $this->db->bind(':es_lab', $esLaborable, PDO::PARAM_INT);
+            $this->db->bind(':id',     $id,          PDO::PARAM_INT);
+            $this->db->execute();
+            $actualizados++;
+        }
+
+        if (class_exists('AuditModel')) {
+            AuditModel::log('CONFIG_LABORABLES', "Configuración masiva de feriados laborables: $actualizados registros actualizados");
+        }
+
+        echo json_encode([
+            'success'      => true,
+            'actualizados' => $actualizados,
+            'message'      => "$actualizados feriados actualizados correctamente.",
         ]);
         exit;
     }

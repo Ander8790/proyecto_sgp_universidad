@@ -1160,12 +1160,22 @@ class ActividadesController extends Controller
             $this->db->bind(':ff',     $fechaFin);
             $this->db->execute();
 
+            // Generar PIN de kiosco (4 dígitos aleatorios) para que el pasante
+            // pueda registrar asistencia desde el primer día.
+            $pinKiosco     = str_pad((string)mt_rand(0, 9999), 4, '0', STR_PAD_LEFT);
+            $pinHasheado   = password_hash($pinKiosco, PASSWORD_BCRYPT);
+            $this->db->query("UPDATE usuarios SET pin_asistencia = :pin WHERE id = :uid");
+            $this->db->bind(':pin', $pinHasheado);
+            $this->db->bind(':uid', $userId);
+            $this->db->execute();
+
             $this->db->commit();
 
             echo json_encode([
                 'success'        => true,
                 'message'        => "Pasante {$nombres} {$apellidos} registrado correctamente.",
                 'temp_password'  => $tempPass,
+                'pin_kiosco'     => $pinKiosco,
                 'usuario_id'     => $userId,
             ]);
         } catch (Exception $e) {

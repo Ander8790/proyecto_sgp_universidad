@@ -293,9 +293,14 @@ $porcAsistencia = $totalActivos > 0 ? round(($presentes + $justificados) / $tota
                     <td><?= htmlspecialchars($pd['nombre']) ?></td>
                     <?php for ($d=1; $d<=5; $d++):
                         $letra = $pd['dias'][$d] ?? '-';
+                        $motivo = $pd['motivos'][$d] ?? '';
                         $cls = $letra === 'P' ? 'ta-cell-p' : ($letra === 'A' ? 'ta-cell-a' : ($letra === 'J' ? 'ta-cell-j' : 'ta-cell-dash'));
+                        $hTitle = ['P'=>'Presente','A'=>'Ausente','J'=>'Justificado'][$letra] ?? 'Sin datos';
+                        if ($letra === 'J' && !empty(trim($motivo))) {
+                            $hTitle = 'Justificado: ' . htmlspecialchars(trim($motivo));
+                        }
                     ?>
-                    <td><span class="<?= $cls ?>"><?= $letra ?></span></td>
+                    <td><span class="<?= $cls ?>" title="<?= $hTitle ?>"><?= $letra ?></span></td>
                     <?php endfor; ?>
                     <td style="font-weight:600; color:#10b981;"><?= $pd['totales']['P'] ?></td>
                     <td style="font-weight:600; color:#ef4444;"><?= $pd['totales']['A'] ?></td>

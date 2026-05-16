@@ -8,6 +8,8 @@
  */
 
 :root {
+    color-scheme: light only;
+
     /* ==================== LAYOUT ==================== */
     --sidebar-width: 280px;
     --topbar-height: 70px;

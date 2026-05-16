@@ -3,58 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <style>
-@page { margin: 2cm 1.8cm; }
-body  { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #0f172a; line-height: 1.5; }
+@page { margin: 0.9cm 1.4cm; size: A4 portrait; }
+body  { font-family: Helvetica, Arial, sans-serif; font-size: 9px; color: #0f172a; line-height: 1.3; }
 
 /* ── Títulos ── */
 .doc-title {
-    font-size: 13px; font-weight: bold; color: #162660;
+    font-size: 12px; font-weight: bold; color: #162660;
     text-align: center; text-transform: uppercase;
-    letter-spacing: 1px; margin: 0 0 4px;
+    letter-spacing: 1px; margin: 0 0 2px;
 }
 .doc-sub {
-    text-align: center; font-size: 9.5px; color: #64748b; margin-bottom: 18px;
+    text-align: center; font-size: 8px; color: #64748b; margin-bottom: 6px;
 }
 
 /* ── Sección ── */
 .sec-title {
-    font-size: 9px; font-weight: bold; text-transform: uppercase;
+    font-size: 8px; font-weight: bold; text-transform: uppercase;
     letter-spacing: .8px; color: #fff;
-    background: #162660; padding: 4px 10px;
-    margin: 16px 0 8px; border-radius: 3px;
+    background: #162660; padding: 3px 8px;
+    margin: 6px 0 4px; border-radius: 2px;
 }
 
 /* ── Tabla datos pasante ── */
-.tbl-datos { width: 100%; border-collapse: collapse; font-size: 10px; margin-bottom: 0; }
-.tbl-datos td { padding: 5px 9px; border: 1px solid #cbd5e1; }
-.tbl-datos .lbl { background: #f1f5f9; font-weight: bold; width: 22%; font-size: 9px; text-transform: uppercase; color: #475569; }
+.tbl-datos { width: 100%; border-collapse: collapse; font-size: 9px; margin-bottom: 0; }
+.tbl-datos td { padding: 3px 6px; border: 1px solid #cbd5e1; }
+.tbl-datos .lbl { background: #f1f5f9; font-weight: bold; width: 22%; font-size: 8px; text-transform: uppercase; color: #475569; }
 
 /* ── KPIs ── */
 .kpi-wrap { width: 100%; border-collapse: collapse; margin-bottom: 0; }
-.kpi-wrap td { width: 16.6%; padding: 0 4px; text-align: center; border: none; }
+.kpi-wrap td { width: 16.6%; padding: 0 3px; text-align: center; border: none; }
 .kpi-box {
-    border: 1.5px solid #e2e8f0; border-radius: 6px;
-    padding: 10px 4px 8px; background: #f8fafc;
+    border: 1px solid #e2e8f0; border-radius: 4px;
+    padding: 5px 3px 4px; background: #f8fafc;
 }
-.kpi-val { font-size: 20px; font-weight: 900; line-height: 1; display: block; }
-.kpi-lbl { font-size: 8px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-top: 3px; display: block; }
+.kpi-val { font-size: 16px; font-weight: 900; line-height: 1; display: block; }
+.kpi-lbl { font-size: 7.5px; color: #64748b; text-transform: uppercase; letter-spacing: .5px; margin-top: 2px; display: block; }
 
-/* ── Grilla mensual ── */
-.mes-wrap { margin-bottom: 14px; }
+/* ── Grilla mensual (3 meses por fila) ── */
+.mes-wrap { margin-bottom: 6px; }
 .mes-nombre {
-    font-size: 9.5px; font-weight: bold; text-transform: uppercase;
-    color: #1e3a8a; letter-spacing: .5px; margin-bottom: 4px;
+    font-size: 8.5px; font-weight: bold; text-transform: uppercase;
+    color: #1e3a8a; letter-spacing: .5px; margin-bottom: 2px;
 }
-.mes-grid { border-collapse: collapse; font-size: 8.5px; }
+.mes-grid { border-collapse: collapse; font-size: 7.5px; width: 100%; }
 .mes-grid th {
-    width: 26px; text-align: center; padding: 3px 2px;
+    text-align: center; padding: 2px 1px;
     background: #1e3a8a; color: #fff; border: 1px solid #1e3a8a;
     font-weight: bold;
 }
 .mes-grid td {
-    width: 26px; text-align: center; padding: 4px 2px;
+    text-align: center; padding: 1px 0;
     border: 1px solid #e2e8f0;
-    font-size: 8px;
+    font-size: 7.5px; height: 15px; vertical-align: middle;
 }
 .dia-P    { background: #dcfce7; color: #15803d; font-weight: bold; }
 .dia-A    { background: #fee2e2; color: #b91c1c; font-weight: bold; }
@@ -62,30 +62,36 @@ body  { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #0f17
 .dia-F    { background: #fef9c3; color: #92400e; }
 .dia-fin  { background: #f8fafc; color: #cbd5e1; }
 .dia-vacio{ background: #fff; }
+/* Letra de estado para impresión B&N */
+.dia-ltr  { font-size: 5px; display: block; line-height: 1; font-weight: bold; opacity: .8; }
 
 /* ── Evaluaciones ── */
-.tbl-eval { width: 100%; border-collapse: collapse; font-size: 9.5px; }
-.tbl-eval th { background: #1e3a8a; color: #fff; padding: 5px 8px; text-align: left; border: 1px solid #1e3a8a; font-size: 8.5px; }
-.tbl-eval td { padding: 5px 8px; border: 1px solid #e2e8f0; vertical-align: top; }
+.tbl-eval { width: 100%; border-collapse: collapse; font-size: 8.5px; }
+.tbl-eval th { background: #1e3a8a; color: #fff; padding: 4px 6px; text-align: left; border: 1px solid #1e3a8a; font-size: 8px; }
+.tbl-eval td { padding: 4px 6px; border: 1px solid #e2e8f0; vertical-align: top; }
 .tbl-eval tr:nth-child(even) td { background: #f8fafc; }
 
 /* ── Leyenda ── */
-.leyenda { border-collapse: collapse; font-size: 8.5px; margin-bottom: 14px; }
-.leyenda td { padding: 2px 8px; }
-.l-box { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 3px; vertical-align: middle; }
+.leyenda { border-collapse: collapse; font-size: 8px; margin-bottom: 5px; }
+.leyenda td { padding: 1px 6px; vertical-align: middle; }
+.l-box {
+    display: inline-block; width: 10px; height: 10px; border-radius: 2px;
+    margin-right: 3px; vertical-align: middle;
+    font-size: 6px; font-weight: bold; text-align: center; line-height: 10px;
+}
 
 /* ── Firma ── */
-.firma-wrap { width: 100%; border-collapse: collapse; margin-top: 40px; }
-.firma-wrap td { text-align: center; padding: 0 20px; border: none; }
+.firma-wrap { width: 100%; border-collapse: collapse; margin-top: 10px; }
+.firma-wrap td { text-align: center; padding: 0 12px; border: none; }
 .firma-linea {
     border-top: 1px solid #0f172a; display: inline-block;
-    min-width: 220px; padding-top: 5px;
+    min-width: 180px; padding-top: 4px;
     font-size: 9px; font-weight: bold;
 }
 .firma-sub { font-size: 8px; color: #64748b; font-weight: normal; }
 
 /* ── Footer ── */
-.footer { text-align: center; font-size: 8px; color: #94a3b8; margin-top: 28px; padding-top: 6px; border-top: 1px solid #e2e8f0; }
+.footer { text-align: center; font-size: 8px; color: #94a3b8; margin-top: 8px; padding-top: 4px; border-top: 1px solid #e2e8f0; }
 </style>
 </head>
 <body>
@@ -180,14 +186,14 @@ $fechaFin    = $pasante->fecha_fin    ? date('d/m/Y', strtotime($pasante->fecha_
 <!-- ═══ REGISTRO MENSUAL ══════════════════════════════════════════ -->
 <div class="sec-title">Registro Mensual de Asistencias</div>
 
-<!-- Leyenda -->
+<!-- Leyenda — color + letra para impresión B&N -->
 <table class="leyenda">
     <tr>
-        <td><span class="l-box" style="background:#dcfce7;border:1px solid #86efac;"></span>Presente</td>
-        <td><span class="l-box" style="background:#fee2e2;border:1px solid #fca5a5;"></span>Ausente</td>
-        <td><span class="l-box" style="background:#dbeafe;border:1px solid #93c5fd;"></span>Justificado</td>
-        <td><span class="l-box" style="background:#fef9c3;border:1px solid #fde047;"></span>Feriado / No laborable</td>
-        <td><span class="l-box" style="background:#f8fafc;border:1px solid #e2e8f0;"></span>Fin de semana</td>
+        <td><span class="l-box" style="background:#dcfce7;border:1px solid #86efac;color:#15803d;">P</span>Presente</td>
+        <td><span class="l-box" style="background:#fee2e2;border:1px solid #fca5a5;color:#b91c1c;">A</span>Ausente</td>
+        <td><span class="l-box" style="background:#dbeafe;border:1px solid #93c5fd;color:#1d4ed8;">J</span>Justificado</td>
+        <td><span class="l-box" style="background:#fef9c3;border:1px solid #fde047;color:#92400e;">F</span>Feriado / No laborable</td>
+        <td><span class="l-box" style="background:#f8fafc;border:1px solid #e2e8f0;color:#94a3b8;">&nbsp;</span>Fin de semana</td>
     </tr>
 </table>
 
@@ -218,13 +224,13 @@ while ($cursor <= $fin) {
     $cursor->modify('+1 month');
 }
 
-// Columnas por fila (3 meses por fila)
+// 3 meses por fila — encaja en A4 vertical con hasta 12 meses en 4 filas
 $cols = 3;
 $rows = array_chunk($mesesData, $cols);
 ?>
 
 <?php foreach ($rows as $fila): ?>
-<table style="width:100%;border-collapse:collapse;margin-bottom:14px;">
+<table style="width:100%;border-collapse:collapse;margin-bottom:6px;">
     <tr>
     <?php foreach ($fila as $mesInfo): ?>
         <?php
@@ -234,7 +240,7 @@ $rows = array_chunk($mesesData, $cols);
         // día de la semana del día 1 (1=Lun ... 7=Dom)
         $primerDia = (int)(new DateTime("$anioM-$mesM-01"))->format('N');
         ?>
-        <td style="vertical-align:top;padding:0 6px 0 0;width:33%;">
+        <td style="vertical-align:top;padding:0 6px 0 0;width:33.3%;">
             <div class="mes-nombre"><?= $mesesNombres[$mesM] ?> <?= $anioM ?></div>
             <table class="mes-grid">
                 <thead>
@@ -258,22 +264,25 @@ $rows = array_chunk($mesesData, $cols);
                     $dow      = (int)(new DateTime($fechaStr))->format('N'); // 1=Lun..7=Dom
 
                     // Determinar clase y etiqueta
+                    $sym = '';
                     if ($dow >= 6) {
-                        $clase  = 'dia-fin';
-                        $label  = $dia;
+                        $clase = 'dia-fin';
+                        $label = $dia;
                     } elseif (isset($porFecha[$fechaStr])) {
                         $est = strtolower($porFecha[$fechaStr]->estado ?? '');
-                        if ($est === 'presente')    { $clase = 'dia-P'; $label = $dia; }
-                        elseif ($est === 'ausente') { $clase = 'dia-A'; $label = $dia; }
-                        elseif ($est === 'justificado') { $clase = 'dia-J'; $label = $dia; }
+                        if ($est === 'presente')         { $clase = 'dia-P'; $label = $dia; $sym = 'P'; }
+                        elseif ($est === 'ausente')       { $clase = 'dia-A'; $label = $dia; $sym = 'A'; }
+                        elseif ($est === 'justificado')   { $clase = 'dia-J'; $label = $dia; $sym = 'J'; }
                         else { $clase = 'dia-fin'; $label = $dia; }
                     } else {
-                        // Día hábil sin registro (fuera del período o futuro)
                         $clase = 'dia-vacio';
                         $label = $dia;
                     }
 
-                    echo "<td class=\"{$clase}\">{$label}</td>";
+                    $cell = $sym
+                        ? "{$label}<span class=\"dia-ltr\">{$sym}</span>"
+                        : $label;
+                    echo "<td class=\"{$clase}\">{$cell}</td>";
                     $col++;
                     if ($col > 7) {
                         echo '</tr><tr>';
@@ -294,7 +303,7 @@ $rows = array_chunk($mesesData, $cols);
     <?php // Celdas vacías si la fila no está completa
     $faltantes = $cols - count($fila);
     for ($f = 0; $f < $faltantes; $f++): ?>
-        <td style="width:33%;"></td>
+        <td style="width:33.3%;"></td>
     <?php endfor; ?>
     </tr>
 </table>

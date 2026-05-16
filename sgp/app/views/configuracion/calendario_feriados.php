@@ -3,7 +3,6 @@
  * Vista: Almanaque de Feriados
  * Muestra el año completo en 12 tarjetas (estilo heatmap/github)
  */
-require APPROOT . '/views/inc/header.php';
 
 $year = $data['year'] ?? date('Y');
 $feriados = $data['feriados'] ?? [];
@@ -40,6 +39,15 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
                 Sincronizar <?= $year ?>
             </button>
 
+            <!-- Botón Configurar Laborables -->
+            <button type="button" id="btnConfigLaborables" onclick="abrirConfigLaborables()"
+                style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:10px 18px;border:none;border-radius:12px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .2s;box-shadow:0 4px 14px rgba(79,70,229,0.4);white-space:nowrap;"
+                onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 18px rgba(79,70,229,0.5)'"
+                onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 14px rgba(79,70,229,0.4)'">
+                <i class="ti ti-adjustments-horizontal"></i>
+                Configurar Laborables
+            </button>
+
             <!-- Paginador de Año -->
             <div style="display:flex;align-items:center;background:rgba(255,255,255,0.15);border-radius:14px;padding:4px;border:1px solid rgba(255,255,255,0.2);">
                 <a href="?y=<?= $year - 1 ?>" style="padding:8px 14px;color:#fff;text-decoration:none;border-radius:10px;transition:background .2s;" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='transparent'"><i class="ti ti-chevron-left"></i></a>
@@ -48,6 +56,61 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
             </div>
         </div>
     </div>
+
+    <!-- ══ Modal: Configurar Feriados Laborables ══════════════════════════ -->
+    <div id="clModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.65);backdrop-filter:blur(4px);z-index:9000;align-items:center;justify-content:center;padding:20px;">
+        <div style="background:#fff;border-radius:24px;width:100%;max-width:680px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.25);overflow:hidden;">
+
+            <!-- Modal Header -->
+            <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:24px 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+                <div>
+                    <h2 id="clModalTitle" style="color:#fff;margin:0;font-size:1.2rem;font-weight:800;display:flex;align-items:center;gap:10px;">
+                        <i class="ti ti-adjustments-horizontal"></i> Configurar Feriados Laborables
+                    </h2>
+                    <p style="color:#c4b5fd;margin:4px 0 0;font-size:0.82rem;font-weight:500;">
+                        Indica cuáles feriados son días de trabajo en tu institución. Los <strong style="color:#a5f3fc;">laborables</strong> cuentan como días hábiles normales.
+                    </p>
+                </div>
+                <button onclick="cerrarConfigLaborables()" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:10px;width:36px;height:36px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">
+                    <i class="ti ti-x"></i>
+                </button>
+            </div>
+
+            <!-- Leyenda rápida -->
+            <div style="padding:12px 28px;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:20px;flex-shrink:0;flex-wrap:wrap;">
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#475569;">
+                    <div style="width:12px;height:12px;border-radius:50%;background:#10b981;"></div> Laborable — se trabaja con normalidad
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;font-size:0.78rem;font-weight:600;color:#475569;">
+                    <div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;"></div> No laborable — no se contabiliza en horas
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div id="clModalBody" style="overflow-y:auto;flex:1;padding:20px 28px;">
+                <div style="text-align:center;padding:40px;color:#64748b;">
+                    <i class="ti ti-loader-2" style="font-size:2rem;animation:spin 1s linear infinite;"></i>
+                    <div style="margin-top:10px;font-size:0.9rem;">Cargando feriados...</div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div style="padding:16px 28px;background:#f8fafc;border-top:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:12px;flex-wrap:wrap;">
+                <div id="clContadorInfo" style="font-size:0.8rem;color:#64748b;font-weight:600;"></div>
+                <div style="display:flex;gap:10px;">
+                    <button onclick="cerrarConfigLaborables()" style="background:#f1f5f9;border:1px solid #e2e8f0;color:#475569;padding:10px 18px;border-radius:10px;font-size:0.85rem;font-weight:600;cursor:pointer;" onmouseover="this.style.background='#e2e8f0'" onmouseout="this.style.background='#f1f5f9'">
+                        Cancelar
+                    </button>
+                    <button id="btnGuardarLaborables" onclick="guardarConfigLaborables()"
+                        style="background:linear-gradient(135deg,#4f46e5,#7c3aed);color:white;padding:10px 22px;border:none;border-radius:10px;font-size:0.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px;box-shadow:0 4px 12px rgba(79,70,229,0.3);"
+                        onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+                        <i class="ti ti-check"></i> Guardar configuración
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- ══════════════════════════════════════════════════════════════════ -->
 
     <!-- Estilos del Grid Almanaque -->
     <style>
@@ -138,8 +201,10 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
         .as-mf-cell[data-e="fuera"] { background:transparent; color:transparent; pointer-events:none; }
         .as-mf-cell[data-e="vacio"] { background:#f1f5f9; color:#64748b; }
         .as-mf-cell[data-e="vacio"]:hover { background:#e2e8f0; color:#1e293b; }
-        .as-mf-cell[data-e="feriado"] { background:#f59e0b; color:#fff; box-shadow:inset 0 -2px 0 rgba(0,0,0,0.15); }
-        .as-mf-cell[data-e="feriado"]:hover { background:#d97706; }
+        .as-mf-cell[data-e="feriado"]               { background:#f59e0b; color:#fff; box-shadow:inset 0 -2px 0 rgba(0,0,0,0.15); }
+        .as-mf-cell[data-e="feriado"]:hover          { background:#d97706; }
+        .as-mf-cell[data-e="feriado"][data-lab="1"]  { background:#10b981; }
+        .as-mf-cell[data-e="feriado"][data-lab="1"]:hover { background:#059669; }
         .as-mf-cell.findesemana { opacity:0.6; }
         
         /* Día actual: Morado animado */
@@ -243,21 +308,27 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
                     
                     $esHoy = ($fechaStr === date('Y-m-d'));
                     
-                    $dataE = $esFeriado ? "feriado" : "vacio";
+                    $dataE      = $esFeriado ? "feriado" : "vacio";
+                    $esLab      = $esFeriado ? (int)($fer->es_laborable ?? 0) : 0;
                     $claseExtra = $esFinDeSemana && !$esFeriado ? "findesemana" : "";
                     if ($esHoy) $claseExtra .= " dia-actual";
-                    
-                    $titulo = $esFeriado ? htmlspecialchars($fer->nombre) : "Día laborable";
-                    $tooltipAttr = $esFeriado ? 'data-tooltip="Motivo: ' . htmlspecialchars($fer->nombre) . '"' : '';
+
+                    $tooltipText = '';
+                    if ($esFeriado) {
+                        $tooltipText = htmlspecialchars($fer->nombre) . ($esLab ? ' — Laborable' : ' — No laborable');
+                    }
+                    $tooltipAttr = $esFeriado ? 'data-tooltip="' . $tooltipText . '"' : '';
                 ?>
-                    <div class="as-mf-cell <?= $claseExtra ?>" 
-                         data-e="<?= $dataE ?>" 
+                    <div class="as-mf-cell <?= $claseExtra ?>"
+                         data-e="<?= $dataE ?>"
+                         data-lab="<?= $esLab ?>"
                          <?= $tooltipAttr ?>
                          data-fecha="<?= $fechaStr ?>"
                          data-es-feriado="<?= $esFeriado ? '1' : '0' ?>"
                          data-id="<?= $esFeriado ? $fer->id : '0' ?>"
                          data-nombre="<?= htmlspecialchars($esFeriado ? $fer->nombre : '', ENT_QUOTES) ?>"
                          data-tipo="<?= htmlspecialchars($esFeriado ? $fer->tipo : 'Nacional', ENT_QUOTES) ?>"
+                         data-es-laborable="<?= $esLab ?>"
                          onclick="abrirModalPorFecha(this)">
                         <?= $d ?>
                     </div>
@@ -268,14 +339,22 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     </div>
     
     <!-- Leyenda -->
-    <div style="margin-top:20px;display:flex;gap:16px;background:#fff;padding:12px 20px;border-radius:12px;border:1px solid #e2e8f0;width:fit-content;">
+    <div style="margin-top:20px;display:flex;gap:16px;background:#fff;padding:12px 20px;border-radius:12px;border:1px solid #e2e8f0;width:fit-content;flex-wrap:wrap;">
         <div style="display:flex;align-items:center;gap:8px;">
             <div style="width:14px;height:14px;border-radius:4px;background:#f59e0b;"></div>
-            <span style="font-size:0.8rem;font-weight:700;color:#64748b;">Feriado</span>
+            <span style="font-size:0.8rem;font-weight:700;color:#64748b;">Feriado no laborable</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:14px;height:14px;border-radius:4px;background:#10b981;"></div>
+            <span style="font-size:0.8rem;font-weight:700;color:#64748b;">Feriado laborable</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
             <div style="width:14px;height:14px;border-radius:4px;background:#f1f5f9;"></div>
-            <span style="font-size:0.8rem;font-weight:700;color:#64748b;">Laborable</span>
+            <span style="font-size:0.8rem;font-weight:700;color:#64748b;">Día normal</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:14px;height:14px;border-radius:4px;background:#7c3aed;"></div>
+            <span style="font-size:0.8rem;font-weight:700;color:#64748b;">Hoy</span>
         </div>
     </div>
 
@@ -325,16 +404,31 @@ $diasSemana = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
                             style="width: 100%; padding: 12px 16px; border: 1.5px solid #cbd5e1; border-radius: 12px; font-size: 0.95rem; font-weight: 600; color: #1e293b; outline: none; transition: all 0.2s; background: #fff; cursor: pointer; appearance: auto;"
                             onfocus="this.style.borderColor='#3b82f6'; this.style.boxShadow='0 0 0 4px rgba(59,130,246,0.1)'" 
                             onblur="this.style.borderColor='#cbd5e1'; this.style.boxShadow='none'">
-                        <option value="Nacional">🟣 Nacional</option>
+                        <option value="Nacional">🟠 Nacional</option>
                         <option value="Regional">🟢 Regional</option>
                         <option value="Institucional">🔵 Institucional</option>
                     </select>
                 </div>
                 
-                <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 12px; padding: 16px; display: flex; gap: 12px; margin-bottom: 24px;">
-                    <i class="ti ti-info-circle" style="color: #3b82f6; font-size: 1.25rem; flex-shrink: 0; margin-top: 2px;"></i>
-                    <p style="margin: 0; font-size: 0.82rem; color: #1e3a8a; font-weight: 500; line-height: 1.5;">
-                        El sistema no generará ausencias para este día. Los feriados pasados no se pueden eliminar si ya se rellenó la asistencia.
+                <!-- Toggle laborabilidad -->
+                <div style="margin-bottom:20px;">
+                    <label style="display:block;font-size:0.75rem;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">¿Se trabaja este día?</label>
+                    <label id="mfToggleLabel" style="display:flex;align-items:center;gap:14px;cursor:pointer;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px 16px;transition:all .2s;">
+                        <input type="hidden" name="es_laborable" id="mfEsLaborableHidden" value="0">
+                        <div id="mfToggleTrack" style="width:44px;height:24px;border-radius:12px;background:#cbd5e1;position:relative;transition:background .2s;flex-shrink:0;">
+                            <div id="mfToggleThumb" style="width:18px;height:18px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,0.2);"></div>
+                        </div>
+                        <div>
+                            <div id="mfToggleTitle" style="font-size:0.9rem;font-weight:700;color:#1e293b;">No laborable</div>
+                            <div id="mfToggleSub" style="font-size:0.75rem;color:#64748b;margin-top:1px;">El sistema omitirá este día en el conteo de asistencias</div>
+                        </div>
+                    </label>
+                </div>
+
+                <div id="mfInfoBox" style="background:#fef3c7;border:1px solid #fde68a;border-radius:12px;padding:16px;display:flex;gap:12px;margin-bottom:24px;">
+                    <i class="ti ti-alert-triangle" style="color:#d97706;font-size:1.25rem;flex-shrink:0;margin-top:2px;"></i>
+                    <p id="mfInfoText" style="margin:0;font-size:0.82rem;color:#92400e;font-weight:500;line-height:1.5;">
+                        El sistema <strong>omitirá</strong> este día en el auto-fill y las notificaciones avisarán que no hay actividad de asistencia.
                     </p>
                 </div>
                 
@@ -407,8 +501,19 @@ function sincronizarFeriados() {
                 title: insertados > 0 ? '¡Feriados Sincronizados!' : 'Todo al día',
                 html: html,
                 confirmButtonColor: '#7c3aed',
-                confirmButtonText: insertados > 0 ? 'Ver cambios' : 'Entendido'
-            }).then(r => { if (r.isConfirmed && insertados > 0) location.reload(); });
+                confirmButtonText: 'Ver Calendario',
+                showDenyButton: insertados > 0,
+                denyButtonText: '<i class="ti ti-adjustments-horizontal"></i> Configurar Laborables',
+                denyButtonColor: '#4f46e5',
+            }).then(r => {
+                if (r.isDenied) {
+                    // Marcar en sessionStorage para abrir el modal tras la recarga
+                    sessionStorage.setItem('sgp_abrir_config_laborables', '1');
+                    location.reload();
+                } else if (r.isConfirmed && insertados > 0) {
+                    location.reload();
+                }
+            });
         } else {
             Swal.fire({
                 icon: 'error',
@@ -439,46 +544,68 @@ const _spinStyle = document.createElement('style');
 _spinStyle.textContent = '@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }';
 document.head.appendChild(_spinStyle);
 
+function mfSetToggle(val) {
+    const on    = val === 1 || val === '1' || val === true;
+    document.getElementById('mfEsLaborableHidden').value = on ? '1' : '0';
+    document.getElementById('mfToggleTrack').style.background  = on ? '#10b981' : '#cbd5e1';
+    document.getElementById('mfToggleThumb').style.left        = on ? '23px' : '3px';
+    document.getElementById('mfToggleTitle').innerText         = on ? 'Laborable' : 'No laborable';
+    document.getElementById('mfToggleSub').innerText           = on
+        ? 'El sistema contará este día como hábil (asistencia normal)'
+        : 'El sistema omitirá este día en el conteo de asistencias';
+    const box  = document.getElementById('mfInfoBox');
+    const txt  = document.getElementById('mfInfoText');
+    if (on) {
+        box.style.background = '#ecfdf5'; box.style.borderColor = '#6ee7b7';
+        txt.style.color = '#065f46';
+        txt.innerHTML = 'El sistema <strong>contará</strong> este día como hábil. Se generarán registros de asistencia normalmente.';
+    } else {
+        box.style.background = '#fef3c7'; box.style.borderColor = '#fde68a';
+        txt.style.color = '#92400e';
+        txt.innerHTML = 'El sistema <strong>omitirá</strong> este día en el auto-fill y las notificaciones avisarán que no hay actividad de asistencia.';
+    }
+}
+
+document.getElementById('mfToggleLabel').addEventListener('click', function() {
+    const cur = document.getElementById('mfEsLaborableHidden').value;
+    mfSetToggle(cur === '0' ? 1 : 0);
+});
+
 window.abrirModalPorFecha = function(el) {
     if (el.getAttribute('data-e') === 'fuera') return;
-    
     try {
         const fecha = el.getAttribute('data-fecha');
         if (!fecha) return;
-        
-        const esFeriado = el.getAttribute('data-es-feriado') === '1';
-        const id = el.getAttribute('data-id');
-        const nombre = el.getAttribute('data-nombre');
-        const tipo = el.getAttribute('data-tipo');
-        
-        abrirModalFeriado(fecha, esFeriado, id, nombre, tipo);
+        const esFeriado   = el.getAttribute('data-es-feriado') === '1';
+        const id          = el.getAttribute('data-id');
+        const nombre      = el.getAttribute('data-nombre');
+        const tipo        = el.getAttribute('data-tipo');
+        const esLaborable = el.getAttribute('data-es-laborable') || '0';
+        abrirModalFeriado(fecha, esFeriado, id, nombre, tipo, esLaborable);
     } catch(err) {
         console.error("Excepción atrapada al procesar el clic:", err);
     }
 };
 
-window.abrirModalFeriado = function(fecha, esFeriado, id, nombre, tipo) {
+window.abrirModalFeriado = function(fecha, esFeriado, id, nombre, tipo, esLaborable) {
     try {
         const modal = document.getElementById('modalFeriadoUnico123');
-        const card  = modal.querySelector('.sgp-modal-card');
-        
         if (!modal) return;
-        
-        // Configurar data
+
         const dParts = fecha.split('-');
-        const fDate = new Date(dParts[0], dParts[1]-1, dParts[2]);
-        
+        const fDate  = new Date(dParts[0], dParts[1]-1, dParts[2]);
         let fechaFormateada = fDate.toLocaleDateString('es-VE', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
         fechaFormateada = fechaFormateada.charAt(0).toUpperCase() + fechaFormateada.slice(1);
         document.getElementById('mfFechaDisplay').innerText = fechaFormateada;
-        
-        document.getElementById('mfFecha').value = fecha;
-        document.getElementById('mfId').value = id || '';
+
+        document.getElementById('mfFecha').value  = fecha;
+        document.getElementById('mfId').value     = id || '';
         document.getElementById('mfNombre').value = nombre || '';
-        document.getElementById('mfTipo').value = tipo || 'Nacional';
-        
+        document.getElementById('mfTipo').value   = tipo || 'Nacional';
+        mfSetToggle(esLaborable === '1' ? 1 : 0);
+
         const formEliminar = document.getElementById('formFeriadoEliminar');
-        
+
         if (esFeriado) {
             document.getElementById('mfAccion').value = 'editar_feriado';
             document.getElementById('mfTitulo').innerText = 'Editar Feriado';
@@ -519,6 +646,181 @@ if (modalEl) {
 } else {
     console.warn("No se pudo adjuntar el evento de cierre porque modalFeriado no existe.");
 }
+
+// ══════════════════════════════════════════════════════════════
+// Configurar Feriados Laborables — Modal bulk
+// ══════════════════════════════════════════════════════════════
+const _MESES_CL = {
+    '01':'Enero','02':'Febrero','03':'Marzo','04':'Abril','05':'Mayo','06':'Junio',
+    '07':'Julio','08':'Agosto','09':'Septiembre','10':'Octubre','11':'Noviembre','12':'Diciembre'
+};
+const _ANIO_CL = <?= $year ?>;
+
+function abrirConfigLaborables() {
+    const overlay = document.getElementById('clModalOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('clModalBody').innerHTML =
+        '<div style="text-align:center;padding:40px;color:#64748b;">'
+        + '<i class="ti ti-loader-2" style="font-size:2rem;animation:spin 1s linear infinite;display:block;margin:0 auto 12px;"></i>'
+        + 'Cargando feriados...</div>';
+    document.getElementById('clContadorInfo').textContent = '';
+
+    fetch('<?= URLROOT ?>/configuracion/getFeriadosParaConfig?anio=' + _ANIO_CL, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (!data.success) {
+            document.getElementById('clModalBody').innerHTML =
+                '<div style="color:#dc2626;text-align:center;padding:40px;">Error al cargar los feriados.</div>';
+            return;
+        }
+        const feriados = data.feriados;
+        if (!feriados.length) {
+            document.getElementById('clModalBody').innerHTML =
+                '<div style="text-align:center;padding:40px;color:#64748b;">'
+                + '<i class="ti ti-calendar-off" style="font-size:2.5rem;display:block;margin-bottom:12px;"></i>'
+                + 'No hay feriados registrados para ' + _ANIO_CL + '.<br>'
+                + '<small>Sincroniza primero con la API o agrega feriados manualmente.</small></div>';
+            return;
+        }
+
+        // Agrupar por mes
+        const grupos = {};
+        feriados.forEach(f => {
+            const mes = f.fecha.substring(5, 7);
+            if (!grupos[mes]) grupos[mes] = [];
+            grupos[mes].push(f);
+        });
+
+        let html = '';
+        Object.keys(grupos).sort().forEach(mes => {
+            html += '<div style="margin-bottom:20px;">'
+                  + '<div style="font-weight:800;font-size:0.75rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">'
+                  + '<div style="height:1px;flex:1;background:#e2e8f0;"></div>'
+                  + _MESES_CL[mes]
+                  + '<div style="height:1px;flex:1;background:#e2e8f0;"></div></div>';
+
+            grupos[mes].forEach(f => {
+                const dia     = f.fecha.substring(8, 10);
+                const esLab   = parseInt(f.es_laborable) === 1;
+                const tipoBg  = f.tipo === 'Nacional' ? '#e0e7ff' : f.tipo === 'Regional' ? '#fef3c7' : '#f0fdf4';
+                const tipoClr = f.tipo === 'Nacional' ? '#4338ca' : f.tipo === 'Regional' ? '#92400e' : '#166534';
+                html +=
+                '<div class="cl-feriado-row" data-id="' + f.id + '" data-laborable="' + (esLab ? 1 : 0) + '" '
+                + 'style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:12px;background:#f8fafc;margin-bottom:7px;border:1px solid #e2e8f0;transition:background .15s;">'
+
+                + '<div style="min-width:34px;text-align:center;background:#0f172a;color:#fff;border-radius:8px;padding:5px 0;font-size:0.82rem;font-weight:800;flex-shrink:0;">' + dia + '</div>'
+
+                + '<div style="flex:1;min-width:0;">'
+                + '<div style="font-weight:700;font-size:0.88rem;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + f.nombre + '</div>'
+                + '<span style="font-size:0.7rem;background:' + tipoBg + ';color:' + tipoClr + ';padding:2px 8px;border-radius:20px;font-weight:700;">' + f.tipo + '</span>'
+                + '</div>'
+
+                + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
+                + '<span class="cl-lab-label" style="font-size:0.75rem;font-weight:700;color:' + (esLab ? '#059669' : '#94a3b8') + ';white-space:nowrap;">' + (esLab ? 'Laborable' : 'No laborable') + '</span>'
+                + '<div class="cl-toggle-track" onclick="clToggle(this)" title="Clic para cambiar" '
+                + 'style="position:relative;width:44px;height:24px;border-radius:12px;background:' + (esLab ? '#10b981' : '#cbd5e1') + ';cursor:pointer;transition:background .2s;flex-shrink:0;">'
+                + '<div class="cl-toggle-thumb" style="position:absolute;top:3px;left:' + (esLab ? '23px' : '3px') + ';width:18px;height:18px;border-radius:50%;background:white;box-shadow:0 1px 4px rgba(0,0,0,.2);transition:left .2s;pointer-events:none;"></div>'
+                + '</div></div>'
+                + '</div>';
+            });
+            html += '</div>';
+        });
+
+        document.getElementById('clModalBody').innerHTML = html;
+        clActualizarContador();
+    })
+    .catch(() => {
+        document.getElementById('clModalBody').innerHTML =
+            '<div style="color:#dc2626;text-align:center;padding:40px;">No se pudo conectar. Verifica la conexión.</div>';
+    });
+}
+
+function cerrarConfigLaborables() {
+    document.getElementById('clModalOverlay').style.display = 'none';
+}
+
+function clToggle(track) {
+    const row   = track.closest('.cl-feriado-row');
+    const thumb = track.querySelector('.cl-toggle-thumb');
+    const label = row.querySelector('.cl-lab-label');
+    const esLab = row.dataset.laborable === '1';
+    const nuevo = esLab ? 0 : 1;
+
+    row.dataset.laborable  = nuevo;
+    track.style.background = nuevo ? '#10b981' : '#cbd5e1';
+    thumb.style.left       = nuevo ? '23px' : '3px';
+    label.style.color      = nuevo ? '#059669' : '#94a3b8';
+    label.textContent      = nuevo ? 'Laborable' : 'No laborable';
+    clActualizarContador();
+}
+
+function clActualizarContador() {
+    const rows     = document.querySelectorAll('.cl-feriado-row');
+    const laborables = [...rows].filter(r => r.dataset.laborable === '1').length;
+    document.getElementById('clContadorInfo').textContent =
+        rows.length + ' feriados — ' + laborables + ' laborable(s), ' + (rows.length - laborables) + ' no laborable(s)';
+}
+
+function guardarConfigLaborables() {
+    const rows = document.querySelectorAll('.cl-feriado-row');
+    const payload = [...rows].map(r => ({
+        id:           parseInt(r.dataset.id),
+        es_laborable: parseInt(r.dataset.laborable)
+    }));
+
+    const btn = document.getElementById('btnGuardarLaborables');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="ti ti-loader-2" style="animation:spin 1s linear infinite;"></i> Guardando...';
+
+    fetch('<?= URLROOT ?>/configuracion/actualizarLaborables', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+        cerrarConfigLaborables();
+        if (data.success) {
+            Swal.fire({
+                icon: 'success',
+                title: '¡Configuración guardada!',
+                text: data.message,
+                confirmButtonColor: '#7c3aed',
+                timer: 2000,
+                showConfirmButton: false
+            }).then(() => location.reload());
+        } else {
+            Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'No se pudo guardar.', confirmButtonColor: '#dc2626' });
+        }
+    })
+    .catch(() => {
+        Swal.fire({ icon: 'error', title: 'Error de conexión', text: 'No se pudo guardar la configuración.', confirmButtonColor: '#dc2626' });
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="ti ti-check"></i> Guardar configuración';
+    });
+}
+
+// Cerrar modal con Escape
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') cerrarConfigLaborables();
+});
+
+// Cerrar clickeando el overlay
+document.getElementById('clModalOverlay').addEventListener('click', function(e) {
+    if (e.target === this) cerrarConfigLaborables();
+});
+
+// Auto-abrir el modal si volvemos de una sincronización con "Configurar Laborables"
+if (sessionStorage.getItem('sgp_abrir_config_laborables') === '1') {
+    sessionStorage.removeItem('sgp_abrir_config_laborables');
+    setTimeout(() => abrirConfigLaborables(), 400);
+}
 </script>
 
-<?php require APPROOT . '/views/inc/footer.php'; ?>

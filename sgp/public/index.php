@@ -15,7 +15,9 @@ require_once '../app/config/config.php';
 define('APPROOT', dirname(dirname(__FILE__)) . '/app');
 
 // Auto-detect URLROOT for mobile access support
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+    || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https')
+    ? 'https://' : 'http://';
 $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
 $scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME']));
 define('URLROOT', $protocol . $host . $scriptDir);
@@ -68,6 +70,30 @@ set_error_handler(function ($errno, $errstr, $errfile, $errline) {
 // ROUTER INTELIGENTE - Redirección Automática
 // ============================================
 Session::start();
+
+// ── Refresh de permisos en tiempo real ──────────────────────────────────────
+// Si el SuperAdmin cambió los permisos de este usuario mientras tenía sesión
+// activa, se recarga el cache de $_SESSION['permisos'] automáticamente.
+(function () {
+    $__uid    = (int)Session::get('user_id');
+    $__roleId = (int)Session::get('role_id');
+    if (!$__uid || $__roleId === 0) return;  // SuperAdmin no necesita cache
+
+    $__flag = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sgp_perm_' . $__uid . '.flag';
+    if (!file_exists($__flag)) return;
+
+    $__flagTs   = (int)@file_get_contents($__flag);
+    $__sessionTs = (int)Session::get('permisos_ts');
+    if ($__flagTs <= $__sessionTs) { @unlink($__flag); return; }
+
+    // Recargar permisos desde BD
+    require_once '../app/models/PermisosModel.php';
+    $__pm = new PermisosModel();
+    Session::set('permisos',    $__pm->getPermisosUsuario($__uid, $__roleId));
+    Session::set('permisos_ts', $__flagTs);
+    @unlink($__flag);
+})();
+// ────────────────────────────────────────────────────────────────────────────
 
 // Si accede a la raíz (/) sin URL específica
 if (!isset($_GET['url']) || empty($_GET['url'])) {

@@ -1,0 +1,1575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Manual Técnico — SGP | ISP Bolívar</title>
+<style>
+/* ═══════════════════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@page { size: A4 portrait; margin: 1.8cm 2.2cm 2.8cm 2.2cm; }
+@page cover-page { margin: 0; }
+
+body {
+    font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-size: 10.5pt;
+    color: #1e293b;
+    line-height: 1.68;
+    background: #f8fafc;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+
+@media print {
+    body { background: white; }
+    .no-print { display: none !important; }
+    .chapter { break-before: page; }
+    .cover { break-after: page; }
+    .ctrl-page { break-after: page; }
+    .toc-page { break-after: page; }
+    @page {
+        @top-right {
+            content: "ISP Bolívar — Manual Técnico v1.0";
+            font-size: 7.5pt;
+            color: #94a3b8;
+        }
+        @bottom-center {
+            content: counter(page);
+            font-size: 8pt;
+            color: #94a3b8;
+        }
+    }
+    @page cover-page {
+        @top-right { content: none; }
+        @bottom-center { content: none; }
+    }
+}
+
+/* ═══════════════════════════════════════════════════════
+   NAV FLOTANTE (solo pantalla)
+═══════════════════════════════════════════════════════ */
+.no-print {
+    position: fixed; top: 16px; right: 16px; z-index: 999;
+    display: flex; gap: 8px;
+}
+.btn-print {
+    background: #1e3a8a; color: white; border: none;
+    padding: 10px 20px; border-radius: 8px; cursor: pointer;
+    font-size: 9.5pt; font-weight: 700;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+.btn-print:hover { background: #1e40af; }
+
+/* ═══════════════════════════════════════════════════════
+   WRAPPER
+═══════════════════════════════════════════════════════ */
+.doc-wrap {
+    max-width: 210mm;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 0 40px rgba(0,0,0,.1);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PORTADA
+═══════════════════════════════════════════════════════ */
+.cover {
+    page: cover-page;
+    width: 210mm;
+    min-height: 297mm;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(160deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+}
+.cover-deco-top {
+    position: absolute; top: -80px; right: -80px;
+    width: 320px; height: 320px;
+    background: rgba(255,255,255,.06); border-radius: 50%;
+}
+.cover-deco-bot {
+    position: absolute; bottom: -100px; left: -60px;
+    width: 380px; height: 380px;
+    background: rgba(255,255,255,.04); border-radius: 50%;
+}
+.cover-header {
+    padding: 2.2cm 2.5cm 0;
+    display: flex; align-items: center; gap: 14px; z-index: 1;
+}
+.cover-inst-icon {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: rgba(255,255,255,.15); display: flex;
+    align-items: center; justify-content: center;
+    font-size: 26px; color: white; font-weight: 900;
+}
+.cover-inst-name {
+    color: rgba(255,255,255,.85); font-size: 9.5pt;
+    font-weight: 600; line-height: 1.4; max-width: 280px;
+}
+.cover-main {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center;
+    padding: 0 2.5cm; z-index: 1;
+}
+.cover-tag {
+    display: inline-block;
+    background: rgba(255,255,255,.18);
+    border: 1px solid rgba(255,255,255,.3);
+    color: rgba(255,255,255,.9);
+    font-size: 8pt; font-weight: 700; letter-spacing: 2px;
+    text-transform: uppercase; padding: 5px 14px;
+    border-radius: 20px; margin-bottom: 20px;
+}
+.cover-title {
+    color: white; font-size: 36pt; font-weight: 900;
+    line-height: 1.1; margin-bottom: 10px; letter-spacing: -1px;
+}
+.cover-subtitle {
+    color: rgba(255,255,255,.78); font-size: 13pt;
+    font-weight: 500; margin-bottom: 32px; line-height: 1.4;
+}
+.cover-divider {
+    width: 60px; height: 4px;
+    background: linear-gradient(90deg, #60a5fa, #a78bfa);
+    border-radius: 2px; margin-bottom: 28px;
+}
+.cover-meta { display: flex; gap: 16px; flex-wrap: wrap; }
+.cover-meta-item {
+    background: rgba(255,255,255,.12);
+    border: 1px solid rgba(255,255,255,.2);
+    padding: 8px 18px; border-radius: 10px;
+    color: rgba(255,255,255,.9); font-size: 8.5pt; font-weight: 600;
+}
+.cover-meta-label {
+    font-size: 7pt; color: rgba(255,255,255,.55);
+    display: block; margin-bottom: 2px;
+    text-transform: uppercase; letter-spacing: 1px;
+}
+.cover-footer {
+    padding: 1.5cm 2.5cm;
+    border-top: 1px solid rgba(255,255,255,.15);
+    z-index: 1; display: flex;
+    justify-content: space-between; align-items: center;
+}
+.cover-footer-left { color: rgba(255,255,255,.5); font-size: 8pt; }
+.cover-badge-tech {
+    background: rgba(99,102,241,.35);
+    border: 1px solid rgba(99,102,241,.5);
+    color: rgba(200,210,255,.95); font-size: 7.5pt;
+    font-weight: 700; letter-spacing: 1.5px;
+    text-transform: uppercase; padding: 4px 12px; border-radius: 6px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CONTROL DE DOCUMENTO
+═══════════════════════════════════════════════════════ */
+.ctrl-page { break-after: page; padding: 1.5cm 2cm; }
+.ctrl-title {
+    font-size: 16pt; font-weight: 900; color: #0f172a;
+    margin-bottom: 18px; padding-bottom: 10px;
+    border-bottom: 3px solid #2563eb;
+}
+
+/* ═══════════════════════════════════════════════════════
+   TABLA DE CONTENIDO
+═══════════════════════════════════════════════════════ */
+.toc-page { break-after: page; padding: 1.5cm 2cm; }
+.toc-title { font-size: 18pt; font-weight: 900; color: #0f172a; margin-bottom: 6px; }
+.toc-line {
+    display: flex; align-items: baseline;
+    margin-bottom: 5px; font-size: 9.5pt;
+}
+.toc-num { min-width: 26px; color: #2563eb; font-weight: 700; font-size: 9pt; }
+.toc-text { color: #1e293b; font-weight: 600; }
+.toc-dots {
+    flex: 1; border-bottom: 1px dotted #cbd5e1;
+    margin: 0 6px; margin-bottom: 3px;
+}
+.toc-pg { color: #64748b; font-size: 8.5pt; font-weight: 700; min-width: 20px; text-align: right; }
+.toc-section {
+    margin-top: 18px; margin-bottom: 8px; font-size: 8pt;
+    font-weight: 800; color: #64748b; text-transform: uppercase;
+    letter-spacing: 1.5px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;
+}
+.toc-sub { padding-left: 26px; font-weight: 500; color: #475569; }
+
+/* ═══════════════════════════════════════════════════════
+   CAPÍTULOS
+═══════════════════════════════════════════════════════ */
+.chapter { padding: 0 2cm 1.5cm; }
+.ch-header {
+    background: linear-gradient(135deg, #172554 0%, #1e3a8a 60%, #2563eb 100%);
+    border-radius: 0 0 20px 20px;
+    padding: 22px 26px 20px; margin-bottom: 22px;
+    display: flex; align-items: center; gap: 14px;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.ch-num {
+    background: rgba(255,255,255,.18); color: rgba(255,255,255,.8);
+    font-size: 8.5pt; font-weight: 800; letter-spacing: 1.5px;
+    padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+}
+.ch-title { color: white; font-size: 18pt; font-weight: 800; line-height: 1.2; }
+
+.sec-title {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 11.5pt; font-weight: 800; color: #1e293b;
+    margin: 20px 0 10px;
+    padding-bottom: 5px; border-bottom: 2px solid #e2e8f0;
+}
+.sec-n {
+    background: #2563eb; color: white;
+    font-size: 8.5pt; font-weight: 800; padding: 2px 8px; border-radius: 5px;
+}
+.subsec-title {
+    font-size: 10.5pt; font-weight: 700; color: #1e3a8a;
+    margin: 14px 0 6px;
+}
+
+.doc-p { font-size: 10pt; color: #334155; margin-bottom: 9px; line-height: 1.7; }
+
+/* ═══════════════════════════════════════════════════════
+   SCREENSHOT PLACEHOLDER
+═══════════════════════════════════════════════════════ */
+.screenshot-box {
+    border: 2px dashed #93c5fd;
+    background: #f0f7ff;
+    border-radius: 10px;
+    min-height: 160px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 14px 0;
+    padding: 20px;
+    color: #3b82f6;
+    font-size: 9.5pt;
+    font-weight: 600;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.screenshot-box .ss-icon { font-size: 28pt; opacity: .5; }
+.screenshot-box .ss-label { color: #1e40af; font-weight: 800; font-size: 10pt; }
+.screenshot-box .ss-hint { color: #64748b; font-size: 8.5pt; font-weight: 400; }
+.screenshot-box.tall { min-height: 220px; }
+.screenshot-box.short { min-height: 100px; }
+
+/* ═══════════════════════════════════════════════════════
+   TABLAS
+═══════════════════════════════════════════════════════ */
+.tech-table {
+    width: 100%; border-collapse: collapse;
+    margin: 12px 0; font-size: 9.5pt;
+}
+.tech-table th {
+    background: #1e3a8a; color: white;
+    padding: 8px 12px; text-align: left; font-weight: 700;
+    font-size: 8.5pt; letter-spacing: .5px;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.tech-table td { padding: 7px 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+.tech-table tr:nth-child(even) td { background: #f8fafc; }
+.tech-table .mono { font-family: 'Consolas', 'Courier New', monospace; font-size: 8.5pt; color: #7c3aed; }
+.tech-table .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 7.5pt; font-weight: 700;
+}
+.badge-green { background: #dcfce7; color: #166534; }
+.badge-blue  { background: #dbeafe; color: #1e40af; }
+.badge-amber { background: #fef3c7; color: #92400e; }
+.badge-red   { background: #fee2e2; color: #991b1b; }
+.badge-gray  { background: #f1f5f9; color: #475569; }
+
+/* ═══════════════════════════════════════════════════════
+   BLOQUES ESPECIALES
+═══════════════════════════════════════════════════════ */
+.note-box {
+    border-left: 4px solid #2563eb; background: #eff6ff;
+    border-radius: 0 8px 8px 0; padding: 10px 14px;
+    margin: 12px 0; font-size: 9.5pt; color: #1e40af;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.warn-box {
+    border-left: 4px solid #f59e0b; background: #fffbeb;
+    border-radius: 0 8px 8px 0; padding: 10px 14px;
+    margin: 12px 0; font-size: 9.5pt; color: #92400e;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.danger-box {
+    border-left: 4px solid #dc2626; background: #fef2f2;
+    border-radius: 0 8px 8px 0; padding: 10px 14px;
+    margin: 12px 0; font-size: 9.5pt; color: #991b1b;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.code-block {
+    background: #0f172a; color: #e2e8f0;
+    border-radius: 8px; padding: 14px 16px; margin: 12px 0;
+    font-family: 'Consolas', 'Courier New', monospace; font-size: 8.5pt;
+    line-height: 1.6; white-space: pre-wrap;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.code-block .kw  { color: #93c5fd; }
+.code-block .str { color: #86efac; }
+.code-block .cmt { color: #6b7280; font-style: italic; }
+.code-block .fn  { color: #fde68a; }
+
+.step-list { margin: 10px 0 10px 18px; }
+.step-list li { margin-bottom: 5px; font-size: 9.5pt; color: #334155; }
+
+.dir-tree {
+    font-family: 'Consolas', 'Courier New', monospace; font-size: 8.5pt;
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px;
+    padding: 14px 16px; line-height: 1.8; margin: 10px 0;
+    color: #334155; white-space: pre;
+}
+.dir-tree .dir  { color: #1e40af; font-weight: 700; }
+.dir-tree .file { color: #334155; }
+.dir-tree .note { color: #94a3b8; }
+
+.pill {
+    display: inline-block; padding: 1px 8px; border-radius: 12px;
+    font-size: 8pt; font-weight: 700; margin: 0 2px;
+}
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin: 12px 0; }
+.info-card {
+    border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px;
+    background: white;
+}
+.info-card-title { font-weight: 800; font-size: 9pt; color: #0f172a; margin-bottom: 5px; }
+.info-card-body  { font-size: 8.5pt; color: #475569; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════
+   PIE DE DOCUMENTO
+═══════════════════════════════════════════════════════ */
+.doc-footer {
+    text-align: center; padding: 24px 0; color: #64748b;
+    border-top: 2px solid #e2e8f0; margin: 0 2cm;
+}
+</style>
+</head>
+<body>
+
+<!-- Botón imprimir (solo pantalla) -->
+<div class="no-print">
+    <button class="btn-print" onclick="window.print()">&#128438; Imprimir / Guardar PDF</button>
+</div>
+
+<div class="doc-wrap">
+
+<!-- ═══════════════════════════════════════════════════════
+     PORTADA
+═══════════════════════════════════════════════════════ -->
+<div class="cover">
+    <div class="cover-deco-top"></div>
+    <div class="cover-deco-bot"></div>
+
+    <div class="cover-header">
+        <div class="cover-inst-icon">ISP</div>
+        <div class="cover-inst-name">Instituto de Salud Pública<br>del Estado Bolívar</div>
+    </div>
+
+    <div class="cover-main">
+        <span class="cover-tag">Documento Técnico Oficial</span>
+        <h1 class="cover-title">Manual<br>Técnico</h1>
+        <p class="cover-subtitle">Registro y Control de Asistencias de Pasantes<br>División de Soporte Técnico — SGP v2.0</p>
+        <div class="cover-divider"></div>
+        <div class="cover-meta">
+            <div class="cover-meta-item">
+                <span class="cover-meta-label">Versión</span>
+                1.0
+            </div>
+            <div class="cover-meta-item">
+                <span class="cover-meta-label">Clasificación</span>
+                Uso Interno
+            </div>
+            <div class="cover-meta-item">
+                <span class="cover-meta-label">Plataforma</span>
+                PHP / MySQL / MVC
+            </div>
+        </div>
+    </div>
+
+    <div class="cover-footer">
+        <div class="cover-footer-left">
+            División de Soporte Técnico &nbsp;·&nbsp; Departamento de TI
+        </div>
+        <div class="cover-badge-tech">Confidencial Interno</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CONTROL DEL DOCUMENTO
+═══════════════════════════════════════════════════════ -->
+<div class="ctrl-page">
+    <div class="ctrl-title">Control del Documento</div>
+    <table class="tech-table">
+        <tbody>
+            <tr><td><strong>Título</strong></td><td>Manual Técnico — Aplicación Web para el Registro y Control de Asistencias de Pasantes (SGP)</td></tr>
+            <tr><td><strong>Código</strong></td><td>SGP-TEC-001</td></tr>
+            <tr><td><strong>Versión</strong></td><td>1.0</td></tr>
+            <tr><td><strong>Institución</strong></td><td>Instituto de Salud Pública del Estado Bolívar</td></tr>
+            <tr><td><strong>División</strong></td><td>Soporte Técnico — Departamento de Tecnología de la Información</td></tr>
+            <tr><td><strong>Audiencia</strong></td><td>Desarrolladores, administradores de sistema y personal técnico de TI</td></tr>
+            <tr><td><strong>Clasificación</strong></td><td>Confidencial Interno</td></tr>
+        </tbody>
+    </table>
+
+    <div class="ctrl-title" style="margin-top:24px; font-size:13pt;">Historial de Revisiones</div>
+    <table class="tech-table">
+        <thead><tr><th>Versión</th><th>Fecha</th><th>Descripción</th><th>Autor</th></tr></thead>
+        <tbody>
+            <tr><td>1.0</td><td>2026</td><td>Versión inicial del manual técnico</td><td>División de Soporte Técnico</td></tr>
+        </tbody>
+    </table>
+
+    <div class="ctrl-title" style="margin-top:24px; font-size:13pt;">Stack Tecnológico</div>
+    <table class="tech-table">
+        <thead><tr><th>Capa</th><th>Tecnología</th><th>Versión</th><th>Rol</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Servidor</strong></td><td>Apache (XAMPP)</td><td>2.4+</td><td>Servidor web HTTP</td></tr>
+            <tr><td><strong>Backend</strong></td><td>PHP</td><td>8.0+</td><td>Lógica de aplicación — patrón MVC</td></tr>
+            <tr><td><strong>Base de datos</strong></td><td>MySQL / MariaDB</td><td>8.0+</td><td>Persistencia de datos</td></tr>
+            <tr><td><strong>Frontend</strong></td><td>HTML5 / CSS3 / JavaScript ES6</td><td>—</td><td>Interfaz de usuario</td></tr>
+            <tr><td><strong>Framework CSS</strong></td><td>Bootstrap</td><td>5.x</td><td>Sistema de grilla y componentes</td></tr>
+            <tr><td><strong>Iconos</strong></td><td>Tabler Icons</td><td>—</td><td>Iconografía de interfaz</td></tr>
+            <tr><td><strong>Gráficas</strong></td><td>ApexCharts / ECharts / Chart.js</td><td>—</td><td>Visualización de analíticas</td></tr>
+            <tr><td><strong>Tablas</strong></td><td>DataTables / Grid.js</td><td>—</td><td>Listados interactivos</td></tr>
+            <tr><td><strong>Alertas UI</strong></td><td>SweetAlert2 / Notyf</td><td>—</td><td>Notificaciones en pantalla</td></tr>
+            <tr><td><strong>Fechas</strong></td><td>Flatpickr</td><td>—</td><td>Selectores de fecha/hora</td></tr>
+            <tr><td><strong>PDF (servidor)</strong></td><td>DomPDF / TCPDF</td><td>—</td><td>Generación de reportes PDF</td></tr>
+            <tr><td><strong>Notificaciones</strong></td><td>Web Notifications API</td><td>Level 1</td><td>Notificaciones de escritorio</td></tr>
+            <tr><td><strong>Navegación</strong></td><td>PJAX (sgp-pjax.js)</td><td>Custom</td><td>Navegación sin recarga completa</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TABLA DE CONTENIDO
+═══════════════════════════════════════════════════════ -->
+<div class="toc-page" style="padding:1.5cm 2cm;">
+    <div class="toc-title">Tabla de Contenido</div>
+    <hr style="border:none;border-top:2px solid #2563eb;margin:8px 0 16px;">
+
+    <div class="toc-section">Introducción</div>
+    <div class="toc-line"><span class="toc-num">1.</span><span class="toc-text">Descripción General del Sistema</span><span class="toc-dots"></span><span class="toc-pg">4</span></div>
+    <div class="toc-line"><span class="toc-num">2.</span><span class="toc-text">Arquitectura del Sistema</span><span class="toc-dots"></span><span class="toc-pg">5</span></div>
+    <div class="toc-line"><span class="toc-num">3.</span><span class="toc-text">Requisitos e Instalación</span><span class="toc-dots"></span><span class="toc-pg">6</span></div>
+    <div class="toc-line"><span class="toc-num">4.</span><span class="toc-text">Estructura de Directorios</span><span class="toc-dots"></span><span class="toc-pg">7</span></div>
+
+    <div class="toc-section">Base de Datos</div>
+    <div class="toc-line"><span class="toc-num">5.</span><span class="toc-text">Modelo de Base de Datos</span><span class="toc-dots"></span><span class="toc-pg">8</span></div>
+    <div class="toc-line toc-sub"><span class="toc-num"></span><span class="toc-text">5.1 Diagrama Entidad-Relación</span><span class="toc-dots"></span><span class="toc-pg">8</span></div>
+    <div class="toc-line toc-sub"><span class="toc-num"></span><span class="toc-text">5.2 Tablas Principales</span><span class="toc-dots"></span><span class="toc-pg">9</span></div>
+
+    <div class="toc-section">Seguridad</div>
+    <div class="toc-line"><span class="toc-num">6.</span><span class="toc-text">Sistema de Autenticación y Sesiones</span><span class="toc-dots"></span><span class="toc-pg">10</span></div>
+    <div class="toc-line"><span class="toc-num">7.</span><span class="toc-text">Control de Acceso Basado en Roles (RBAC)</span><span class="toc-dots"></span><span class="toc-pg">11</span></div>
+
+    <div class="toc-section">Módulos del Sistema</div>
+    <div class="toc-line"><span class="toc-num">8.</span><span class="toc-text">Dashboard</span><span class="toc-dots"></span><span class="toc-pg">12</span></div>
+    <div class="toc-line"><span class="toc-num">9.</span><span class="toc-text">Gestión de Usuarios</span><span class="toc-dots"></span><span class="toc-pg">13</span></div>
+    <div class="toc-line"><span class="toc-num">10.</span><span class="toc-text">Módulo de Pasantes</span><span class="toc-dots"></span><span class="toc-pg">14</span></div>
+    <div class="toc-line"><span class="toc-num">11.</span><span class="toc-text">Períodos Académicos</span><span class="toc-dots"></span><span class="toc-pg">15</span></div>
+    <div class="toc-line"><span class="toc-num">12.</span><span class="toc-text">Asignaciones</span><span class="toc-dots"></span><span class="toc-pg">16</span></div>
+    <div class="toc-line"><span class="toc-num">13.</span><span class="toc-text">Asistencias</span><span class="toc-dots"></span><span class="toc-pg">17</span></div>
+    <div class="toc-line"><span class="toc-num">14.</span><span class="toc-text">Kiosco de Asistencias</span><span class="toc-dots"></span><span class="toc-pg">18</span></div>
+    <div class="toc-line"><span class="toc-num">15.</span><span class="toc-text">Evaluaciones</span><span class="toc-dots"></span><span class="toc-pg">19</span></div>
+    <div class="toc-line"><span class="toc-num">16.</span><span class="toc-text">Reportes</span><span class="toc-dots"></span><span class="toc-pg">20</span></div>
+    <div class="toc-line"><span class="toc-num">17.</span><span class="toc-text">Analíticas</span><span class="toc-dots"></span><span class="toc-pg">21</span></div>
+    <div class="toc-line"><span class="toc-num">18.</span><span class="toc-text">Notificaciones de Escritorio</span><span class="toc-dots"></span><span class="toc-pg">22</span></div>
+    <div class="toc-line"><span class="toc-num">19.</span><span class="toc-text">Días Feriados</span><span class="toc-dots"></span><span class="toc-pg">23</span></div>
+    <div class="toc-line"><span class="toc-num">20.</span><span class="toc-text">Bitácora de Auditoría</span><span class="toc-dots"></span><span class="toc-pg">24</span></div>
+    <div class="toc-line"><span class="toc-num">21.</span><span class="toc-text">Backup del Sistema</span><span class="toc-dots"></span><span class="toc-pg">25</span></div>
+    <div class="toc-line"><span class="toc-num">22.</span><span class="toc-text">Configuración General</span><span class="toc-dots"></span><span class="toc-pg">26</span></div>
+    <div class="toc-line"><span class="toc-num">23.</span><span class="toc-text">Mantenimiento y Despliegue</span><span class="toc-dots"></span><span class="toc-pg">27</span></div>
+    <div class="toc-line"><span class="toc-num">24.</span><span class="toc-text">Resolución de Problemas</span><span class="toc-dots"></span><span class="toc-pg">28</span></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 1 — DESCRIPCIÓN GENERAL
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 01</div>
+        <div class="ch-title">Descripción General del Sistema</div>
+    </div>
+
+    <p class="doc-p">El <strong>Sistema de Gestión de Pasantías (SGP)</strong> es una aplicación web institucional desarrollada para la División de Soporte Técnico del Instituto de Salud Pública del Estado Bolívar. Digitaliza y centraliza la administración de las pasantías: registro de pasantes, control de asistencias, asignaciones, evaluaciones y generación de reportes.</p>
+
+    <div class="sec-title"><span class="sec-n">1.1</span> Objetivos Técnicos</div>
+    <ul class="step-list">
+        <li>Proveer una plataforma web accesible desde red local (LAN) sin dependencia de internet.</li>
+        <li>Implementar un sistema de roles y permisos granulares para SuperAdmin, Admin, Tutor y Pasante.</li>
+        <li>Registrar asistencias mediante Kiosco con PIN personal y validación de período activo.</li>
+        <li>Generar reportes PDF y exportaciones directamente desde el navegador.</li>
+        <li>Auditar todas las acciones relevantes a través de la bitácora del sistema.</li>
+        <li>Notificar en tiempo real al administrador mediante notificaciones de escritorio (Web Notifications API).</li>
+    </ul>
+
+    <div class="sec-title"><span class="sec-n">1.2</span> Alcance del Sistema</div>
+    <div class="grid-2">
+        <div class="info-card">
+            <div class="info-card-title">&#x2705; Incluye</div>
+            <div class="info-card-body">Gestión de pasantes · Control de asistencias · Evaluaciones por competencias · Reportes y analíticas · Días feriados · Backup · Bitácora · Notificaciones de escritorio</div>
+        </div>
+        <div class="info-card">
+            <div class="info-card-title">&#x274C; Excluye</div>
+            <div class="info-card-body">Integración con sistemas externos · Autenticación LDAP/SSO · App móvil nativa · Facturación · Comunicación por correo electrónico</div>
+        </div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">1.3</span> Pantalla Principal del Sistema</div>
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Pantalla de inicio de sesión del sistema</div>
+        <div class="ss-hint">Capturar: formulario login con logo institucional, campo usuario y contraseña</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 2 — ARQUITECTURA
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 02</div>
+        <div class="ch-title">Arquitectura del Sistema</div>
+    </div>
+
+    <p class="doc-p">El SGP implementa el patrón <strong>MVC (Model–View–Controller)</strong> de forma personalizada sin usar un framework externo. El enrutamiento se basa en segmentos de URL interpretados por la clase <code>App</code>.</p>
+
+    <div class="sec-title"><span class="sec-n">2.1</span> Diagrama de Arquitectura</div>
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128202;</div>
+        <div class="ss-label">DIAGRAMA: Arquitectura MVC del sistema</div>
+        <div class="ss-hint">Insertar diagrama: Navegador → Apache → index.php → App (Router) → Controller → Model → BD → View → HTML</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">2.2</span> Flujo de una Petición HTTP</div>
+    <table class="tech-table">
+        <thead><tr><th>#</th><th>Capa</th><th>Archivo</th><th>Responsabilidad</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>Punto de entrada</td><td class="mono">public/index.php</td><td>Carga configuración, define constantes, instancia <code>App</code></td></tr>
+            <tr><td>2</td><td>Router</td><td class="mono">app/core/App.php</td><td>Parsea URL, instancia el controlador correcto y llama el método</td></tr>
+            <tr><td>3</td><td>Middleware</td><td class="mono">core/AuthMiddleware.php<br>core/RoleMiddleware.php</td><td>Valida sesión activa y permisos del rol/usuario</td></tr>
+            <tr><td>4</td><td>Controlador</td><td class="mono">app/controllers/*.php</td><td>Orquesta lógica, llama modelos, devuelve vista</td></tr>
+            <tr><td>5</td><td>Modelo</td><td class="mono">app/models/*.php</td><td>Consultas SQL via PDO, retorna arrays de datos</td></tr>
+            <tr><td>6</td><td>Vista</td><td class="mono">app/views/**/*.php</td><td>Renderiza HTML con datos inyectados por el controlador</td></tr>
+            <tr><td>7</td><td>Layout</td><td class="mono">views/layouts/main_layout.php</td><td>Envuelve la vista con sidebar, topbar y scripts globales</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">2.3</span> Convención de URLs</div>
+    <div class="code-block"><span class="cmt">// Patrón general</span>
+http://[host]/sgp/public/<span class="kw">controlador</span>/<span class="fn">metodo</span>/<span class="str">parametro</span>
+
+<span class="cmt">// Ejemplos</span>
+/sgp/public/dashboard               → DashboardController::index()
+/sgp/public/pasantes/ver/42         → PasantesController::ver(42)
+/sgp/public/asistencias/exportar    → AsistenciasController::exportar()
+/sgp/public/notifications/getDesktopData  → NotificationsController::getDesktopData()</div>
+
+    <div class="sec-title"><span class="sec-n">2.4</span> Constantes Globales</div>
+    <table class="tech-table">
+        <thead><tr><th>Constante</th><th>Valor típico</th><th>Uso</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">URLROOT</td><td><code>http://localhost/sgp/public</code></td><td>Base de todas las URLs del sistema</td></tr>
+            <tr><td class="mono">APPROOT</td><td>Ruta absoluta a <code>/app</code></td><td>Carga de clases PHP internas</td></tr>
+            <tr><td class="mono">SESSION_TIMEOUT_SECONDS</td><td>1500 (25 min)</td><td>Tiempo de inactividad antes de cerrar sesión</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 3 — REQUISITOS E INSTALACIÓN
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 03</div>
+        <div class="ch-title">Requisitos e Instalación</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">3.1</span> Requisitos de Servidor</div>
+    <table class="tech-table">
+        <thead><tr><th>Componente</th><th>Mínimo</th><th>Recomendado</th></tr></thead>
+        <tbody>
+            <tr><td>Sistema Operativo</td><td>Windows 10 / Ubuntu 20.04</td><td>Windows 10 Pro / Ubuntu 22.04 LTS</td></tr>
+            <tr><td>PHP</td><td>7.4</td><td>8.1+</td></tr>
+            <tr><td>MySQL / MariaDB</td><td>5.7 / 10.3</td><td>8.0 / 10.6</td></tr>
+            <tr><td>Apache</td><td>2.4</td><td>2.4 con mod_rewrite</td></tr>
+            <tr><td>RAM</td><td>2 GB</td><td>4 GB</td></tr>
+            <tr><td>Almacenamiento</td><td>500 MB</td><td>2 GB (con backups)</td></tr>
+            <tr><td>Extensiones PHP</td><td colspan="2">pdo, pdo_mysql, gd, mbstring, json, session, openssl, zip</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">3.2</span> Pasos de Instalación</div>
+    <ol class="step-list">
+        <li>Instalar XAMPP (incluye Apache + PHP + MySQL) o equivalente.</li>
+        <li>Copiar la carpeta <code>proyecto_sgp/</code> en <code>C:\xampp\htdocs\</code>.</li>
+        <li>Habilitar <strong>mod_rewrite</strong> en <code>httpd.conf</code> si no está activo.</li>
+        <li>Crear la base de datos <code>proyecto_sgp</code> en MySQL con charset <code>utf8mb4</code>.</li>
+        <li>Importar el script SQL de <code>database/migrations/</code>.</li>
+        <li>Ejecutar los seeds en <code>database/seeds/</code> para datos iniciales.</li>
+        <li>Verificar <code>app/config/config.php</code>: credenciales de BD.</li>
+        <li>Acceder a <code>http://localhost/proyecto_sgp/sgp/public/</code>.</li>
+    </ol>
+
+    <div class="sec-title"><span class="sec-n">3.3</span> Configuración de Apache (.htaccess)</div>
+    <div class="code-block">RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]</div>
+
+    <div class="note-box"><strong>Nota:</strong> El archivo <code>.htaccess</code> debe estar en <code>public/</code>. Si Apache no tiene <code>AllowOverride All</code>, las rutas amigables no funcionarán.</div>
+
+    <div class="sec-title"><span class="sec-n">3.4</span> Variables de Entorno (opcional)</div>
+    <p class="doc-p">La configuración soporta variables de entorno para despliegue en servidores externos:</p>
+    <table class="tech-table">
+        <thead><tr><th>Variable</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">MYSQLHOST</td><td>Host de la base de datos</td></tr>
+            <tr><td class="mono">MYSQLDATABASE</td><td>Nombre de la base de datos</td></tr>
+            <tr><td class="mono">MYSQLUSER</td><td>Usuario de MySQL</td></tr>
+            <tr><td class="mono">MYSQLPASSWORD</td><td>Contraseña de MySQL</td></tr>
+            <tr><td class="mono">MYSQLPORT</td><td>Puerto (por defecto 3306)</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 4 — ESTRUCTURA DE DIRECTORIOS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 04</div>
+        <div class="ch-title">Estructura de Directorios</div>
+    </div>
+
+    <div class="dir-tree"><span class="dir">proyecto_sgp/</span>
+├── <span class="dir">sgp/</span>
+│   ├── <span class="dir">app/</span>
+│   │   ├── <span class="dir">config/</span>               <span class="note">← config.php, isp_info.json</span>
+│   │   ├── <span class="dir">controllers/</span>          <span class="note">← 24 controladores (uno por módulo)</span>
+│   │   ├── <span class="dir">core/</span>                 <span class="note">← App, Controller, Database, Session...</span>
+│   │   ├── <span class="dir">helpers/</span>              <span class="note">← CsrfHelper, CacheControl, SecurityHelpers...</span>
+│   │   ├── <span class="dir">libraries/</span>            <span class="note">← UrlSecurity</span>
+│   │   ├── <span class="dir">models/</span>               <span class="note">← 11 modelos (UserModel, PasanteModel...)</span>
+│   │   ├── <span class="dir">scripts/</span>              <span class="note">← Scripts de utilidad PHP</span>
+│   │   ├── <span class="dir">storage/</span>              <span class="note">← Almacenamiento de archivos</span>
+│   │   └── <span class="dir">views/</span>
+│   │       ├── <span class="dir">layouts/</span>          <span class="note">← main_layout.php, kiosco_layout.php</span>
+│   │       ├── <span class="dir">inc/</span>              <span class="note">← sidebar.php, topbar.php</span>
+│   │       ├── <span class="dir">auth/</span>             <span class="note">← login, logout</span>
+│   │       ├── <span class="dir">dashboard/</span>        <span class="note">← index.php por rol</span>
+│   │       ├── <span class="dir">pasantes/</span>         <span class="note">← CRUD de pasantes</span>
+│   │       ├── <span class="dir">asistencias/</span>      <span class="note">← listado, registro manual</span>
+│   │       ├── <span class="dir">kiosco/</span>           <span class="note">← interfaz PIN de marcado</span>
+│   │       ├── <span class="dir">evaluaciones/</span>     <span class="note">← planilla de evaluación</span>
+│   │       ├── <span class="dir">reportes/</span>         <span class="note">← reportes en PDF</span>
+│   │       ├── <span class="dir">analiticas/</span>       <span class="note">← gráficas y estadísticas</span>
+│   │       ├── <span class="dir">bitacora/</span>         <span class="note">← log de auditoría</span>
+│   │       ├── <span class="dir">backup/</span>           <span class="note">← interfaz de backup</span>
+│   │       ├── <span class="dir">configuracion/</span>    <span class="note">← ajustes generales</span>
+│   │       ├── <span class="dir">periodos/</span>         <span class="note">← períodos académicos</span>
+│   │       ├── <span class="dir">ayuda/</span>            <span class="note">← manual de usuario + PDF</span>
+│   │       └── <span class="dir">superadmin/</span>       <span class="note">← panel de superadministrador</span>
+│   └── <span class="dir">public/</span>
+│       ├── <span class="file">index.php</span>             <span class="note">← Punto de entrada único</span>
+│       ├── <span class="dir">css/</span>                  <span class="note">← 30+ archivos CSS modulares</span>
+│       ├── <span class="dir">js/</span>                   <span class="note">← 25+ archivos JS</span>
+│       ├── <span class="dir">img/</span>                  <span class="note">← logo, iconos, notif-icon.png</span>
+│       ├── <span class="dir">fonts/</span>                <span class="note">← Plus Jakarta Sans, Tabler Icons</span>
+│       ├── <span class="dir">sounds/</span>               <span class="note">← audio de alertas</span>
+│       └── <span class="dir">uploads/</span>              <span class="note">← archivos subidos por usuarios</span>
+└── <span class="dir">database/</span>
+    ├── <span class="dir">migrations/</span>           <span class="note">← scripts SQL de creación de tablas</span>
+    ├── <span class="dir">seeds/</span>                <span class="note">← datos iniciales</span>
+    └── <span class="dir">deprecated/</span>           <span class="note">← scripts obsoletos</span></div>
+
+    <div class="note-box"><strong>Nota:</strong> La carpeta <code>documentacion/</code> (este manual) es externa al sistema web y no está expuesta por el servidor Apache.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 5 — BASE DE DATOS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 05</div>
+        <div class="ch-title">Modelo de Base de Datos</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">5.1</span> Diagrama Entidad-Relación</div>
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128203;</div>
+        <div class="ss-label">DIAGRAMA: Entidad-Relación de la base de datos proyecto_sgp</div>
+        <div class="ss-hint">Insertar diagrama ERD exportado desde MySQL Workbench o dbdiagram.io mostrando todas las tablas y relaciones</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">5.2</span> Tablas Principales</div>
+    <table class="tech-table">
+        <thead><tr><th>Tabla</th><th>Propósito</th><th>Relaciones clave</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">usuarios</td><td>Cuenta de acceso al sistema (login, contraseña hash, rol)</td><td>→ datos_personales, → rol</td></tr>
+            <tr><td class="mono">datos_personales</td><td>Nombre, apellido, cédula, contacto de cada usuario</td><td>usuario_id → usuarios.id</td></tr>
+            <tr><td class="mono">datos_pasante</td><td>Datos específicos del pasante: PIN, horas_meta, tutor, carrera, período</td><td>usuario_id → usuarios.id, periodo_id → periodos_academicos.id</td></tr>
+            <tr><td class="mono">periodos_academicos</td><td>Períodos activos/planificados/cerrados con fechas inicio–fin</td><td>Referenciada por datos_pasante</td></tr>
+            <tr><td class="mono">asignaciones</td><td>Asignación de pasante a departamento y tutor con horas asignadas</td><td>pasante_id → usuarios.id, tutor_id → usuarios.id</td></tr>
+            <tr><td class="mono">asistencias</td><td>Registro de entrada/salida: fecha, hora, método (Kiosco/Manual), estado</td><td>pasante_id → usuarios.id</td></tr>
+            <tr><td class="mono">evaluaciones</td><td>Planilla de evaluación con 14 criterios de desempeño (1–5)</td><td>pasante_id → usuarios.id, tutor_id → usuarios.id</td></tr>
+            <tr><td class="mono">dias_feriados</td><td>Calendario de días no hábiles con nombre y fecha</td><td>—</td></tr>
+            <tr><td class="mono">bitacora</td><td>Log de auditoría: usuario, acción, IP, timestamp, módulo</td><td>usuario_id → usuarios.id</td></tr>
+            <tr><td class="mono">modulos_sistema</td><td>Catálogo de módulos del sistema para el sistema de permisos</td><td>→ acciones_modulo</td></tr>
+            <tr><td class="mono">acciones_modulo</td><td>Acciones posibles por módulo (ver, crear, editar, eliminar)</td><td>modulo_id → modulos_sistema.id</td></tr>
+            <tr><td class="mono">permisos_rol</td><td>Permisos base asignados a cada rol del sistema</td><td>rol_id, accion_id → acciones_modulo.id</td></tr>
+            <tr><td class="mono">usuario_permisos</td><td>Permisos granulares por usuario (sobreescribe permisos del rol)</td><td>usuario_id → usuarios.id</td></tr>
+            <tr><td class="mono">configuracion</td><td>Parámetros globales del sistema (clave→valor)</td><td>—</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">5.3</span> Relación Crítica: Pasante → Asistencias</div>
+    <div class="note-box"><strong>Importante:</strong> <code>asistencias.pasante_id</code> almacena el <code>usuarios.id</code> directamente, <strong>NO</strong> el <code>datos_pasante.id</code>. Para obtener el nombre: <code>JOIN datos_personales dp ON a.pasante_id = dp.usuario_id</code>.</div>
+
+    <div class="code-block"><span class="cmt">-- JOIN correcto para nombre del pasante en asistencias</span>
+<span class="kw">SELECT</span> a.id, <span class="fn">CONCAT</span>(dp.nombres, <span class="str">' '</span>, dp.apellidos) <span class="kw">AS</span> nombre,
+       <span class="fn">TIME_FORMAT</span>(a.hora_registro, <span class="str">'%h:%i %p'</span>) <span class="kw">AS</span> hora
+<span class="kw">FROM</span> asistencias a
+<span class="kw">JOIN</span> datos_personales dp <span class="kw">ON</span> a.pasante_id = dp.usuario_id
+<span class="kw">WHERE</span> a.fecha = <span class="fn">CURDATE</span>();</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 6 — AUTENTICACIÓN
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 06</div>
+        <div class="ch-title">Sistema de Autenticación y Sesiones</div>
+    </div>
+
+    <p class="doc-p">El sistema usa sesiones nativas de PHP gestionadas por la clase <code>Session</code>. No se emplean JWT ni cookies de autenticación externa.</p>
+
+    <div class="sec-title"><span class="sec-n">6.1</span> Flujo de Autenticación</div>
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128274;</div>
+        <div class="ss-label">DIAGRAMA: Flujo de login → validación → redirección por rol</div>
+        <div class="ss-hint">Insertar diagrama: formulario → AuthController → hash_verify → Session::set() → redirect según role_id</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">6.2</span> Variables de Sesión</div>
+    <table class="tech-table">
+        <thead><tr><th>Variable</th><th>Tipo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">user_id</td><td>int</td><td>ID del usuario autenticado</td></tr>
+            <tr><td class="mono">role_id</td><td>int</td><td>0=SuperAdmin, 1=Admin, 2=Tutor, 3=Pasante</td></tr>
+            <tr><td class="mono">user_name</td><td>string</td><td>Nombre completo del usuario</td></tr>
+            <tr><td class="mono">last_activity</td><td>timestamp</td><td>Última acción registrada (para timeout)</td></tr>
+            <tr><td class="mono">csrf_token</td><td>string</td><td>Token CSRF de la sesión actual</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">6.3</span> Timeout de Sesión</div>
+    <p class="doc-p">La sesión expira tras <strong>25 minutos</strong> de inactividad (<code>SESSION_TIMEOUT_SECONDS = 1500</code>). El middleware <code>AuthMiddleware::require()</code> verifica esto en cada petición protegida. Al expirar, redirige al login.</p>
+
+    <div class="sec-title"><span class="sec-n">6.4</span> Protección CSRF</div>
+    <p class="doc-p">Todos los formularios POST incluyen un token CSRF generado por <code>CsrfHelper</code>. El controlador valida el token antes de procesar datos. Las peticiones AJAX de notificaciones incluyen el header <code>X-Requested-With: XMLHttpRequest</code>.</p>
+
+    <div class="warn-box"><strong>Kiosco:</strong> La interfaz de Kiosco usa su propio layout y sesión separada para permitir acceso sin credenciales de usuario. La autenticación ocurre mediante PIN personal del pasante.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 7 — RBAC
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 07</div>
+        <div class="ch-title">Control de Acceso Basado en Roles (RBAC)</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">7.1</span> Roles del Sistema</div>
+    <table class="tech-table">
+        <thead><tr><th>role_id</th><th>Nombre</th><th>Capacidades</th></tr></thead>
+        <tbody>
+            <tr><td>0</td><td><span class="badge badge-red">SuperAdmin</span></td><td>Acceso total. Gestión de admins, configuración crítica, backup</td></tr>
+            <tr><td>1</td><td><span class="badge badge-blue">Admin</span></td><td>Gestión de pasantes, asistencias, evaluaciones, reportes, períodos</td></tr>
+            <tr><td>2</td><td><span class="badge badge-amber">Tutor</span></td><td>Ver pasantes asignados, registrar evaluaciones, ver asistencias</td></tr>
+            <tr><td>3</td><td><span class="badge badge-green">Pasante</span></td><td>Ver su propio perfil, asistencias propias, descargar constancias</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">7.2</span> Sistema de Permisos Granulares (4 tablas)</div>
+    <p class="doc-p">Sobre los permisos base por rol, es posible otorgar o revocar permisos individuales por usuario mediante la tabla <code>usuario_permisos</code>.</p>
+    <div class="code-block"><span class="cmt">// Verificación en controladores y vistas</span>
+RoleMiddleware::<span class="fn">hasPermission</span>(<span class="str">'ver_asistencias'</span>);   <span class="cmt">// bool</span>
+RoleMiddleware::<span class="fn">hasPermission</span>(<span class="str">'crear_pasantes'</span>);    <span class="cmt">// bool</span>
+RoleMiddleware::<span class="fn">hasPermission</span>(<span class="str">'ver_reportes'</span>);      <span class="cmt">// bool</span></div>
+
+    <div class="sec-title"><span class="sec-n">7.3</span> Claves de Permiso Implementadas</div>
+    <table class="tech-table">
+        <thead><tr><th>Clave</th><th>Módulo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">ver_usuarios</td><td>Usuarios</td><td>Acceso a listado y detalle de usuarios</td></tr>
+            <tr><td class="mono">ver_pasantes</td><td>Pasantes</td><td>Acceso al módulo de pasantes</td></tr>
+            <tr><td class="mono">ver_asistencias</td><td>Asistencias</td><td>Ver registros de asistencia</td></tr>
+            <tr><td class="mono">ver_asignaciones</td><td>Asignaciones</td><td>Ver asignaciones de pasantes</td></tr>
+            <tr><td class="mono">ver_evaluaciones</td><td>Evaluaciones</td><td>Acceso a planillas de evaluación</td></tr>
+            <tr><td class="mono">ver_reportes</td><td>Reportes</td><td>Generación de reportes PDF</td></tr>
+            <tr><td class="mono">ver_analiticas</td><td>Analíticas</td><td>Acceso a gráficas y estadísticas</td></tr>
+            <tr><td class="mono">ver_periodos</td><td>Períodos</td><td>Gestión de períodos académicos</td></tr>
+            <tr><td class="mono">ver_actividades</td><td>Actividades</td><td>Ver bitácora de actividades</td></tr>
+            <tr><td class="mono">ver_backup</td><td>Backup</td><td>Acceso a respaldo del sistema</td></tr>
+            <tr><td class="mono">ver_bitacora</td><td>Bitácora</td><td>Ver log de auditoría</td></tr>
+            <tr><td class="mono">ver_configuracion</td><td>Configuración</td><td>Ajustes generales del sistema</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Pantalla de gestión de permisos granulares por usuario</div>
+        <div class="ss-hint">Capturar: tabla de permisos con checkboxes habilitados/deshabilitados por módulo</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 8 — DASHBOARD
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 08</div>
+        <div class="ch-title">Dashboard</div>
+    </div>
+
+    <p class="doc-p">El dashboard muestra información resumida adaptada al rol del usuario. Cada rol tiene su propia vista con métricas relevantes.</p>
+
+    <div class="sec-title"><span class="sec-n">8.1</span> Dashboard SuperAdmin</div>
+    <p class="doc-p">Muestra KPIs globales: total de pasantes activos, asistencias del día, tutores, administradores. Incluye timeline de actividad reciente y tabla de usuarios por rol.</p>
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Dashboard SuperAdmin con KPIs y timeline de actividad</div>
+        <div class="ss-hint">Capturar: tarjetas de métricas superiores + timeline lateral + tabla de usuarios</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">8.2</span> Dashboard Admin</div>
+    <p class="doc-p">Muestra pasantes activos hoy, asistencias registradas, horas cumplidas promedio y alertas de pasantes sin asignar.</p>
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Dashboard Administrador</div>
+        <div class="ss-hint">Capturar: métricas del día, listado de asistencias recientes, alertas de pasantes</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">8.3</span> Dashboard Tutor</div>
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Dashboard Tutor con sus pasantes asignados</div>
+        <div class="ss-hint">Capturar: listado de pasantes bajo su tutoría, progreso de horas, pendientes de evaluación</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">8.4</span> Dashboard Pasante</div>
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Dashboard Pasante con su progreso personal</div>
+        <div class="ss-hint">Capturar: horas cumplidas vs meta, calendario de asistencias, datos de asignación</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">8.5</span> Archivos Involucrados</div>
+    <table class="tech-table">
+        <thead><tr><th>Archivo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">controllers/DashboardController.php</td><td>Detecta rol y carga la vista correspondiente</td></tr>
+            <tr><td class="mono">models/DashboardAdminModel.php</td><td>Consultas SQL de métricas para Admin/SuperAdmin</td></tr>
+            <tr><td class="mono">views/dashboard/</td><td>Vistas por rol (admin, tutor, pasante, superadmin)</td></tr>
+            <tr><td class="mono">views/superadmin/index.php</td><td>Vista específica del SuperAdmin con timeline</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 9 — USUARIOS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 09</div>
+        <div class="ch-title">Gestión de Usuarios</div>
+    </div>
+
+    <p class="doc-p">Permite crear, editar, activar/desactivar y eliminar cuentas de usuario. Soporta roles Admin, Tutor y Pasante. El SuperAdmin es gestionado por el módulo SuperAdmin.</p>
+
+    <div class="sec-title"><span class="sec-n">9.1</span> Operaciones CRUD</div>
+    <table class="tech-table">
+        <thead><tr><th>Operación</th><th>Método HTTP</th><th>Ruta</th><th>Permiso requerido</th></tr></thead>
+        <tbody>
+            <tr><td>Listar usuarios</td><td>GET</td><td class="mono">/users</td><td><code>ver_usuarios</code></td></tr>
+            <tr><td>Crear usuario</td><td>GET/POST</td><td class="mono">/users/create</td><td>Admin+</td></tr>
+            <tr><td>Editar usuario</td><td>GET/POST</td><td class="mono">/users/edit/{id}</td><td>Admin+</td></tr>
+            <tr><td>Cambiar estado</td><td>POST</td><td class="mono">/users/toggleStatus/{id}</td><td>Admin+</td></tr>
+            <tr><td>Eliminar usuario</td><td>POST</td><td class="mono">/users/delete/{id}</td><td>SuperAdmin</td></tr>
+            <tr><td>Gestionar permisos</td><td>GET/POST</td><td class="mono">/users/permisos/{id}</td><td>SuperAdmin</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Listado de usuarios con roles y estados</div>
+        <div class="ss-hint">Capturar: tabla con columnas Nombre, Rol, Estado (activo/inactivo), Acciones</div>
+    </div>
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Formulario de creación/edición de usuario</div>
+        <div class="ss-hint">Capturar: campos nombre, apellido, cédula, email, rol, contraseña</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 10 — PASANTES
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 10</div>
+        <div class="ch-title">Módulo de Pasantes</div>
+    </div>
+
+    <p class="doc-p">Gestiona el perfil completo de cada pasante: datos personales, datos académicos (carrera, universidad), PIN de Kiosco, horas meta y estado de pasantía.</p>
+
+    <div class="sec-title"><span class="sec-n">10.1</span> Estados de un Pasante</div>
+    <table class="tech-table">
+        <thead><tr><th>Estado</th><th>Descripción</th><th>Puede marcar asistencia</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-green">activo</span></td><td>Pasantía en curso</td><td>Sí</td></tr>
+            <tr><td><span class="badge badge-amber">pendiente</span></td><td>Aún no iniciado</td><td>No</td></tr>
+            <tr><td><span class="badge badge-gray">culminado</span></td><td>Pasantía completada</td><td>No</td></tr>
+            <tr><td><span class="badge badge-red">suspendido</span></td><td>Suspensión temporal</td><td>No</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">10.2</span> PIN de Kiosco</div>
+    <p class="doc-p">Cada pasante tiene un PIN numérico de 4–6 dígitos almacenado como hash en <code>datos_pasante.pin_hash</code>. El PIN se usa en el Kiosco para registrar asistencia sin necesidad de iniciar sesión.</p>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Perfil completo de un pasante</div>
+        <div class="ss-hint">Capturar: tarjeta con foto/avatar, datos personales, datos de pasantía, horas cumplidas vs meta, PIN (enmascarado)</div>
+    </div>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Listado de pasantes con filtros</div>
+        <div class="ss-hint">Capturar: tabla con búsqueda, filtro por estado/período, columnas nombre, cédula, carrera, estado, horas</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">10.3</span> Archivos Involucrados</div>
+    <table class="tech-table">
+        <thead><tr><th>Archivo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">controllers/PasantesController.php</td><td>CRUD completo de pasantes</td></tr>
+            <tr><td class="mono">controllers/PasanteController.php</td><td>Vista del pasante sobre su propio perfil</td></tr>
+            <tr><td class="mono">models/PasanteModel.php</td><td>Consultas SQL de pasantes y datos relacionados</td></tr>
+            <tr><td class="mono">views/pasantes/</td><td>Vistas de listado, detalle y formularios</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 11 — PERÍODOS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 11</div>
+        <div class="ch-title">Períodos Académicos</div>
+    </div>
+
+    <p class="doc-p">Los períodos académicos son el eje central del sistema. Cada pasante pertenece a un período, y el Kiosco valida que el período esté activo antes de permitir el marcado de asistencia.</p>
+
+    <div class="sec-title"><span class="sec-n">11.1</span> Estados de Período</div>
+    <table class="tech-table">
+        <thead><tr><th>Estado</th><th>Descripción</th><th>Permite marcado en Kiosco</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-green">activo</span></td><td>Período en ejecución</td><td>Sí</td></tr>
+            <tr><td><span class="badge badge-blue">planificado</span></td><td>Período programado (próximo)</td><td>Sí (configurable)</td></tr>
+            <tr><td><span class="badge badge-gray">cerrado</span></td><td>Período terminado</td><td>No</td></tr>
+            <tr><td><span class="badge badge-amber">suspendido</span></td><td>Período pausado</td><td>No</td></tr>
+        </tbody>
+    </table>
+
+    <div class="note-box"><strong>Validación en Kiosco:</strong> Si el período del pasante no es <code>activo</code> ni <code>planificado</code>, el sistema muestra: <em>"El período académico actual no está activo. Contacta al Administrador."</em></div>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Listado de períodos académicos</div>
+        <div class="ss-hint">Capturar: tabla con nombre del período, fechas inicio-fin, estado, cantidad de pasantes asignados</div>
+    </div>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Formulario de creación/edición de período</div>
+        <div class="ss-hint">Capturar: campos nombre, fecha inicio, fecha fin, estado, descripción</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 12 — ASIGNACIONES
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 12</div>
+        <div class="ch-title">Asignaciones</div>
+    </div>
+
+    <p class="doc-p">Una asignación vincula a un pasante con un departamento y un tutor para un período determinado. Puede incluir una descripción de actividades y observaciones.</p>
+
+    <div class="sec-title"><span class="sec-n">12.1</span> Estructura de una Asignación</div>
+    <table class="tech-table">
+        <thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td>Pasante</td><td>Pasante asignado (referencia a <code>usuarios.id</code>)</td></tr>
+            <tr><td>Tutor</td><td>Tutor responsable (referencia a <code>usuarios.id</code>)</td></tr>
+            <tr><td>Departamento</td><td>Departamento de la institución</td></tr>
+            <tr><td>Período</td><td>Período académico activo al que pertenece</td></tr>
+            <tr><td>Actividades</td><td>Descripción de las tareas asignadas</td></tr>
+            <tr><td>Horas meta</td><td>Almacenadas en <code>datos_pasante.horas_meta</code> (por pasante, no por asignación)</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Listado de asignaciones activas</div>
+        <div class="ss-hint">Capturar: tabla con pasante, tutor, departamento, período, estado de la asignación</div>
+    </div>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Formulario de nueva asignación</div>
+        <div class="ss-hint">Capturar: selectores de pasante, tutor, departamento; campo de actividades; selector de período</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 13 — ASISTENCIAS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 13</div>
+        <div class="ch-title">Asistencias</div>
+    </div>
+
+    <p class="doc-p">El módulo de asistencias registra y consulta la presencia diaria de los pasantes. Los registros pueden provenir del Kiosco (automático con PIN) o registro manual por el administrador.</p>
+
+    <div class="sec-title"><span class="sec-n">13.1</span> Métodos de Registro</div>
+    <table class="tech-table">
+        <thead><tr><th>Método</th><th>Actor</th><th>Validaciones</th></tr></thead>
+        <tbody>
+            <tr><td><span class="badge badge-blue">Kiosco</span></td><td>Pasante (autoservicio)</td><td>PIN correcto, estado activo, período activo, día hábil</td></tr>
+            <tr><td><span class="badge badge-amber">Manual</span></td><td>Administrador</td><td>Solo Admin/SuperAdmin pueden registrar manualmente</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">13.2</span> Campos de un Registro de Asistencia</div>
+    <table class="tech-table">
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">pasante_id</td><td>int</td><td>= usuarios.id del pasante</td></tr>
+            <tr><td class="mono">fecha</td><td>date</td><td>Fecha del registro (YYYY-MM-DD)</td></tr>
+            <tr><td class="mono">hora_registro</td><td>time</td><td>Hora de la marcación (HH:MM:SS)</td></tr>
+            <tr><td class="mono">metodo</td><td>enum</td><td>'Kiosco' o 'Manual'</td></tr>
+            <tr><td class="mono">estado</td><td>enum</td><td>'presente', 'tardanza', 'ausente'</td></tr>
+            <tr><td class="mono">observaciones</td><td>text</td><td>Notas adicionales (registro manual)</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Listado de asistencias con filtros por fecha y pasante</div>
+        <div class="ss-hint">Capturar: tabla con filtros de fecha, pasante, método; columnas nombre, fecha, hora, método, estado</div>
+    </div>
+
+    <div class="screenshot-box short">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Modal de registro manual de asistencia</div>
+        <div class="ss-hint">Capturar: formulario modal con selector de pasante, fecha, hora, estado y observaciones</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 14 — KIOSCO
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 14</div>
+        <div class="ch-title">Kiosco de Asistencias</div>
+    </div>
+
+    <p class="doc-p">El Kiosco es una interfaz de pantalla completa sin barra de navegación diseñada para ser ejecutada en una tableta o computadora dedicada en recepción. Los pasantes marcan su asistencia ingresando su PIN.</p>
+
+    <div class="sec-title"><span class="sec-n">14.1</span> Flujo de Marcado</div>
+    <ol class="step-list">
+        <li>El pasante ingresa los dígitos de su PIN en el teclado numérico en pantalla.</li>
+        <li>El sistema verifica: PIN correcto → estado pasante activo → período activo → no marcó ya hoy.</li>
+        <li>Si todo es válido: registra la asistencia con método='Kiosco' y muestra confirmación.</li>
+        <li>Si alguna validación falla: muestra mensaje específico de error.</li>
+    </ol>
+
+    <div class="sec-title"><span class="sec-n">14.2</span> Validaciones del Kiosco</div>
+    <table class="tech-table">
+        <thead><tr><th>Validación</th><th>Error mostrado</th></tr></thead>
+        <tbody>
+            <tr><td>PIN incorrecto o no existe</td><td>"PIN incorrecto. Intenta nuevamente."</td></tr>
+            <tr><td>Estado pasante ≠ activo</td><td>"Tu pasantía no está activa. Contacta al Administrador."</td></tr>
+            <tr><td>Período no activo/planificado</td><td>"El período académico actual no está activo. Contacta al Administrador."</td></tr>
+            <tr><td>Ya marcó hoy</td><td>"Ya registraste tu asistencia hoy."</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Interfaz del Kiosco en pantalla completa</div>
+        <div class="ss-hint">Capturar: pantalla con logo institucional, teclado numérico PIN, campo de entrada enmascarado, botón confirmar</div>
+    </div>
+
+    <div class="screenshot-box short">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Confirmación exitosa de asistencia en Kiosco</div>
+        <div class="ss-hint">Capturar: mensaje verde con nombre del pasante, hora de marcado, ícono de éxito</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">14.3</span> Archivos Involucrados</div>
+    <table class="tech-table">
+        <thead><tr><th>Archivo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">controllers/KioscoController.php</td><td>Lógica de validación y registro de asistencia via Kiosco</td></tr>
+            <tr><td class="mono">views/kiosco/</td><td>Vistas de la interfaz Kiosco (teclado PIN, confirmación)</td></tr>
+            <tr><td class="mono">views/layouts/kiosco_layout.php</td><td>Layout sin sidebar ni topbar para pantalla completa</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 15 — EVALUACIONES
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 15</div>
+        <div class="ch-title">Evaluaciones</div>
+    </div>
+
+    <p class="doc-p">El módulo de evaluaciones permite a los tutores calificar el desempeño de sus pasantes usando la planilla oficial del ISP Bolívar con 14 criterios de desempeño.</p>
+
+    <div class="sec-title"><span class="sec-n">15.1</span> Escala de Calificación</div>
+    <table class="tech-table">
+        <thead><tr><th>Puntos</th><th>Nivel</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td>5</td><td><span class="badge badge-green">Excelente</span></td><td>Supera consistentemente las expectativas</td></tr>
+            <tr><td>4</td><td><span class="badge badge-blue">Bueno</span></td><td>Cumple y en ocasiones supera</td></tr>
+            <tr><td>3</td><td><span class="badge badge-amber">Regular</span></td><td>Cumple las expectativas básicas</td></tr>
+            <tr><td>2</td><td><span class="badge badge-red">Deficiente</span></td><td>No cumple en varios aspectos</td></tr>
+            <tr><td>1</td><td><span class="badge badge-gray">Muy Deficiente</span></td><td>No cumple en la mayoría de aspectos</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">15.2</span> Estructura de la Planilla</div>
+    <p class="doc-p">La planilla contiene 14 criterios agrupados en dimensiones: Conocimiento Técnico, Responsabilidad, Puntualidad, Trabajo en Equipo, Comunicación, entre otras.</p>
+
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Planilla de evaluación completa</div>
+        <div class="ss-hint">Capturar: tabla con 14 criterios, escala 1-5, campo de observaciones, firma del tutor</div>
+    </div>
+
+    <div class="screenshot-box short">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Listado de evaluaciones con promedios</div>
+        <div class="ss-hint">Capturar: tabla con pasante, tutor, fecha de evaluación, promedio obtenido, acciones</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">15.3</span> Archivos Involucrados</div>
+    <table class="tech-table">
+        <thead><tr><th>Archivo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">controllers/EvaluacionesController.php</td><td>CRUD de evaluaciones</td></tr>
+            <tr><td class="mono">models/EvaluacionModel.php</td><td>Consultas SQL, cálculo de promedios</td></tr>
+            <tr><td class="mono">views/evaluaciones/</td><td>Planilla interactiva y listado</td></tr>
+            <tr><td class="mono">public/js/evaluaciones.js</td><td>Cálculo de promedios en tiempo real en el frontend</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 16 — REPORTES
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 16</div>
+        <div class="ch-title">Reportes</div>
+    </div>
+
+    <p class="doc-p">El módulo de reportes genera documentos PDF descargables y visualizaciones impresas. Los reportes se generan directamente en el servidor (DomPDF/TCPDF) o mediante <code>window.print()</code> del navegador.</p>
+
+    <div class="sec-title"><span class="sec-n">16.1</span> Tipos de Reportes</div>
+    <table class="tech-table">
+        <thead><tr><th>Reporte</th><th>Contenido</th><th>Generación</th></tr></thead>
+        <tbody>
+            <tr><td>Constancia de Pasantía</td><td>Datos del pasante, período, horas cumplidas, firma institucional</td><td>PDF servidor</td></tr>
+            <tr><td>Reporte de Asistencias</td><td>Listado de asistencias por pasante en rango de fechas</td><td>PDF servidor</td></tr>
+            <tr><td>Reporte de Evaluación</td><td>Planilla oficial con calificaciones por criterio</td><td>PDF / Print</td></tr>
+            <tr><td>Listado de Pasantes</td><td>Tabla completa de pasantes con estado y horas</td><td>PDF / Excel</td></tr>
+            <tr><td>Reporte por Período</td><td>Resumen de todos los pasantes de un período</td><td>PDF servidor</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Pantalla de generación de reportes con filtros</div>
+        <div class="ss-hint">Capturar: selectores de tipo de reporte, rango de fechas, pasante o período, botón generar</div>
+    </div>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Vista previa de constancia de pasantía en PDF</div>
+        <div class="ss-hint">Capturar: documento PDF con encabezado institucional, datos del pasante, sello y firma</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 17 — ANALÍTICAS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 17</div>
+        <div class="ch-title">Analíticas</div>
+    </div>
+
+    <p class="doc-p">El módulo de analíticas provee visualizaciones gráficas del comportamiento de asistencias, progreso de pasantes y distribución por departamento/período.</p>
+
+    <div class="sec-title"><span class="sec-n">17.1</span> Gráficas Disponibles</div>
+    <table class="tech-table">
+        <thead><tr><th>Gráfica</th><th>Tipo</th><th>Librería</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td>Asistencias por semana</td><td>Barras</td><td>ApexCharts</td><td>Comparativa de presencias en las últimas semanas</td></tr>
+            <tr><td>Distribución por estado</td><td>Dona</td><td>Chart.js</td><td>Proporción presente/tardanza/ausente</td></tr>
+            <tr><td>Progreso de horas</td><td>Barras horizontales</td><td>ECharts</td><td>Horas cumplidas vs meta por pasante</td></tr>
+            <tr><td>Tendencia mensual</td><td>Línea</td><td>ApexCharts</td><td>Evolución de asistencias en el tiempo</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box tall">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Panel de analíticas con múltiples gráficas</div>
+        <div class="ss-hint">Capturar: dashboard de gráficas con filtros de período y rango de fechas en la parte superior</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">17.2</span> Archivos Involucrados</div>
+    <table class="tech-table">
+        <thead><tr><th>Archivo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">controllers/AnaliticasController.php</td><td>Endpoints JSON para datos de gráficas</td></tr>
+            <tr><td class="mono">public/js/modern-charts.js</td><td>Configuración y renderizado de gráficas</td></tr>
+            <tr><td class="mono">views/analiticas/</td><td>Vista del panel con contenedores de gráficas</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 18 — NOTIFICACIONES
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 18</div>
+        <div class="ch-title">Notificaciones de Escritorio</div>
+    </div>
+
+    <p class="doc-p">El sistema genera notificaciones nativas de escritorio de Windows usando la <strong>Web Notifications API (Level 1)</strong>. Solo disponible para roles Admin y SuperAdmin con sesión activa.</p>
+
+    <div class="sec-title"><span class="sec-n">18.1</span> Arquitectura de Notificaciones</div>
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128202;</div>
+        <div class="ss-label">DIAGRAMA: Flujo de notificaciones de escritorio</div>
+        <div class="ss-hint">Insertar diagrama: JS polling (30s) → GET /notifications/getDesktopData → PHP valida sesión → consulta BD → JSON → JS muestra Notification API</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">18.2</span> Tipos de Notificaciones</div>
+    <table class="tech-table">
+        <thead><tr><th>Tipo</th><th>Cuándo</th><th>Deduplicación</th></tr></thead>
+        <tbody>
+            <tr><td>Marcado en Kiosco</td><td>Cada vez que un pasante marca vía Kiosco (polling 30s)</td><td>Por ID de asistencia (<code>lastAsistenciaId</code>)</td></tr>
+            <tr><td>Pasantes sin asignar</td><td>Una vez al día al mediodía (12:00)</td><td>localStorage por fecha</td></tr>
+            <tr><td>Próximo feriado</td><td>Una vez al día si hay feriado en los próximos 7 días</td><td>localStorage por fecha</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">18.3</span> Endpoint Backend</div>
+    <div class="code-block"><span class="cmt">// GET /notifications/getDesktopData?ultimo_id=123</span>
+<span class="cmt">// Respuesta JSON</span>
+{
+  <span class="str">"es_dia_habil"</span>: <span class="kw">true</span>,
+  <span class="str">"nuevas_asistencias"</span>: [
+    { <span class="str">"id"</span>: 124, <span class="str">"nombre"</span>: <span class="str">"Juan Pérez"</span>, <span class="str">"hora"</span>: <span class="str">"08:30 AM"</span> }
+  ],
+  <span class="str">"pasantes_sin_asignar"</span>: 2,
+  <span class="str">"proximo_feriado"</span>: {
+    <span class="str">"fecha"</span>: <span class="str">"2026-05-24"</span>,
+    <span class="str">"nombre"</span>: <span class="str">"Batalla de Carabobo"</span>,
+    <span class="str">"dias_restantes"</span>: 5
+  }
+}</div>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Notificación de escritorio de Windows al marcar asistencia</div>
+        <div class="ss-hint">Capturar: notificación toast de Windows con logo ISP, título "Asistencia Registrada", nombre del pasante y hora</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">18.4</span> Archivos Involucrados</div>
+    <table class="tech-table">
+        <thead><tr><th>Archivo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">controllers/NotificationsController.php</td><td>Endpoint <code>getDesktopData()</code>, valida sesión y rol</td></tr>
+            <tr><td class="mono">models/NotificationModel.php</td><td>Consultas SQL de asistencias nuevas, feriados, sin asignar</td></tr>
+            <tr><td class="mono">public/js/desktop-notifications.js</td><td>IIFE con polling, lógica de deduplicación y llamada a Notification API</td></tr>
+            <tr><td class="mono">public/img/notif-icon.png</td><td>Ícono 192×192px (fondo blanco + logo ISP), generado con GD</td></tr>
+            <tr><td class="mono">views/layouts/main_layout.php</td><td>Carga <code>desktop-notifications.js</code> globalmente</td></tr>
+        </tbody>
+    </table>
+
+    <div class="warn-box"><strong>Requisito del navegador:</strong> El usuario debe conceder permiso de notificaciones en Chrome/Edge la primera vez. Las notificaciones no funcionan en Firefox privado ni sin sesión activa.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 19 — DÍAS FERIADOS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 19</div>
+        <div class="ch-title">Días Feriados</div>
+    </div>
+
+    <p class="doc-p">El módulo de días feriados permite configurar el calendario de días no laborables. Los feriados son consultados por el Kiosco para validar si el día actual es hábil, y por el sistema de notificaciones para alertar próximos feriados.</p>
+
+    <div class="sec-title"><span class="sec-n">19.1</span> Tabla dias_feriados</div>
+    <table class="tech-table">
+        <thead><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td class="mono">id</td><td>int PK</td><td>Identificador único</td></tr>
+            <tr><td class="mono">fecha</td><td>date</td><td>Fecha del feriado (YYYY-MM-DD)</td></tr>
+            <tr><td class="mono">nombre</td><td>varchar</td><td>Nombre del feriado ("Navidad", "Día del Trabajador"...)</td></tr>
+            <tr><td class="mono">tipo</td><td>enum</td><td>Nacional, Regional, Institucional</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Módulo de días feriados con calendario</div>
+        <div class="ss-hint">Capturar: listado de feriados del año con nombre, fecha, tipo; botón agregar nuevo feriado</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 20 — BITÁCORA
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 20</div>
+        <div class="ch-title">Bitácora de Auditoría</div>
+    </div>
+
+    <p class="doc-p">La bitácora registra automáticamente todas las acciones relevantes del sistema: creaciones, modificaciones, eliminaciones e inicios/cierres de sesión. Permite auditar quién hizo qué y cuándo.</p>
+
+    <div class="sec-title"><span class="sec-n">20.1</span> Información Registrada</div>
+    <table class="tech-table">
+        <thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td>Usuario</td><td>Quien realizó la acción (nombre + rol)</td></tr>
+            <tr><td>Acción</td><td>Descripción de la operación ejecutada</td></tr>
+            <tr><td>Módulo</td><td>Módulo del sistema donde ocurrió</td></tr>
+            <tr><td>IP</td><td>Dirección IP del cliente</td></tr>
+            <tr><td>Timestamp</td><td>Fecha y hora exacta (zona Venezuela)</td></tr>
+            <tr><td>Detalles</td><td>Datos adicionales relevantes (JSON)</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Listado de bitácora con filtros</div>
+        <div class="ss-hint">Capturar: tabla con filtros por módulo, usuario, rango de fechas; columnas usuario, acción, módulo, IP, fecha/hora</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">20.2</span> Implementación</div>
+    <div class="code-block"><span class="cmt">// Registro de acción en bitácora desde un controlador</span>
+$this->auditModel-><span class="fn">log</span>([
+    <span class="str">'usuario_id'</span> => Session::<span class="fn">get</span>(<span class="str">'user_id'</span>),
+    <span class="str">'accion'</span>     => <span class="str">'Creó pasante: Juan Pérez'</span>,
+    <span class="str">'modulo'</span>     => <span class="str">'Pasantes'</span>,
+    <span class="str">'ip'</span>         => $_SERVER[<span class="str">'REMOTE_ADDR'</span>],
+]);</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 21 — BACKUP
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 21</div>
+        <div class="ch-title">Backup del Sistema</div>
+    </div>
+
+    <p class="doc-p">El módulo de backup permite generar y descargar respaldos completos de la base de datos en formato SQL. Solo accesible para SuperAdmin.</p>
+
+    <div class="sec-title"><span class="sec-n">21.1</span> Proceso de Backup</div>
+    <ol class="step-list">
+        <li>El SuperAdmin accede al módulo Backup desde el menú lateral.</li>
+        <li>Selecciona el tipo de respaldo (completo, solo datos, solo estructura).</li>
+        <li>El sistema genera el archivo SQL mediante <code>mysqldump</code> o consultas PHP.</li>
+        <li>El archivo se descarga automáticamente con nombre: <code>sgp_backup_YYYYMMDD_HHMMSS.sql</code>.</li>
+        <li>La acción queda registrada en la bitácora.</li>
+    </ol>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Módulo de backup con historial de respaldos</div>
+        <div class="ss-hint">Capturar: opciones de tipo de backup, botón generar, historial de backups anteriores con fecha y tamaño</div>
+    </div>
+
+    <div class="danger-box"><strong>Seguridad:</strong> Los archivos de backup contienen datos sensibles. Almacenarlos en un directorio fuera del alcance web o protegerlo con autenticación adicional.</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 22 — CONFIGURACIÓN
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 22</div>
+        <div class="ch-title">Configuración General</div>
+    </div>
+
+    <p class="doc-p">El módulo de configuración permite ajustar parámetros globales del sistema sin modificar código fuente. Los valores se almacenan en la tabla <code>configuracion</code> (clave→valor).</p>
+
+    <div class="sec-title"><span class="sec-n">22.1</span> Parámetros Configurables</div>
+    <table class="tech-table">
+        <thead><tr><th>Parámetro</th><th>Descripción</th></tr></thead>
+        <tbody>
+            <tr><td>Nombre institucional</td><td>Nombre de la institución mostrado en reportes</td></tr>
+            <tr><td>Logo del sistema</td><td>Imagen del logo institucional</td></tr>
+            <tr><td>Hora de inicio jornada</td><td>Hora desde la que se considera tardanza</td></tr>
+            <tr><td>Horas meta por defecto</td><td>Horas de pasantía requeridas por defecto</td></tr>
+            <tr><td>Información ISP</td><td>Datos institucionales para reportes (desde <code>isp_info.json</code>)</td></tr>
+        </tbody>
+    </table>
+
+    <div class="screenshot-box">
+        <div class="ss-icon">&#128247;</div>
+        <div class="ss-label">SCREENSHOT: Panel de configuración general del sistema</div>
+        <div class="ss-hint">Capturar: formulario de ajustes con campos de configuración agrupados por categoría</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 23 — MANTENIMIENTO Y DESPLIEGUE
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 23</div>
+        <div class="ch-title">Mantenimiento y Despliegue</div>
+    </div>
+
+    <div class="sec-title"><span class="sec-n">23.1</span> Tareas de Mantenimiento Periódico</div>
+    <table class="tech-table">
+        <thead><tr><th>Frecuencia</th><th>Tarea</th><th>Herramienta</th></tr></thead>
+        <tbody>
+            <tr><td>Diaria</td><td>Verificar log de errores PHP (<code>php_error.log</code>)</td><td>Notepad / tail</td></tr>
+            <tr><td>Semanal</td><td>Generar backup de base de datos</td><td>Módulo Backup SGP</td></tr>
+            <tr><td>Mensual</td><td>Revisar bitácora por actividad inusual</td><td>Módulo Bitácora SGP</td></tr>
+            <tr><td>Por período</td><td>Cerrar período académico terminado</td><td>Módulo Períodos SGP</td></tr>
+            <tr><td>Anual</td><td>Actualizar días feriados del nuevo año</td><td>Módulo Días Feriados</td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title"><span class="sec-n">23.2</span> Actualización del Sistema</div>
+    <ol class="step-list">
+        <li>Hacer backup completo de BD antes de cualquier actualización.</li>
+        <li>Copiar nuevos archivos al directorio del proyecto (no sobreescribir <code>app/config/config.php</code>).</li>
+        <li>Ejecutar scripts de migración SQL si hay cambios de esquema.</li>
+        <li>Limpiar caché del navegador en los equipos cliente.</li>
+        <li>Verificar funcionamiento en todas las rutas principales.</li>
+    </ol>
+
+    <div class="sec-title"><span class="sec-n">23.3</span> Monitoreo de Rendimiento</div>
+    <p class="doc-p">Para instalaciones con más de 50 usuarios concurrentes, revisar:</p>
+    <ul class="step-list">
+        <li>Índices en <code>asistencias.fecha</code>, <code>asistencias.pasante_id</code>, <code>bitacora.created_at</code>.</li>
+        <li>Activar OPcache en PHP para mejorar tiempo de respuesta.</li>
+        <li>Limitar el historial de bitácora a 6 meses en instalaciones de alto uso.</li>
+    </ul>
+
+    <div class="sec-title"><span class="sec-n">23.4</span> Estructura de Deployment</div>
+    <div class="screenshot-box short">
+        <div class="ss-icon">&#128202;</div>
+        <div class="ss-label">DIAGRAMA: Diagrama de red — servidor Apache en LAN con clientes</div>
+        <div class="ss-hint">Insertar diagrama: Red LAN → Switch → Servidor XAMPP → Clientes (PC recepción Kiosco + PCs admin)</div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     CAP. 24 — RESOLUCIÓN DE PROBLEMAS
+═══════════════════════════════════════════════════════ -->
+<div class="chapter">
+    <div class="ch-header">
+        <div class="ch-num">CAPÍTULO 24</div>
+        <div class="ch-title">Resolución de Problemas</div>
+    </div>
+
+    <table class="tech-table">
+        <thead><tr><th>Problema</th><th>Causa probable</th><th>Solución</th></tr></thead>
+        <tbody>
+            <tr><td>Página en blanco al acceder</td><td><code>display_errors=0</code> oculta el error</td><td>Revisar <code>php_error.log</code> en Apache; activar temporalmente <code>display_errors=1</code></td></tr>
+            <tr><td>Error 404 en rutas</td><td>mod_rewrite desactivado o <code>AllowOverride None</code></td><td>Activar mod_rewrite y configurar <code>AllowOverride All</code> en httpd.conf</td></tr>
+            <tr><td>Kiosco no registra asistencia</td><td>PIN incorrecto, período cerrado, pasante inactivo</td><td>Verificar estado del pasante y del período en la base de datos</td></tr>
+            <tr><td>Notificaciones no aparecen</td><td>Permiso denegado en navegador o sesión expirada</td><td>Restablecer permisos en configuración del navegador; recargar página</td></tr>
+            <tr><td>Sesión cierra inesperadamente</td><td>25 min de inactividad o servidor PHP reiniciado</td><td>Normal por diseño. Ajustar <code>SESSION_TIMEOUT_SECONDS</code> si necesario</td></tr>
+            <tr><td>Reportes PDF en blanco</td><td>DomPDF sin permisos en carpeta temporal</td><td>Dar permisos de escritura a la carpeta <code>storage/</code></td></tr>
+            <tr><td>Gráficas no cargan</td><td>Error JavaScript o datos vacíos del endpoint</td><td>Abrir consola del navegador (F12) para ver el error específico</td></tr>
+            <tr><td>Error al hacer backup</td><td>mysqldump no en PATH o permisos insuficientes</td><td>Verificar PATH de MySQL en variables de entorno del sistema</td></tr>
+            <tr><td>Login falla con credenciales correctas</td><td>Hash de contraseña corrupto o encoding de BD</td><td>Verificar charset <code>utf8mb4</code> en tabla <code>usuarios</code></td></tr>
+        </tbody>
+    </table>
+
+    <div class="sec-title" style="margin-top:20px;">Información del Sistema para Soporte</div>
+    <div class="code-block"><span class="cmt">-- Consultar versiones instaladas</span>
+<span class="kw">SELECT</span> <span class="fn">VERSION</span>();                  <span class="cmt">-- Versión MySQL</span>
+<span class="kw">SELECT</span> @@character_set_database;  <span class="cmt">-- Charset BD</span>
+
+<span class="cmt">-- Ver configuración de sesión PHP</span>
+<span class="kw">phpinfo</span>();                        <span class="cmt">-- Desde script temporal</span>
+
+<span class="cmt">-- Contar registros principales</span>
+<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> usuarios;
+<span class="kw">SELECT</span> <span class="fn">COUNT</span>(*) <span class="kw">FROM</span> asistencias <span class="kw">WHERE</span> fecha = <span class="fn">CURDATE</span>();</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     PIE DE DOCUMENTO
+═══════════════════════════════════════════════════════ -->
+<div class="doc-footer">
+    <p style="font-size:10pt;font-weight:700;color:#1e293b;margin-bottom:6px;">
+        Manual Técnico — Registro y Control de Asistencias de Pasantes — SGP v2.0
+    </p>
+    <p style="font-size:9pt;">Instituto de Salud Pública del Estado Bolívar</p>
+    <p style="font-size:9pt;margin-top:4px;">División de Soporte Técnico &nbsp;·&nbsp; Departamento de TI</p>
+    <p style="font-size:8pt;color:#94a3b8;margin-top:10px;">Documento Confidencial — Uso Interno Exclusivo</p>
+</div>
+
+</div><!-- .doc-wrap -->
+
+<script>
+// Detectar Ctrl+P para imprimir
+document.addEventListener('keydown', function(e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+        e.preventDefault();
+        window.print();
+    }
+});
+</script>
+</body>
+</html>

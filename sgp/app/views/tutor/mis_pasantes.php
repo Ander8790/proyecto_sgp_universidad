@@ -110,7 +110,7 @@
 
 .search-input {
     width: 100%;
-    padding: 0.75rem 1rem 0.75rem 2.5rem;
+    padding: 0.75rem 2.5rem 0.75rem 2.5rem;
     border: 1px solid #e2e8f0;
     border-radius: 10px;
     background: #ffffff;
@@ -473,7 +473,26 @@
         <div class="search-wrapper" style="position:relative;">
             <i class="ti ti-search"></i>
             <input type="text" id="buscarPasante" class="search-input" placeholder="Buscar por nombre, cédula o departamento...">
-            <i class="ti ti-help-circle" data-tooltip="Escriba aquí para filtrar rápidamente a sus pasantes asignados" style="position:absolute; right:15px; color:#94a3b8; cursor:help; top:50%; transform:translateY(-50%); font-size:1.1rem;"></i>
+            <i class="ti ti-help-circle" title="Ayuda del buscador"
+               onclick="Swal.fire({
+                   title: 'Buscador de Pasantes',
+                   html: '<div style=\'text-align:left;font-size:0.88rem;color:#475569;line-height:1.7;\'>' +
+                         '<p style=\'margin:0 0 10px;\'><i class=\'ti ti-search\' style=\'color:#4f46e5;\'></i>&nbsp;<strong>¿Cómo funciona?</strong></p>' +
+                         '<ul style=\'padding-left:1.2rem;margin:0;\'>' +
+                         '<li>Escribe el <strong>nombre</strong> o <strong>apellido</strong> del pasante.</li>' +
+                         '<li>Puedes buscar también por <strong>cédula</strong>.</li>' +
+                         '<li>O filtra por <strong>departamento</strong> asignado.</li>' +
+                         '</ul>' +
+                         '<p style=\'margin:10px 0 0;background:#f1f5f9;border-radius:8px;padding:8px 10px;\'>' +
+                         '<i class=\'ti ti-info-circle\' style=\'color:#4f46e5;\'></i>&nbsp;El filtro aplica en tiempo real, sin necesidad de presionar Enter.' +
+                         '</p></div>',
+                   icon: false,
+                   confirmButtonText: 'Entendido',
+                   confirmButtonColor: '#4f46e5',
+                   customClass: { popup: 'swal-eval-popup' }
+               })"
+               style="position:absolute; right:15px; left:auto; color:#94a3b8; cursor:pointer; top:50%; transform:translateY(-50%); font-size:1.1rem; transition:color .2s;"
+               onmouseover="this.style.color='#4f46e5'" onmouseout="this.style.color='#94a3b8'"></i>
         </div>
         <a href="<?= URLROOT ?>/evaluaciones/nueva" class="btn-primary-indigo">
             <i class="ti ti-plus"></i> Nueva Evaluación

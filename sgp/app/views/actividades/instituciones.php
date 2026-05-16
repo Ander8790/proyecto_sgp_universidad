@@ -10,7 +10,7 @@ $csrfToken        = $data['csrfToken']        ?? '';
 <style>
 @keyframes inst-fadeUp { from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)} }
 
-.inst-wrap { width:100%;max-width:1600px;margin:0 auto;padding:20px; }
+.inst-wrap { width:100%; }
 
 .inst-banner { background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:28px 36px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;position:relative;overflow:hidden; }
 .inst-banner::before { content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:rgba(255,255,255,0.04);border-radius:50%; }

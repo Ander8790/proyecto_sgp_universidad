@@ -2,7 +2,6 @@
 /**
  * Vista: Dashboard del SuperAdmin — Sala de Control del Director
  */
-require_once APPROOT . '/views/inc/header.php';
 
 // Preparar datos para gráficas (PHP → JS)
 $actividadSemana      = $data['actividad_semana']      ?? [];
@@ -68,7 +67,7 @@ foreach ($distribucionAcciones as $row) {
 .sa-card { background:white; border-radius:16px; padding:22px; box-shadow:0 2px 10px rgba(0,0,0,0.05); }
 .sa-card-title { font-size:1rem; font-weight:700; color:#1e293b; margin-bottom:18px; display:flex; align-items:center; gap:8px; }
 
-.sa-bottom-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+.sa-bottom-row { display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:start; }
 
 /* Tabla de supervisión */
 .sup-table { width:100%; border-collapse:collapse; }
@@ -99,7 +98,10 @@ foreach ($distribucionAcciones as $row) {
 .btn-page:disabled { opacity:.5; cursor:not-allowed; }
 
 /* iOS Timeline Feed */
-.ios-timeline { position: relative; padding-left: 24px; margin-top: 10px; }
+.ios-timeline { position: relative; padding-left: 24px; margin-top: 10px; max-height: 380px; overflow-y: auto; padding-right: 4px; }
+.ios-timeline::-webkit-scrollbar { width: 4px; }
+.ios-timeline::-webkit-scrollbar-track { background: transparent; }
+.ios-timeline::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
 .ios-timeline::before { content: ''; position: absolute; left: 7px; top: 6px; bottom: 0; width: 2px; background: #e2e8f0; border-radius: 2px; }
 .ios-feed-item { position: relative; padding-bottom: 20px; }
 .ios-feed-item:last-child { padding-bottom: 0; }
@@ -115,6 +117,44 @@ foreach ($distribucionAcciones as $row) {
     .sa-dash-grid-top { grid-template-columns:repeat(3,1fr); }
     .sa-charts-row    { grid-template-columns:1fr; }
     .sa-bottom-row    { grid-template-columns:1fr; }
+}
+@media (max-width:640px) {
+    .sa-dash-grid-top { grid-template-columns:repeat(2,1fr); gap:10px; }
+    .sa-kpi           { padding:14px 16px; }
+    .sa-kpi-val       { font-size:1.7rem; }
+    .sa-kpi-label     { font-size:.64rem; letter-spacing:.3px; }
+    .sa-kpi-sub       { font-size:.68rem; }
+    /* 5ª KPI — span 2 cols, layout horizontal tipo "resumen" */
+    .sa-dash-grid-top .sa-kpi:last-child {
+        grid-column: 1 / -1;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        border-left: none;
+        border-top: 4px solid var(--kc);
+        padding: 12px 18px;
+    }
+    .sa-dash-grid-top .sa-kpi:last-child .sa-kpi-val { font-size: 2rem; }
+    .sa-dash-grid-top .sa-kpi:last-child > div:first-child { flex: 1; }
+    .pasantes-banner  { padding:18px 20px !important; }
+    .pasantes-banner > div:last-child { display:none !important; }
+    .sa-card          { padding:16px 14px; }
+    .sa-card-title    { font-size:.88rem; margin-bottom:12px; }
+    .quick-link       { padding:11px 12px; gap:10px; margin-bottom:8px; }
+    .quick-link-icon  { width:36px; height:36px; font-size:1.1rem; }
+    /* Tabla supervisión: ocultar Acciones y Última Actividad en móvil */
+    .sup-table th:nth-child(3),
+    .sup-table td:nth-child(3),
+    .sup-table th:nth-child(4),
+    .sup-table td:nth-child(4) { display:none; }
+    /* Feed reciente: badge + hora en fila con wrap */
+    .ios-feed-header { flex-wrap:wrap; gap:4px; }
+    .ios-feed-time   { width:100%; margin-top:2px; }
+    /* quick-link descripción: ocultar en muy pequeño para condensar */
+    .quick-link-text p { display:none; }
+    /* Tabla Usuario: email en fuente menor */
+    .sup-table td:first-child div > div:last-child { font-size:.63rem; }
 }
 </style>
 
@@ -209,6 +249,7 @@ foreach ($distribucionAcciones as $row) {
             <?php else:
                 $maxAcciones = max(array_column($actividadPorUsuario, 'total_acciones'));
             ?>
+            <div style="max-height:350px;overflow-y:auto;overflow-x:auto;border-radius:10px;border:1px solid #f1f5f9;">
             <table class="sup-table">
                 <thead>
                     <tr>
@@ -246,7 +287,8 @@ foreach ($distribucionAcciones as $row) {
                 <?php endforeach; ?>
                 </tbody>
             </table>
-            
+            </div>
+
             <div class="pagination-controls">
                 <span id="userPageInfo">Mostrando 1 - 8 de X</span>
                 <div style="display:flex;gap:6px;">
@@ -257,7 +299,7 @@ foreach ($distribucionAcciones as $row) {
             <?php endif; ?>
         </div>
 
-        <!-- Accesos rápidos y bitácora reciente -->
+        <!-- Accesos rápidos -->
         <div style="display:flex;flex-direction:column;gap:20px;">
 
             <!-- Accesos directos -->
@@ -283,63 +325,6 @@ foreach ($distribucionAcciones as $row) {
                     <div class="quick-link-icon" style="background:#ecfdf5;color:#10b981;"><i class="ti ti-database"></i></div>
                     <div class="quick-link-text"><h4>Respaldos DB</h4><p>Copias de seguridad del sistema</p></div>
                 </a>
-            </div>
-
-            <!-- Feed de actividad reciente -->
-            <div class="sa-card">
-                <div class="sa-card-title">
-                    <i class="ti ti-activity" style="color:#ef4444;"></i>
-                    Actividad Reciente
-                </div>
-                <?php if (empty($data['ultimos_logs'])): ?>
-                    <p style="color:#94a3b8;font-size:.88rem;text-align:center;padding:16px;">Sin registros.</p>
-                <?php else:
-                    $accionesLabels = [
-                        'LOGIN'=>'Inicio de Sesión','LOGOUT'=>'Cierre de Sesión',
-                        'RESET_PASSWORD'=>'Reset Contraseña','RESET_PIN'=>'Reset PIN',
-                        'CREATE_USER'=>'Usuario Creado','UPDATE_USER'=>'Usuario Modificado',
-                        'CREATE_PASANTE'=>'Pasante Creado','UPDATE_PASANTE'=>'Pasante Modificado',
-                        'MARCAR_ASISTENCIA_KIOSCO'=>'Asistencia Kiosco',
-                        'PERMISO_MODIFICADO'=>'Permiso Modificado',
-                    ];
-                    ?>
-                    <div id="recentFeed" class="ios-timeline">
-                    <?php
-                    foreach ($data['ultimos_logs'] as $log):
-                        $bg = '#94a3b8'; // Slate por defecto
-                        $accionStr = strtoupper($log->accion);
-                        if (str_contains($accionStr,'LOGIN')) { $bg='#10b981'; }
-                        elseif (str_contains($accionStr,'FAIL')) { $bg='#f59e0b'; }
-                        elseif (str_contains($accionStr,'DELETE')) { $bg='#ef4444'; }
-                        elseif (str_contains($accionStr,'ASISTENCIA')) { $bg='#3b82f6'; }
-                        elseif (str_contains($accionStr,'UPDATE') || str_contains($accionStr,'MODIFICAD')) { $bg='#8b5cf6'; }
-                        elseif (str_contains($accionStr,'CREATE') || str_contains($accionStr,'REGISTRAD')) { $bg='#0ea5e9'; }
-                        
-                        $label = $accionesLabels[$accionStr] ?? $log->accion;
-                ?>
-                <div class="feed-item ios-feed-item">
-                    <div class="ios-dot" style="background:<?=$bg?>;"></div>
-                    <div class="ios-feed-content">
-                        <div class="ios-feed-header">
-                            <span class="ios-badge" style="background:<?=$bg?>;"><?= htmlspecialchars($label) ?></span>
-                            <span class="ios-feed-time"><?= date('d M, H:i', strtotime($log->created_at)) ?></span>
-                        </div>
-                        <div class="ios-feed-user">
-                            <i class="ti ti-user-circle"></i>
-                            <?= htmlspecialchars($log->usuario_nombre ?? 'Sistema') ?>
-                        </div>
-                    </div>
-                </div>
-                <?php endforeach; ?>
-                </div>
-                <div class="pagination-controls">
-                    <span id="feedPageInfo"></span>
-                    <div style="display:flex;gap:6px;">
-                        <button class="btn-page" id="btnFeedPrev" onclick="changeFeedPage(-1)"><i class="ti ti-chevron-left"></i></button>
-                        <button class="btn-page" id="btnFeedNext" onclick="changeFeedPage(1)"><i class="ti ti-chevron-right"></i></button>
-                    </div>
-                </div>
-                <?php endif; ?>
             </div>
 
         </div>
@@ -407,36 +392,53 @@ $donutLabelsJ = json_encode($donutLabels);
 $donutDataJ   = json_encode($donutData);
 ?>
 <script>
-let chartActividad;
-const dataSemana = { labels: <?= $lineasLabels ?>, series: <?= $lineasData ?> };
-const dataMes    = { labels: <?= $mesLabelsJ ?>, series: <?= $mesDataJ ?> };
+var chartActividad;
+var dataSemana = { labels: <?= $lineasLabels ?>, series: <?= $lineasData ?> };
+var dataMes    = { labels: <?= $mesLabelsJ ?>, series: <?= $mesDataJ ?> };
 
-document.addEventListener('DOMContentLoaded', function () {
-    if (typeof ApexCharts !== 'undefined') {
-        // Gráfica de líneas — Actividad
-        const elLinea = document.getElementById('chartLinea');
-        if (elLinea) {
-            chartActividad = new ApexCharts(elLinea, {
-                chart: { type: 'area', height: 180, toolbar: { show: false }, sparkline: { enabled: false } },
-                series: [{ name: 'Eventos', data: dataSemana.series }],
-                xaxis: { categories: dataSemana.labels, labels: { style: { colors: '#94a3b8', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
-                yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } }, min: 0 },
-                stroke: { curve: 'smooth', width: 2.5 },
-                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0, stops: [0, 100] } },
-                colors: ['#3b82f6'],
-                dataLabels: { enabled: false },
-                grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
-                tooltip: { theme: 'light' },
-            });
-            chartActividad.render();
-        }
+// PJAX-safe: si DOMContentLoaded ya disparó (navegación PJAX), corre inmediato
+function _sgpInitSuperAdminCharts() {
+    if (typeof ApexCharts === 'undefined') return;
 
-        // Gráfica donut — Distribución de acciones
-        const elDonut = document.getElementById('chartDonut');
-        const donutData = <?= $donutDataJ ?>;
-        if (elDonut && donutData.length > 0) {
+    const isMobile = window.innerWidth <= 640;
+
+    // Gráfica de líneas — Actividad
+    const elLinea = document.getElementById('chartLinea');
+    if (elLinea && !elLinea._apexInited) {
+        elLinea._apexInited = true;
+        chartActividad = new ApexCharts(elLinea, {
+            chart: {
+                type: 'area',
+                height: isMobile ? 160 : 180,
+                toolbar: { show: false },
+                responsive: [{ breakpoint: 640, options: { chart: { height: 160 } } }]
+            },
+            series: [{ name: 'Eventos', data: dataSemana.series }],
+            xaxis: { categories: dataSemana.labels, labels: { style: { colors: '#94a3b8', fontSize: '11px' } }, axisBorder: { show: false }, axisTicks: { show: false } },
+            yaxis: { labels: { style: { colors: '#94a3b8', fontSize: '11px' } }, min: 0 },
+            stroke: { curve: 'smooth', width: 2.5 },
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.25, opacityTo: 0, stops: [0, 100] } },
+            colors: ['#3b82f6'],
+            dataLabels: { enabled: false },
+            grid: { borderColor: '#f1f5f9', strokeDashArray: 4 },
+            tooltip: { theme: 'light' },
+        });
+        chartActividad.render();
+    }
+
+    // Gráfica donut — Distribución de acciones
+    const elDonut = document.getElementById('chartDonut');
+    const donutData = <?= $donutDataJ ?>;
+    if (elDonut && !elDonut._apexInited) {
+        elDonut._apexInited = true;
+        if (donutData.length > 0) {
             new ApexCharts(elDonut, {
-                chart: { type: 'donut', height: 280, toolbar: { show: false } },
+                chart: {
+                    type: 'donut',
+                    height: isMobile ? 240 : 280,
+                    toolbar: { show: false },
+                    responsive: [{ breakpoint: 640, options: { chart: { height: 220 }, legend: { position: 'bottom' } } }]
+                },
                 series: donutData,
                 labels: <?= $donutLabelsJ ?>,
                 colors: ['#3b82f6','#8b5cf6','#10b981','#f59e0b','#ef4444','#06b6d4'],
@@ -445,15 +447,26 @@ document.addEventListener('DOMContentLoaded', function () {
                 legend: { position: 'bottom', fontSize: '11.5px', markers: { width: 10, height: 10 }, itemMargin: { horizontal: 8, vertical: 4 } },
                 tooltip: { theme: 'light' },
             }).render();
-        } else if (elDonut && donutData.length === 0) {
+        } else {
             elDonut.innerHTML = '<p style="text-align:center;color:#94a3b8;padding:40px;font-size:.88rem;">Sin datos en los últimos 30 días.</p>';
         }
     }
+}
 
-    // Inicializar Paginación
+function _sgpInitSuperAdminPagination() {
     initPagination('user-row', 8, 'userPageInfo', 'btnUserPrev', 'btnUserNext', (dir) => userPage += dir);
-    initPagination('feed-item', 6, 'feedPageInfo', 'btnFeedPrev', 'btnFeedNext', (dir) => feedPage += dir);
-});
+}
+
+// Patrón PJAX-safe: corre inmediato si DOM ya listo, o espera DOMContentLoaded
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () {
+        requestAnimationFrame(_sgpInitSuperAdminCharts);
+        _sgpInitSuperAdminPagination();
+    });
+} else {
+    requestAnimationFrame(_sgpInitSuperAdminCharts);
+    _sgpInitSuperAdminPagination();
+}
 
 // Función para cambiar la data de la gráfica de líneas
 window.toggleChart = function(btn, range) {
@@ -474,7 +487,7 @@ window.toggleChart = function(btn, range) {
 // ==========================================
 // Lógica de Paginación JS genérica
 // ==========================================
-let userPage = 1, feedPage = 1;
+var userPage = 1;
 
 function initPagination(rowClass, itemsPerPage, infoId, btnPrevId, btnNextId, pageUpdater) {
     const rows = document.querySelectorAll('.' + rowClass);
@@ -515,7 +528,7 @@ function initPagination(rowClass, itemsPerPage, infoId, btnPrevId, btnNextId, pa
 // ══════════════════════════════════════════════════════
 // Modal: Eventos de Hoy
 // ══════════════════════════════════════════════════════
-const EVENTOS_LABELS = {
+var EVENTOS_LABELS = {
     'LOGIN':'Inicio de Sesión','LOGOUT':'Cierre de Sesión',
     'RESET_PASSWORD':'Reset Contraseña','RESET_PIN':'Reset PIN',
     'CREATE_USER':'Usuario Creado','UPDATE_USER':'Usuario Modificado',
@@ -536,6 +549,8 @@ const EVENTOS_LABELS = {
     'MARCAR_ASISTENCIA':'Asistencia Marcada',
     'UPDATE_ASISTENCIA':'Asistencia Modificada',
     'SESSION_MAINTENANCE':'Mant. Sesiones',
+    'SYNC_FERIADOS_API':'Sincronización Feriados',
+    'MAINTENANCE':'Mantenimiento',
 };
 
 function eventoColor(accion) {
@@ -633,4 +648,3 @@ document.addEventListener('keydown', function(e) {
 </script>
 
 
-<?php require_once APPROOT . '/views/layouts/footer.php'; ?>

@@ -262,9 +262,6 @@ $metricas  = [
 
 .dashboard-container {
     width: 100%;
-    max-width: 1600px;
-    margin: 0 auto;
-    padding: 20px;
     display: block;
 }
 
@@ -432,8 +429,10 @@ $metricas  = [
                     <?php
                     $meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
                     foreach ($meses as $mi => $mn):
-                        $mn1 = $mi + 1;
-                        $activo = ($mn1 == $mesActualNum) ? 'background:#e0f2fe;color:#0284c7;' : 'background:#f1f5f9;color:#64748b;';
+                        $mn1    = $mi + 1;
+                        $activo = ($mn1 == $mesActualNum)
+                            ? 'background:#e0f2fe;color:#0284c7;'
+                            : 'background:#f1f5f9;color:#64748b;';
                     ?>
                     <button onclick="filtrarAsistencias(<?= $mn1 ?>)" id="btnAsist<?= $mn1 ?>"
                         style="font-size:0.72rem;padding:3px 10px;border-radius:20px;border:none;cursor:pointer;<?= $activo ?>font-weight:600;">
@@ -1139,7 +1138,7 @@ $metricas  = [
 
         const titleEl = document.getElementById('top5-title');
         let lista = (depto === '__todos__' ? allPasantes : allPasantes.filter(p => p.departamento === depto))
-            .slice()
+            .filter(p => p.num_eval > 0)
             .sort((a, b) => b.prom_eval - a.prom_eval || b.progreso - a.progreso)
             .slice(0, 5);
 
@@ -1148,7 +1147,20 @@ $metricas  = [
         const container = document.getElementById('top5-lista');
         if (!container) return;
         if (!lista.length) {
-            container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;"><i class="ti ti-trophy-off" style="font-size:32px;display:block;margin-bottom:10px;"></i>Sin pasantes en este departamento.</div>';
+            const hayEvals = allPasantes.some(p => p.num_eval > 0);
+            if (!hayEvals) {
+                container.innerHTML = `<div style="text-align:center;padding:48px 24px;">
+                    <div style="display:inline-flex;align-items:center;justify-content:center;width:60px;height:60px;border-radius:50%;background:#eff6ff;border:2px solid #bfdbfe;margin-bottom:14px;">
+                        <i class="ti ti-clipboard-off" style="font-size:1.8rem;color:#2563eb;"></i>
+                    </div>
+                    <div style="font-size:0.95rem;font-weight:700;color:#1e3a8a;margin-bottom:6px;">Sin evaluaciones registradas</div>
+                    <p style="color:#94a3b8;font-size:0.82rem;margin:0;max-width:280px;margin-inline:auto;line-height:1.5;">
+                        El ranking se activará cuando los pasantes sean evaluados por sus tutores.
+                    </p>
+                </div>`;
+            } else {
+                container.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;"><i class="ti ti-trophy-off" style="font-size:32px;display:block;margin-bottom:10px;"></i>Sin pasantes evaluados en este departamento.</div>';
+            }
             return;
         }
 

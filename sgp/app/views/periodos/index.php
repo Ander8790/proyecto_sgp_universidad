@@ -194,7 +194,7 @@
 }
 </style>
 
-<div style="width:100%;max-width:1600px;margin:0 auto;padding:20px;" id="periodos-pjax-container">
+<div style="width:100%;" id="periodos-pjax-container">
 
 
     <!-- ══════════════════════════════════════════════════════

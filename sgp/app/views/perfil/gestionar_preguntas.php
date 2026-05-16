@@ -7,7 +7,6 @@
  * consistente con el formulario de registro.
  */
 
-require_once APPROOT . '/views/inc/header.php';
 ?>
 
 <!-- CSS Premium - Coherente con register.php -->
@@ -377,8 +376,6 @@ require_once APPROOT . '/views/inc/header.php';
         </div>
     </div>
 </div>
-
-<?php require_once APPROOT . '/views/inc/footer.php'; ?>
 
 <!-- Toast: usando NotificationService global -->
 

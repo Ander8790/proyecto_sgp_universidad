@@ -149,19 +149,26 @@ class AsignacionesController extends Controller
                             $diaSemana = (int)$inicioObj->format('N');
                             if ($diaSemana >= 1 && $diaSemana <= 5) { // Lunes a Viernes
                                 $fechaLoop = $inicioObj->format('Y-m-d');
-                                
+
+                                // Saltar feriados NO laborables (es_laborable = 0)
+                                $this->db->query("SELECT id FROM dias_feriados WHERE fecha = :fecha AND es_laborable = 0 LIMIT 1");
+                                $this->db->bind(':fecha', $fechaLoop);
+                                if ($this->db->single()) {
+                                    $inicioObj->modify('+1 day');
+                                    continue;
+                                }
+
                                 // Asegurar que no haya registros ese mismo día
                                 $this->db->query("SELECT id FROM asistencias WHERE pasante_id = :pid AND fecha = :fecha LIMIT 1");
                                 $this->db->bind(':pid', $pasanteId);
                                 $this->db->bind(':fecha', $fechaLoop);
-                                
+
                                 if (!$this->db->single()) {
-                                    // 🚨 CORECCIÓN APLICADA: METODO = 'Manual'
                                     $this->db->query("
                                         INSERT INTO asistencias (pasante_id, fecha, hora_registro, estado, metodo, motivo_justificacion)
                                         VALUES (:pid, :fecha, '08:00:00', 'Justificado', 'Manual', 'Ingreso tardío por trámites administrativos')
                                     ");
-                                    $this->db->bind(':pid', $pasanteId);
+                                    $this->db->bind(':pid',   $pasanteId);
                                     $this->db->bind(':fecha', $fechaLoop);
                                     $this->db->execute();
                                 }

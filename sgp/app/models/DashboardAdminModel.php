@@ -29,7 +29,7 @@ class DashboardAdminModel
                  WHERE u.rol_id = 3 AND (dp.estado_pasantia = 'Sin Asignar' OR dp.estado_pasantia IS NULL OR dp.estado_pasantia = '')) AS pendientesAsignar,
                 (SELECT COUNT(*) FROM usuarios WHERE rol_id = 2 AND estado = 'activo') AS totalTutores,
                 (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND estado = 'Presente') AS asistenciasHoy,
-                (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND estado IN ('Ausente', 'Falta')) AS faltasHoy,
+                (SELECT COUNT(*) FROM asistencias WHERE fecha = CURDATE() AND estado = 'Ausente') AS faltasHoy,
                 (SELECT COUNT(DISTINCT institucion_procedencia) FROM datos_pasante WHERE institucion_procedencia IS NOT NULL AND institucion_procedencia != '') AS totalInstituciones
         ");
         return $this->db->single();
@@ -81,7 +81,7 @@ class DashboardAdminModel
         $this->db->query("
             SELECT COUNT(*) AS total
             FROM asistencias
-            WHERE fecha = CURDATE() AND estado IN ('Ausente', 'Falta')
+            WHERE fecha = CURDATE() AND estado = 'Ausente'
         ");
         return (int)($this->db->single()->total ?? 0);
     }
@@ -155,48 +155,84 @@ class DashboardAdminModel
 
     public function getAsistenciaDiaria(): array
     {
-        // Últimos 5 días hábiles
+        // Lunes y viernes de la semana ACTUAL (ISO)
+        $lunes   = date('Y-m-d', strtotime('monday this week'));
+        $viernes = date('Y-m-d', strtotime('friday this week'));
+
+        // ── Conteos por día ──────────────────────────────────────────
         $this->db->query("
-            SELECT 
-                DATE_FORMAT(fecha, '%w') AS dia_num, /* 1=Lun, 5=Vie */
+            SELECT
+                fecha,
                 SUM(estado = 'Presente') AS p,
-                SUM(estado IN ('Ausente', 'Falta') OR estado IS NULL) AS f,
+                SUM(estado IN ('Ausente','Falta')) AS f,
                 SUM(estado = 'Justificado') AS j
             FROM asistencias
-            WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) 
-              AND DATE_FORMAT(fecha, '%w') BETWEEN 1 AND 5
+            WHERE fecha BETWEEN :lun AND :vie
             GROUP BY fecha
             ORDER BY fecha ASC
-            LIMIT 5
         ");
-        $results = $this->db->resultSet();
-        
-        $mapaDias = ['1'=>'Lun', '2'=>'Mar', '3'=>'Mié', '4'=>'Jue', '5'=>'Vie'];
-        $data = ['cat' => [], 'p' => [], 'f' => [], 'j' => []];
-        
-        foreach ($results as $r) {
-            $data['cat'][] = $mapaDias[$r->dia_num] ?? '?';
-            $data['p'][]   = (int)$r->p;
-            $data['f'][]   = (int)$r->f;
-            $data['j'][]   = (int)$r->j;
+        $this->db->bind(':lun', $lunes);
+        $this->db->bind(':vie', $viernes);
+        $resultados = $this->db->resultSet();
+
+        // ── Motivos únicos de justificación por día ──────────────────
+        $this->db->query("
+            SELECT
+                a.fecha,
+                COALESCE(
+                    df.nombre,
+                    NULLIF(TRIM(a.motivo_justificacion), ''),
+                    'Justificado'
+                ) AS motivo
+            FROM asistencias a
+            LEFT JOIN dias_feriados df ON df.fecha = a.fecha
+            WHERE a.fecha BETWEEN :lun AND :vie
+              AND a.estado = 'Justificado'
+            ORDER BY a.fecha ASC
+        ");
+        $this->db->bind(':lun', $lunes);
+        $this->db->bind(':vie', $viernes);
+        $motivosRaw = $this->db->resultSet();
+
+        $motivosPorFecha = [];
+        foreach ($motivosRaw as $m) {
+            $v = trim($m->motivo);
+            if (!isset($motivosPorFecha[$m->fecha])) $motivosPorFecha[$m->fecha] = [];
+            if (!in_array($v, $motivosPorFecha[$m->fecha])) $motivosPorFecha[$m->fecha][] = $v;
         }
-        
-        // Si no hay datos, devolver vacíos limpios en lugar de arrays desajustados
-        if (empty($data['cat'])) {
-            $data = ['cat' => ['Lun','Mar','Mié','Jue','Vie'], 'p' => [0,0,0,0,0], 'f' => [0,0,0,0,0], 'j' => [0,0,0,0,0]];
+
+        // Indexar resultados por fecha
+        $porFecha = [];
+        foreach ($resultados as $r) { $porFecha[$r->fecha] = $r; }
+
+        // ── Generar slots Lun–Vie en orden fijo ─────────────────────
+        $nombresDia = ['1'=>'Lun','2'=>'Mar','3'=>'Mié','4'=>'Jue','5'=>'Vie'];
+        $data = ['cat'=>[],'p'=>[],'f'=>[],'j'=>[],'motivos'=>[]];
+
+        for ($i = 0; $i < 5; $i++) {
+            $fecha = date('Y-m-d', strtotime($lunes . " +{$i} days"));
+            $dow   = date('N', strtotime($fecha)); // ISO 1=Lun…5=Vie
+            $r     = $porFecha[$fecha] ?? null;
+
+            $data['cat'][]     = $nombresDia[$dow] ?? 'Día';
+            $data['p'][]       = $r ? (int)$r->p : 0;
+            $data['f'][]       = $r ? (int)$r->f : 0;
+            $data['j'][]       = $r ? (int)$r->j : 0;
+            $data['motivos'][] = $motivosPorFecha[$fecha] ?? [];
         }
-        
+
         return $data;
     }
 
     public function getAsistenciaSemanal(): array
     {
-        // Últimas 4 semanas
+        // Últimas 4 semanas ISO — etiqueta: fecha del lunes de cada semana
         $this->db->query("
-            SELECT 
+            SELECT
                 WEEK(fecha, 1) AS semana_num,
+                DATE_SUB(MIN(fecha), INTERVAL WEEKDAY(MIN(fecha)) DAY) AS lunes_semana,
                 SUM(estado = 'Presente') AS p,
-                SUM(estado IN ('Ausente', 'Falta') OR estado IS NULL) AS f,
+                SUM(estado IN ('Ausente','Falta')) AS f,
                 SUM(estado = 'Justificado') AS j
             FROM asistencias
             WHERE fecha >= DATE_SUB(CURDATE(), INTERVAL 28 DAY)
@@ -205,30 +241,30 @@ class DashboardAdminModel
             LIMIT 4
         ");
         $results = $this->db->resultSet();
-        $data = ['cat' => [], 'p' => [], 'f' => [], 'j' => []];
-        $count = 1;
-        
+        $data = ['cat'=>[],'p'=>[],'f'=>[],'j'=>[],'motivos'=>[]];
+
         foreach ($results as $r) {
-            $data['cat'][] = 'Sem ' . $count++;
-            $data['p'][]   = (int)$r->p;
-            $data['f'][]   = (int)$r->f;
-            $data['j'][]   = (int)$r->j;
+            $data['cat'][]     = date('d/m', strtotime($r->lunes_semana));
+            $data['p'][]       = (int)$r->p;
+            $data['f'][]       = (int)$r->f;
+            $data['j'][]       = (int)$r->j;
+            $data['motivos'][] = [];
         }
-        
+
         if (empty($data['cat'])) {
-            $data = ['cat' => ['Sem 1','Sem 2','Sem 3','Sem 4'], 'p' => [0,0,0,0], 'f' => [0,0,0,0], 'j' => [0,0,0,0]];
+            $data = ['cat'=>['Sem 1','Sem 2','Sem 3','Sem 4'],'p'=>[0,0,0,0],'f'=>[0,0,0,0],'j'=>[0,0,0,0],'motivos'=>[[],[],[],[]]];
         }
         return $data;
     }
 
     public function getAsistenciaMensual(): array
     {
-        // Últimos 6 meses del año actual
+        // Meses del año actual
         $this->db->query("
-            SELECT 
+            SELECT
                 MONTH(fecha) AS mes_num,
                 SUM(estado = 'Presente') AS p,
-                SUM(estado IN ('Ausente', 'Falta') OR estado IS NULL) AS f,
+                SUM(estado IN ('Ausente','Falta')) AS f,
                 SUM(estado = 'Justificado') AS j
             FROM asistencias
             WHERE YEAR(fecha) = YEAR(CURDATE())
@@ -237,18 +273,19 @@ class DashboardAdminModel
             LIMIT 6
         ");
         $results = $this->db->resultSet();
-        $mapaMeses = [1=>'Ene', 2=>'Feb', 3=>'Mar', 4=>'Abr', 5=>'May', 6=>'Jun', 7=>'Jul', 8=>'Ago', 9=>'Sep', 10=>'Oct', 11=>'Nov', 12=>'Dic'];
-        $data = ['cat' => [], 'p' => [], 'f' => [], 'j' => []];
-        
+        $mapaMeses = [1=>'Ene',2=>'Feb',3=>'Mar',4=>'Abr',5=>'May',6=>'Jun',7=>'Jul',8=>'Ago',9=>'Sep',10=>'Oct',11=>'Nov',12=>'Dic'];
+        $data = ['cat'=>[],'p'=>[],'f'=>[],'j'=>[],'motivos'=>[]];
+
         foreach ($results as $r) {
-            $data['cat'][] = $mapaMeses[$r->mes_num] ?? '?';
-            $data['p'][]   = (int)$r->p;
-            $data['f'][]   = (int)$r->f;
-            $data['j'][]   = (int)$r->j;
+            $data['cat'][]     = $mapaMeses[$r->mes_num] ?? '?';
+            $data['p'][]       = (int)$r->p;
+            $data['f'][]       = (int)$r->f;
+            $data['j'][]       = (int)$r->j;
+            $data['motivos'][] = [];
         }
-        
+
         if (empty($data['cat'])) {
-            $data = ['cat' => ['Ene','Feb','Mar','Abr','May'], 'p' => [0,0,0,0,0], 'f' => [0,0,0,0,0], 'j' => [0,0,0,0,0]];
+            $data = ['cat'=>['Ene','Feb','Mar','Abr','May'],'p'=>[0,0,0,0,0],'f'=>[0,0,0,0,0],'j'=>[0,0,0,0,0],'motivos'=>[[],[],[],[],[]]];
         }
         return $data;
     }

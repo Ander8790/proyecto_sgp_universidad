@@ -73,7 +73,7 @@ class BackupController extends Controller
             // Build command - handle empty password
             if (empty($pass)) {
                 $command = sprintf(
-                    '%s --user=%s --host=%s %s > %s 2>&1',
+                    '%s --user=%s --host=%s --routines %s > %s 2>&1',
                     $mysqldumpPath,
                     escapeshellarg($user),
                     escapeshellarg($host),
@@ -82,7 +82,7 @@ class BackupController extends Controller
                 );
             } else {
                 $command = sprintf(
-                    '%s --user=%s --password=%s --host=%s %s > %s 2>&1',
+                    '%s --user=%s --password=%s --host=%s --routines %s > %s 2>&1',
                     $mysqldumpPath,
                     escapeshellarg($user),
                     escapeshellarg($pass),
@@ -134,9 +134,9 @@ class BackupController extends Controller
             return;
         }
         
-        // Validate filename (prevent directory traversal)
+        // Validate filename (prevent directory traversal) - allow _pre_restore
         $filename = basename($filename);
-        if (!preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.sql$/', $filename)) {
+        if (!preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(_pre_restore)?\.sql$/', $filename)) {
             Session::setFlash('error', 'Nombre de archivo inválido');
             $this->redirect('/backup');
             return;
@@ -173,9 +173,9 @@ class BackupController extends Controller
             $this->jsonResponse(false, 'Archivo no especificado');
         }
         
-        // Validate filename
+        // Validate filename (allow _pre_restore)
         $filename = basename($filename);
-        if (!preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.sql$/', $filename)) {
+        if (!preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(_pre_restore)?\.sql$/', $filename)) {
             $this->jsonResponse(false, 'Nombre de archivo inválido');
         }
         
@@ -206,9 +206,9 @@ class BackupController extends Controller
             $this->jsonResponse(false, 'Archivo no especificado');
         }
         
-        // Validate filename
+        // Validate filename (allow _pre_restore)
         $filename = basename($filename);
-        if (!preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.sql$/', $filename)) {
+        if (!preg_match('/^backup_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}(_pre_restore)?\.sql$/', $filename)) {
             $this->jsonResponse(false, 'Nombre de archivo inválido');
         }
         
@@ -234,11 +234,11 @@ class BackupController extends Controller
                 ? 'C:\\xampp\\mysql\\bin\\mysqldump.exe' : 'mysqldump';
 
             $dumpCmd = empty($dbConfig['pass'])
-                ? sprintf('%s --user=%s --host=%s %s > %s 2>&1',
+                ? sprintf('%s --user=%s --host=%s --routines %s > %s 2>&1',
                     $mysqldumpPath, escapeshellarg($dbConfig['user']),
                     escapeshellarg($dbConfig['host']), escapeshellarg($dbConfig['name']),
                     escapeshellarg($safetyPath))
-                : sprintf('%s --user=%s --password=%s --host=%s %s > %s 2>&1',
+                : sprintf('%s --user=%s --password=%s --host=%s --routines %s > %s 2>&1',
                     $mysqldumpPath, escapeshellarg($dbConfig['user']),
                     escapeshellarg($dbConfig['pass']), escapeshellarg($dbConfig['host']),
                     escapeshellarg($dbConfig['name']), escapeshellarg($safetyPath));
@@ -330,7 +330,8 @@ class BackupController extends Controller
                     'filename' => basename($file),
                     'size' => $this->formatBytes(filesize($file)),
                     'date' => date('d/m/Y H:i:s', filemtime($file)),
-                    'timestamp' => filemtime($file)
+                    'timestamp' => filemtime($file),
+                    'is_safety' => (strpos(basename($file), '_pre_restore') !== false)
                 ];
             }
         }

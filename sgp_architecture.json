@@ -1,0 +1,290 @@
+{
+  "app": {
+    "nombre": "SGP (Sistema de Gestión de Pasantes)",
+    "descripcion_general": "Aplicación web integral para el registro, control y analítica de asistencia, asignaciones, horarios y evaluaciones de pasantes dentro de la institución.",
+    "tipo_de_aplicacion": "Web Application (MVC Personalizado)",
+    "objetivo_principal": "Automatizar el seguimiento de pasantes, proveyendo un kiosco para marcaje de asistencia, dashboards analíticos para tutores/administradores y calculadoras dinámicas para control de horas y evaluaciones."
+  },
+  "tecnologias": {
+    "frontend": [
+      "HTML5",
+      "Vanilla CSS (Diseño Custom Premium SGP, Glassmorphism)",
+      "Vanilla JavaScript",
+      "Chart.js (Visualización de analíticas)",
+      "SweetAlert2 (Notificaciones modales)",
+      "Flatpickr (Selectores de fechas)"
+    ],
+    "backend": [
+      "PHP (Arquitectura MVC Propia)"
+    ],
+    "base_de_datos": "MySQL",
+    "orm_o_query_builder": "Wrapper de PDO nativo (Custom Query Builder / DAO Pattern)",
+    "autenticacion": "Basada en Sesiones PHP con roles de usuario y validación de PIN/Cédula en el Kiosco."
+  },
+  "roles_usuarios": [
+    {
+      "rol": "SuperAdmin",
+      "descripcion": "Administrador global del sistema.",
+      "permisos_principales": [
+        "Acceso total a todos los módulos y departamentos",
+        "Gestión de usuarios y permisos",
+        "Configuraciones del sistema, feriados y respaldos",
+        "Limpieza de base de datos"
+      ]
+    },
+    {
+      "rol": "Admin",
+      "descripcion": "Administrador departamental o coordinador.",
+      "permisos_principales": [
+        "Gestión de pasantes a nivel de departamento",
+        "Verificaciones y justificaciones de inasistencias",
+        "Emisión de reportes de asistencia general",
+        "Evaluación de pasantes"
+      ]
+    },
+    {
+      "rol": "Tutor",
+      "descripcion": "Encargado de guiar y evaluar a los pasantes asignados.",
+      "permisos_principales": [
+        "Evaluación y seguimiento de pasantes",
+        "Monitoreo de asistencia y retardo de sus tutelados",
+        "Aprobación/Revisión de bitácoras"
+      ]
+    },
+    {
+      "rol": "Pasante",
+      "descripcion": "Estudiante realizando prácticas.",
+      "permisos_principales": [
+        "Marcaje de asistencia a través del Kiosco",
+        "Visualización de horas cumplidas",
+        "Llenado de bitácora y actividades"
+      ]
+    }
+  ],
+  "casos_de_uso": [
+    {
+      "actor": "Pasante",
+      "caso_de_uso": "Marcar Asistencia Diaria",
+      "descripcion": "El pasante registra su hora de entrada/salida ingresando su cédula y PIN en la interfaz de Kiosco.",
+      "modulo_o_pantalla": "Módulo Kiosco Público",
+      "acciones_relacionadas": ["Calcular retardo", "Registrar método de acceso"],
+      "incluye": ["Validación de Cédula y PIN", "Verificación de Período Activo"],
+      "extiende": []
+    },
+    {
+      "actor": "Admin / Tutor",
+      "caso_de_uso": "Consultar Analíticas de Asistencia",
+      "descripcion": "Visualización del dashboard de asistencia con gráficos de dona, barras y mapas de calor (heatmap).",
+      "modulo_o_pantalla": "Panel de Control / Dashboard Asistencias",
+      "acciones_relacionadas": ["Filtrar por período académico", "Exportar CSV", "Exportar PDF"],
+      "incluye": [],
+      "extiende": []
+    },
+    {
+      "actor": "Admin",
+      "caso_de_uso": "Editar/Justificar Asistencia Manualmente",
+      "descripcion": "El administrador abre el detalle de un registro y cambia su estado (Ej: de Ausente a Justificado), anexando el motivo.",
+      "modulo_o_pantalla": "Modal 'Detalle de Asistencia' (index.php)",
+      "acciones_relacionadas": ["Guardar nuevo estado", "Registrar motivo"],
+      "incluye": ["Modificación manual de registro de asistencia"],
+      "extiende": []
+    },
+    {
+      "actor": "Admin",
+      "caso_de_uso": "Gestión de Evaluaciones y Horas",
+      "descripcion": "Uso de la calculadora inversa para deducir horas meta o prorrata en función del periodo asignado al pasante.",
+      "modulo_o_pantalla": "Módulo de Asignaciones",
+      "acciones_relacionadas": ["Generar cronograma", "Asignar horas requeridas"],
+      "incluye": [],
+      "extiende": []
+    }
+  ],
+  "modulos_funcionales": [
+    {
+      "nombre": "Auth",
+      "descripcion": "Gestión de sesiones de usuarios y autenticación.",
+      "rutas_o_archivos_relevantes": ["AuthController.php", "login.php"],
+      "usuarios_que_lo_usan": ["SuperAdmin", "Admin", "Tutor"]
+    },
+    {
+      "nombre": "Kiosco",
+      "descripcion": "Terminal de autoservicio o pantalla pública para marcaje de asistencia de pasantes.",
+      "rutas_o_archivos_relevantes": ["KioscoController.php", "kiosco/index.php"],
+      "usuarios_que_lo_usan": ["Pasante"]
+    },
+    {
+      "nombre": "Asistencias y Analíticas",
+      "descripcion": "Núcleo de visualización de métricas y modificación de asistencia.",
+      "rutas_o_archivos_relevantes": ["AsistenciasController.php", "AnaliticasController.php", "asistencias/index.php"],
+      "usuarios_que_lo_usan": ["Admin", "SuperAdmin", "Tutor"]
+    },
+    {
+      "nombre": "Asignaciones",
+      "descripcion": "Gestión de horarios, periodos y calculadoras de horas meta para pasantes.",
+      "rutas_o_archivos_relevantes": ["AsignacionesController.php", "PeriodosController.php"],
+      "usuarios_que_lo_usan": ["Admin", "SuperAdmin"]
+    },
+    {
+      "nombre": "Evaluaciones y Reportes",
+      "descripcion": "Sistema de notas y expedición de documentos (PDF).",
+      "rutas_o_archivos_relevantes": ["EvaluacionesController.php", "ReportesController.php"],
+      "usuarios_que_lo_usan": ["Admin", "Tutor"]
+    }
+  ],
+  "entidades_base_de_datos": [
+    {
+      "nombre": "usuarios",
+      "descripcion": "Tabla central para control de acceso (Credenciales).",
+      "tabla": "usuarios",
+      "campos": [
+        { "nombre": "id", "tipo": "INT", "es_pk": true, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "ID único" },
+        { "nombre": "email", "tipo": "VARCHAR", "es_pk": false, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "Correo de acceso" },
+        { "nombre": "password", "tipo": "VARCHAR", "es_pk": false, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "Hash de la contraseña" },
+        { "nombre": "rol", "tipo": "VARCHAR", "es_pk": false, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "Nivel de acceso (Ej: SuperAdmin, Tutor)" }
+      ]
+    },
+    {
+      "nombre": "datos_personales",
+      "descripcion": "Información general (Nombres, Apellidos, Cédula).",
+      "tabla": "datos_personales",
+      "campos": [
+        { "nombre": "id", "tipo": "INT", "es_pk": true, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "ID Registro" },
+        { "nombre": "usuario_id", "tipo": "INT", "es_pk": false, "es_fk": true, "referencia": "usuarios.id", "nullable": true, "descripcion": "Relación con el usuario" },
+        { "nombre": "cedula", "tipo": "VARCHAR", "es_pk": false, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "Identificación nacional" }
+      ]
+    },
+    {
+      "nombre": "datos_pasante",
+      "descripcion": "Información exclusiva académica y de perfil del pasante.",
+      "tabla": "datos_pasante",
+      "campos": [
+        { "nombre": "id", "tipo": "INT", "es_pk": true, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "PK" },
+        { "nombre": "usuario_id", "tipo": "INT", "es_pk": false, "es_fk": true, "referencia": "usuarios.id", "nullable": false, "descripcion": "FK a usuario" },
+        { "nombre": "departamento_id", "tipo": "INT", "es_pk": false, "es_fk": true, "referencia": "departamentos.id", "nullable": true, "descripcion": "Dpto asignado" }
+      ]
+    },
+    {
+      "nombre": "asistencias",
+      "descripcion": "Registros transaccionales de entradas y justificaciones diarias.",
+      "tabla": "asistencias",
+      "campos": [
+        { "nombre": "id", "tipo": "INT", "es_pk": true, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "PK" },
+        { "nombre": "pasante_id", "tipo": "INT", "es_pk": false, "es_fk": true, "referencia": "datos_pasante.id", "nullable": false, "descripcion": "Pasante que asiste" },
+        { "nombre": "fecha", "tipo": "DATE", "es_pk": false, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "Fecha de la asistencia" },
+        { "nombre": "estado", "tipo": "VARCHAR", "es_pk": false, "es_fk": false, "referencia": "", "nullable": false, "descripcion": "Presente, Ausente, Justificado" },
+        { "nombre": "es_retardo", "tipo": "BOOLEAN", "es_pk": false, "es_fk": false, "referencia": "", "nullable": true, "descripcion": "Si marcó entrada tarde" },
+        { "nombre": "motivo_justificacion", "tipo": "TEXT", "es_pk": false, "es_fk": false, "referencia": "", "nullable": true, "descripcion": "Razón de justificación" }
+      ]
+    }
+  ],
+  "relaciones": [
+    {
+      "entidad_origen": "usuarios",
+      "entidad_destino": "datos_personales",
+      "tipo": "uno_a_uno",
+      "campo_fk": "datos_personales.usuario_id",
+      "descripcion": "Perfil complementario del usuario."
+    },
+    {
+      "entidad_origen": "usuarios",
+      "entidad_destino": "datos_pasante",
+      "tipo": "uno_a_uno",
+      "campo_fk": "datos_pasante.usuario_id",
+      "descripcion": "Expande el perfil a atributos de pasante."
+    },
+    {
+      "entidad_origen": "departamentos",
+      "entidad_destino": "datos_pasante",
+      "tipo": "uno_a_muchos",
+      "campo_fk": "datos_pasante.departamento_id",
+      "descripcion": "Cada pasante pertenece a un departamento."
+    },
+    {
+      "entidad_origen": "datos_pasante",
+      "entidad_destino": "asistencias",
+      "tipo": "uno_a_muchos",
+      "campo_fk": "asistencias.pasante_id",
+      "descripcion": "Historial de asistencias de un pasante."
+    }
+  ],
+  "reglas_de_negocio": [
+    {
+      "regla": "Lógica de Retardos",
+      "descripcion": "La asistencia se marca como 'Retardo' si la hora de marcaje excede el horario límite estipulado para el departamento o la jornada.",
+      "entidades_o_modulos_afectados": ["asistencias", "KioscoController"]
+    },
+    {
+      "regla": "Meta Dinámica de Horas",
+      "descripcion": "El requisito de horas ya no es un fijo rígido de 1440, sino que la 'Calculadora Inversa' lo ajusta pro-rata basado en la fecha de inicio y fin (período de la pasantía).",
+      "entidades_o_modulos_afectados": ["asignaciones", "datos_pasante", "AsignacionesController"]
+    },
+    {
+      "regla": "Manejo de Estados Diarios Absolutos",
+      "descripcion": "Un pasante que no marca asistencia es detectado en la vista 'Diaria' como 'Sin Marcar', y los administradores pueden hacer un cierre marcando a todos los faltantes como Presentes o Ausentes.",
+      "entidades_o_modulos_afectados": ["asistencias", "AsistenciasController"]
+    }
+  ],
+  "flujos_importantes": [
+    {
+      "nombre": "Marcaje de Asistencia (Kiosco)",
+      "actor_principal": "Pasante",
+      "pasos": [
+        "1. El pasante accede a la URL pública del Kiosco.",
+        "2. Ingresa su número de Cédula y PIN de seguridad.",
+        "3. El sistema valida si el pasante está activo y dentro del periodo asignado.",
+        "4. El sistema registra la hora actual y calcula automáticamente si es un retardo.",
+        "5. Emite un SweetAlert de confirmación visual y guarda el registro en BD."
+      ],
+      "entidades_involucradas": ["usuarios", "datos_personales", "datos_pasante", "asistencias"]
+    },
+    {
+      "nombre": "Justificación de Falta (Manual)",
+      "actor_principal": "Admin",
+      "pasos": [
+        "1. El administrador entra a Dashboard -> Asistencias (vista Diaria o Semanal).",
+        "2. Abre el modal de 'Detalle de Asistencia'.",
+        "3. Hace clic en el icono del lápiz y selecciona el estado 'Justificado' anexando el motivo.",
+        "4. El frontend envía los datos por fetch a '/asistencias/registro_manual'.",
+        "5. El backend actualiza el registro y recalcula analíticas en tiempo real."
+      ],
+      "entidades_involucradas": ["asistencias", "AsistenciasController"]
+    }
+  ],
+  "archivos_clave": {
+    "modelos": [
+      "UserModel.php",
+      "PasanteModel.php",
+      "AsistenciaModel.php",
+      "AsignacionModel.php"
+    ],
+    "migraciones": [
+      "create_actividad_evidencias.sql",
+      "create_actividades_extras.sql",
+      "create_periodos.sql"
+    ],
+    "controladores_o_servicios": [
+      "AuthController.php",
+      "KioscoController.php",
+      "AsistenciasController.php",
+      "AnaliticasController.php",
+      "AsignacionesController.php"
+    ],
+    "rutas": [
+      "Embebidas en la lógica nativa del core MVC (app/core/Core.php o index.php) donde la URL define /controlador/metodo/parametros"
+    ],
+    "componentes_o_paginas": [
+      "views/kiosco/index.php",
+      "views/asistencias/index.php",
+      "views/dashboard/admin.php"
+    ],
+    "configuracion_db": [
+      "app/config/config.php (Constantes de conexión)",
+      "app/core/Database.php (Wrapper de conexión PDO)"
+    ]
+  },
+  "observaciones": [
+    "La interfaz del módulo de asistencia cuenta con estilos 'Premium SGP', integrando modales de edición rápida.",
+    "El sistema se migró de un modelo rígido de 1440 horas a una asignación dinámica por periodos.",
+    "Posee utilidades avanzadas como scripts de depuración automática en producción."
+  ]
+}

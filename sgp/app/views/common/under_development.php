@@ -1,5 +1,3 @@
-<?php require_once APPROOT . '/views/inc/header.php'; ?>
-
 <div class="main-content">
     <div class="dashboard-container">
         <!-- Mensaje de Desarrollo -->
@@ -126,4 +124,3 @@
 }
 </style>
 
-<?php require_once APPROOT . '/views/inc/footer.php'; ?>

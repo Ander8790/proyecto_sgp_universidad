@@ -309,7 +309,7 @@ class BitacoraController extends Controller
      * 
      * @param int $id ID del registro
      */
-    public function exportPdfRow($id = null): void
+    public function exportPdfRow(?int $id = null): void
     {
         if (!$id || !is_numeric($id)) {
             http_response_code(400);
@@ -371,6 +371,17 @@ class BitacoraController extends Controller
             'AUDIT_PURGE'               => 'Mantenimiento de Bitácora Ejecutado',
             'EXPORT_CSV'                => 'Exportación de Datos CSV',
             'UPDATE_CONFIG'             => 'Configuración del Sistema Actualizada',
+            'REGISTRAR_ASISTENCIA_MANUAL'  => 'Asistencia Registrada Manualmente',
+            'ACTUALIZAR_ASISTENCIA_MANUAL' => 'Asistencia Actualizada Manualmente',
+            'REGISTRAR_ASISTENCIA_MASIVA'  => 'Asistencias Marcadas de Forma Masiva',
+            'ANULAR_ASISTENCIA'            => 'Asistencia Anulada',
+            'CREATE_EXAMEN'             => 'Examen Rápido Creado',
+            'TOGGLE_EXAMEN'             => 'Estado de Examen Cambiado',
+            'DELETE_EXAMEN'             => 'Examen Eliminado',
+            'ENVIO_EXAMEN'              => 'Examen Enviado por Pasante',
+            'REVISAR_EXAMEN'            => 'Examen Revisado por Tutor/Admin',
+            'EDITAR_PUNTOS_PREGUNTA'    => 'Puntos de Pregunta Modificados',
+            'DELETE_INTENTO'            => 'Intento de Examen Eliminado',
         ];
         $accion_es = $acciones_es[strtoupper($log->accion ?? '')] ?? htmlspecialchars($log->accion ?? '—');
 
@@ -433,267 +444,162 @@ class BitacoraController extends Controller
                </table>"
             : "<p class='no-details'>Esta acción no contiene detalles adicionales registrados.</p>";
 
-        // Salida HTML imprimible
-        header('Content-Type: text/html; charset=UTF-8');
-        echo <<<HTML
+        // Generar PDF con DomPDF
+        require_once '../app/lib/PdfGenerator.php';
+        $pdfGen = new PdfGenerator();
+
+        $html = <<<HTML
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Comprobante de Auditoría #{$doc_num} — SGP</title>
+    <title>Comprobante de Auditoria {$doc_num}</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: Arial, Helvetica, sans-serif; background: #f0f4f8; color: #1e293b; font-size: 14px; }
+        @page { margin: 1.5cm; size: A4 portrait; }
+        * { box-sizing: border-box; }
+        body { font-family: Arial, Helvetica, sans-serif; background: white; color: #1e293b; font-size: 11px; margin: 0; padding: 0; }
 
-        .page {
-            max-width: 760px;
-            margin: 24px auto;
-            background: white;
-            border-radius: 4px;
-            overflow: hidden;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
-        }
+        .doc-header { background: #1e3a8a; padding: 18px 28px 14px; color: white; }
+        .doc-institution { font-size: 7.5px; text-transform: uppercase; letter-spacing: 1px; color: #bfdbfe; margin-bottom: 3px; }
+        .doc-title { font-size: 16px; font-weight: 700; color: white; line-height: 1.2; }
+        .doc-subtitle { font-size: 8.5px; color: #93c5fd; margin-top: 2px; }
+        .doc-num-box { background: #1d4ed8; border: 1px solid #3b82f6; padding: 7px 14px; text-align: center; }
+        .doc-num-label { font-size: 7px; text-transform: uppercase; letter-spacing: 1px; color: #bfdbfe; }
+        .doc-num-value { font-size: 15px; font-weight: 800; letter-spacing: 2px; color: white; }
+        .doc-type-badge { background: #1d4ed8; border: 1px solid #3b82f6; padding: 3px 10px; font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: white; }
 
-        /* ── Encabezado institucional ── */
-        .doc-header {
-            background: linear-gradient(135deg, #172554 0%, #1e3a8a 60%, #2563eb 100%);
-            padding: 28px 36px 20px;
-            color: white;
-        }
-        .doc-header-top {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 16px;
-        }
-        .doc-institution { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.75; margin-bottom: 4px; }
-        .doc-title { font-size: 1.3rem; font-weight: 700; line-height: 1.2; }
-        .doc-subtitle { font-size: 0.82rem; opacity: 0.7; margin-top: 2px; }
-        .doc-num-box {
-            background: rgba(255,255,255,0.15);
-            border: 1px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            padding: 10px 16px;
-            text-align: center;
-            min-width: 140px;
-        }
-        .doc-num-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; }
-        .doc-num-value { font-size: 1.2rem; font-weight: 800; letter-spacing: 2px; }
-        .doc-type-badge {
-            display: inline-block;
-            background: rgba(255,255,255,0.12);
-            border: 1px solid rgba(255,255,255,0.25);
-            border-radius: 20px;
-            padding: 4px 14px;
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
+        .action-band { background: #eff6ff; border-left: 4px solid #2563eb; padding: 10px 28px; border-bottom: 1px solid #e2e8f0; }
+        .action-icon-cell { width: 44px; vertical-align: middle; text-align: center; }
+        .action-icon-box { width: 36px; height: 36px; background: #2563eb; text-align: center; font-size: 18px; line-height: 36px; font-weight: bold; color: white; }
+        .action-text { font-size: 12px; font-weight: 700; color: #1e3a8a; }
+        .action-sub { font-size: 8.5px; color: #64748b; margin-top: 2px; }
 
-        /* ── Banda de acción ── */
-        .action-band {
-            background: #eff6ff;
-            border-left: 4px solid #2563eb;
-            padding: 14px 36px;
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .action-icon {
-            width: 40px; height: 40px;
-            background: #2563eb;
-            border-radius: 10px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-        .action-text { font-size: 1rem; font-weight: 700; color: #1e3a8a; }
-        .action-sub { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
+        .doc-body { padding: 18px 28px; }
+        .section-title { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; padding-bottom: 4px; border-bottom: 1px solid #e2e8f0; margin-bottom: 10px; }
 
-        /* ── Cuerpo del documento ── */
-        .doc-body { padding: 28px 36px; }
+        .user-card { background: #f8fafc; border: 1px solid #e2e8f0; padding: 12px; margin-bottom: 16px; }
+        .user-avatar { width: 44px; height: 44px; background: #1e3a8a; text-align: center; font-weight: 800; color: white; font-size: 18px; line-height: 44px; vertical-align: middle; }
+        .user-name { font-weight: 700; font-size: 12px; color: #0f172a; }
+        .user-email { font-size: 9px; color: #64748b; margin-top: 2px; }
 
-        .section-title {
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #64748b;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .section-title::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: #e2e8f0;
-        }
+        .meta-cell { background: #f8fafc; border: 1px solid #e2e8f0; padding: 9px 11px; vertical-align: top; }
+        .meta-label { font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; margin-bottom: 3px; }
+        .meta-value { font-size: 10px; font-weight: 600; color: #1e293b; }
 
-        /* Tarjeta de usuario */
-        .user-card {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 22px;
-        }
-        .user-avatar {
-            width: 50px; height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, #1e3a8a, #3b82f6);
-            display: flex; align-items: center; justify-content: center;
-            font-weight: 800; color: white; font-size: 1.2rem;
-            flex-shrink: 0;
-        }
-        .user-name { font-weight: 700; font-size: 1rem; color: #0f172a; }
-        .user-email { font-size: 0.8rem; color: #64748b; margin-top: 2px; }
+        .details-table { width: 100%; border-collapse: collapse; border: 1px solid #e2e8f0; }
+        .details-table thead tr { background: #1e3a8a; }
+        .details-table thead th { color: white; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 8px 12px; text-align: left; }
+        .details-table tbody td { padding: 7px 12px; font-size: 9.5px; border-bottom: 1px solid #e2e8f0; color: #374151; }
+        .details-table tbody tr:nth-child(even) td { background: #f8fafc; }
+        .no-details { font-size: 10px; color: #94a3b8; font-style: italic; padding: 12px 0; }
 
-        /* Grid de metadatos */
-        .meta-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 22px;
-        }
-        .meta-cell {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 12px 14px;
-        }
-        .meta-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: #94a3b8; margin-bottom: 4px; }
-        .meta-value { font-size: 0.88rem; font-weight: 600; color: #1e293b; }
-
-        /* Tabla de detalles */
-        .details-table { width: 100%; border-collapse: collapse; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
-        .details-table thead tr { background: linear-gradient(135deg, #1e3a8a, #2563eb); }
-        .details-table thead th { color: white; font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; padding: 10px 14px; text-align: left; }
-        .no-details { font-size: 0.85rem; color: #94a3b8; font-style: italic; padding: 12px 0; }
-
-        /* ── Pie de página ── */
-        .doc-footer {
-            background: #f8fafc;
-            border-top: 2px solid #e2e8f0;
-            padding: 18px 36px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .footer-left { font-size: 0.72rem; color: #64748b; }
-        .footer-right { font-size: 0.72rem; color: #94a3b8; text-align: right; }
-        .footer-stamp {
-            display: inline-block;
-            border: 2px solid #2563eb;
-            color: #2563eb;
-            border-radius: 6px;
-            padding: 4px 12px;
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-top: 6px;
-        }
-
-        @media print {
-            body { background: white; }
-            .page { box-shadow: none; border-radius: 0; margin: 0; max-width: 100%; }
-            @page { margin: 1.2cm; }
-        }
+        .doc-footer { background: #f8fafc; border-top: 2px solid #e2e8f0; padding: 12px 28px; }
+        .footer-stamp { border: 2px solid #2563eb; color: #2563eb; padding: 3px 10px; font-size: 7.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
     </style>
 </head>
 <body>
-<div class="page">
 
     <!-- Encabezado institucional -->
     <div class="doc-header">
-        <div class="doc-header-top">
-            <div>
-                <div class="doc-institution">Sistema de Gestión de Pasantías — SGP</div>
-                <div class="doc-title">Comprobante de Auditoría</div>
-                <div class="doc-subtitle">Registro oficial de actividad del sistema</div>
-            </div>
-            <div class="doc-num-box">
-                <div class="doc-num-label">N.° Documento</div>
-                <div class="doc-num-value">{$doc_num}</div>
-            </div>
-        </div>
-        <span class="doc-type-badge">🔒 Bitácora Oficial · Confidencial</span>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:10px;">
+            <tr>
+                <td style="vertical-align:top;">
+                    <div class="doc-institution">Sistema de Gestion de Pasantias &mdash; SGP</div>
+                    <div class="doc-title">Comprobante de Auditoria</div>
+                    <div class="doc-subtitle">Registro oficial de actividad del sistema</div>
+                </td>
+                <td style="vertical-align:top;text-align:right;width:155px;">
+                    <div class="doc-num-box">
+                        <div class="doc-num-label">N. Documento</div>
+                        <div class="doc-num-value">{$doc_num}</div>
+                    </div>
+                </td>
+            </tr>
+        </table>
+        <span class="doc-type-badge">Bitacora Oficial &middot; Confidencial</span>
     </div>
 
-    <!-- Banda de acción -->
+    <!-- Banda de accion -->
     <div class="action-band">
-        <div class="action-icon">🛡️</div>
-        <div>
-            <div class="action-text">{$accion_es}</div>
-            <div class="action-sub">Acción registrada automáticamente por el sistema de auditoría</div>
-        </div>
+        <table style="width:100%;border-collapse:collapse;">
+            <tr>
+                <td class="action-icon-cell">
+                    <div class="action-icon-box">#</div>
+                </td>
+                <td style="vertical-align:middle;padding-left:12px;">
+                    <div class="action-text">{$accion_es}</div>
+                    <div class="action-sub">Accion registrada automaticamente por el sistema de auditoria</div>
+                </td>
+            </tr>
+        </table>
     </div>
 
     <div class="doc-body">
 
-        <!-- Sección: Responsable del Evento -->
+        <!-- Seccion: Responsable del Evento -->
         <div class="section-title">Responsable del Evento</div>
         <div class="user-card">
-            <div class="user-avatar">{$inicial}</div>
-            <div style="flex:1;">
-                <div class="user-name">{$usuario}</div>
-                <div class="user-email">{$email}</div>
-            </div>
+            <table style="width:100%;border-collapse:collapse;">
+                <tr>
+                    <td style="width:56px;vertical-align:middle;">
+                        <div class="user-avatar">{$inicial}</div>
+                    </td>
+                    <td style="vertical-align:middle;padding-left:12px;">
+                        <div class="user-name">{$usuario}</div>
+                        <div class="user-email">{$email}</div>
+                    </td>
+                </tr>
+            </table>
         </div>
 
-        <!-- Sección: Datos del Registro -->
-        <div class="section-title" style="margin-top:4px;">Datos del Registro</div>
-        <div class="meta-grid">
-            <div class="meta-cell">
-                <div class="meta-label">📋 Módulo Afectado</div>
-                <div class="meta-value">{$tabla_es}</div>
-            </div>
-            <div class="meta-cell">
-                <div class="meta-label">🌐 Dirección IP</div>
-                <div class="meta-value">{$ip}</div>
-            </div>
-            <div class="meta-cell">
-                <div class="meta-label">📅 Fecha y Hora</div>
-                <div class="meta-value">{$fecha}</div>
-            </div>
-        </div>
+        <!-- Seccion: Datos del Registro -->
+        <div class="section-title">Datos del Registro</div>
+        <table style="width:100%;border-collapse:separate;border-spacing:7px 0;margin-bottom:16px;">
+            <tr>
+                <td class="meta-cell" style="width:33%;">
+                    <div class="meta-label">Modulo Afectado</div>
+                    <div class="meta-value">{$tabla_es}</div>
+                </td>
+                <td class="meta-cell" style="width:33%;">
+                    <div class="meta-label">Direccion IP</div>
+                    <div class="meta-value">{$ip}</div>
+                </td>
+                <td class="meta-cell" style="width:34%;">
+                    <div class="meta-label">Fecha y Hora</div>
+                    <div class="meta-value">{$fecha}</div>
+                </td>
+            </tr>
+        </table>
 
         <!-- ID del registro afectado -->
-        <div style="margin-bottom:22px;display:flex;align-items:center;gap:10px;">
-            <span style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">ID del Registro Afectado:</span>
-            <code style="background:#eff6ff;color:#2563eb;padding:4px 12px;border-radius:6px;font-size:0.85rem;font-weight:700;border:1px solid rgba(37,99,235,0.2);">{$registro_id}</code>
+        <div style="margin-bottom:16px;">
+            <span style="font-size:8px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.5px;">ID del Registro Afectado:</span>
+            &nbsp;&nbsp;<span style="background:#eff6ff;color:#2563eb;padding:3px 10px;font-size:10px;font-weight:700;border:1px solid #bfdbfe;">{$registro_id}</span>
         </div>
 
-        <!-- Sección: Detalles de la Operación -->
-        <div class="section-title">Detalles de la Operación</div>
+        <!-- Seccion: Detalles de la Operacion -->
+        <div class="section-title">Detalles de la Operacion</div>
         {$detalles_html}
     </div>
 
-    <!-- Pie de página institucional -->
+    <!-- Pie de pagina institucional -->
     <div class="doc-footer">
-        <div class="footer-left">
-            <strong>SGP — Sistema de Gestión de Pasantías</strong><br>
-            Documento generado el {$fecha_generacion}
-        </div>
-        <div class="footer-right">
-            Registro N.° {$doc_num}<br>
-            <span class="footer-stamp">Documento Oficial</span>
-        </div>
+        <table style="width:100%;border-collapse:collapse;">
+            <tr>
+                <td style="vertical-align:middle;">
+                    <div style="font-size:8.5px;color:#64748b;"><strong>SGP &mdash; Sistema de Gestion de Pasantias</strong><br>Documento generado el {$fecha_generacion}</div>
+                </td>
+                <td style="text-align:right;vertical-align:middle;">
+                    <div style="font-size:8.5px;color:#94a3b8;">Registro N. {$doc_num}<br><span class="footer-stamp">Documento Oficial</span></div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-</div>
-<script>window.onload = function() { window.print(); }</script>
 </body>
 </html>
 HTML;
-        exit;
+        $pdfGen->renderDomPdf($html, "Comprobante_Auditoria_{$doc_num}", false);
     }
 
 
@@ -749,7 +655,7 @@ HTML;
             // Generar CSV
             $filename = 'bitacora_activa_' . date('Y-m-d_His') . '.csv';
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header("Content-Disposition: attachment; filename=\"{$filename}\"");
 
             $output = fopen('php://output', 'w');
             fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF)); // BOM UTF-8
@@ -872,7 +778,7 @@ HTML;
 
             $filename = 'bitacora_historico_' . date('Y-m-d_His') . '.csv';
             header('Content-Type: text/csv; charset=utf-8');
-            header('Content-Disposition: attachment; filename="' . $filename . '"');
+            header("Content-Disposition: attachment; filename=\"{$filename}\"");
 
             $output = fopen('php://output', 'w');
             fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));

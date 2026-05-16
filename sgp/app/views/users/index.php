@@ -492,17 +492,47 @@
         
         .users-filter-bar {
             flex-direction: column !important;
-            align-items: flex-start !important;
-            padding: 16px !important;
-            gap: 12px !important;
+            align-items: stretch !important;
+            padding: 14px 16px !important;
+            gap: 10px !important;
         }
-        .users-filter-bar > div {
+        /* Buscador: ancho completo sin límite */
+        .users-filter-bar > div:first-child {
             width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
         }
+        /* Separador vertical → ocultar en móvil */
+        .users-filter-bar > div:nth-child(2) {
+            display: none !important;
+        }
+        /* Etiqueta "Rol:" */
+        .users-filter-bar > p {
+            width: 100%;
+            margin: 0 !important;
+        }
+        /* Pills: fila scrollable horizontal sin clipping */
+        .users-filter-bar {
+            overflow: visible !important; /* evita que border-radius corte el scroll */
+        }
+        #ventoFilterPills {
+            /* Rompe del padding del padre para usar el ancho completo */
+            width: calc(100% + 32px);
+            margin-left: -16px;
+            padding-left: 16px;
+            padding-right: 20px; /* margen derecho para último pill */
+            flex-wrap: nowrap !important;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+            scroll-snap-type: x proximity;
+        }
+        #ventoFilterPills::-webkit-scrollbar { display: none; }
         .vento-pill {
-            flex: 1 1 auto;
-            text-align: center;
-            justify-content: center;
+            flex-shrink: 0;
+            white-space: nowrap;
+            scroll-snap-align: start;
         }
     }
     
@@ -984,7 +1014,8 @@
                 
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label>Cédula</label>
-                    <input type="text" name="cedula" id="edit_cedula" class="input-modern" required pattern="[0-9]{7,8}">
+                    <?php $isSuperAdmin = ((int)Session::get('role_id') === 0); ?>
+                    <input type="text" name="cedula" id="edit_cedula" class="input-modern" required pattern="[0-9]{7,8}" <?= $isSuperAdmin ? '' : 'readonly title="Solo el SuperAdmin puede editar la cédula"' ?>>
                 </div>
                 
                 <div class="form-group" style="margin-bottom: 16px;">
@@ -1292,7 +1323,12 @@
                     title: 'Usuario Creado',
                     html: `
                         <p style="margin-bottom:12px;">El usuario fue creado correctamente. La credencial inicial es:</p>
-                        <div class="swal-bento-token-long">${tempPass}</div>
+                        <div class="swal-token-row">
+                            <div class="swal-bento-token-long" id="swal-token-create">${tempPass}</div>
+                            <button class="swal-copy-btn" id="swal-copy-create" title="Copiar credencial" onclick="(function(btn){navigator.clipboard.writeText('${tempPass}').then(()=>{btn.innerHTML='<i class=\\'ti ti-check\\'></i>';btn.classList.add('copied');setTimeout(()=>{btn.innerHTML='<i class=\\'ti ti-copy\\'></i>';btn.classList.remove('copied');},2000);})})(this)">
+                                <i class="ti ti-copy"></i>
+                            </button>
+                        </div>
                         <p style="font-size:0.8rem; margin-top:12px;">
                             <i>Deberá cambiarla en su primer inicio de sesión.</i>
                         </p>
@@ -1471,7 +1507,12 @@
                             title: '<i class="ti ti-circle-check"></i> ¡Restablecido!',
                             html: `
                                 <p style="color:#64748b;margin-bottom:12px">Contraseña temporal asignada:</p>
-                                <div class="swal-bento-token-long">${tempPass}</div>
+                                <div class="swal-token-row">
+                                    <div class="swal-bento-token-long">${tempPass}</div>
+                                    <button class="swal-copy-btn" title="Copiar contraseña" onclick="(function(btn){navigator.clipboard.writeText('${tempPass}').then(()=>{btn.innerHTML='<i class=\\'ti ti-check\\'></i>';btn.classList.add('copied');setTimeout(()=>{btn.innerHTML='<i class=\\'ti ti-copy\\'></i>';btn.classList.remove('copied');},2000);})})(this)">
+                                        <i class="ti ti-copy"></i>
+                                    </button>
+                                </div>
                                 <span style="font-size: 0.95rem; font-weight: 500; color: #475569; display: block; margin-top: 12px; font-style: normal;">El usuario deberá cambiarla en su próximo inicio de sesión.</span>
                             `
                         });

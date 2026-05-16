@@ -37,7 +37,7 @@ class FeriadoModel
     {
         if ($anio !== null) {
             $this->db->query("
-                SELECT id, fecha, nombre, tipo, created_at
+                SELECT id, fecha, nombre, tipo, es_laborable, created_at
                 FROM   dias_feriados
                 WHERE  YEAR(fecha) = :anio
                 ORDER  BY fecha ASC
@@ -45,7 +45,7 @@ class FeriadoModel
             $this->db->bind(':anio', $anio);
         } else {
             $this->db->query("
-                SELECT id, fecha, nombre, tipo, created_at
+                SELECT id, fecha, nombre, tipo, es_laborable, created_at
                 FROM   dias_feriados
                 ORDER  BY fecha ASC
             ");
@@ -61,7 +61,7 @@ class FeriadoModel
     {
         $anioActual = (int) date('Y');
         $this->db->query("
-            SELECT id, fecha, nombre, tipo, created_at
+            SELECT id, fecha, nombre, tipo, es_laborable, created_at
             FROM   dias_feriados
             WHERE  YEAR(fecha) >= :anio
             ORDER  BY fecha ASC
@@ -105,7 +105,7 @@ class FeriadoModel
      * @param string $tipo    Nacional | Regional | Institucional
      * @return bool
      */
-    public function crear(string $fecha, string $nombre, string $tipo = 'Nacional'): bool
+    public function crear(string $fecha, string $nombre, string $tipo = 'Nacional', int $esLaborable = 0): bool
     {
         $tiposValidos = ['Nacional', 'Regional', 'Institucional'];
         if (!in_array($tipo, $tiposValidos, true)) {
@@ -113,12 +113,13 @@ class FeriadoModel
         }
 
         $this->db->query("
-            INSERT INTO dias_feriados (fecha, nombre, tipo, created_at)
-            VALUES (:fecha, :nombre, :tipo, NOW())
+            INSERT INTO dias_feriados (fecha, nombre, tipo, es_laborable, created_at)
+            VALUES (:fecha, :nombre, :tipo, :es_lab, NOW())
         ");
         $this->db->bind(':fecha',  $fecha);
         $this->db->bind(':nombre', $nombre);
         $this->db->bind(':tipo',   $tipo);
+        $this->db->bind(':es_lab', $esLaborable ? 1 : 0, PDO::PARAM_INT);
         return $this->db->execute();
     }
 
@@ -149,7 +150,7 @@ class FeriadoModel
      * Actualiza el nombre y tipo de un feriado (la fecha no se modifica).
      * Aplica tanto a feriados pasados como futuros.
      */
-    public function actualizar(int $id, string $nombre, string $tipo): bool
+    public function actualizar(int $id, string $nombre, string $tipo, int $esLaborable = 0): bool
     {
         $tiposValidos = ['Nacional', 'Regional', 'Institucional'];
         if (!in_array($tipo, $tiposValidos, true)) {
@@ -158,12 +159,14 @@ class FeriadoModel
 
         $this->db->query("
             UPDATE dias_feriados
-            SET    nombre = :nombre,
-                   tipo   = :tipo
-            WHERE  id     = :id
+            SET    nombre      = :nombre,
+                   tipo        = :tipo,
+                   es_laborable= :es_lab
+            WHERE  id          = :id
         ");
         $this->db->bind(':nombre', $nombre);
         $this->db->bind(':tipo',   $tipo);
+        $this->db->bind(':es_lab', $esLaborable ? 1 : 0, PDO::PARAM_INT);
         $this->db->bind(':id',     $id);
         return $this->db->execute();
     }

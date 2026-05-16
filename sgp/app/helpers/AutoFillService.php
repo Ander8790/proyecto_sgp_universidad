@@ -183,7 +183,7 @@ class AutoFillService
      */
     public static function cargarFeriados(Database $db): array
     {
-        $db->query("SELECT fecha, nombre FROM dias_feriados ORDER BY fecha");
+        $db->query("SELECT fecha, nombre FROM dias_feriados WHERE es_laborable = 0 ORDER BY fecha");
         $rows = $db->resultSet();
 
         $set = [];

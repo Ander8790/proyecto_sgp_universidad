@@ -8,6 +8,16 @@
 class SuperAdminController extends Controller
 {
     /**
+     * Marca los permisos de un usuario como desactualizados en sesión.
+     * En el próximo request de ese usuario, index.php los recargará desde BD.
+     */
+    private function invalidarCachePermisos(int $userId): void
+    {
+        $flagFile = sys_get_temp_dir() . DIRECTORY_SEPARATOR . 'sgp_perm_' . $userId . '.flag';
+        @file_put_contents($flagFile, (string)time());
+    }
+
+    /**
      * Verificar que el usuario sea SuperAdmin.
      * Centraliza la guarda de seguridad para todos los métodos.
      */
@@ -96,7 +106,12 @@ class SuperAdminController extends Controller
             'EXPORT_CSV' => 'Exportación CSV',
             'UPDATE_CONFIG' => 'Configuración Editada',
             'PERMISO_MODIFICADO' => 'Permiso Cambiado',
-            'MARCAR_ASISTENCIA_KIOSCO' => 'Asistencia Kiosco'
+            'PERMISOS_RESET' => 'Permisos Restablecidos',
+            'MARCAR_ASISTENCIA_KIOSCO' => 'Asistencia Kiosco',
+            'MARCAR_ASISTENCIA' => 'Asistencia Marcada',
+            'UPDATE_ASISTENCIA' => 'Asistencia Modificada',
+            'SYNC_FERIADOS_API' => 'Sincronización Feriados',
+            'CAMBIO_ESTADO_PASANTE' => 'Cambio Estado Pasante',
         ];
 
         // Distribución de acciones top-6 (para gráfica donut)
@@ -208,7 +223,7 @@ class SuperAdminController extends Controller
 
         $permisosModel = $this->model('Permisos');
         $permisos      = $permisosModel->getPermisosDetalleUsuario($userId, (int)$user['role_id']);
-        $modulos       = $permisosModel->getModulosConAcciones(); // null = todos los módulos
+        $modulos       = $permisosModel->getModulosConAcciones((int)$user['role_id']);
 
         echo json_encode([
             'success'  => true,
@@ -254,6 +269,7 @@ class SuperAdminController extends Controller
                 'habilitado' => $habilitado ? 'HABILITADO' : 'DESHABILITADO',
                 'usuario_id' => $userId,
             ]);
+            $this->invalidarCachePermisos($userId);
         }
 
         echo json_encode([
@@ -286,6 +302,10 @@ class SuperAdminController extends Controller
         $permisosModel = $this->model('Permisos');
         $ok = $permisosModel->savePermisosLote($userId, $permisos, $otorgadoPor);
 
+        if ($ok) {
+            $this->invalidarCachePermisos($userId);
+        }
+
         echo json_encode([
             'success' => $ok,
             'message' => $ok ? 'Permisos guardados correctamente' : 'Error al guardar permisos',
@@ -317,6 +337,7 @@ class SuperAdminController extends Controller
         if ($ok) {
             AuditModel::log('PERMISOS_RESET', 'usuario_permisos', $userId,
                 "SuperAdmin restableció permisos al default del rol para usuario #{$userId}");
+            $this->invalidarCachePermisos($userId);
         }
 
         echo json_encode([
@@ -343,7 +364,7 @@ class SuperAdminController extends Controller
 
         $userModel     = $this->model('User');
         $permisosModel = $this->model('Permisos');
-        $modulos       = $permisosModel->getModulosConAcciones(); // null = todos los módulos
+        $modulos       = $permisosModel->getModulosConAcciones($rolId);
         $usuarios      = $userModel->getUsersByRoles([$rolId]);
 
         // Cargar permisos de cada usuario

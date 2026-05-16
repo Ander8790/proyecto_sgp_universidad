@@ -20,6 +20,7 @@ $diasTrans         = (int)($data['diasTrans']    ?? 0);
 $diasTotal         = (int)($data['diasTotal']    ?? 0);
 $diasRest          = (int)($data['diasRest']     ?? 0);
 $pctTiempo         = (float)($data['pctTiempo']  ?? 0);
+$laborablesAnio    = (int)($data['laborablesAnio'] ?? $diasTrans);
 
 $nombre    = trim(($pasante->nombres ?? '') . ' ' . ($pasante->apellidos ?? ''));
 $ini       = strtoupper(substr($pasante->nombres ?? '?', 0, 1) . substr($pasante->apellidos ?? '?', 0, 1));
@@ -360,10 +361,10 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
         padding: 20px 18px; gap: 14px;
     }
     .alm-banner-actions {
-        width: 100%; display: flex; flex-wrap: wrap; gap: 8px;
+        width: 100%; display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
     }
-    .alm-banner-actions form  { flex: 1; min-width: 140px; }
-    .alm-banner-actions a     { flex: 1; min-width: 120px; justify-content: center; text-align: center; }
+    .alm-banner-actions form  { flex: 1; min-width: 120px; }
+    .alm-banner-actions > a.alm-btn-action { flex: 1; min-width: 100px; justify-content: center; text-align: center; }
     .alm-kpis    { grid-template-columns: repeat(2, 1fr); gap: 10px; }
     .alm-row2    { grid-template-columns: 1fr; }
     .alm-heatmap-wrap { padding: 16px 12px; }
@@ -380,7 +381,19 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
     .alm-kpis { grid-template-columns: repeat(2,1fr); gap: 8px; }
     .alm-kpi-val { font-size: 1.5rem; }
     .alm-banner  { padding: 18px 14px; }
-    .alm-banner h1 { font-size: 1.15rem; }
+    .alm-banner h1 { font-size: clamp(.95rem, 4.5vw, 1.15rem); }
+    /* Botones en fila única bajo los badges de período/año */
+    .alm-banner-actions { gap: 6px; }
+    .alm-banner-actions form,
+    .alm-banner-actions > a.alm-btn-action { min-width: 0; flex: 1; }
+    /* Badge período y navegador año: ancho automático (no crecen) */
+    .alm-banner-actions > div { flex-shrink: 0; }
+    /* Desglose mensual: 2 columnas — evita cards de ~107px que truncan "Septiembre" */
+    .alm-meses-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+    .alm-mes-card { padding: 14px 10px; }
 }
 </style>
 
@@ -524,7 +537,7 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
         </a>
 
         <a href="<?= URLROOT ?>/asistencias"
-           class="pjax-link"
+           class="pjax-link alm-btn-action"
            style="background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);
                   border-radius:10px;padding:9px 18px;color:#fff;font-size:.84rem;
                   font-weight:600;text-decoration:none;display:flex;align-items:center;gap:6px;
@@ -689,8 +702,21 @@ $diasNombreCorto = ['lunes','martes','miércoles','jueves','viernes','sábado','
 
     <div class="alm-kpi" style="border-left:4px solid <?= $kpiColor ?>;">
         <div class="alm-kpi-val" style="color:<?= $kpiColor ?>;"><?= $pct ?>%</div>
-        <div class="alm-kpi-lbl">Asistencia <?= $anio ?></div>
-        <div style="font-size:.68rem;color:#94a3b8;margin-top:2px;">días transcurridos</div>
+        <div class="alm-kpi-lbl" style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
+            <?php if ($estadoPas === 'Activo'): ?>
+            Asistencia hasta hoy
+            <span style="font-size:.6rem;background:#fef9c3;color:#854d0e;border-radius:10px;padding:1px 6px;font-weight:700;white-space:nowrap;">en curso</span>
+            <?php else: ?>
+            Asistencia <?= $anio ?>
+            <?php endif; ?>
+        </div>
+        <div style="font-size:.68rem;color:#94a3b8;margin-top:2px;">
+            <?php if ($estadoPas === 'Activo'): ?>
+            de los <?= $laborablesAnio ?> días hábiles en <?= $anio ?>
+            <?php else: ?>
+            <?= $diasTrans ?> de <?= $diasTotal ?> días transcurridos
+            <?php endif; ?>
+        </div>
         <div style="height:5px;border-radius:20px;background:#e2e8f0;overflow:hidden;margin-top:6px;">
             <div style="height:100%;border-radius:20px;background:<?= $kpiColor ?>;width:<?= $pct ?>%;transition:width .8s ease;"></div>
         </div>
@@ -1122,6 +1148,8 @@ if ($fi_global && !empty($statsDesglose)):
     $ffM = (int)substr($ff_global, 5, 2);
     $aniosRango   = range($fiY, $ffY);
     $esMultiAnio  = count($aniosRango) > 1;
+    $hoyY = (int)date('Y');
+    $hoyM = (int)date('m');
 ?>
 <div class="alm-card">
     <div class="alm-card-title" style="margin-bottom:16px;">
@@ -1139,11 +1167,24 @@ if ($fi_global && !empty($statsDesglose)):
         for ($m = $mesStart; $m <= $mesEnd; $m++):
             $ms  = $statsDesglose[$yrBloque][$m] ?? ['P'=>0,'A'=>0,'J'=>0];
             $tot = $ms['P'] + $ms['A'] + $ms['J'];
-            $pcm = $tot > 0 ? round(($ms['P']+$ms['J'])/$tot*100) : null;
+            $esMesActual = ($yrBloque === $hoyY && $m === $hoyM);
+
+            if ($esMesActual && $tot > 0) {
+                // Mes en curso: denominar sobre el total de días laborables del mes completo
+                $diasEnMes = cal_days_in_month(CAL_GREGORIAN, $m, $yrBloque);
+                $laborablesMes = 0;
+                for ($d = 1; $d <= $diasEnMes; $d++) {
+                    if ((int)date('N', mktime(0,0,0,$m,$d,$yrBloque)) < 6) $laborablesMes++;
+                }
+                $pcm = $laborablesMes > 0 ? round(($ms['P']+$ms['J'])/$laborablesMes*100) : null;
+            } else {
+                $pcm = $tot > 0 ? round(($ms['P']+$ms['J'])/$tot*100) : null;
+            }
             $col = $pcm === null ? '#94a3b8' : ($pcm >= 90 ? '#16a34a' : ($pcm >= 75 ? '#d97706' : '#dc2626'));
     ?>
-    <div class="alm-mes-card <?= $tot > 0 ? 'has-data' : '' ?>">
-        <div style="font-size:.78rem;font-weight:800;color:#64748b;margin-bottom:2px;text-transform:uppercase;line-height:1.2;">
+    <div class="alm-mes-card <?= $tot > 0 ? 'has-data' : '' ?> <?= $esMesActual ? 'mes-actual' : '' ?>"
+         style="<?= $esMesActual ? 'border-color:#bfdbfe;background:#eff6ff;' : '' ?>">
+        <div style="font-size:.78rem;font-weight:800;color:#64748b;margin-bottom:2px;text-transform:uppercase;line-height:1.2;overflow-wrap:anywhere;">
             <?= $mesesNombres[$m-1] ?>
         </div>
         <?php if ($esMultiAnio): ?>
@@ -1546,3 +1587,360 @@ function filtrarHistorial(estado, pill) {
     }
 }
 </script>
+
+<?php
+// ── Bitácora de Actividades (visible para roles 0, 1, 2) ────────────────────
+$actividadesPasante = $data['actividadesPasante'] ?? [];
+$viewerRole  = (int)Session::get('role_id');
+$pasanteIdVista = (int)($pasante->id ?? 0);
+
+// Agrupar por mes_key
+$actGrupos = [];
+foreach ($actividadesPasante as $a) {
+    $mk = $a->mes_key ?? '';
+    if (!isset($actGrupos[$mk])) {
+        $actGrupos[$mk] = ['label' => $a->mes_label ?? $mk, 'items' => []];
+    }
+    $actGrupos[$mk]['items'][] = $a;
+}
+
+// Meses únicos para el select filtro
+$mesesActOpts = [];
+foreach ($actGrupos as $mk => $g) {
+    $mesesActOpts[$mk] = $g['label'];
+}
+?>
+
+<!-- ═══ BITÁCORA DE ACTIVIDADES DEL PASANTE ════════════════════════════════ -->
+<div class="alm-card" style="margin-bottom:20px;" id="almActividadesSection">
+    <div class="alm-card-title" style="margin-bottom:14px;">
+        <i class="ti ti-notebook" style="color:#2563eb;"></i>
+        Bitácora de Actividades
+        <span style="background:#dbeafe;color:#1d4ed8;font-size:.68rem;padding:2px 10px;border-radius:20px;font-weight:700;text-transform:none;letter-spacing:0;" id="almActCount">
+            <?= count($actividadesPasante) ?> actividad<?= count($actividadesPasante) !== 1 ? 'es' : '' ?>
+        </span>
+    </div>
+
+    <!-- Barra de filtros -->
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px;align-items:center;">
+        <div style="position:relative;flex:1;min-width:180px;">
+            <i class="ti ti-search" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-size:.95rem;pointer-events:none;"></i>
+            <input type="text" id="almActSearch" placeholder="Buscar actividad…"
+                   oninput="almFiltrarAct()"
+                   style="width:100%;padding:9px 12px 9px 36px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.85rem;outline:none;box-sizing:border-box;transition:border .2s;"
+                   onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+        </div>
+        <select id="almActMes" onchange="almFiltrarAct()"
+                style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:.85rem;outline:none;background:#fff;cursor:pointer;min-width:140px;transition:border .2s;"
+                onfocus="this.style.borderColor='#2563eb'" onblur="this.style.borderColor='#e2e8f0'">
+            <option value="">Todos los meses</option>
+            <?php foreach ($mesesActOpts as $mk => $lbl): ?>
+            <option value="<?= htmlspecialchars($mk) ?>"><?= htmlspecialchars($lbl) ?></option>
+            <?php endforeach; ?>
+        </select>
+        <button onclick="almResetAct()" title="Limpiar filtros"
+                style="padding:9px 14px;border:1.5px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:.85rem;cursor:pointer;color:#64748b;display:flex;align-items:center;gap:6px;transition:all .15s;"
+                onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
+            <i class="ti ti-x"></i> Limpiar
+        </button>
+    </div>
+
+    <!-- Estado vacío -->
+    <?php if (empty($actividadesPasante)): ?>
+    <div style="text-align:center;padding:40px 20px;color:#94a3b8;">
+        <i class="ti ti-notebook-off" style="font-size:2.8rem;display:block;margin-bottom:12px;opacity:.25;"></i>
+        <p style="margin:0;font-weight:700;font-size:.9rem;color:#64748b;">Sin actividades registradas</p>
+        <p style="margin:6px 0 0;font-size:.78rem;">El pasante aún no ha registrado actividades en este período.</p>
+    </div>
+    <?php else: ?>
+
+    <!-- Sin resultados (filtro) -->
+    <div id="almActNoResults" style="display:none;text-align:center;padding:32px;color:#94a3b8;">
+        <i class="ti ti-search-off" style="font-size:2rem;display:block;margin-bottom:10px;opacity:.3;"></i>
+        <p style="margin:0;font-size:.88rem;font-weight:600;">Sin coincidencias</p>
+        <p style="margin:4px 0 0;font-size:.76rem;">Prueba con otra búsqueda o mes.</p>
+    </div>
+
+    <!-- Grupos por mes -->
+    <div id="almActLista" style="display:flex;flex-direction:column;gap:20px;">
+    <?php foreach ($actGrupos as $mesKey => $grupo): ?>
+    <div class="alm-act-grupo" data-grupo="<?= htmlspecialchars($mesKey) ?>">
+        <!-- Cabecera mes -->
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
+            <div style="font-size:.72rem;font-weight:900;color:#1e3a8a;text-transform:uppercase;letter-spacing:.8px;
+                        background:#dbeafe;padding:3px 12px;border-radius:20px;">
+                <?= htmlspecialchars($grupo['label']) ?>
+            </div>
+            <div style="flex:1;height:1px;background:#e2e8f0;"></div>
+            <span style="font-size:.7rem;color:#94a3b8;"><?= count($grupo['items']) ?> act.</span>
+        </div>
+        <!-- Cards del mes -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;">
+        <?php foreach ($grupo['items'] as $act): ?>
+        <div class="alm-act-card"
+             id="alm-act-card-<?= $act->id ?>"
+             data-titulo="<?= htmlspecialchars(mb_strtolower($act->titulo ?? '', 'UTF-8')) ?>"
+             data-desc="<?= htmlspecialchars(mb_strtolower($act->descripcion ?? '', 'UTF-8')) ?>"
+             data-mes="<?= htmlspecialchars($act->mes_key ?? '') ?>"
+             style="background:#f8fafc;border:1px solid #e2e8f0;border-left:4px solid <?= !empty($act->correccion) ? '#d97706' : '#2563eb' ?>;
+                    border-radius:12px;padding:14px 16px;transition:box-shadow .2s,transform .15s;">
+            <!-- Fecha + acciones -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <div style="font-size:.7rem;font-weight:800;color:#2563eb;display:flex;align-items:center;gap:5px;">
+                    <i class="ti ti-calendar-event" style="font-size:.85rem;"></i>
+                    <?= htmlspecialchars($act->fecha_fmt ?? '') ?>
+                </div>
+                <?php if (in_array($viewerRole, [0,1,2])): ?>
+                <div style="display:flex;gap:4px;">
+                    <button onclick="almAbrirCorreccion(<?= $act->id ?>,<?= htmlspecialchars(json_encode($act->correccion ?? '')) ?>)"
+                            title="Agregar / editar corrección"
+                            style="background:#fef3c7;color:#92400e;border:none;border-radius:7px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.82rem;transition:background .15s;"
+                            onmouseover="this.style.background='#fde68a'" onmouseout="this.style.background='#fef3c7'">
+                        <i class="ti ti-edit"></i>
+                    </button>
+                    <?php if (in_array($viewerRole, [0,1])): ?>
+                    <button onclick="almEliminarActividad(<?= $act->id ?>)"
+                            title="Eliminar actividad"
+                            style="background:#fee2e2;color:#991b1b;border:none;border-radius:7px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.82rem;transition:background .15s;"
+                            onmouseover="this.style.background='#fecaca'" onmouseout="this.style.background='#fee2e2'">
+                        <i class="ti ti-trash"></i>
+                    </button>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+            <div style="font-size:.88rem;font-weight:700;color:#0f172a;margin-bottom:6px;line-height:1.3;">
+                <?= htmlspecialchars($act->titulo ?? '') ?>
+            </div>
+            <?php if (!empty($act->descripcion)): ?>
+            <div style="font-size:.78rem;color:#475569;line-height:1.55;border-top:1px solid #e2e8f0;padding-top:8px;margin-top:2px;">
+                <?= nl2br(htmlspecialchars($act->descripcion)) ?>
+            </div>
+            <?php endif; ?>
+            <?php if (!empty($act->correccion)): ?>
+            <div style="margin-top:10px;background:#fffbeb;border:1px solid #fde68a;border-left:3px solid #d97706;border-radius:8px;padding:10px 12px;">
+                <div style="font-size:.68rem;font-weight:800;color:#92400e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;display:flex;align-items:center;gap:5px;">
+                    <i class="ti ti-edit" style="font-size:.8rem;"></i>
+                    Corrección<?php if (!empty($act->corrector_nombre)): ?> — <?= htmlspecialchars($act->corrector_nombre) ?><?php endif; ?>
+                </div>
+                <div style="font-size:.78rem;color:#78350f;line-height:1.55;">
+                    <?= nl2br(htmlspecialchars($act->correccion)) ?>
+                </div>
+            </div>
+            <?php endif; ?>
+        </div>
+        <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endforeach; ?>
+    </div>
+
+    <?php endif; ?>
+</div>
+
+<script>
+(function(){
+    function almFiltrarAct() {
+        var search = (document.getElementById('almActSearch')?.value ?? '').toLowerCase().trim();
+        var mes    = document.getElementById('almActMes')?.value ?? '';
+        var visibles = 0;
+
+        document.querySelectorAll('.alm-act-grupo').forEach(function(grupo) {
+            var grupoMes = grupo.dataset.grupo ?? '';
+            var grupoVis = false;
+
+            grupo.querySelectorAll('.alm-act-card').forEach(function(card) {
+                var okSearch = !search || card.dataset.titulo.includes(search) || card.dataset.desc.includes(search);
+                var okMes    = !mes    || card.dataset.mes === mes;
+                var show = okSearch && okMes;
+                card.style.display = show ? '' : 'none';
+                if (show) { grupoVis = true; visibles++; }
+            });
+
+            grupo.style.display = grupoVis ? '' : 'none';
+        });
+
+        var noRes = document.getElementById('almActNoResults');
+        var lista = document.getElementById('almActLista');
+        if (noRes && lista) {
+            noRes.style.display  = visibles === 0 ? 'block' : 'none';
+            lista.style.display  = visibles === 0 ? 'none'  : '';
+        }
+        var ctr = document.getElementById('almActCount');
+        if (ctr) {
+            ctr.textContent = visibles + ' actividad' + (visibles !== 1 ? 'es' : '');
+        }
+    }
+
+    function almResetAct() {
+        var s = document.getElementById('almActSearch');
+        var m = document.getElementById('almActMes');
+        if (s) s.value = '';
+        if (m) m.value = '';
+        almFiltrarAct();
+    }
+
+    window.almFiltrarAct = almFiltrarAct;
+    window.almResetAct   = almResetAct;
+})();
+</script>
+
+<?php if (in_array($viewerRole, [0,1,2])): ?>
+<!-- ═══ MODAL CORRECCIÓN DE ACTIVIDAD ════════════════════════════════════════ -->
+<div id="almCorrModal" style="display:none;position:fixed;inset:0;z-index:9100;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);align-items:center;justify-content:center;padding:16px;">
+    <div style="background:#fff;border-radius:22px;width:100%;max-width:500px;box-shadow:0 24px 80px rgba(0,0,0,.2);overflow:hidden;">
+        <div style="background:linear-gradient(135deg,#92400e,#d97706);padding:22px 26px;display:flex;align-items:center;gap:14px;">
+            <div style="background:rgba(255,255,255,.15);border-radius:12px;padding:10px;">
+                <i class="ti ti-edit" style="font-size:1.4rem;color:#fff;"></i>
+            </div>
+            <div style="flex:1;">
+                <div style="font-size:.7rem;color:rgba(255,255,255,.7);font-weight:700;text-transform:uppercase;letter-spacing:.5px;">Revisión de actividad</div>
+                <div style="font-size:1rem;font-weight:800;color:#fff;">Agregar corrección</div>
+            </div>
+            <button onclick="almCerrarCorreccion()" style="background:rgba(255,255,255,.15);border:none;border-radius:10px;width:34px;height:34px;cursor:pointer;color:#fff;font-size:1.1rem;display:flex;align-items:center;justify-content:center;">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+        <div style="padding:24px 26px;">
+            <input type="hidden" id="almCorrActId" value="">
+            <label style="display:block;font-size:.78rem;font-weight:700;color:#374151;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;">
+                <i class="ti ti-pencil" style="margin-right:4px;"></i>Corrección / comentario
+            </label>
+            <textarea id="almCorrTexto" rows="5"
+                      placeholder="Escribe aquí la corrección o comentario para el pasante…"
+                      style="width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:11px 14px;font-size:.88rem;color:#1e293b;outline:none;resize:vertical;font-family:inherit;box-sizing:border-box;transition:border-color .2s;"
+                      onfocus="this.style.borderColor='#d97706'" onblur="this.style.borderColor='#e2e8f0'"></textarea>
+            <div style="font-size:.72rem;color:#94a3b8;margin-top:4px;text-align:right;"><span id="almCorrLen">0</span>/1000</div>
+        </div>
+        <div style="padding:0 26px 22px;display:flex;gap:10px;justify-content:flex-end;">
+            <button onclick="almGuardarCorreccionVacia()" title="Quitar corrección existente"
+                    style="background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:9px 16px;font-size:.82rem;font-weight:600;cursor:pointer;">
+                Quitar corrección
+            </button>
+            <button onclick="almCerrarCorreccion()"
+                    style="background:#f1f5f9;color:#64748b;border:none;border-radius:10px;padding:9px 16px;font-size:.82rem;font-weight:600;cursor:pointer;">
+                Cancelar
+            </button>
+            <button onclick="almGuardarCorreccion()" id="almCorrBtn"
+                    style="background:linear-gradient(135deg,#92400e,#d97706);color:#fff;border:none;border-radius:10px;padding:9px 20px;font-size:.88rem;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(217,119,6,.3);">
+                <i class="ti ti-device-floppy" style="margin-right:5px;"></i>Guardar
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function(){
+    var URLROOT = '<?= URLROOT ?>';
+
+    function almAbrirCorreccion(id, corrActual) {
+        document.getElementById('almCorrActId').value = id;
+        var txt = document.getElementById('almCorrTexto');
+        txt.value = corrActual || '';
+        document.getElementById('almCorrLen').textContent = txt.value.length;
+        var modal = document.getElementById('almCorrModal');
+        modal.style.display = 'flex';
+        setTimeout(() => txt.focus(), 80);
+    }
+
+    function almCerrarCorreccion() {
+        document.getElementById('almCorrModal').style.display = 'none';
+    }
+
+    document.getElementById('almCorrTexto').addEventListener('input', function(){
+        document.getElementById('almCorrLen').textContent = this.value.length;
+    });
+
+    function almGuardarCorreccion() {
+        var id   = document.getElementById('almCorrActId').value;
+        var corr = document.getElementById('almCorrTexto').value.trim();
+        if (!corr) {
+            Swal.fire({icon:'warning', title:'Campo vacío', text:'Escribe una corrección o usa "Quitar corrección".', confirmButtonColor:'#d97706'});
+            return;
+        }
+        _almEnviarCorreccion(id, corr);
+    }
+
+    function almGuardarCorreccionVacia() {
+        var id = document.getElementById('almCorrActId').value;
+        Swal.fire({
+            icon:'question', title:'¿Quitar corrección?',
+            text:'Se eliminará la corrección de esta actividad.',
+            showCancelButton:true, confirmButtonText:'Sí, quitar',
+            confirmButtonColor:'#64748b', cancelButtonColor:'#d97706'
+        }).then(function(r){ if (r.isConfirmed) _almEnviarCorreccion(id, ''); });
+    }
+
+    function _almEnviarCorreccion(id, corr) {
+        var btn = document.getElementById('almCorrBtn');
+        btn.disabled = true;
+
+        fetch(URLROOT + '/pasante/corregirActividad', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({id: parseInt(id), correccion: corr})
+        })
+        .then(function(r){ return r.json(); })
+        .then(function(data){
+            if (data.success) {
+                almCerrarCorreccion();
+                Swal.fire({
+                    icon:'success', title:'Guardado',
+                    text: data.message,
+                    confirmButtonColor:'#d97706',
+                    timer:1600, showConfirmButton:false
+                }).then(function(){ location.reload(); });
+            } else {
+                Swal.fire({icon:'error', title:'Error', text:data.message, confirmButtonColor:'#d97706'});
+                btn.disabled = false;
+            }
+        })
+        .catch(function(){
+            Swal.fire({icon:'error', title:'Error de red', text:'No se pudo conectar.', confirmButtonColor:'#d97706'});
+            btn.disabled = false;
+        });
+    }
+
+    function almEliminarActividad(id) {
+        Swal.fire({
+            icon:'warning', title:'¿Eliminar actividad?',
+            text:'Esta acción no se puede deshacer.',
+            showCancelButton:true, confirmButtonText:'Sí, eliminar',
+            cancelButtonText:'Cancelar',
+            confirmButtonColor:'#dc2626', cancelButtonColor:'#64748b'
+        }).then(function(result){
+            if (!result.isConfirmed) return;
+
+            fetch(URLROOT + '/pasante/eliminarActividadAdmin', {
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body: JSON.stringify({id: id})
+            })
+            .then(function(r){ return r.json(); })
+            .then(function(data){
+                if (data.success) {
+                    var card = document.getElementById('alm-act-card-' + id);
+                    if (card) {
+                        card.style.transition = 'opacity .3s,transform .3s';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(.95)';
+                        setTimeout(function(){ card.remove(); }, 300);
+                    }
+                } else {
+                    Swal.fire({icon:'error', title:'Error', text:data.message, confirmButtonColor:'#dc2626'});
+                }
+            })
+            .catch(function(){
+                Swal.fire({icon:'error', title:'Error de red', text:'No se pudo conectar.', confirmButtonColor:'#dc2626'});
+            });
+        });
+    }
+
+    window.almAbrirCorreccion   = almAbrirCorreccion;
+    window.almEliminarActividad = almEliminarActividad;
+    window.almGuardarCorreccion = almGuardarCorreccion;
+    window.almGuardarCorreccionVacia = almGuardarCorreccionVacia;
+    window.almCerrarCorreccion  = almCerrarCorreccion;
+})();
+</script>
+<?php endif; ?>

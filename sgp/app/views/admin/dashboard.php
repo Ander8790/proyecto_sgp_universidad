@@ -25,7 +25,13 @@ $periodos           = $data['periodos']           ?? [];
     .charts-grid-50, .bottom-grid-60-40 { grid-template-columns: 1fr; }
 }
 @media (max-width: 768px) {
+    .dashboard-kpi-grid { grid-template-columns: repeat(2, 1fr); }
+    .figma-card .chart-wrapper { height: 220px !important; min-height: 220px !important; max-height: 220px !important; }
+}
+@media (max-width: 480px) {
     .dashboard-kpi-grid { grid-template-columns: 1fr; }
+    .kpi-card { padding: 14px 16px; }
+    .kpi-value { font-size: 1.5rem !important; }
 }
 
 /* === KPI CARDS WITH HOVER RIBBON === */
@@ -74,12 +80,14 @@ $periodos           = $data['periodos']           ?? [];
     .admin-banner {
         flex-direction: column !important;
         align-items: flex-start !important;
-        padding: 24px 20px !important;
-        gap: 20px !important;
+        padding: 20px !important;
+        gap: 14px !important;
     }
-    .admin-banner > div:first-child { 
-        display: none !important; /* Ocultar círculo decorativo */
+    .admin-banner > div:first-child {
+        display: none !important;
     }
+    /* Widget fecha/hora: ocultar en móvil */
+    .admin-banner > div:last-child { display: none !important; }
 }
 </style>
 
@@ -392,56 +400,97 @@ document.addEventListener("DOMContentLoaded", function () {
     // ========================================
     // 2. MONITOR PRINCIPAL (Paleta Analógica)
     // ========================================
-    // ── DATA BRIDGE: Obteniendo datos reales del backend ──
     const DashboardData = <?= json_encode($data['metricas_graficos'] ?? []) ?>;
-    
-    // Extrayendo series dinámicas
-    const ObjectDiaria  = DashboardData.asistenciaDiaria || { cat: ['Lun','Mar','Mié','Jue','Vie'], p: [0,0,0,0,0], f: [0,0,0,0,0], j: [0,0,0,0,0] };
-    const ObjectSemanal = DashboardData.asistenciaSemanal || { cat: ['Sem 1','Sem 2','Sem 3','Sem 4'], p: [0,0,0,0], f: [0,0,0,0], j: [0,0,0,0] };
-    const ObjectMensual = DashboardData.asistenciaMensual || { cat: ['Ene','Feb','Mar','Abr','May','Jun'], p: [0,0,0,0,0,0], f: [0,0,0,0,0,0], j: [0,0,0,0,0,0] };
+
+    const ObjectDiaria  = DashboardData.asistenciaDiaria  || { cat:['Lun','Mar','Mié','Jue','Vie'], p:[0,0,0,0,0], f:[0,0,0,0,0], j:[0,0,0,0,0], motivos:[[],[],[],[],[]] };
+    const ObjectSemanal = DashboardData.asistenciaSemanal || { cat:['Sem 1','Sem 2','Sem 3','Sem 4'], p:[0,0,0,0], f:[0,0,0,0], j:[0,0,0,0], motivos:[[],[],[],[]] };
+    const ObjectMensual = DashboardData.asistenciaMensual || { cat:['Ene','Feb','Mar','Abr','May','Jun'], p:[0,0,0,0,0,0], f:[0,0,0,0,0,0], j:[0,0,0,0,0,0], motivos:[[],[],[],[],[],[]] };
+
+    // Dataset activo (cambia al hacer toggle)
+    let activeDataset = ObjectDiaria;
+
+    function buildTooltip({ series, seriesIndex, dataPointIndex, w }) {
+        const label    = (activeDataset.cat || [])[dataPointIndex] || '';
+        const presentes = (activeDataset.p || [])[dataPointIndex] || 0;
+        const justif    = (activeDataset.j || [])[dataPointIndex] || 0;
+        const ausentes  = (activeDataset.f || [])[dataPointIndex] || 0;
+        const total     = presentes + justif + ausentes;
+        const motivos   = (activeDataset.motivos || [])[dataPointIndex] || [];
+
+        // Porcentaje de asistencia efectiva (P + J)
+        const pct = total > 0 ? Math.round(((presentes + justif) / total) * 100) : 0;
+
+        let motivoHtml = '';
+        if (justif > 0 && motivos.length > 0) {
+            const items = motivos.map(m =>
+                `<div style="margin-top:3px;padding:3px 8px;background:#fef3c7;border-radius:5px;font-size:0.68rem;color:#78350f;">📋 ${m}</div>`
+            ).join('');
+            motivoHtml = `<div style="margin-top:7px;padding-top:6px;border-top:1px solid #e2e8f0;">
+                <div style="font-size:0.68rem;font-weight:700;color:#92400e;margin-bottom:2px;">Motivo(s) de justificación:</div>
+                ${items}
+            </div>`;
+        }
+
+        return `<div style="padding:12px 14px;min-width:160px;font-family:'Plus Jakarta Sans',sans-serif;border-radius:10px;background:#fff;box-shadow:0 4px 16px rgba(0,0,0,0.12);border:1px solid #e2e8f0;">
+            <div style="font-weight:800;font-size:0.82rem;color:#1e293b;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #f1f5f9;">${label} · ${pct}% asistencia</div>
+            <div style="display:flex;flex-direction:column;gap:4px;font-size:0.78rem;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="width:10px;height:10px;border-radius:3px;background:#10B981;display:inline-block;flex-shrink:0;"></span>
+                    <span style="color:#475569;font-weight:600;">Presentes:</span>
+                    <span style="font-weight:800;color:#10B981;margin-left:auto;">${presentes}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="width:10px;height:10px;border-radius:3px;background:#F59E0B;display:inline-block;flex-shrink:0;"></span>
+                    <span style="color:#475569;font-weight:600;">Justificados:</span>
+                    <span style="font-weight:800;color:#F59E0B;margin-left:auto;">${justif}</span>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="width:10px;height:10px;border-radius:3px;background:#EF4444;display:inline-block;flex-shrink:0;"></span>
+                    <span style="color:#475569;font-weight:600;">Ausentes:</span>
+                    <span style="font-weight:800;color:#EF4444;margin-left:auto;">${ausentes}</span>
+                </div>
+            </div>
+            ${motivoHtml}
+        </div>`;
+    }
 
     const chartHistEl = document.querySelector("#chart-main-history");
     let histChart;
     if (chartHistEl) {
         histChart = new ApexCharts(chartHistEl, {
             series: [
-                { name: 'Presentes', data: ObjectDiaria.p },
+                { name: 'Presentes',    data: ObjectDiaria.p },
                 { name: 'Justificados', data: ObjectDiaria.j },
-                { name: 'Ausentes', data: ObjectDiaria.f }
+                { name: 'Ausentes',     data: ObjectDiaria.f }
             ],
             chart: { height: 300, type: 'bar', stacked: false, toolbar: { show: false }, fontFamily: 'Plus Jakarta Sans, sans-serif' },
-            plotOptions: { 
-                bar: { 
-                    horizontal: false, 
-                    columnWidth: '45%', 
-                    borderRadius: 4, 
-                    borderRadiusApplication: 'end' 
-                } 
-            },
+            plotOptions: { bar: { horizontal: false, columnWidth: '45%', borderRadius: 4, borderRadiusApplication: 'end' } },
             dataLabels: { enabled: false },
             colors: ['#10B981', '#F59E0B', '#EF4444'],
             grid: { borderColor: '#F1F5F9', strokeDashArray: 4 },
             xaxis: { categories: ObjectDiaria.cat, axisBorder: { show: false }, axisTicks: { show: false } },
-            legend: { position: 'top', horizontalAlign: 'right' }
+            legend: { position: 'top', horizontalAlign: 'right' },
+            tooltip: { custom: buildTooltip }
         });
         histChart.render();
 
-        // Toggles Tiempo
-        const updateTimeData = (btnId, dataObj) => {
+        // Toggles con actualización del dataset activo
+        const switchTo = (btnId, dataObj) => {
             document.getElementById(btnId).addEventListener('click', (e) => {
+                activeDataset = dataObj;
                 histChart.updateOptions({ xaxis: { categories: dataObj.cat } });
                 histChart.updateSeries([
-                    { name: 'Presentes', data: dataObj.p }, 
-                    { name: 'Justificados', data: dataObj.j }, 
-                    { name: 'Ausentes', data: dataObj.f }
+                    { name: 'Presentes',    data: dataObj.p },
+                    { name: 'Justificados', data: dataObj.j },
+                    { name: 'Ausentes',     data: dataObj.f }
                 ]);
                 document.querySelectorAll('.time-toggles .btn-micro').forEach(b => b.classList.remove('active'));
                 e.currentTarget.classList.add('active');
             });
         };
-        updateTimeData('btnTimeDay', ObjectDiaria);
-        updateTimeData('btnTimeWeek', ObjectSemanal);
-        updateTimeData('btnTimeMonth', ObjectMensual);
+        switchTo('btnTimeDay',   ObjectDiaria);
+        switchTo('btnTimeWeek',  ObjectSemanal);
+        switchTo('btnTimeMonth', ObjectMensual);
     }
 
 

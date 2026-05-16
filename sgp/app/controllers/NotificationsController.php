@@ -118,6 +118,110 @@ class NotificationsController extends Controller
     }
 
     /**
+     * Datos para notificaciones de escritorio (solo Administrador/SuperAdmin)
+     * GET /notifications/getDesktopData?ultimo_id=<int>
+     */
+    public function getDesktopData()
+    {
+        $role_id = (int) Session::get('role_id');
+        if (!in_array($role_id, [0, 1])) {
+            $this->jsonResponse(false, 'Sin permiso');
+        }
+
+        try {
+            $db  = Database::getInstance();
+            $hoy = date('Y-m-d');
+
+            // ── ¿Es día hábil? (no feriado no-laborable, no fin de semana) ────────
+            $diaSemana  = (int) date('N'); // 6=Sábado, 7=Domingo
+            $esFeriado  = false;
+            if ($diaSemana < 6) {
+                $db->query("SELECT COUNT(*) AS cnt FROM dias_feriados WHERE fecha = :fecha AND es_laborable = 0");
+                $db->bind(':fecha', $hoy);
+                $rowF      = $db->single();
+                $esFeriado = $rowF && (int)$rowF->cnt > 0;
+            }
+            $esDiaHabil = ($diaSemana < 6) && !$esFeriado;
+
+            // ── Nuevas asistencias vía Kiosco ───────────────────────────────────
+            $ultimoId = max(0, (int) ($_GET['ultimo_id'] ?? 0));
+            $nuevas   = [];
+            if ($esDiaHabil && $ultimoId >= 0) {
+                $db->query("
+                    SELECT a.id,
+                           CONCAT(dp.nombres, ' ', dp.apellidos) AS nombre,
+                           TIME_FORMAT(a.hora_registro, '%h:%i %p') AS hora
+                    FROM   asistencias a
+                    JOIN   datos_personales dp ON a.pasante_id = dp.usuario_id
+                    WHERE  a.id > :uid
+                      AND  a.metodo = 'Kiosco'
+                      AND  a.fecha  = :fecha
+                    ORDER  BY a.id ASC
+                    LIMIT  10
+                ");
+                $db->bind(':uid',   $ultimoId, PDO::PARAM_INT);
+                $db->bind(':fecha', $hoy);
+                $rows = $db->resultSet();
+                $nuevas = $rows ? array_map(fn($r) => (array)$r, $rows) : [];
+            }
+
+            // ── Pasantes sin tutor asignado (estado Activo) ─────────────────────
+            $db->query("SELECT COUNT(*) AS cnt FROM datos_pasante WHERE tutor_id IS NULL AND estado_pasantia = 'Activo'");
+            $rowP       = $db->single();
+            $sinAsignar = $rowP ? (int)$rowP->cnt : 0;
+
+            // ── Próximo feriado no-laborable ─────────────────────────────────────
+            $db->query("
+                SELECT fecha, nombre,
+                       DATEDIFF(fecha, CURDATE()) AS dias_restantes
+                FROM   dias_feriados
+                WHERE  fecha >= CURDATE()
+                  AND  es_laborable = 0
+                ORDER  BY fecha ASC
+                LIMIT  1
+            ");
+            $rowH           = $db->single();
+            $proximoFeriado = $rowH ? (array)$rowH : null;
+
+            $this->jsonResponse(true, 'ok', [
+                'es_dia_habil'        => $esDiaHabil,
+                'nuevas_asistencias'  => $nuevas,
+                'pasantes_sin_asignar'=> $sinAsignar,
+                'proximo_feriado'     => $proximoFeriado,
+            ]);
+        } catch (Exception $e) {
+            error_log('[SGP-DESKTOP-NOTIF] ' . $e->getMessage());
+            $this->jsonResponse(false, 'Error interno');
+        }
+    }
+
+    /**
+     * Próximo feriado — para cualquier usuario autenticado.
+     * GET /notifications/getNextHoliday
+     */
+    public function getNextHoliday(): void
+    {
+        try {
+            $db = Database::getInstance();
+            $db->query("
+                SELECT fecha, nombre,
+                       DATEDIFF(fecha, CURDATE()) AS dias_restantes
+                FROM   dias_feriados
+                WHERE  fecha >= CURDATE()
+                  AND  es_laborable = 0
+                ORDER  BY fecha ASC
+                LIMIT  1
+            ");
+            $row = $db->single();
+            $this->jsonResponse(true, 'ok', [
+                'proximo_feriado' => $row ? (array)$row : null,
+            ]);
+        } catch (\Exception $e) {
+            $this->jsonResponse(false, 'Error interno');
+        }
+    }
+
+    /**
      * Helper: Convert timestamp to "time ago" format
      */
     private function timeAgo($timestamp)

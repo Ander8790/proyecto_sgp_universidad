@@ -203,7 +203,37 @@
 }
 @media (max-width: 768px) {
     .kpi-pasantes-grid {
-        grid-template-columns: 1fr !important;
+        grid-template-columns: 1fr 1fr !important;
+    }
+}
+@media (max-width: 640px) {
+    .kpi-pasantes-grid {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 10px !important;
+    }
+    /* Barra de filtros: contenedor interior en columna */
+    .pasantes-filter-bar {
+        padding: 14px 16px !important;
+        gap: 10px !important;
+    }
+    .pasantes-filter-bar > div:first-child {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+    .pasantes-filter-bar > div:first-child > p {
+        margin-bottom: 0 !important;
+    }
+    /* Selectores: ancho completo */
+    #filterDepto, #filterInst {
+        width: 100% !important;
+        box-sizing: border-box !important;
+        min-width: 0 !important;
+    }
+    /* Buscador: ancho completo */
+    .pasantes-filter-bar > div:last-child {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
     }
 }
 </style>
@@ -260,7 +290,7 @@ sort($filtro_inst_nombres);
         $kpis = [
             ['label' => 'Total Pasantes',  'val' => $total,      'color' => '#2563eb', 'boxShadow' => 'rgba(37,99,235,0.15)', 'icon' => 'ti-users',        'sub' => 'registrados', 'filtro' => ''],
             ['label' => 'En Curso',        'val' => $enCurso,    'color' => '#10b981', 'boxShadow' => 'rgba(16,185,129,0.15)', 'icon' => 'ti-player-play',  'sub' => 'pasantías activas', 'filtro' => 'Activo'],
-            ['label' => 'Pendientes',      'val' => $pendientes, 'color' => '#f59e0b', 'boxShadow' => 'rgba(245,158,11,0.15)', 'icon' => 'ti-clock',        'sub' => 'por formalizar', 'filtro' => 'Pendiente'],
+            ['label' => 'Pendientes',      'val' => $pendientes, 'color' => '#f59e0b', 'boxShadow' => 'rgba(245,158,11,0.15)', 'icon' => 'ti-clock',        'sub' => 'por formalizar', 'filtro' => 'Pendiente|Sin Asignar'],
             ['label' => 'Culminados',      'val' => $culminados, 'color' => '#8b5cf6', 'boxShadow' => 'rgba(139,92,246,0.15)', 'icon' => 'ti-medal',        'sub' => 'este período', 'filtro' => 'Finalizado'],
         ];
         foreach ($kpis as $k): ?>
@@ -655,12 +685,19 @@ function filtrarEstadoKPI(estado) {
     // DataTable
     if ($.fn.DataTable && $.fn.DataTable.isDataTable('#tablaPasantes')) {
         var dt = $('#tablaPasantes').DataTable();
-        dt.column(5).search('^' + $.fn.dataTable.util.escapeRegex(estado) + '$', true, false).draw();
+        // Si el estado contiene |, es una búsqueda por múltiples estados (regex)
+        var busqueda = estado.includes('|') ? estado : '^' + $.fn.dataTable.util.escapeRegex(estado) + '$';
+        dt.column(5).search(busqueda, true, false).draw();
     }
     // Mobile cards
     document.querySelectorAll('.mobile-card-item').forEach(function(card) {
         var cardEstado = (card.getAttribute('data-estado') || '').toLowerCase();
-        card.style.display = (cardEstado === estado.toLowerCase()) ? '' : 'none';
+        if (estado.includes('|')) {
+            var estadosPermitidos = estado.toLowerCase().split('|');
+            card.style.display = estadosPermitidos.includes(cardEstado) ? '' : 'none';
+        } else {
+            card.style.display = (cardEstado === estado.toLowerCase()) ? '' : 'none';
+        }
     });
     // Scroll a la tabla
     setTimeout(function() {
@@ -779,8 +816,8 @@ async function guardarDatosPasante() {
 // choicesEstado eliminado — select nativo con opciones dinámicas habilitadas/deshabilitadas
 
 // ── Cambiar Estado del Pasante ──────────────────────────────────────────
-const ESTADO_ICONS = { 'Pendiente':'⏳', 'Activo':'✅', 'Finalizado':'🏆', 'Retirado':'❌' };
-const ESTADO_COLORES = {
+var ESTADO_ICONS = { 'Pendiente':'⏳', 'Activo':'✅', 'Finalizado':'🏆', 'Retirado':'❌' };
+var ESTADO_COLORES = {
     'Sin Asignar': { bg:'#f1f5f9', color:'#475569' },
     'Pendiente':   { bg:'#fef9c3', color:'#854d0e' },
     'Activo':      { bg:'#dcfce7', color:'#166534' },

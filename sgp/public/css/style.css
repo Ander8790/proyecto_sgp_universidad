@@ -1235,8 +1235,6 @@ body.sidebar-collapse .main-content {
 
 /* Dashboard Container - Profesional */
 .dashboard-container {
-    max-width: 1400px;
-    margin: 0 auto;
     width: 100%;
 }
 
@@ -1581,6 +1579,12 @@ auth-wrapper::before {
     margin-bottom: 24px;
 }
 
+/* Auth pages: más espacio para que el label flotante del campo siguiente
+   no tape el mensaje de validación (email-feedback) que sale debajo */
+.auth-card .form-group {
+    margin-bottom: 36px;
+}
+
 /* INPUT MODERNO CANÓNICO - NEXIO 50px */
 .input-modern {
     width: 100%;
@@ -1608,25 +1612,55 @@ auth-wrapper::before {
 /* LABEL FLOTANTE CANÓNICO */
 .label-floating {
     position: absolute;
-    top: 50%;
+    top: 0;
     left: 20px;
-    transform: translateY(-50%);
+    height: 50px;           /* igual al input → align-items centra exactamente */
+    display: flex;
+    align-items: center;
     font-size: 1rem;
     color: var(--text-body);
     pointer-events: none;
-    transition: 0.2s ease;
-    background: var(--color-card);
+    background: transparent; /* sin fondo en reposo — solo visible al flotar */
     padding: 0 6px;
     margin-left: -6px;
+    line-height: 1;
+    white-space: nowrap;
+    transition: top 0.2s ease, height 0.2s ease, font-size 0.2s ease,
+                color 0.2s ease, font-weight 0.2s ease;
+}
+
+.label-floating i {
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* Feedback de validación de email — fuera del flujo para no alterar altura del form-group */
+.email-feedback {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #ef4444;
+    min-height: 0;
+    z-index: 2;
 }
 
 /* Animación del label al focus o cuando tiene contenido */
 .input-modern:focus+.label-floating,
 .input-modern:not(:placeholder-shown)+.label-floating {
-    top: 0;
+    top: -0.625rem;         /* mitad de 1.25rem → centro en el borde superior */
+    height: 1.25rem;
     font-size: 0.8rem;
     color: var(--color-primary);
     font-weight: 600;
+    background: var(--color-card); /* fondo visible solo al flotar, para cortar el borde */
+}
+
+.input-modern:focus+.label-floating i,
+.input-modern:not(:placeholder-shown)+.label-floating i {
+    font-size: 0.85rem !important;
+    margin-right: 4px !important;
 }
 
 /* Estados de validación visual */

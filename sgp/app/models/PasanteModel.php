@@ -78,8 +78,9 @@ class PasanteModel
                 u.pin_asistencia,
                 -- Lógica de negocio: datos académicos viven en datos_pasante
                 COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
-                COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
-                COALESCE(dpa.horas_meta, 1440)               AS horas_meta,
+                -- ✅ PRO-RATA: Cálculo dinámico desde asistencias (8h/día)
+                (COALESCE(prog.dias_validos, 0) * 8)          AS horas_acumuladas,
+                COALESCE(NULLIF(dpa.horas_meta, 0), ROUND(DATEDIFF(pa.fecha_fin, pa.fecha_inicio) * 5/7) * 8, 1440) AS horas_meta,
                 dpa.fecha_inicio_pasantia                    AS fecha_inicio,
                 dpa.fecha_fin_estimada                       AS fecha_fin_estimada,
                 dpa.institucion_procedencia,
@@ -88,19 +89,22 @@ class PasanteModel
                 COALESCE(inst.nombre, dpa.institucion_procedencia)       AS institucion_nombre,
                 inst.representante_nombre                                AS institucion_representante,
                 pa.nombre                                                AS periodo_nombre,
-                CASE
-                    WHEN COALESCE(dpa.horas_meta, 1440) > 0
-                    THEN ROUND(
-                        (COALESCE(dpa.horas_acumuladas, 0) / COALESCE(dpa.horas_meta, 1440)) * 100,
-                    2)
-                    ELSE 0
-                END AS progreso_porcentaje
+                ROUND(
+                    ((COALESCE(prog.dias_validos, 0) * 8) / NULLIF(COALESCE(NULLIF(dpa.horas_meta, 0), ROUND(DATEDIFF(pa.fecha_fin, pa.fecha_inicio) * 5/7) * 8, 1440), 0)) * 100,
+                2) AS progreso_porcentaje
             FROM usuarios u
             LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
+            -- ✅ JOIN Pro-Rata: Fuente de verdad de horas acumuladas
+            LEFT JOIN (
+                SELECT pasante_id, COUNT(*) AS dias_validos
+                FROM asistencias
+                WHERE estado IN ('Presente', 'Justificado')
+                GROUP BY pasante_id
+            ) AS prog ON prog.pasante_id = u.id
             WHERE u.rol_id = 3 {$periodoWhere}
             ORDER BY
                 FIELD(COALESCE(dpa.estado_pasantia, 'Sin Asignar'), 'Sin Asignar', 'Activo', 'Finalizado'),
@@ -136,8 +140,9 @@ class PasanteModel
                 u.estado                               AS activo,
                 u.pin_asistencia,
                 COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
-                COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
-                COALESCE(dpa.horas_meta, 1440)               AS horas_meta,
+                -- ✅ PRO-RATA: Cálculo dinámico desde asistencias
+                (COALESCE(prog.dias_validos, 0) * 8)          AS horas_acumuladas,
+                COALESCE(NULLIF(dpa.horas_meta, 0), ROUND(DATEDIFF(pa.fecha_fin, pa.fecha_inicio) * 5/7) * 8, 1440) AS horas_meta,
                 dpa.fecha_inicio_pasantia                    AS fecha_inicio,
                 dpa.fecha_fin_estimada                       AS fecha_fin_estimada,
                 dpa.institucion_procedencia,
@@ -146,19 +151,22 @@ class PasanteModel
                 COALESCE(inst.nombre, dpa.institucion_procedencia) AS institucion_nombre,
                 inst.representante_nombre AS institucion_representante,
                 pa.nombre AS periodo_nombre,
-                CASE
-                    WHEN COALESCE(dpa.horas_meta, 1440) > 0
-                    THEN ROUND(
-                        (COALESCE(dpa.horas_acumuladas, 0) / COALESCE(dpa.horas_meta, 1440)) * 100,
-                    2)
-                    ELSE 0
-                END AS progreso_porcentaje
+                ROUND(
+                    ((COALESCE(prog.dias_validos, 0) * 8) / NULLIF(COALESCE(NULLIF(dpa.horas_meta, 0), ROUND(DATEDIFF(pa.fecha_fin, pa.fecha_inicio) * 5/7) * 8, 1440), 0)) * 100,
+                2) AS progreso_porcentaje
             FROM usuarios u
             LEFT JOIN datos_personales dp  ON dp.usuario_id  = u.id
             LEFT JOIN datos_pasante    dpa ON dpa.usuario_id = u.id
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             LEFT JOIN periodos_academicos pa ON pa.id = dpa.periodo_id
+            -- ✅ JOIN Pro-Rata
+            LEFT JOIN (
+                SELECT pasante_id, COUNT(*) AS dias_validos
+                FROM asistencias
+                WHERE estado IN ('Presente', 'Justificado')
+                GROUP BY pasante_id
+            ) AS prog ON prog.pasante_id = u.id
             WHERE u.id = :uid AND u.rol_id = 3
             LIMIT 1
         ");

@@ -69,6 +69,10 @@
         letter-spacing: 0.5px;
     }
     .clock-separator {
+        background: linear-gradient(135deg, #162660, #2563eb);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         animation: blink 1s step-end infinite;
     }
     @keyframes blink {

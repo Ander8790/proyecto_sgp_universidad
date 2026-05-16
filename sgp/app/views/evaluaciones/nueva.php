@@ -604,34 +604,31 @@ $totalCriterios = array_sum(array_map(fn($c) => count($c['items']), $categorias)
             <!-- Tutor Evaluador -->
             <div style="margin-bottom:14px;">
                 <label style="display:block;font-weight:600;color:#374151;margin-bottom:6px;font-size:0.85rem;">
-                    <i class="ti ti-school" style="margin-right:5px;color:#2563eb;"></i>Tutor Evaluador
+                    <i class="ti ti-school" style="margin-right:5px;color:#2563eb;"></i>Tutor Evaluador *
                 </label>
-                <?php if ($rolIdVista === 1): // Administrador ?>
-                    <select name="tutor_id" class="input-modern" id="selectTutorEval">
-                        <option value="">— Automático (Tutor Asignado) —</option>
-                        <?php foreach ($tutores as $t): ?>
-                        <option value="<?= (int)$t->id ?>" <?= ((int)$tutorActualId === (int)$t->id) ? 'selected' : '' ?>>
-                            <?= htmlspecialchars(trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? ''))) ?> (<?= $t->rol_id == 1 ? 'Admin' : 'Tutor' ?>)
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                <?php else: // Tutor (Solo Lectura) 
-                    // Extraer nombre del tutor asignado
-                    $tutorNombre = 'Automático (Tutor Asignado)';
-                    if ($tutorActualId) {
-                        foreach ($tutores as $t) {
-                            if ((int)$t->id === (int)$tutorActualId) {
-                                $tutorNombre = trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? ''));
-                                break;
-                            }
-                        }
-                    }
+                <?php
+                // Sesión actual del evaluador
+                $sessionUserId = (int)(Session::get('user_id') ?? 0);
                 ?>
-                    <div class="input-modern" style="background:#f8fafc;color:#64748b;display:flex;align-items:center;gap:8px;cursor:default;">
-                        <i class="ti ti-lock" style="font-size:0.9rem;flex-shrink:0;"></i>
-                        <?= htmlspecialchars($tutorNombre) ?>
-                        <span style="margin-left:auto;background:#e2e8f0;color:#64748b;font-size:0.65rem;font-weight:700;padding:2px 8px;border-radius:20px;text-transform:uppercase;">Auto</span>
-                    </div>
+                <select name="tutor_id" class="input-modern" id="selectTutorEval">
+                    <?php foreach ($tutores as $t):
+                        // Predeterminado: el tutor original asignado al pasante
+                        // Si no hay tutor asignado, se pre-selecciona el usuario actual
+                        $defaultId  = $tutorActualId ?: $sessionUserId;
+                        $isSelected = ((int)$t->id === (int)$defaultId);
+                        $rolLabel   = ($t->rol_id == 1) ? 'Admin' : 'Tutor';
+                        $nombre     = htmlspecialchars(trim(($t->nombres ?? '') . ' ' . ($t->apellidos ?? '')));
+                    ?>
+                    <option value="<?= (int)$t->id ?>" <?= $isSelected ? 'selected' : '' ?>>
+                        <?= $nombre ?> (<?= $rolLabel ?>)<?= $isSelected ? ' — Predeterminado' : '' ?>
+                    </option>
+                    <?php endforeach; ?>
+                </select>
+                <?php if ($rolIdVista !== 1): // Solo para tutores, mostrar aviso contextual ?>
+                <p style="font-size:0.72rem;color:#64748b;margin:5px 0 0;display:flex;align-items:center;gap:4px;">
+                    <i class="ti ti-info-circle" style="color:#2563eb;"></i>
+                    Por defecto se asigna el tutor original del pasante.
+                </p>
                 <?php endif; ?>
             </div>
 

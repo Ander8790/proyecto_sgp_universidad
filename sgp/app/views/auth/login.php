@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
     <title>SGP - Iniciar Sesión</title>
     <link rel="icon" type="image/png" href="<?= URLROOT ?>/img/favicon.png">
     
@@ -12,7 +13,7 @@
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notifications.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css?v=<?= filemtime(APPROOT.'/../public/css/style.css') ?>">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/captcha.css">
     
     <!-- ============================================ -->
@@ -50,7 +51,7 @@
     <style>
     .kiosco-pill {
         position: fixed;
-        top: 130px;
+        top: 380px;
         right: 50px;
         z-index: 10000;
         display: flex;
@@ -90,6 +91,26 @@
     /* Wrapper para texto multi-línea en móvil */
     .kiosco-text { display: flex; flex-direction: column; }
     </style>
+    <script>
+    (function positionKioscoPill() {
+        function update() {
+            var pill = document.querySelector('.kiosco-pill');
+            var cintillo = document.querySelector('.cintillo-container');
+            if (!pill || !cintillo) return;
+            pill.style.top = (cintillo.offsetHeight + 80) + 'px';
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', update);
+        } else {
+            update();
+        }
+        window.addEventListener('resize', update);
+        // Reposicionar tras carga de imágenes del cintillo (pueden cambiar la altura)
+        document.querySelectorAll('.cintillo-container img').forEach(function(img) {
+            if (!img.complete) img.addEventListener('load', update);
+        });
+    })();
+    </script>
 
     <?php include_once APPROOT . '/views/layouts/header_strip.php'; ?>
     

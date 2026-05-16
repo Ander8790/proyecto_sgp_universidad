@@ -168,8 +168,8 @@
    RESPONSIVE
    ======================================== */
 
-/* Desktop (>= 992px) */
-@media (min-width: 992px) {
+/* Desktop (>= 1200px) */
+@media (min-width: 1200px) {
     .main-header {
         /* EDGE TO EDGE - DE ESQUINA A ESQUINA */
         left: 0 !important;
@@ -193,8 +193,8 @@
     }
 }
 
-/* Tablet (768px - 991px) */
-@media (min-width: 768px) and (max-width: 991px) {
+/* Tablet (768px - 1199px) */
+@media (min-width: 768px) and (max-width: 1199px) {
     .main-header {
         padding: 0 15px;
     }

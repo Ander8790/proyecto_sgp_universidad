@@ -1,9 +1,10 @@
 <?php
 // Dashboard Premium — Pasante SGP v3 Bento
 $user_name   = $data['user_name']  ?? 'Pasante';
-$pasante     = $data['pasante']    ?? null;
-$actividades = $data['actividades']?? [];
-$proRata     = $data['proRata']    ?? null;
+$pasante        = $data['pasante']        ?? null;
+$actividades    = $data['actividades']    ?? [];
+$asistenciasMes = $data['asistenciasMes'] ?? [];
+$proRata        = $data['proRata']        ?? null;
 
 $estadoPasantia = $pasante->estado_pasantia ?? 'Pendiente';
 $sinAsignar     = in_array($estadoPasantia, ['Sin Asignar', 'Pendiente', '']);
@@ -14,8 +15,7 @@ $horasMeta   = (int)($proRata->horas_meta      ?? $pasante->horas_meta         ?
 $pct         = $horasMeta > 0 ? min(100, round($horasAcum / $horasMeta * 100)) : 0;
 $pctCal      = (float)($proRata->porcentaje_calendario ?? 0);
 
-$mesActual  = date('m'); $anioActual = date('Y');
-$estesMes   = count(array_filter($actividades, fn($a) => !empty($a->fecha) && date('m', strtotime($a->fecha)) == $mesActual && date('Y', strtotime($a->fecha)) == $anioActual));
+$estesMes = count($asistenciasMes);
 $presentes  = 0; $ausentes = 0; $justificados = 0;
 foreach ($actividades as $a) {
     $est = $a->estado ?? '';
@@ -24,21 +24,16 @@ foreach ($actividades as $a) {
     elseif ($est === 'Justificado') $justificados++;
 }
 
-// Mini almanac: mapa fecha → estado de los últimos 30 días
+// Mapa fecha → estado para el calendario mensual
 $actMap = [];
-foreach ($actividades as $a) {
+foreach ($asistenciasMes as $a) {
     if (!empty($a->fecha)) $actMap[$a->fecha] = $a->estado ?? 'Presente';
 }
 
-// 30-day grid (weeks)
-$hoy        = new DateTime();
-$inicio30   = (clone $hoy)->modify('-29 days');
-$dias30     = [];
-$cur        = clone $inicio30;
-while ($cur <= $hoy) {
-    $dias30[] = clone $cur;
-    $cur->modify('+1 day');
-}
+// Mapa de feriados (pasado desde el controlador)
+$feriadosMap = $data['feriadosMap'] ?? [];
+$hoy         = new DateTime();
+$hoyStr      = $hoy->format('Y-m-d');
 
 // Días faltantes = meta - acumulados
 $diasMeta    = (int)ceil($horasMeta / 8);
@@ -182,30 +177,43 @@ $iniciales    = strtoupper(mb_substr(trim($user_name), 0, 1));
 }
 .pb-card-title i { color: #2563eb; font-size: 1.15rem; }
 
-/* ─── MINI ALMANAC ──────────────────────────────────── */
-.alm-strip {
+/* ─── ALMANAQUE MENSUAL (idéntico a /asistencias/almanaque) ── */
+.alm-week-header {
     display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    gap: 5px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+    margin-bottom: 8px;
 }
-.alm-day {
+.alm-header-cell {
+    font-size: .7rem; font-weight: 700; color: #94a3b8; text-align: center;
+}
+.alm-month-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+}
+.alm-cell {
     aspect-ratio: 1;
     border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
-    font-size: .6rem; font-weight: 700;
+    font-size: .75rem; font-weight: 700;
     cursor: default;
-    position: relative;
-    transition: transform .15s;
+    transition: transform .1s, box-shadow .1s;
 }
-.alm-day:hover { transform: scale(1.25); z-index: 2; }
-.alm-day.empty     { background: #f1f5f9; color: #cbd5e1; }
-.alm-day.Presente  { background: #dcfce7; color: #15803d; }
-.alm-day.Ausente   { background: #fee2e2; color: #dc2626; }
-.alm-day.Justificado{ background:#dbeafe; color: #1d4ed8; }
-.alm-day.today     { outline: 2px solid #2563eb; outline-offset: 1px; }
-.alm-legend { display: flex; gap: 14px; font-size: .72rem; font-weight: 600; color: #64748b; }
-.alm-legend span { display: flex; align-items: center; gap: 5px; }
-.alm-legend .dot { width: 10px; height: 10px; border-radius: 3px; }
+.alm-cell:hover:not(.is-empty) { transform: scale(1.15); z-index: 10; box-shadow: 0 2px 8px rgba(0,0,0,.15); }
+.alm-cell.is-empty { cursor: default; pointer-events: none; }
+.alm-cell[data-e="ghost"]    { background: transparent; }
+.alm-cell[data-e="futuro"]   { background: #fff; color: #cbd5e1; border: 1px solid #e2e8f0; }
+.alm-cell[data-e="sin_dato"] { background: #e2e8f0; color: #64748b; }
+.alm-cell[data-e="P"]        { background: #16a34a; color: #fff; }
+.alm-cell[data-e="J"]        { background: #2563eb; color: #fff; }
+.alm-cell[data-e="A"]        { background: #dc2626; color: #fff; }
+.alm-cell[data-e="feriado"]  { background: #f59e0b; color: #fff; }
+.alm-cell[data-e="feriado_lab"] { background: #f59e0b; color: #fff; border: 2px dashed #92400e; }
+.alm-cell.today { outline: 2px solid #0f172a; outline-offset: 1px; }
+.alm-legend { display: flex; gap: 10px; font-size: .7rem; font-weight: 600; color: #64748b; flex-wrap: wrap; margin-top: 14px; }
+.alm-legend-item { display: flex; align-items: center; gap: 5px; }
+.alm-legend-dot  { width: 11px; height: 11px; border-radius: 3px; flex-shrink: 0; }
 
 /* ─── PROGRESS RING ─────────────────────────────────── */
 .pb-ring-wrap { display: flex; flex-direction: column; align-items: center; gap: 14px; }
@@ -280,15 +288,41 @@ $iniciales    = strtoupper(mb_substr(trim($user_name), 0, 1));
 
 /* ─── RESPONSIVE ─────────────────────────────────────── */
 @media (max-width: 1100px) {
-    .pb-grid { grid-template-columns: 1fr; }
+    .pb-grid   { grid-template-columns: 1fr; }
+    .pb-grid-3 { grid-template-columns: 1fr; }
     .pb-grid-kpi { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 600px) {
     .pb-grid-kpi { grid-template-columns: repeat(2, 1fr); }
     .pb-hero { padding: 20px; }
     .pb-clock-box { display: none; }
-    .alm-strip { grid-template-columns: repeat(6, 1fr); }
+    .alm-month-grid { gap: 3px; }
+    .alm-week-header { gap: 3px; }
 }
+
+/* ─── GRID 3 COLUMNAS ────────────────────────────────── */
+.pb-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+/* ─── HOY CARD ───────────────────────────────────────── */
+.hoy-estado-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 50px;
+    font-size: .8rem; font-weight: 800;
+}
+.hoy-actividad {
+    padding: 10px 12px;
+    background: #f8fafc;
+    border-left: 3px solid #2563eb;
+    border-radius: 0 8px 8px 0;
+    margin-bottom: 8px;
+}
+.hoy-actividad:last-child { margin-bottom: 0; }
+.hoy-actividad-titulo { font-size: .82rem; font-weight: 700; color: #0f172a; }
+.hoy-actividad-desc   { font-size: .75rem; color: #64748b; margin-top: 2px; line-height: 1.4; }
 </style>
 
 <div class="pb-wrap">
@@ -352,7 +386,7 @@ $iniciales    = strtoupper(mb_substr(trim($user_name), 0, 1));
         ['label'=>'Días Acumulados',  'val'=>$diasValidos, 'sub'=>"de ~$diasMeta días meta", 'icon'=>'ti-calendar-check', 'cls'=>'c-teal',   'color'=>'#0d9488', 'ibg'=>'#ccfbf1', 'link'=>'/pasante/asistencia'],
         ['label'=>'Horas Acumuladas', 'val'=>$horasAcum,   'sub'=>"de $horasMeta h meta",    'icon'=>'ti-clock',          'cls'=>'c-blue',   'color'=>'#2563eb', 'ibg'=>'#eff6ff', 'link'=>null],
         ['label'=>'Este Mes',         'val'=>$estesMes,    'sub'=>date('F Y'),                'icon'=>'ti-calendar-stats', 'cls'=>'c-amber',  'color'=>'#d97706', 'ibg'=>'#fef3c7', 'link'=>null],
-        ['label'=>'Progreso',         'val'=>$pct . '%',   'sub'=>'horas completadas',        'icon'=>'ti-chart-pie',      'cls'=>'c-indigo', 'color'=>'#6366f1', 'ibg'=>'#ede9fe', 'link'=>'/pasante/analiticas'],
+        ['label'=>'Progreso',         'val'=>(int)$pct,    'sub'=>'% de la meta',             'icon'=>'ti-chart-pie',      'cls'=>'c-indigo', 'color'=>'#6366f1', 'ibg'=>'#ede9fe', 'link'=>'/pasante/analiticas'],
     ];
     foreach ($kpis as $k): ?>
     <div class="pb-kpi <?= $k['cls'] ?>">
@@ -376,14 +410,11 @@ $iniciales    = strtoupper(mb_substr(trim($user_name), 0, 1));
     <?php endforeach; ?>
 </div>
 
-<!-- ══════════ BENTO FILA 2: PROGRESO + INFO ══════════ -->
+<!-- ══════════ FILA 2: PROGRESO + ANILLO ══════════ -->
 <div class="pb-grid">
 
-    <!-- Progreso + Mini Almanac -->
-    <div style="display:flex;flex-direction:column;gap:20px;">
-
-        <!-- Progreso visual -->
-        <div class="pb-card">
+    <!-- Progreso visual -->
+    <div class="pb-card">
             <div class="pb-card-title">
                 <i class="ti ti-trending-up"></i> Mi Progreso de Pasantía
                 <span style="margin-left:auto;font-size:.78rem;color:#94a3b8;font-weight:500;">Meta: <?= number_format($horasMeta) ?> h</span>
@@ -441,123 +472,229 @@ $iniciales    = strtoupper(mb_substr(trim($user_name), 0, 1));
                 El tiempo avanza <strong><?= round($pctCal - $pct, 1) ?> puntos</strong> más rápido que tu asistencia. Habla con tu tutor.
             </div>
             <?php endif; ?>
-        </div>
+    </div>
 
-        <!-- Mini Almanac -->
-        <div class="pb-card">
-            <div class="pb-card-title">
-                <i class="ti ti-calendar-month"></i> Últimos 30 Días
-                <span style="margin-left:auto;font-size:.72rem;color:#94a3b8;font-weight:500;">Heatmap de asistencia</span>
+    <!-- Anillo de progreso -->
+    <div class="pb-card" style="align-items:center;text-align:center;">
+        <div class="pb-card-title" style="justify-content:center;">
+            <i class="ti ti-chart-donut"></i> Completado
+        </div>
+        <div class="pb-ring-wrap">
+            <div class="pb-ring">
+                <?php
+                $r = 58; $cx = 70; $cy = 70;
+                $circ = 2 * M_PI * $r;
+                $dash = $circ * ($pct / 100);
+                $gap  = $circ - $dash;
+                ?>
+                <svg width="140" height="140" viewBox="0 0 140 140">
+                    <circle cx="<?= $cx ?>" cy="<?= $cy ?>" r="<?= $r ?>" fill="none" stroke="#e2e8f0" stroke-width="12"/>
+                    <circle cx="<?= $cx ?>" cy="<?= $cy ?>" r="<?= $r ?>" fill="none"
+                        stroke="url(#pb-grad)" stroke-width="12"
+                        stroke-linecap="round"
+                        stroke-dasharray="<?= round($dash,2) ?> <?= round($gap,2) ?>"/>
+                    <defs>
+                        <linearGradient id="pb-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%"   stop-color="#2563eb"/>
+                            <stop offset="100%" stop-color="#0d9488"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <div class="pb-ring-text">
+                    <div class="pb-ring-pct"><?= $pct ?>%</div>
+                    <div class="pb-ring-label">de la meta</div>
+                </div>
+            </div>
+            <div style="font-size:.82rem;color:#64748b;line-height:1.6;text-align:center;">
+                <strong style="color:#0f172a;"><?= $horasAcum ?>h</strong> acumuladas<br>
+                de <strong style="color:#0f172a;"><?= $horasMeta ?>h</strong> requeridas
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════ FILA 3: CALENDARIO | MI PASANTÍA | MI DÍA ══════════ -->
+<?php
+$asistenciaHoy  = $data['asistenciaHoy']  ?? null;
+$actividadesHoy = $data['actividadesHoy'] ?? [];
+$estadoHoyCfg = [
+    'Presente'    => ['bg'=>'#dcfce7','color'=>'#16a34a','icon'=>'ti-check','label'=>'Presente'],
+    'Ausente'     => ['bg'=>'#fee2e2','color'=>'#dc2626','icon'=>'ti-x',    'label'=>'Ausente'],
+    'Justificado' => ['bg'=>'#dbeafe','color'=>'#1d4ed8','icon'=>'ti-file-description','label'=>'Justificado'],
+];
+?>
+<div class="pb-grid-3">
+
+    <!-- Calendario Mensual — estilo almanaque -->
+    <div class="pb-card">
+        <div class="pb-card-title">
+            <i class="ti ti-calendar-month"></i>
+                <?php
+                    $mesesEs = ['','Enero','Febrero','Marzo','Abril','Mayo','Junio',
+                                'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+                    echo $mesesEs[(int)date('m')] . ' ' . date('Y');
+                ?>
+                <span style="margin-left:auto;font-size:.72rem;color:#94a3b8;font-weight:500;">Asistencia mensual</span>
             </div>
 
-            <div class="alm-strip" style="margin-bottom:12px;">
-                <?php foreach ($dias30 as $d):
-                    $fStr  = $d->format('Y-m-d');
-                    $dNum  = (int)$d->format('d');
-                    $esHoy = $fStr === $hoy->format('Y-m-d');
-                    $est   = $actMap[$fStr] ?? null;
-                    $cls   = $est ? $est : 'empty';
-                    $label = $dNum;
-                    $title = $d->format('d/m') . ($est ? " — $est" : '');
-                ?>
-                <div class="alm-day <?= $cls ?><?= $esHoy ? ' today' : '' ?>" title="<?= $title ?>">
-                    <?= $label ?>
-                </div>
+            <!-- Cabecera L M M J V -->
+            <div class="alm-week-header">
+                <?php foreach (['L','M','M','J','V'] as $dh): ?>
+                <div class="alm-header-cell"><?= $dh ?></div>
                 <?php endforeach; ?>
             </div>
 
+            <div class="alm-month-grid">
+                <?php
+                $almPrimer = new DateTime(date('Y-m-01'));
+                $almUltimo = new DateTime(date('Y-m-t'));
+                $almDow    = (int)$almPrimer->format('N'); // 1=Lun … 7=Dom
+                // Celdas fantasma para alinear el primer día laborable
+                $almEspacios = ($almDow <= 5) ? ($almDow - 1) : 0;
+                for ($g = 0; $g < $almEspacios; $g++) {
+                    echo '<div class="alm-cell is-empty" data-e="ghost"></div>';
+                }
+                $almDiasEnMes = (int)$almUltimo->format('d');
+                for ($d = 1; $d <= $almDiasEnMes; $d++):
+                    $almCur  = new DateTime(date('Y-m-') . sprintf('%02d', $d));
+                    $fStr    = $almCur->format('Y-m-d');
+                    $dow     = (int)$almCur->format('N');
+                    if ($dow > 5) continue; // Sólo Lun–Vie
+
+                    $esHoy  = $fStr === $hoyStr;
+                    $esFut  = $fStr > $hoyStr;
+                    $est    = $actMap[$fStr] ?? null;
+                    $esFer  = array_key_exists($fStr, $feriadosMap);
+                    $esLab  = $esFer && $feriadosMap[$fStr] === 1;
+
+                    if ($est === 'Presente') {
+                        $dataE = 'P'; $tip = 'Presente';
+                    } elseif ($est === 'Justificado') {
+                        $dataE = 'J'; $tip = 'Justificado';
+                    } elseif ($est === 'Ausente') {
+                        $dataE = 'A'; $tip = 'Ausente';
+                    } elseif ($esFer && $esLab) {
+                        $dataE = 'feriado_lab'; $tip = 'Feriado laborable';
+                    } elseif ($esFer) {
+                        $dataE = 'feriado'; $tip = 'Feriado';
+                    } elseif ($esFut) {
+                        $dataE = 'futuro'; $tip = '';
+                    } else {
+                        $dataE = 'sin_dato'; $tip = 'Sin registro';
+                    }
+
+                    $todayCls = $esHoy ? ' today' : '';
+                    $emptyCls = ($dataE === 'futuro' || $dataE === 'ghost') ? ' is-empty' : '';
+                    $titleStr = $almCur->format('d/m') . ($tip ? ' — ' . $tip : '');
+                    echo "<div class=\"alm-cell{$todayCls}{$emptyCls}\" data-e=\"{$dataE}\" title=\"" . htmlspecialchars($titleStr) . "\">{$d}</div>";
+                endfor; ?>
+            </div>
+
             <div class="alm-legend">
-                <span><span class="dot" style="background:#dcfce7;"></span>Presente</span>
-                <span><span class="dot" style="background:#fee2e2;"></span>Ausente</span>
-                <span><span class="dot" style="background:#dbeafe;"></span>Justificado</span>
-                <span><span class="dot" style="background:#f1f5f9;border:1px solid #e2e8f0;"></span>Sin registro</span>
+                <span class="alm-legend-item"><span class="alm-legend-dot" style="background:#16a34a;"></span>Presente</span>
+                <span class="alm-legend-item"><span class="alm-legend-dot" style="background:#dc2626;"></span>Ausente</span>
+                <span class="alm-legend-item"><span class="alm-legend-dot" style="background:#2563eb;"></span>Justificado</span>
+                <span class="alm-legend-item"><span class="alm-legend-dot" style="background:#f59e0b;"></span>Feriado</span>
+                <span class="alm-legend-item"><span class="alm-legend-dot" style="background:#e2e8f0;"></span>Sin registro</span>
             </div>
         </div>
+
+    <!-- Mi Pasantía -->
+    <div class="pb-card">
+        <div class="pb-card-title"><i class="ti ti-id-badge"></i> Mi Pasantía</div>
+
+        <?php if (!empty($pasante->departamento_nombre)): ?>
+        <div class="pb-info-pill">
+            <i class="ti ti-building-community"></i>
+            <div><span>Departamento</span><br><strong><?= htmlspecialchars($pasante->departamento_nombre) ?></strong></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($pasante->fecha_inicio)): ?>
+        <div class="pb-info-pill">
+            <i class="ti ti-calendar-event"></i>
+            <div><span>Inicio</span><br><strong><?= date('d/m/Y', strtotime($pasante->fecha_inicio)) ?></strong></div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($pasante->fecha_fin_estimada)): ?>
+        <div class="pb-info-pill">
+            <i class="ti ti-calendar-due"></i>
+            <div><span>Fin estimado</span><br><strong><?= date('d/m/Y', strtotime($pasante->fecha_fin_estimada)) ?></strong></div>
+        </div>
+        <?php endif; ?>
+
+        <a href="<?= URLROOT ?>/pasante/constancia"
+           style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;
+                  padding:10px 16px;background:linear-gradient(135deg,#172554,#2563eb);
+                  color:#fff;border-radius:12px;font-size:.83rem;font-weight:700;text-decoration:none;
+                  transition:opacity .2s;"
+           onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+            <i class="ti ti-file-certificate"></i> Ver Constancia
+        </a>
     </div>
 
-    <!-- Info rápida + Ring -->
-    <div style="display:flex;flex-direction:column;gap:20px;">
-
-        <!-- Anillo de progreso -->
-        <div class="pb-card" style="align-items:center;text-align:center;">
-            <div class="pb-card-title" style="justify-content:center;">
-                <i class="ti ti-chart-donut"></i> Completado
-            </div>
-            <div class="pb-ring-wrap">
-                <div class="pb-ring">
-                    <?php
-                    $r = 58; $cx = 70; $cy = 70;
-                    $circ = 2 * M_PI * $r;
-                    $dash = $circ * ($pct / 100);
-                    $gap  = $circ - $dash;
-                    ?>
-                    <svg width="140" height="140" viewBox="0 0 140 140">
-                        <circle cx="<?= $cx ?>" cy="<?= $cy ?>" r="<?= $r ?>" fill="none" stroke="#e2e8f0" stroke-width="12"/>
-                        <circle cx="<?= $cx ?>" cy="<?= $cy ?>" r="<?= $r ?>" fill="none"
-                            stroke="url(#pb-grad)" stroke-width="12"
-                            stroke-linecap="round"
-                            stroke-dasharray="<?= round($dash,2) ?> <?= round($gap,2) ?>"/>
-                        <defs>
-                            <linearGradient id="pb-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%"   stop-color="#2563eb"/>
-                                <stop offset="100%" stop-color="#0d9488"/>
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                    <div class="pb-ring-text">
-                        <div class="pb-ring-pct"><?= $pct ?>%</div>
-                        <div class="pb-ring-label">de la meta</div>
-                    </div>
-                </div>
-                <div style="font-size:.82rem;color:#64748b;line-height:1.6;text-align:center;">
-                    <strong style="color:#0f172a;"><?= $horasAcum ?>h</strong> acumuladas<br>
-                    de <strong style="color:#0f172a;"><?= $horasMeta ?>h</strong> requeridas
-                </div>
-            </div>
+    <!-- Mi Día de Hoy -->
+    <div class="pb-card">
+        <div class="pb-card-title">
+            <i class="ti ti-sun"></i> Mi Día de Hoy
+            <span style="margin-left:auto;font-size:.72rem;color:#94a3b8;font-weight:500;">
+                <?= date('d/m/Y') ?>
+            </span>
         </div>
 
-        <!-- Info pasantía -->
-        <div class="pb-card" style="flex:1;">
-            <div class="pb-card-title"><i class="ti ti-id-badge"></i> Mi Pasantía</div>
-
-            <?php if (!empty($pasante->departamento)): ?>
-            <div class="pb-info-pill">
-                <i class="ti ti-building-community"></i>
-                <div><span>Departamento</span><br><strong><?= htmlspecialchars($pasante->departamento ?? '—') ?></strong></div>
+        <!-- Estado de asistencia -->
+        <?php if ($asistenciaHoy): ?>
+            <?php $hc = $estadoHoyCfg[$asistenciaHoy->estado] ?? ['bg'=>'#f1f5f9','color'=>'#64748b','icon'=>'ti-circle','label'=>$asistenciaHoy->estado]; ?>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                <span class="hoy-estado-badge" style="background:<?= $hc['bg'] ?>;color:<?= $hc['color'] ?>;">
+                    <i class="ti <?= $hc['icon'] ?>"></i> <?= $hc['label'] ?>
+                </span>
+                <?php if (!empty($asistenciaHoy->hora_registro)): ?>
+                <span style="font-size:.75rem;color:#94a3b8;font-weight:600;">
+                    <i class="ti ti-clock"></i> <?= date('g:i A', strtotime($asistenciaHoy->hora_registro)) ?>
+                    &nbsp;·&nbsp; <?= htmlspecialchars($asistenciaHoy->metodo ?? 'Kiosco') ?>
+                </span>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
-
-            <?php if (!empty($pasante->tutor_nombre)): ?>
-            <div class="pb-info-pill">
-                <i class="ti ti-user-star"></i>
-                <div><span>Tutor</span><br><strong><?= htmlspecialchars($pasante->tutor_nombre ?? '—') ?></strong></div>
+        <?php else: ?>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+                <span class="hoy-estado-badge" style="background:#f1f5f9;color:#94a3b8;">
+                    <i class="ti ti-minus"></i> Sin registro
+                </span>
             </div>
-            <?php endif; ?>
+        <?php endif; ?>
 
-            <?php if (!empty($pasante->fecha_inicio)): ?>
-            <div class="pb-info-pill">
-                <i class="ti ti-calendar-event"></i>
-                <div><span>Inicio</span><br><strong><?= date('d/m/Y', strtotime($pasante->fecha_inicio ?? 'now')) ?></strong></div>
+        <!-- Actividades del día -->
+        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:#94a3b8;letter-spacing:.05em;margin-bottom:8px;">
+            <i class="ti ti-pencil"></i> Actividades registradas
+        </div>
+
+        <?php if (!empty($actividadesHoy)): ?>
+            <?php foreach ($actividadesHoy as $act): ?>
+            <div class="hoy-actividad">
+                <div class="hoy-actividad-titulo"><?= htmlspecialchars($act->titulo) ?></div>
+                <?php if (!empty($act->descripcion)): ?>
+                <div class="hoy-actividad-desc"><?= htmlspecialchars(mb_strimwidth($act->descripcion, 0, 90, '…')) ?></div>
+                <?php endif; ?>
             </div>
-            <?php endif; ?>
-
-            <?php if (!empty($pasante->fecha_fin)): ?>
-            <div class="pb-info-pill">
-                <i class="ti ti-calendar-due"></i>
-                <div><span>Fin estimado</span><br><strong><?= date('d/m/Y', strtotime($pasante->fecha_fin ?? 'now')) ?></strong></div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <div style="text-align:center;padding:20px 10px;color:#94a3b8;">
+                <i class="ti ti-note-off" style="font-size:1.8rem;display:block;margin-bottom:8px;opacity:.4;"></i>
+                <span style="font-size:.78rem;">Sin actividades registradas hoy</span>
             </div>
-            <?php endif; ?>
-
-            <a href="<?= URLROOT ?>/pasante/constancia"
-               style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;
-                      padding:10px 16px;background:linear-gradient(135deg,#172554,#2563eb);
-                      color:#fff;border-radius:12px;font-size:.83rem;font-weight:700;text-decoration:none;
-                      transition:opacity .2s;"
-               onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-                <i class="ti ti-file-certificate"></i> Ver Constancia
+            <a href="<?= URLROOT ?>/pasante/misActividades"
+               style="display:flex;align-items:center;justify-content:center;gap:6px;
+                      padding:9px 14px;background:#f8fafc;border:1.5px solid #e2e8f0;
+                      color:#2563eb;border-radius:10px;font-size:.8rem;font-weight:700;
+                      text-decoration:none;transition:background .2s;margin-top:8px;"
+               onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#f8fafc'">
+                <i class="ti ti-plus"></i> Registrar actividad
             </a>
-        </div>
+        <?php endif; ?>
     </div>
+
 </div>
 
 <!-- ══════════ TIMELINE ACTIVIDAD ══════════ -->

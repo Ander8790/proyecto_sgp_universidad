@@ -512,9 +512,9 @@ $esTutor = ($rolId === 2);
 </div>
 
 <script>
-const departamentos = <?= json_encode($data['departamentos'] ?? [], JSON_HEX_TAG | JSON_HEX_QUOT) ?>;
-const instituciones = <?= json_encode($data['instituciones'] ?? [], JSON_HEX_TAG | JSON_HEX_QUOT) ?>;
-const pasantes = <?= json_encode($data['pasantes'] ?? [], JSON_HEX_TAG | JSON_HEX_QUOT) ?>;
+var departamentos = <?= json_encode($data['departamentos'] ?? [], JSON_HEX_TAG | JSON_HEX_QUOT) ?>;
+var instituciones = <?= json_encode($data['instituciones'] ?? [], JSON_HEX_TAG | JSON_HEX_QUOT) ?>;
+var pasantes = <?= json_encode($data['pasantes'] ?? [], JSON_HEX_TAG | JSON_HEX_QUOT) ?>;
 
 function abrirModal(modulo, formato) {
     document.getElementById('mModulo').value = modulo;

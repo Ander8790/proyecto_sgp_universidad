@@ -64,9 +64,6 @@ $periodoCortoActivo   = $data['periodoCortoActivo']   ?? null;
 
 /* ── KPIs responsivos ── */
 @media(max-width:767px) {
-    /* Wrapper general */
-    div[style*="max-width:1600px"] { padding: 10px !important; }
-
     /* Banner compacto */
     .hub-banner-wrap {
         padding: 16px 14px !important;
@@ -122,7 +119,7 @@ $periodoCortoActivo   = $data['periodoCortoActivo']   ?? null;
 }
 </style>
 
-<div style="width:100%;max-width:1600px;margin:0 auto;padding:20px;">
+<div style="width:100%;">
 
 <!-- ══ BANNER ══════════════════════════════════════════════════ -->
 <div style="background:linear-gradient(135deg,#172554 0%,#1e3a8a 50%,#2563eb 100%);border-radius:20px;padding:32px 40px;margin-bottom:28px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;">

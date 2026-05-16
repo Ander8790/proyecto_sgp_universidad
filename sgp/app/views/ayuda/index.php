@@ -134,13 +134,10 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
         </div>
         <div>
             <h1 style="color:white;font-size:1.7rem;font-weight:800;margin:0;line-height:1.2;">Manual de Usuario</h1>
-            <p style="color:rgba(255,255,255,.75);margin:5px 0 0;font-size:.88rem;">Sistema de Gestión de Pasantías — ISP Bolívar</p>
+            <p style="color:rgba(255,255,255,.75);margin:5px 0 0;font-size:.88rem;">Registro y Control de Asistencias de Pasantes — ISP Bolívar</p>
         </div>
     </div>
-    <div style="z-index:1;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-        <div style="background:rgba(255,255,255,.12);border-radius:10px;padding:8px 16px;color:rgba(255,255,255,.8);font-size:.8rem;">
-            <i class="ti ti-tag" style="margin-right:4px;"></i> v2.0 · 2026
-        </div>
+    <div style="z-index:1;">
         <button class="man-btn-pdf" onclick="window.open('<?= URLROOT ?>/ayuda/pdf','_blank')">
             <i class="ti ti-file-type-pdf" style="font-size:1.1rem;"></i> Descargar PDF
         </button>
@@ -166,29 +163,39 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
     <h4><i class="ti ti-list"></i> Contenido</h4>
 
     <a class="toc-link" data-sec="sec-inicio" onclick="mostrarSeccion('sec-inicio')"><i class="ti ti-home"></i> Inicio / Dashboard</a>
+    <a class="toc-link" data-sec="sec-recuperacion" onclick="mostrarSeccion('sec-recuperacion')"><i class="ti ti-lock-question"></i> Recuperar Contraseña</a>
+    <a class="toc-link" data-sec="sec-perfil" onclick="mostrarSeccion('sec-perfil')"><i class="ti ti-user-circle"></i> Mi Perfil</a>
     <?php if ($esAdmin || $esTutor): ?>
     <a class="toc-link" data-sec="sec-pasantes" onclick="mostrarSeccion('sec-pasantes')"><i class="ti ti-user-check"></i> Pasantes</a>
     <a class="toc-link" data-sec="sec-asistencias" onclick="mostrarSeccion('sec-asistencias')"><i class="ti ti-calendar-stats"></i> Asistencias</a>
+    <a class="toc-link" data-sec="sec-puntualidad" onclick="mostrarSeccion('sec-puntualidad')"><i class="ti ti-clock-bolt"></i> Puntualidad</a>
+    <a class="toc-link" data-sec="sec-evaluaciones" onclick="mostrarSeccion('sec-evaluaciones')"><i class="ti ti-star"></i> Evaluaciones</a>
+    <a class="toc-link" data-sec="sec-examenes" onclick="mostrarSeccion('sec-examenes')"><i class="ti ti-pencil-question"></i> Exámenes</a>
+    <a class="toc-link" data-sec="sec-reportes" onclick="mostrarSeccion('sec-reportes')"><i class="ti ti-printer"></i> Reportes</a>
+    <a class="toc-link" data-sec="sec-analiticas" onclick="mostrarSeccion('sec-analiticas')"><i class="ti ti-chart-dots"></i> Analíticas</a>
     <?php endif; ?>
     <?php if ($esAdmin): ?>
     <a class="toc-link" data-sec="sec-usuarios" onclick="mostrarSeccion('sec-usuarios')"><i class="ti ti-users"></i> Usuarios</a>
     <a class="toc-link" data-sec="sec-periodos" onclick="mostrarSeccion('sec-periodos')"><i class="ti ti-calendar-month"></i> Períodos</a>
     <a class="toc-link" data-sec="sec-asignaciones" onclick="mostrarSeccion('sec-asignaciones')"><i class="ti ti-link"></i> Asignaciones</a>
-    <a class="toc-link" data-sec="sec-evaluaciones" onclick="mostrarSeccion('sec-evaluaciones')"><i class="ti ti-star"></i> Evaluaciones</a>
-    <a class="toc-link" data-sec="sec-reportes" onclick="mostrarSeccion('sec-reportes')"><i class="ti ti-printer"></i> Reportes</a>
     <a class="toc-link" data-sec="sec-actividades" onclick="mostrarSeccion('sec-actividades')"><i class="ti ti-briefcase"></i> Act. Extras</a>
-    <a class="toc-link" data-sec="sec-analiticas" onclick="mostrarSeccion('sec-analiticas')"><i class="ti ti-chart-dots"></i> Analíticas</a>
     <a class="toc-link" data-sec="sec-respaldos" onclick="mostrarSeccion('sec-respaldos')"><i class="ti ti-database"></i> Respaldos</a>
     <a class="toc-link" data-sec="sec-bitacora" onclick="mostrarSeccion('sec-bitacora')"><i class="ti ti-clipboard-list"></i> Bitácora</a>
     <a class="toc-link" data-sec="sec-configuracion" onclick="mostrarSeccion('sec-configuracion')"><i class="ti ti-settings"></i> Configuración</a>
+    <a class="toc-link" data-sec="sec-notificaciones" onclick="mostrarSeccion('sec-notificaciones')"><i class="ti ti-bell-ringing"></i> Notificaciones</a>
+    <a class="toc-link" data-sec="sec-kiosco" onclick="mostrarSeccion('sec-kiosco')"><i class="ti ti-device-desktop"></i> Kiosco de Asistencia</a>
     <?php endif; ?>
     <?php if ($rolId == 0): ?>
     <a class="toc-link" data-sec="sec-permisos" onclick="mostrarSeccion('sec-permisos')"><i class="ti ti-shield-cog"></i> Permisos</a>
+    <a class="toc-link" data-sec="sec-superadmin-ctrl" onclick="mostrarSeccion('sec-superadmin-ctrl')"><i class="ti ti-radar"></i> Sala de Control</a>
     <?php endif; ?>
     <?php if ($esPasante): ?>
     <div class="toc-sep"></div>
     <a class="toc-link" data-sec="sec-pasante-asist" onclick="mostrarSeccion('sec-pasante-asist')"><i class="ti ti-clock-check"></i> Mi Asistencia</a>
     <a class="toc-link" data-sec="sec-pasante-eval" onclick="mostrarSeccion('sec-pasante-eval')"><i class="ti ti-star"></i> Mis Evaluaciones</a>
+    <a class="toc-link" data-sec="sec-pasante-examenes" onclick="mostrarSeccion('sec-pasante-examenes')"><i class="ti ti-pencil-check"></i> Mis Exámenes</a>
+    <a class="toc-link" data-sec="sec-pasante-analiticas" onclick="mostrarSeccion('sec-pasante-analiticas')"><i class="ti ti-chart-line"></i> Mis Analíticas</a>
+    <a class="toc-link" data-sec="sec-pasante-actividades" onclick="mostrarSeccion('sec-pasante-actividades')"><i class="ti ti-activity"></i> Mis Actividades</a>
     <a class="toc-link" data-sec="sec-pasante-const" onclick="mostrarSeccion('sec-pasante-const')"><i class="ti ti-file-certificate"></i> Mi Constancia</a>
     <?php endif; ?>
     <div class="toc-sep"></div>
@@ -221,16 +228,88 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
     </div>
 </div>
 
+<!-- ═══ RECUPERACIÓN DE CONTRASEÑA ═══ -->
+<div class="man-sec" id="sec-recuperacion" data-keywords="recuperar contraseña olvidé preguntas seguridad reset correo verificación acceso bloqueado solicitar ayuda administrador">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#fef2f2;color:#dc2626;"><i class="ti ti-lock-question"></i></div>
+        <div><p class="man-sec-title">Recuperar Contraseña</p><p class="man-sec-sub">Flujo de 3 pasos con preguntas de seguridad</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">Si olvidaste tu contraseña puedes recuperarla sin intervención del administrador, siempre que hayas configurado tus preguntas de seguridad en el primer acceso.</p>
+
+        <div class="man-h3"><i class="ti ti-circle-number-1"></i> Paso 1 — Verificar correo</div>
+        <div class="man-steps">
+            <div class="man-step"><p>En la pantalla de inicio de sesión haz clic en <strong>¿Olvidaste tu contraseña?</strong></p></div>
+            <div class="man-step"><p>Ingresa el correo electrónico con el que te registraste.</p></div>
+            <div class="man-step"><p>Si el correo existe en el sistema, avanzarás automáticamente al paso 2.</p></div>
+        </div>
+
+        <div class="man-h3"><i class="ti ti-circle-number-2"></i> Paso 2 — Preguntas de seguridad</div>
+        <div class="man-steps">
+            <div class="man-step"><p>Responde las <strong>3 preguntas de seguridad</strong> que configuraste en tu primer acceso.</p></div>
+            <div class="man-step"><p>Las respuestas deben coincidir exactamente con las que ingresaste originalmente.</p></div>
+            <div class="man-step"><p>Si las 3 respuestas son correctas, avanzarás al paso 3.</p></div>
+        </div>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>Si no recuerdas las respuestas, haz clic en <strong>"Solicitar ayuda al administrador"</strong>. El administrador recibirá la solicitud y podrá restablecer tu acceso manualmente.</p></div>
+
+        <div class="man-h3"><i class="ti ti-circle-number-3"></i> Paso 3 — Nueva contraseña</div>
+        <div class="man-steps">
+            <div class="man-step"><p>Escribe tu nueva contraseña (mínimo 8 caracteres).</p></div>
+            <div class="man-step"><p>Confírmala en el segundo campo.</p></div>
+            <div class="man-step"><p>Haz clic en <strong>Guardar</strong>. Serás redirigido al login.</p></div>
+        </div>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Por seguridad, la página de preguntas no se puede navegar hacia atrás ni recargar sin empezar desde el paso 1.</p></div>
+    </div>
+</div>
+
+<!-- ═══ MI PERFIL / PRIMER ACCESO ═══ -->
+<div class="man-sec" id="sec-perfil" data-keywords="perfil usuario foto avatar cambiar imagen datos personales teléfono cargo preguntas seguridad cuenta wizard primer acceso PIN contraseña temporal">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#f0fdf4;color:#059669;"><i class="ti ti-user-circle"></i></div>
+        <div><p class="man-sec-title">Mi Perfil y Primer Acceso</p><p class="man-sec-sub">Datos personales, foto, seguridad y wizard de configuración inicial</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">Desde el menú de perfil (esquina superior derecha → tu nombre) puedes ver y actualizar tu información personal, cambiar tu foto y gestionar las preguntas de seguridad.</p>
+
+        <div class="man-h3"><i class="ti ti-camera"></i> Cambiar foto de perfil</div>
+        <div class="man-steps">
+            <div class="man-step"><p>Haz clic en tu nombre/avatar en la barra superior → <strong>Mi Perfil</strong>.</p></div>
+            <div class="man-step"><p>Haz clic en el ícono de cámara que aparece sobre tu foto.</p></div>
+            <div class="man-step"><p>Selecciona una imagen desde tu dispositivo (JPG o PNG).</p></div>
+            <div class="man-step"><p>La foto se actualiza inmediatamente en toda la sesión.</p></div>
+        </div>
+
+        <div class="man-h3"><i class="ti ti-shield-lock"></i> Actualizar preguntas de seguridad</div>
+        <p class="man-p">Puedes cambiar tus preguntas de seguridad en cualquier momento desde tu perfil. Es recomendable actualizarlas si crees que alguien más las conoce.</p>
+
+        <div class="man-h3"><i class="ti ti-door-enter"></i> Wizard de primer acceso (usuarios nuevos)</div>
+        <p class="man-p">Todos los usuarios nuevos completan un asistente de <strong>4 pasos</strong> antes de entrar al sistema por primera vez:</p>
+        <table class="man-table">
+            <thead><tr><th>Paso</th><th>Qué se configura</th><th>¿Quién lo ve?</th></tr></thead>
+            <tbody>
+                <tr><td><strong>1 — Nueva contraseña</strong></td><td>Cambiar la contraseña temporal asignada por el administrador</td><td>Usuarios creados por el admin</td></tr>
+                <tr><td><strong>2 — Preguntas de seguridad</strong></td><td>Seleccionar y responder 3 preguntas para recuperación futura</td><td>Usuarios creados por el admin</td></tr>
+                <tr><td><strong>3 — Datos personales</strong></td><td>Teléfono, fecha de nacimiento, género y cargo/área</td><td>Todos los roles</td></tr>
+                <tr><td><strong>4 — Asignación</strong></td><td><strong>Admin/Tutor:</strong> departamento asignado. <strong>Pasante:</strong> institución de procedencia + PIN de 4 dígitos para el kiosco</td><td>Todos los roles</td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Si te registraste tú mismo (auto-registro), los pasos 1 y 2 aparecen como completados y el wizard empieza directamente en el paso 3.</p></div>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>El wizard es obligatorio. No puedes saltarte ningún paso ni acceder al panel principal hasta completarlo.</p></div>
+    </div>
+</div>
+
 <?php if ($esAdmin || $esTutor): ?>
 <!-- ═══ PASANTES ═══ -->
 <div class="man-sec" id="sec-pasantes" data-keywords="pasantes crear nuevo registro cédula carrera institución horas asignar departamento">
     <div class="man-sec-hd">
         <div class="man-sec-icon" style="background:#fef3c7;color:#d97706;"><i class="ti ti-user-check"></i></div>
-        <div><p class="man-sec-title">Pasantes</p><p class="man-sec-sub">Registro y gestión de estudiantes en pasantía</p></div>
+        <div><p class="man-sec-title">Pasantes / Mis Pasantes</p><p class="man-sec-sub">Gestión de estudiantes en pasantía</p></div>
     </div>
     <div class="man-sec-body">
-        <p class="man-p">El módulo de pasantes centraliza la información académica y personal de cada estudiante en práctica.</p>
-        <div class="man-h3"><i class="ti ti-user-plus"></i> Registrar un pasante</div>
+        <p class="man-p">Este módulo centraliza la información académica y personal de cada estudiante en práctica.</p>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p><strong>Alcance por rol:</strong> Los <strong>Tutores</strong> solo ven los pasantes que les han sido asignados por el Administrador en su departamento (sección <em>Mis Pasantes</em>). Si un pasante no aparece en tu listado, contacta al Administrador para que verifique la asignación.</p></div>
+        <?php if ($esAdmin): ?>
+        <div class="man-h3"><i class="ti ti-user-plus"></i> Registrar un pasante (Administrador)</div>
         <div class="man-steps">
             <div class="man-step"><p>Ve a <strong>Pasantes</strong> y haz clic en <strong>+ Nuevo Pasante</strong>.</p></div>
             <div class="man-step"><p>Completa los datos personales: cédula, nombres, apellidos, correo y teléfono.</p></div>
@@ -239,20 +318,23 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
             <div class="man-step"><p>Haz clic en <strong>Registrar Pasante</strong>.</p></div>
         </div>
         <div class="man-tip"><i class="ti ti-info-circle"></i><p>Las horas meta por defecto son <strong>1440 horas</strong> para pasantía Regular y <strong>360 horas</strong> para Corta. Puedes ajustarlas en la ficha del pasante.</p></div>
+        <?php endif; ?>
         <div class="man-h3"><i class="ti ti-eye"></i> Ficha del pasante</div>
         <p class="man-p">Al hacer clic en un pasante accedes a su ficha completa: datos personales, estado de horas, historial de asistencias, evaluaciones y acciones rápidas.</p>
     </div>
 </div>
 
 <!-- ═══ ASISTENCIAS ═══ -->
-<div class="man-sec" id="sec-asistencias" data-keywords="asistencia registrar presente ausente tardanza almanaque justificado hora entrada">
+<div class="man-sec" id="sec-asistencias" data-keywords="asistencia registrar presente ausente tardanza almanaque justificado hora entrada manual marcar todos anular eliminar cambiar estado historial calendario kiosco">
     <div class="man-sec-hd">
         <div class="man-sec-icon" style="background:#ecfdf5;color:#059669;"><i class="ti ti-calendar-stats"></i></div>
-        <div><p class="man-sec-title">Asistencias</p><p class="man-sec-sub">Registro diario de entradas y salidas</p></div>
+        <div><p class="man-sec-title">Asistencias</p><p class="man-sec-sub">Registro diario, almanaque y gestión de estados</p></div>
     </div>
     <div class="man-sec-body">
         <p class="man-p">El módulo de asistencias es el núcleo operativo del sistema. Registra la asistencia diaria de cada pasante y calcula las horas acumuladas automáticamente.</p>
-        <div class="man-h3"><i class="ti ti-check"></i> Registrar asistencia</div>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p><strong>Alcance por rol:</strong> Como <strong>Tutor</strong> solo puedes registrar y consultar la asistencia de los pasantes asignados a tu departamento. No verás pasantes de otros tutores ni de otros departamentos.</p></div>
+
+        <div class="man-h3"><i class="ti ti-check"></i> Registrar asistencia del día</div>
         <div class="man-steps">
             <div class="man-step"><p>Abre el módulo <strong>Asistencias</strong>.</p></div>
             <div class="man-step"><p>Selecciona la fecha (por defecto es el día de hoy).</p></div>
@@ -260,10 +342,76 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
             <div class="man-step"><p>Haz clic en <strong>Guardar</strong>.</p></div>
         </div>
         <div class="man-tip"><i class="ti ti-info-circle"></i><p>El sistema cuenta <strong>8 horas</strong> por cada día marcado como Presente o Tardanza. Las tardanzas no penalizan el conteo de horas.</p></div>
-        <div class="man-h3"><i class="ti ti-calendar-event"></i> Almanaque mensual</div>
-        <p class="man-p">Cada pasante tiene un almanaque individual que muestra su historial de asistencias en formato calendario. Accede desde la tarjeta del pasante → botón <strong>Almanaque</strong>.</p>
+
+        <div class="man-h3"><i class="ti ti-checks"></i> Marcar Todos</div>
+        <p class="man-p">El botón <strong>Marcar Todos</strong> (disponible en la tabla de asistencias del día) permite aplicar el mismo estado a todos los pasantes de la lista con un solo clic. Es útil para días en que el grupo completo asistió o estuvo ausente.</p>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Después de usar <em>Marcar Todos</em> puedes corregir individualmente los pasantes que tengan un estado diferente antes de guardar.</p></div>
+
+        <div class="man-h3"><i class="ti ti-edit"></i> Registro manual de asistencia</div>
+        <p class="man-p">El formulario de <strong>Registro Manual</strong> permite registrar o actualizar la asistencia de un pasante específico para cualquier fecha (incluyendo días anteriores). Campos disponibles:</p>
+        <table class="man-table">
+            <thead><tr><th>Campo</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Pasante</strong></td><td>Selector con búsqueda. Solo muestra pasantes del departamento.</td></tr>
+                <tr><td><strong>Fecha</strong></td><td>Selector de calendario. Puede ser cualquier día hábil.</td></tr>
+                <tr><td><strong>Estado</strong></td><td>Presente, Tardanza, Ausente o Justificado.</td></tr>
+                <tr><td><strong>Motivo</strong></td><td>Campo opcional de texto para justificaciones.</td></tr>
+                <tr><td><strong>Es retardo</strong></td><td>Checkbox para marcar que la entrada fue tardía (no afecta el conteo de horas).</td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Si el pasante ya tiene asistencia registrada en esa fecha, el formulario la <strong>actualiza</strong>; si no existe, la <strong>crea</strong>. No se generan duplicados.</p></div>
+
+        <div class="man-h3"><i class="ti ti-ban"></i> Anular / Eliminar primer registro del día</div>
+        <p class="man-p">Cada fila de la tabla de asistencias tiene un menú de opciones (ícono <i class="ti ti-dots-vertical" style="font-size:.9rem;"></i>). Desde ahí puedes:</p>
+        <table class="man-table">
+            <thead><tr><th>Acción</th><th>Efecto</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Cambiar estado</strong></td><td>Abre un selector rápido para cambiar entre Presente / Tardanza / Ausente / Justificado sin reabrir el formulario completo.</td></tr>
+                <tr><td><strong>Anular registro</strong></td><td>Marca el registro como anulado. El día deja de contar como asistencia y se descuentan las 8 horas asociadas.</td></tr>
+            </tbody>
+        </table>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>La anulación es reversible solo si vuelves a registrar la asistencia manualmente para esa fecha. La acción queda registrada en la Bitácora de Auditoría.</p></div>
+
+        <div class="man-h3"><i class="ti ti-calendar-month"></i> Almanaque — Historial individual</div>
+        <p class="man-p">El <strong>Almanaque</strong> es una vista de calendario mensual que muestra el historial completo de asistencias de un pasante específico. Para acceder:</p>
+        <div class="man-steps">
+            <div class="man-step"><p>En el módulo <strong>Asistencias</strong> o en la ficha del pasante, haz clic en el botón <strong>Almanaque</strong>.</p></div>
+            <div class="man-step"><p>Navega entre meses con las flechas del calendario.</p></div>
+            <div class="man-step"><p>Cada día muestra su estado con un color: <span class="man-badge mb-green">Verde</span> Presente, <span class="man-badge mb-amber">Amarillo</span> Tardanza, <span class="man-badge mb-slate">Gris</span> Ausente, <span class="man-badge mb-blue">Azul</span> Justificado.</p></div>
+        </div>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Los días feriados registrados en el sistema aparecen resaltados en el almanaque. Los fines de semana no se contabilizan como días laborales.</p></div>
+
         <div class="man-h3"><i class="ti ti-pencil"></i> Justificar ausencia</div>
-        <p class="man-p">Al marcar a un pasante como <strong>Justificado</strong>, puedes agregar un motivo en el campo de observaciones. Este motivo aparecerá en el reporte de asistencias.</p>
+        <p class="man-p">Al marcar a un pasante como <strong>Justificado</strong>, puedes agregar un motivo en el campo de observaciones. Este motivo aparece en el reporte de asistencias y en la bitácora.</p>
+    </div>
+</div>
+
+<!-- ═══ PUNTUALIDAD ═══ -->
+<div class="man-sec" id="sec-puntualidad" data-keywords="puntualidad retardos tardanza presente ausente justificado indicadores comportamiento reloj">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#fff7ed;color:#ea580c;"><i class="ti ti-clock-bolt"></i></div>
+        <div><p class="man-sec-title">Puntualidad</p><p class="man-sec-sub">Seguimiento del comportamiento de asistencia</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">El módulo de puntualidad consolida el historial de asistencia de cada pasante mostrando días presentes, retardos, ausencias y justificaciones con sus marcas de tiempo exactas.</p>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p><strong>Alcance por rol:</strong> Los <strong>Tutores</strong> solo pueden consultar la puntualidad de los pasantes asignados a su departamento.</p></div>
+        <div class="man-h3"><i class="ti ti-chart-bar"></i> Indicadores de puntualidad</div>
+        <table class="man-table">
+            <thead><tr><th>Indicador</th><th>Color</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Presente</strong></td><td><span class="man-badge mb-green">Verde</span></td><td>El pasante llegó a tiempo</td></tr>
+                <tr><td><strong>Tardanza / Retardo</strong></td><td><span class="man-badge mb-amber">Amarillo</span></td><td>Llegó después de la hora límite establecida</td></tr>
+                <tr><td><strong>Ausente</strong></td><td><span class="man-badge mb-slate">Gris</span></td><td>No se registró asistencia ese día</td></tr>
+                <tr><td><strong>Justificado</strong></td><td><span class="man-badge mb-blue">Azul</span></td><td>Ausencia con motivo registrado</td></tr>
+            </tbody>
+        </table>
+        <div class="man-h3"><i class="ti ti-clock-hour-4"></i> Ver retardos con hora exacta</div>
+        <div class="man-steps">
+            <div class="man-step"><p>Ve al módulo <strong>Puntualidad</strong>.</p></div>
+            <div class="man-step"><p>Selecciona el pasante o usa el filtro por departamento.</p></div>
+            <div class="man-step"><p>Haz clic en el contador de <strong>Retardos</strong> para ver el desglose con la hora exacta de cada entrada tardía.</p></div>
+        </div>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>El módulo de puntualidad es de solo lectura. Para corregir un registro, ve a <strong>Asistencias</strong> y edita la entrada correspondiente.</p></div>
     </div>
 </div>
 <?php endif; ?>
@@ -338,49 +486,6 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
     </div>
 </div>
 
-<!-- ═══ EVALUACIONES ═══ -->
-<div class="man-sec" id="sec-evaluaciones" data-keywords="evaluaciones calificar rendimiento planilla ISP ítems criterios">
-    <div class="man-sec-hd">
-        <div class="man-sec-icon" style="background:#fdf2f8;color:#ec4899;"><i class="ti ti-star"></i></div>
-        <div><p class="man-sec-title">Evaluaciones</p><p class="man-sec-sub">Planilla institucional de 14 criterios ISP</p></div>
-    </div>
-    <div class="man-sec-body">
-        <p class="man-p">El módulo de evaluaciones usa la planilla oficial del ISP Bolívar con 14 criterios de desempeño calificados del 1 al 5.</p>
-        <div class="man-steps">
-            <div class="man-step"><p>Ve a <strong>Evaluaciones</strong>.</p></div>
-            <div class="man-step"><p>Selecciona al pasante a evaluar.</p></div>
-            <div class="man-step"><p>Completa los 14 ítems de la planilla (puntualidad, responsabilidad, etc.).</p></div>
-            <div class="man-step"><p>Guarda. La puntuación total se calcula automáticamente y queda visible en la ficha del pasante.</p></div>
-        </div>
-        <div class="man-tip"><i class="ti ti-info-circle"></i><p>La planilla PDF puede generarse desde el módulo <strong>Reportes → Evaluaciones</strong>.</p></div>
-    </div>
-</div>
-
-<!-- ═══ REPORTES ═══ -->
-<div class="man-sec" id="sec-reportes" data-keywords="reportes PDF excel exportar imprimir constancia evaluación asistencia nómina kardex">
-    <div class="man-sec-hd">
-        <div class="man-sec-icon" style="background:#fef2f2;color:#dc2626;"><i class="ti ti-printer"></i></div>
-        <div><p class="man-sec-title">Centro de Reportes</p><p class="man-sec-sub">Generación de documentos PDF y Excel</p></div>
-    </div>
-    <div class="man-sec-body">
-        <p class="man-p">El centro de reportes genera todos los documentos oficiales del ISP. Los reportes se abren en una nueva pestaña para previsualización antes de imprimir.</p>
-        <table class="man-table">
-            <thead><tr><th>Reporte</th><th>Formato</th><th>Descripción</th></tr></thead>
-            <tbody>
-                <tr><td>Usuarios</td><td>PDF / Excel</td><td>Listado de personal administrativo y tutores</td></tr>
-                <tr><td>Pasantes</td><td>PDF / Excel</td><td>Ficha general e instituciones de procedencia</td></tr>
-                <tr><td>Control Asistencia</td><td>PDF / Excel</td><td>Planilla trimestral individual (formato ISP)</td></tr>
-                <tr><td>Evaluaciones</td><td>PDF</td><td>Planilla oficial de 14 criterios</td></tr>
-                <tr><td>Asignaciones</td><td>PDF / Excel</td><td>Relación Pasante - Tutor - Departamento</td></tr>
-                <tr><td>Auditoría</td><td>PDF / Excel</td><td>Historial de acciones del sistema</td></tr>
-                <tr><td>Ficha Diaria</td><td>PDF</td><td>Actividad grupal del día por departamento</td></tr>
-                <tr><td>Constancias</td><td>PDF</td><td>Cartas de culminación y servicio</td></tr>
-            </tbody>
-        </table>
-        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Al abrir un reporte PDF, el navegador lo muestra en el visor. Usa <span class="man-kbd">Ctrl + P</span> para imprimir o el ícono de descarga del visor.</p></div>
-    </div>
-</div>
-
 <!-- ═══ ACTIVIDADES EXTRAS ═══ -->
 <div class="man-sec" id="sec-actividades" data-keywords="actividades extras servicio comunitario pasantía corta participantes crear">
     <div class="man-sec-hd">
@@ -398,18 +503,6 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
         </div>
         <div class="man-h3"><i class="ti ti-building-bank"></i> Instituciones</div>
         <p class="man-p">Puedes gestionar el catálogo de instituciones externas desde <strong>Act. Extras → Instituciones</strong>. Estas aparecen como opciones al crear actividades o registrar pasantes.</p>
-    </div>
-</div>
-
-<!-- ═══ ANALÍTICAS ═══ -->
-<div class="man-sec" id="sec-analiticas" data-keywords="analíticas gráficas estadísticas tendencias dashboard charts">
-    <div class="man-sec-hd">
-        <div class="man-sec-icon" style="background:#eff6ff;color:#2563eb;"><i class="ti ti-chart-dots"></i></div>
-        <div><p class="man-sec-title">Analíticas</p><p class="man-sec-sub">Visualización de tendencias y estadísticas</p></div>
-    </div>
-    <div class="man-sec-body">
-        <p class="man-p">El módulo de analíticas presenta gráficas interactivas sobre el comportamiento del sistema: asistencia por departamento, evolución de horas acumuladas, distribución por institución, entre otros.</p>
-        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Pasa el cursor sobre las gráficas para ver valores exactos. Usa los filtros de período para comparar cohortes.</p></div>
     </div>
 </div>
 
@@ -453,13 +546,13 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
 </div>
 
 <!-- ═══ CONFIGURACIÓN ═══ -->
-<div class="man-sec" id="sec-configuracion" data-keywords="configuración sistema institución nombre SMTP correo ajustes">
+<div class="man-sec" id="sec-configuracion" data-keywords="configuración sistema institución nombre SMTP correo ajustes feriados festivos días no laborables calendario laborable">
     <div class="man-sec-hd">
         <div class="man-sec-icon" style="background:#f8fafc;color:#475569;"><i class="ti ti-settings"></i></div>
-        <div><p class="man-sec-title">Configuración</p><p class="man-sec-sub">Ajustes generales del sistema</p></div>
+        <div><p class="man-sec-title">Configuración</p><p class="man-sec-sub">Ajustes generales y calendario de feriados</p></div>
     </div>
     <div class="man-sec-body">
-        <p class="man-p">Permite personalizar el comportamiento general del SGP: nombre de la institución, logo, configuración de correo SMTP y parámetros de pasantía.</p>
+        <p class="man-p">Permite personalizar el comportamiento general del SGP: nombre de la institución, logo, configuración de correo SMTP, parámetros de pasantía y el calendario de días feriados.</p>
         <table class="man-table">
             <thead><tr><th>Ajuste</th><th>Descripción</th></tr></thead>
             <tbody>
@@ -468,6 +561,139 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
                 <tr><td><strong>SMTP</strong></td><td>Servidor de correo para notificaciones automáticas</td></tr>
             </tbody>
         </table>
+
+        <div class="man-h3"><i class="ti ti-calendar-off"></i> Calendario de Días Feriados</div>
+        <p class="man-p">El sistema incluye un calendario para registrar los días festivos nacionales e institucionales. Los días feriados afectan directamente el módulo de asistencias y el almanaque:</p>
+        <table class="man-table">
+            <thead><tr><th>Tipo de día</th><th>Efecto en asistencias</th></tr></thead>
+            <tbody>
+                <tr><td><span class="man-badge mb-slate">No laborable</span></td><td>El sistema no permite registrar asistencia ese día. Aparece marcado en el almanaque como día feriado.</td></tr>
+                <tr><td><span class="man-badge mb-green">Laborable</span></td><td>El sistema permite registrar asistencia ese día aunque sea festivo (p. ej., jornadas especiales o recuperación de clases).</td></tr>
+            </tbody>
+        </table>
+        <div class="man-h3"><i class="ti ti-plus"></i> Agregar un feriado</div>
+        <div class="man-steps">
+            <div class="man-step"><p>Ve a <strong>Configuración → Calendario de Feriados</strong>.</p></div>
+            <div class="man-step"><p>Haz clic en <strong>+ Agregar Feriado</strong>.</p></div>
+            <div class="man-step"><p>Selecciona la fecha y escribe el nombre del feriado (p. ej., "Día de la Independencia").</p></div>
+            <div class="man-step"><p>Elige si el día será <strong>Laborable</strong> (se puede marcar asistencia) o <strong>No laborable</strong> (no se puede).</p></div>
+            <div class="man-step"><p>Guarda. El feriado aparece inmediatamente en el almanaque de todos los pasantes.</p></div>
+        </div>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Si se acerca un feriado no laborable, el sistema enviará una <strong>notificación automática</strong> al Administrador cuando inicie sesión, avisando con antelación.</p></div>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>Eliminar un feriado que ya tenía asistencias registradas no elimina esas asistencias — solo deja de marcarlo como día especial en el almanaque.</p></div>
+    </div>
+</div>
+<?php endif; ?>
+
+<?php if ($esAdmin || $esTutor): ?>
+<!-- ═══ EVALUACIONES ═══ -->
+<div class="man-sec" id="sec-evaluaciones" data-keywords="evaluaciones calificar rendimiento planilla ISP ítems criterios">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#fdf2f8;color:#ec4899;"><i class="ti ti-star"></i></div>
+        <div><p class="man-sec-title">Evaluaciones</p><p class="man-sec-sub">Planilla institucional de 14 criterios ISP</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">El módulo de evaluaciones usa la planilla oficial del ISP Bolívar con 14 criterios de desempeño calificados del 1 al 5.</p>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p><strong>Alcance por rol:</strong> Los <strong>Tutores</strong> solo pueden evaluar a los pasantes asignados a su departamento. No verás a los pasantes de otros tutores en el selector.</p></div>
+        <div class="man-steps">
+            <div class="man-step"><p>Ve a <strong>Evaluaciones</strong>.</p></div>
+            <div class="man-step"><p>Selecciona al pasante a evaluar (solo aparecen los de tu departamento).</p></div>
+            <div class="man-step"><p>Completa los 14 ítems de la planilla (puntualidad, responsabilidad, etc.).</p></div>
+            <div class="man-step"><p>Guarda. La puntuación total se calcula automáticamente y queda visible en la ficha del pasante.</p></div>
+        </div>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>La planilla PDF puede generarse desde el módulo <strong>Reportes → Evaluaciones</strong>.</p></div>
+    </div>
+</div>
+
+<!-- ═══ EXÁMENES ═══ -->
+<div class="man-sec" id="sec-examenes" data-keywords="exámenes quiz preguntas opción múltiple verdadero falso borrador publicado cerrado resultados ranking medalla intentos eliminar puntaje">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#f0f9ff;color:#0369a1;"><i class="ti ti-pencil-question"></i></div>
+        <div><p class="man-sec-title">Exámenes Rápidos</p><p class="man-sec-sub">Creación, publicación y revisión de evaluaciones en línea</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">El módulo de exámenes permite a Administradores y Tutores crear evaluaciones rápidas para los pasantes directamente desde el sistema, con corrección automática y resultados en tiempo real.</p>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p><strong>Alcance por rol:</strong> Los <strong>Tutores</strong> solo ven y gestionan los exámenes que ellos mismos han creado. Los <strong>Administradores</strong> tienen visibilidad sobre todos los exámenes del sistema.</p></div>
+
+        <div class="man-h3"><i class="ti ti-circle-number-1"></i> Crear un examen</div>
+        <div class="man-steps">
+            <div class="man-step"><p>Ve a <strong>Evaluaciones → Exámenes</strong> y haz clic en <strong>+ Nuevo Examen</strong>.</p></div>
+            <div class="man-step"><p>Escribe el título del examen e indica el pasante o grupo al que va dirigido.</p></div>
+            <div class="man-step"><p>Agrega las preguntas. El sistema soporta dos tipos:</p></div>
+        </div>
+        <table class="man-table">
+            <thead><tr><th>Tipo de pregunta</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><span class="man-badge mb-blue">Opción Múltiple</span></td><td>4 opciones, una respuesta correcta. El sistema corrige automáticamente.</td></tr>
+                <tr><td><span class="man-badge mb-amber">Verdadero / Falso</span></td><td>Dos opciones. También se corrige automáticamente.</td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Puedes ajustar los <strong>puntos por pregunta</strong> individualmente desde la vista de detalle del examen después de crearlo.</p></div>
+
+        <div class="man-h3"><i class="ti ti-traffic-lights"></i> Ciclo de vida del examen (3 estados)</div>
+        <table class="man-table">
+            <thead><tr><th>Estado</th><th>Descripción</th><th>Qué puede hacer el pasante</th></tr></thead>
+            <tbody>
+                <tr><td><span class="man-badge mb-amber">Borrador</span></td><td>Examen en preparación, no visible para los pasantes.</td><td>Nada — no lo ve.</td></tr>
+                <tr><td><span class="man-badge mb-green">Publicado</span></td><td>El pasante puede acceder y responder el examen.</td><td>Verlo y enviarlo.</td></tr>
+                <tr><td><span class="man-badge mb-slate">Cerrado</span></td><td>Ya no se aceptan respuestas. Solo consulta de resultados.</td><td>Solo ver su resultado.</td></tr>
+            </tbody>
+        </table>
+        <p class="man-p">Para cambiar el estado usa el botón <strong>Publicar / Cerrar</strong> en la tarjeta o en la vista de detalle del examen.</p>
+
+        <div class="man-h3"><i class="ti ti-chart-pie"></i> Ver resultados</div>
+        <p class="man-p">Al abrir un examen publicado o cerrado, la pestaña <strong>Resultados</strong> muestra:</p>
+        <table class="man-table">
+            <thead><tr><th>Elemento</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Medidor (gauge)</strong></td><td>Promedio general del grupo en el examen.</td></tr>
+                <tr><td><strong>Ranking</strong></td><td>Posición de cada pasante con su puntaje y estado (Aprobado / Reprobado).</td></tr>
+                <tr><td><strong>Historial de intentos</strong></td><td>Cada intento enviado con hora, puntaje y porcentaje.</td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Un pasante <strong>aprueba</strong> con 60% o más del puntaje máximo posible.</p></div>
+
+        <div class="man-h3"><i class="ti ti-trash"></i> Eliminar intentos</div>
+        <p class="man-p">Desde el historial de intentos puedes eliminar un intento específico de un pasante (por ejemplo, si fue un envío accidental). Esta acción queda registrada en la Bitácora de Auditoría.</p>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>Eliminar un intento es irreversible. El pasante podrá volver a responder el examen si este aún está <span class="man-badge mb-green">Publicado</span>.</p></div>
+    </div>
+</div>
+
+<!-- ═══ REPORTES ═══ -->
+<div class="man-sec" id="sec-reportes" data-keywords="reportes PDF excel exportar imprimir constancia evaluación asistencia nómina ficha personal">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#fef2f2;color:#dc2626;"><i class="ti ti-printer"></i></div>
+        <div><p class="man-sec-title">Centro de Reportes</p><p class="man-sec-sub">Generación de documentos PDF y Excel</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">El centro de reportes genera documentos oficiales del ISP. Los reportes se abren en una nueva pestaña para previsualización antes de imprimir.</p>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p><strong>Alcance por rol:</strong> Los <strong>Tutores</strong> solo ven los reportes marcados como <span class="man-badge mb-green">Tutor</span>. Los reportes <span class="man-badge mb-blue">Admin</span> solo están disponibles para Administradores.</p></div>
+        <table class="man-table">
+            <thead><tr><th>Reporte</th><th>Formato</th><th>Descripción</th><th>Acceso</th></tr></thead>
+            <tbody>
+                <tr><td>Control Asistencia</td><td>PDF / Excel</td><td>Planilla trimestral individual (formato ISP)</td><td><span class="man-badge mb-green">Tutor</span></td></tr>
+                <tr><td>Evaluaciones</td><td>PDF</td><td>Planilla oficial de 14 criterios</td><td><span class="man-badge mb-green">Tutor</span></td></tr>
+                <tr><td>Constancias</td><td>PDF</td><td>Cartas de culminación y servicio</td><td><span class="man-badge mb-green">Tutor</span></td></tr>
+                <tr><td>Pasantes</td><td>PDF / Excel</td><td>Ficha general e instituciones de procedencia</td><td><span class="man-badge mb-blue">Admin</span></td></tr>
+                <tr><td>Usuarios</td><td>PDF / Excel</td><td>Listado de personal administrativo y tutores</td><td><span class="man-badge mb-blue">Admin</span></td></tr>
+                <tr><td>Asignaciones</td><td>PDF / Excel</td><td>Relación Pasante - Tutor - Departamento</td><td><span class="man-badge mb-blue">Admin</span></td></tr>
+                <tr><td>Auditoría</td><td>PDF / Excel</td><td>Historial de acciones del sistema</td><td><span class="man-badge mb-blue">Admin</span></td></tr>
+                <tr><td>Ficha Diaria</td><td>PDF</td><td>Actividad grupal del día por departamento</td><td><span class="man-badge mb-blue">Admin</span></td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Al abrir un reporte PDF, usa <span class="man-kbd">Ctrl + P</span> para imprimir o el ícono de descarga del visor.</p></div>
+    </div>
+</div>
+
+<!-- ═══ ANALÍTICAS ═══ -->
+<div class="man-sec" id="sec-analiticas" data-keywords="analíticas gráficas estadísticas tendencias dashboard charts">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#eff6ff;color:#2563eb;"><i class="ti ti-chart-dots"></i></div>
+        <div><p class="man-sec-title">Analíticas</p><p class="man-sec-sub">Visualización de tendencias y estadísticas</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">El módulo de analíticas presenta gráficas interactivas sobre el comportamiento del sistema: asistencia por departamento, evolución de horas acumuladas, distribución por institución, entre otros.</p>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Pasa el cursor sobre las gráficas para ver valores exactos. Usa los filtros de período para comparar cohortes.</p></div>
     </div>
 </div>
 <?php endif; ?>
@@ -516,7 +742,129 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
         <p class="man-p">La cuenta SuperAdmin no aparece en el módulo de usuarios ni en la gestión de permisos — esto es intencional por seguridad. El SuperAdmin tiene acceso total al sistema sin restricciones y su cuenta no puede ser editada, desactivada ni restringida por ningún otro usuario.</p>
     </div>
 </div>
+
+<!-- ═══ SALA DE CONTROL (SUPERADMIN) ═══ -->
+<div class="man-sec" id="sec-superadmin-ctrl" data-keywords="sala control superadmin dashboard auditoría gráficas tendencias actividad usuarios acciones semana donut ranking bitácora global">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="ti ti-radar"></i></div>
+        <div><p class="man-sec-title">Sala de Control — SuperAdmin</p><p class="man-sec-sub">Panel de supervisión global con métricas de actividad del sistema</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">Al iniciar sesión como SuperAdmin, la pantalla de inicio muestra la <strong>Sala de Control</strong>: un dashboard exclusivo con métricas globales de actividad, complementario a la Gestión de Permisos.</p>
+
+        <div class="man-h3"><i class="ti ti-chart-dots"></i> Gráficas disponibles</div>
+        <table class="man-table">
+            <thead><tr><th>Gráfica</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Actividad últimos 7 días</strong></td><td>Línea con el total de acciones registradas por día en la última semana.</td></tr>
+                <tr><td><strong>Actividad últimos 30 días</strong></td><td>Misma línea ampliada para ver la tendencia mensual completa.</td></tr>
+                <tr><td><strong>Distribución de acciones</strong></td><td>Donut que muestra qué tipos de acciones ocurren más: logins, asistencias, creaciones, evaluaciones, etc.</td></tr>
+                <tr><td><strong>Actividad por usuario</strong></td><td>Ranking de los usuarios más activos del sistema con conteo de acciones.</td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Estos datos provienen directamente de la Bitácora de Auditoría. Para ver el detalle de cada acción individual, ve al módulo <strong>Bitácora</strong>.</p></div>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>La Sala de Control es exclusiva del SuperAdmin. Ningún otro rol tiene acceso a este panel de supervisión global, ni siquiera con permisos elevados.</p></div>
+    </div>
+</div>
 <?php endif; ?>
+
+<!-- ═══ NOTIFICACIONES DE ESCRITORIO ═══ -->
+<div class="man-sec" id="sec-notificaciones" data-keywords="notificaciones escritorio windows navegador desktop campana aviso asistencia feriado pasante sin asignar">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#fff7ed;color:#ea580c;"><i class="ti ti-bell-ringing"></i></div>
+        <div><p class="man-sec-title">Notificaciones de Escritorio</p><p class="man-sec-sub">Avisos automáticos en el escritorio de Windows vía navegador</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">El sistema puede mostrar notificaciones emergentes en el escritorio de Windows (esquina inferior derecha) directamente desde el navegador, sin necesidad de instalar ninguna aplicación adicional. Solo funciona mientras el sistema esté abierto con sesión iniciada como <strong>Administrador</strong> o <strong>SuperAdministrador</strong>.</p>
+
+        <p class="man-h3"><i class="ti ti-toggle-right"></i> Activar las notificaciones</p>
+        <div class="man-steps">
+            <div class="man-step"><p>Al iniciar sesión como Administrador, el navegador mostrará automáticamente un cuadro de diálogo preguntando <strong>"¿Permitir notificaciones de localhost?"</strong>.</p></div>
+            <div class="man-step"><p>Haz clic en <strong>Permitir</strong>. Esta acción solo se solicita una vez por navegador.</p></div>
+            <div class="man-step"><p>Listo — el sistema comenzará a enviar notificaciones automáticamente mientras la sesión esté activa.</p></div>
+        </div>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Si accidentalmente bloqueaste las notificaciones, ve al ícono del candado en la barra de direcciones del navegador → <strong>Configuración del sitio</strong> → <strong>Notificaciones</strong> → cámbialo a <strong>Permitir</strong>.</p></div>
+
+        <p class="man-h3"><i class="ti ti-list-details"></i> Tipos de notificaciones</p>
+        <table class="man-table">
+            <thead><tr><th>Notificación</th><th>Cuándo aparece</th><th>Ejemplo</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td><strong>Asistencia registrada</strong></td>
+                    <td>En tiempo real cuando un pasante marca asistencia desde el Kiosco público</td>
+                    <td><em>"Juan Pérez — 08:32 AM"</em></td>
+                </tr>
+                <tr>
+                    <td><strong>Pasantes sin asignar</strong></td>
+                    <td>A las 12:00 PM si hay pasantes activos sin tutor asignado</td>
+                    <td><em>"Tienes 3 pasantes sin tutor asignado"</em></td>
+                </tr>
+                <tr>
+                    <td><strong>Próximo día feriado</strong></td>
+                    <td>Al iniciar sesión, si hay un feriado dentro de los próximos 7 días</td>
+                    <td><em>"En 3 días: Día de las Madres (10/05/2026). No habrá asistencia ese día."</em></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <p class="man-h3"><i class="ti ti-clock-off"></i> Cuándo NO aparecen notificaciones</p>
+        <ul class="man-list">
+            <li>Los <strong>sábados y domingos</strong> — el sistema detecta automáticamente el fin de semana.</li>
+            <li>Los <strong>días feriados</strong> registrados en el sistema.</li>
+            <li>Cuando la <strong>sesión está cerrada</strong> o el navegador no está abierto.</li>
+            <li>Para usuarios con rol <strong>Tutor</strong> o <strong>Pasante</strong> — solo están disponibles para Administrador y SuperAdministrador.</li>
+        </ul>
+
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>Las notificaciones de escritorio requieren que el sistema esté abierto en el navegador. Si la sesión se cierra por inactividad (25 minutos), las notificaciones se detienen hasta que vuelvas a iniciar sesión.</p></div>
+
+        <p class="man-h3"><i class="ti ti-help-circle"></i> ¿No aparecen las notificaciones?</p>
+        <ul class="man-list">
+            <li>Verifica que el permiso del navegador esté en <strong>Permitir</strong> (ícono del candado en la URL).</li>
+            <li>Revisa que las notificaciones de Chrome/Edge estén habilitadas en la <strong>Configuración de Windows → Notificaciones y acciones</strong>.</li>
+            <li>Asegúrate de estar en modo <strong>No molestar</strong> desactivado en Windows.</li>
+            <li>La notificación de asistencia solo aparece cuando el pasante marca desde el <strong>Kiosco público</strong>, no desde el panel de administración.</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ═══ KIOSCO DE ASISTENCIA ═══ -->
+<div class="man-sec" id="sec-kiosco" data-keywords="kiosco terminal público asistencia PIN cédula marcaje reloj dispositivo pantalla tablet TV fuera de servicio mantenimiento">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#ecfdf5;color:#059669;"><i class="ti ti-device-desktop"></i></div>
+        <div><p class="man-sec-title">Kiosco Público de Asistencia</p><p class="man-sec-sub">Terminal autónoma de marcaje por PIN para pasantes</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">El Kiosco es una pantalla pública que permite a los pasantes registrar su asistencia de forma autónoma con cédula y PIN, sin necesidad de que intervenga el tutor o el administrador.</p>
+
+        <div class="man-h3"><i class="ti ti-map-pin"></i> Cómo acceder al Kiosco</div>
+        <p class="man-p">Abre cualquier navegador en el dispositivo dedicado (PC, tablet, televisor) y navega a la URL del sistema seguida de <strong>/kiosco</strong>. No requiere iniciar sesión — es una pantalla completamente pública.</p>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Lo ideal es dejar el Kiosco abierto en un dispositivo fijo en la entrada del área de pasantías, visible para los pasantes al llegar cada mañana.</p></div>
+
+        <div class="man-h3"><i class="ti ti-layout-dashboard"></i> Elementos de la pantalla</div>
+        <table class="man-table">
+            <thead><tr><th>Elemento</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Reloj digital</strong></td><td>Hora actual en tiempo real (actualización cada segundo). Sirve de referencia de puntualidad para el pasante.</td></tr>
+                <tr><td><strong>Campo Cédula</strong></td><td>El pasante ingresa su número de cédula para que el sistema lo identifique.</td></tr>
+                <tr><td><strong>Campo PIN</strong></td><td>Código de 4 dígitos personal configurado en el wizard de primer acceso.</td></tr>
+                <tr><td><strong>Botón Registrar</strong></td><td>Envía la asistencia con la hora exacta del servidor.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="man-h3"><i class="ti ti-steps"></i> Cómo marca el pasante</div>
+        <div class="man-steps">
+            <div class="man-step"><p>El pasante se acerca al dispositivo al llegar.</p></div>
+            <div class="man-step"><p>Ingresa su <strong>número de cédula</strong>.</p></div>
+            <div class="man-step"><p>Ingresa su <strong>PIN de 4 dígitos</strong>.</p></div>
+            <div class="man-step"><p>Presiona <strong>Registrar Asistencia</strong>.</p></div>
+            <div class="man-step"><p>Aparece una pantalla de confirmación con su nombre y la hora exacta de entrada. El administrador recibe una notificación de escritorio en ese momento.</p></div>
+        </div>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Si un pasante olvidó su PIN o nunca lo configuró, el tutor puede asignárselo desde <strong>Mis Pasantes → ficha del pasante → Cambiar PIN</strong>.</p></div>
+
+        <div class="man-h3"><i class="ti ti-plug-off"></i> Pantalla "Fuera de servicio"</div>
+        <p class="man-p">Si el Kiosco está deshabilitado (días feriados, mantenimiento), la pantalla muestra un aviso de <strong>Terminal fuera de servicio</strong> y no acepta registros. En ese caso la asistencia debe registrarse manualmente desde el panel de administración.</p>
+    </div>
+</div>
 
 <?php if ($esPasante): ?>
 <!-- ═══ MI ASISTENCIA ═══ -->
@@ -539,6 +887,96 @@ $esPasante = ($rolId == 3 || $rolId == 0); // El SuperAdmin ve TODO
     </div>
     <div class="man-sec-body">
         <p class="man-p">Aquí verás las evaluaciones que tu tutor ha completado para ti. Cada evaluación muestra los 14 criterios con su puntuación y la calificación global.</p>
+    </div>
+</div>
+
+<!-- ═══ MIS EXÁMENES (PASANTE) ═══ -->
+<div class="man-sec" id="sec-pasante-examenes" data-keywords="mis exámenes quiz responder enviar resultado puntaje aprobado reprobado notificación pendiente tiempo">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#f0f9ff;color:#0369a1;"><i class="ti ti-pencil-check"></i></div>
+        <div><p class="man-sec-title">Mis Exámenes</p><p class="man-sec-sub">Responde exámenes asignados y consulta tus resultados</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">Cuando tu tutor o el administrador publique un examen para ti, recibirás una <strong>notificación</strong> y el examen aparecerá en tu sección <strong>Mis Exámenes</strong>.</p>
+
+        <div class="man-h3"><i class="ti ti-bell"></i> Recibir la notificación</div>
+        <p class="man-p">El sistema te avisa automáticamente cuando un examen está disponible. La notificación aparece en el <strong>ícono de campana</strong> (esquina superior derecha). Haz clic en ella para ir directamente al examen.</p>
+
+        <div class="man-h3"><i class="ti ti-pencil"></i> Responder un examen</div>
+        <div class="man-steps">
+            <div class="man-step"><p>Ve a <strong>Mis Exámenes</strong> en el menú lateral.</p></div>
+            <div class="man-step"><p>Verás las tarjetas de exámenes disponibles. Los marcados como <span class="man-badge mb-green">Disponible</span> pueden responderse.</p></div>
+            <div class="man-step"><p>Haz clic en <strong>Iniciar Examen</strong>.</p></div>
+            <div class="man-step"><p>Responde cada pregunta: selecciona la opción correcta o elige Verdadero / Falso.</p></div>
+            <div class="man-step"><p>Al terminar, haz clic en <strong>Enviar Examen</strong>. Verás tu puntaje inmediatamente.</p></div>
+        </div>
+        <div class="man-warn"><i class="ti ti-alert-triangle"></i><p>Una vez enviado el examen <strong>no puedes modificarlo</strong>. Asegúrate de haber respondido todas las preguntas antes de enviar.</p></div>
+
+        <div class="man-h3"><i class="ti ti-chart-bar"></i> Ver tu resultado</div>
+        <p class="man-p">Después de enviar verás:</p>
+        <table class="man-table">
+            <thead><tr><th>Dato</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Puntaje obtenido</strong></td><td>Puntos que lograste sobre el máximo posible.</td></tr>
+                <tr><td><strong>Porcentaje</strong></td><td>Tu calificación como porcentaje del total.</td></tr>
+                <tr><td><strong>Estado</strong></td><td><span class="man-badge mb-green">Aprobado</span> (≥ 60%) o <span class="man-badge" style="background:#fee2e2;color:#991b1b;">Reprobado</span> (< 60%).</td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Si el examen ya está <span class="man-badge mb-slate">Cerrado</span>, aún puedes consultar tu resultado anterior pero no puedes volver a responderlo.</p></div>
+    </div>
+</div>
+
+<!-- ═══ MIS ANALÍTICAS (PASANTE) ═══ -->
+<div class="man-sec" id="sec-pasante-analiticas" data-keywords="mis analíticas gráficas estadísticas horas acumuladas asistencia mensual porcentaje tendencia progreso pasante personal">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#f5f3ff;color:#7c3aed;"><i class="ti ti-chart-line"></i></div>
+        <div><p class="man-sec-title">Mis Analíticas</p><p class="man-sec-sub">Gráficas de tu progreso y comportamiento de asistencia</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">Tu módulo personal de analíticas muestra, en gráficas interactivas, cómo ha sido tu asistencia y cuánto has avanzado en tus horas de pasantía.</p>
+
+        <div class="man-h3"><i class="ti ti-layout-grid"></i> Indicadores principales (KPIs)</div>
+        <table class="man-table">
+            <thead><tr><th>Indicador</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Horas acumuladas</strong></td><td>Total de horas contabilizadas hasta hoy vs. tu meta total.</td></tr>
+                <tr><td><strong>% de asistencia</strong></td><td>Días presentes + justificados sobre el total de días hábiles registrados.</td></tr>
+                <tr><td><strong>Total días</strong></td><td>Suma de todos los registros (presentes, ausentes, justificados, tardanzas).</td></tr>
+                <tr><td><strong>Ausencias</strong></td><td>Días marcados como ausente en tu historial.</td></tr>
+            </tbody>
+        </table>
+
+        <div class="man-h3"><i class="ti ti-chart-bar"></i> Gráficas disponibles</div>
+        <table class="man-table">
+            <thead><tr><th>Gráfica</th><th>Qué muestra</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Asistencia mensual</strong></td><td>Barras apiladas con presentes, ausentes y justificados por mes.</td></tr>
+                <tr><td><strong>Tasa de asistencia</strong></td><td>Línea con el porcentaje de asistencia efectiva mes a mes.</td></tr>
+                <tr><td><strong>Progreso de horas</strong></td><td>Barra de progreso visual comparando horas acumuladas vs. tu meta.</td></tr>
+            </tbody>
+        </table>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Pasa el cursor sobre las barras o puntos del gráfico para ver los valores exactos de ese período.</p></div>
+    </div>
+</div>
+
+<!-- ═══ MIS ACTIVIDADES (PASANTE) ═══ -->
+<div class="man-sec" id="sec-pasante-actividades" data-keywords="mis actividades extras servicio comunitario participación historial timeline pasantía corta brigada">
+    <div class="man-sec-hd">
+        <div class="man-sec-icon" style="background:#fef3c7;color:#d97706;"><i class="ti ti-activity"></i></div>
+        <div><p class="man-sec-title">Mis Actividades</p><p class="man-sec-sub">Historial personal de actividades extras en las que participaste</p></div>
+    </div>
+    <div class="man-sec-body">
+        <p class="man-p">Si participaste en actividades de Servicio Comunitario, brigadas o pasantías cortas organizadas por el ISP, puedes ver tu historial personal aquí ordenado en una línea de tiempo.</p>
+        <table class="man-table">
+            <thead><tr><th>Dato</th><th>Descripción</th></tr></thead>
+            <tbody>
+                <tr><td><strong>Total de actividades</strong></td><td>Cuántas actividades llevas registradas en total.</td></tr>
+                <tr><td><strong>Este mes</strong></td><td>Actividades registradas en el mes calendario actual.</td></tr>
+                <tr><td><strong>Última actividad</strong></td><td>Fecha y nombre de la actividad más reciente.</td></tr>
+            </tbody>
+        </table>
+        <p class="man-p">Las actividades se presentan en una <strong>línea de tiempo agrupada por mes</strong>, con el nombre, descripción y fecha de cada una.</p>
+        <div class="man-tip"><i class="ti ti-info-circle"></i><p>Si participaste en una actividad pero no aparece en tu listado, contacta al administrador para que verifique el registro de participantes de esa actividad.</p></div>
     </div>
 </div>
 

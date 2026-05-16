@@ -17,7 +17,7 @@
 
     // ==================== CONFIGURACIÓN ====================
     const CONFIG = {
-        REFRESH_INTERVAL: 60000, // 60 segundos
+        REFRESH_INTERVAL: 20000, // 20 segundos — near real-time para exámenes
         ENDPOINTS: {
             GET_UNREAD: URLROOT + '/notifications/getUnread',
             MARK_AS_READ: URLROOT + '/notifications/markAsRead/',
@@ -51,6 +51,13 @@
         'cambio_estado': 'ti-switch-horizontal',
         'warning': 'ti-alert-triangle',
         'success': 'ti-circle-check',
+        'actividad_nueva': 'ti-notebook',
+        'actividad_corregida': 'ti-edit',
+        'asistencia_registrada': 'ti-clock-check',
+        'feriado_proximo': 'ti-calendar-event',
+        'examen_publicado': 'ti-notebook',
+        'examen_enviado': 'ti-school',
+        'examen_revisado': 'ti-circle-check',
         'default': 'ti-bell'
     };
 
@@ -73,9 +80,14 @@
             _paintBadge(parseInt(cached, 10));
         }
 
-        // Luego carg desde el servidor (actualiza/reconcilia)
+        // Luego carga desde el servidor (actualiza/reconcilia)
         loadNotifications();
         setupEventListeners();
+
+        // Recargar badge inmediatamente tras cada navegación PJAX
+        document.addEventListener('pjax:complete', function () {
+            loadNotifications();
+        });
 
         // Auto-refresh periódico (clearInterval seguro si ya existía)
         if (window._sgpNotifInterval) clearInterval(window._sgpNotifInterval);
@@ -259,13 +271,13 @@
                 iconClasses = 'notif-icon-warning';
                 icono = 'ti-shield-lock';
             } else if (tipoAlerta === 'success') {
-                containerClasses = 'notif-info'; // Usaremos info por default ya que success css no fue provisto en Vanilla, aunque lo mapearé verde
-                iconClasses = 'notif-icon-info'; 
+                containerClasses = 'notif-info';
+                iconClasses = 'notif-icon-info';
                 icono = 'ti-circle-check';
             } else {
                 containerClasses = 'notif-info';
                 iconClasses = 'notif-icon-info';
-                icono = 'ti-info-circle';
+                icono = NOTIFICATION_ICONS[tipoAlerta] || NOTIFICATION_ICONS['default'];
             }
 
             html += `
@@ -334,9 +346,15 @@
                     // Recargar para sincronizar con servidor
                     loadNotifications();
 
-                    // Si hay URL válida, redirigir
+                    // Si hay URL válida, navegar (PJAX si está disponible)
                     if (targetUrl && targetUrl !== '#') {
-                        setTimeout(() => window.location.href = targetUrl, 300);
+                        setTimeout(() => {
+                            if (window.SGPPjax && typeof window.SGPPjax.navigate === 'function') {
+                                window.SGPPjax.navigate(targetUrl, true);
+                            } else {
+                                window.location.href = targetUrl;
+                            }
+                        }, 300);
                     }
                 }
             })

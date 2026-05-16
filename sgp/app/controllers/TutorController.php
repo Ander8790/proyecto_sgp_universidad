@@ -33,14 +33,19 @@ class TutorController extends Controller {
     public function index(): void {
         $tutorId = (int)Session::get('user_id');
 
-        // KPI 1: Total pasantes asignados
-        $this->db->query("SELECT COUNT(*) AS total FROM datos_pasante WHERE tutor_id = :tid");
+        // Departamento del tutor (base para todos los filtros)
+        $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
         $this->db->bind(':tid', $tutorId);
+        $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
+        // KPI 1: Total pasantes del departamento
+        $this->db->query("SELECT COUNT(*) AS total FROM datos_pasante WHERE departamento_asignado_id = :dept_id");
+        $this->db->bind(':dept_id', $deptId);
         $totalPasantes = (int)($this->db->single()->total ?? 0);
 
-        // KPI 2: Pasantes activos
-        $this->db->query("SELECT COUNT(*) AS total FROM datos_pasante WHERE tutor_id = :tid AND estado_pasantia = 'Activo'");
-        $this->db->bind(':tid', $tutorId);
+        // KPI 2: Pasantes activos del departamento
+        $this->db->query("SELECT COUNT(*) AS total FROM datos_pasante WHERE departamento_asignado_id = :dept_id AND estado_pasantia = 'Activo'");
+        $this->db->bind(':dept_id', $deptId);
         $pasantesActivos = (int)($this->db->single()->total ?? 0);
 
         // KPI 3: Pasantes activos sin evaluación
@@ -48,9 +53,9 @@ class TutorController extends Controller {
             SELECT COUNT(*) AS total
             FROM datos_pasante dpa
             LEFT JOIN evaluaciones e ON e.pasante_id = dpa.usuario_id
-            WHERE dpa.tutor_id = :tid AND dpa.estado_pasantia = 'Activo' AND e.id IS NULL
+            WHERE dpa.departamento_asignado_id = :dept_id AND dpa.estado_pasantia = 'Activo' AND e.id IS NULL
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $evaluacionesPendientes = (int)($this->db->single()->total ?? 0);
 
         // KPI 4: Horas supervisadas totales (pro-rata: días válidos × 8)
@@ -60,12 +65,12 @@ class TutorController extends Controller {
                 SELECT a.pasante_id, COUNT(*) AS dias_validos
                 FROM asistencias a
                 INNER JOIN datos_pasante dpa ON dpa.usuario_id = a.pasante_id
-                WHERE dpa.tutor_id = :tid
+                WHERE dpa.departamento_asignado_id = :dept_id
                   AND a.estado IN ('Presente', 'Justificado')
                 GROUP BY a.pasante_id
             ) AS sub
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $horasSupervisadas = (int)($this->db->single()->total ?? 0);
 
         // Lista de pasantes con progreso pro-rata y promedio de evaluaciones
@@ -94,14 +99,14 @@ class TutorController extends Controller {
                 WHERE estado IN ('Presente', 'Justificado')
                 GROUP BY pasante_id
             ) AS prog ON prog.pasante_id = dpa.usuario_id
-            WHERE dpa.tutor_id = :tid
+            WHERE dpa.departamento_asignado_id = :dept_id
             GROUP BY dpa.usuario_id
             ORDER BY
                 FIELD(dpa.estado_pasantia, 'Activo','Pendiente','Sin Asignar','Finalizado','Retirado'),
                 dp.apellidos ASC
             LIMIT 20
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $misPasantes = $this->db->resultSet();
 
         $this->view('tutor/dashboard', [
@@ -122,6 +127,11 @@ class TutorController extends Controller {
     // ────────────────────────────────────────────────────────────
     public function pasantes(): void {
         $tutorId = (int)Session::get('user_id');
+
+        // Departamento del tutor
+        $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+        $this->db->bind(':tid', $tutorId);
+        $deptId = (int)($this->db->single()->departamento_id ?? 0);
 
         $this->db->query("
             SELECT
@@ -161,13 +171,13 @@ class TutorController extends Controller {
                 FROM asistencias
                 GROUP BY pasante_id
             ) AS ult ON ult.pasante_id = dpa.usuario_id
-            WHERE dpa.tutor_id = :tid
+            WHERE dpa.departamento_asignado_id = :dept_id
             GROUP BY dpa.usuario_id
             ORDER BY
                 FIELD(dpa.estado_pasantia, 'Activo','Pendiente','Sin Asignar','Finalizado','Retirado'),
                 dp.apellidos ASC
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $pasantes = $this->db->resultSet();
 
         // KPI extra: activos sin ninguna evaluación
@@ -175,9 +185,9 @@ class TutorController extends Controller {
             SELECT COUNT(*) AS total
             FROM datos_pasante dpa
             LEFT JOIN evaluaciones e ON e.pasante_id = dpa.usuario_id
-            WHERE dpa.tutor_id = :tid AND dpa.estado_pasantia = 'Activo' AND e.id IS NULL
+            WHERE dpa.departamento_asignado_id = :dept_id AND dpa.estado_pasantia = 'Activo' AND e.id IS NULL
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $pendientesEval = (int)($this->db->single()->total ?? 0);
 
         // KPI extra: % puntualidad del mes actual (llegadas a tiempo vs total presente)
@@ -187,11 +197,11 @@ class TutorController extends Controller {
                 SUM(CASE WHEN TIME(COALESCE(a.hora_entrada, a.hora_registro)) <= '08:05:00' THEN 1 ELSE 0 END) AS a_tiempo
             FROM asistencias a
             INNER JOIN datos_pasante dpa ON dpa.usuario_id = a.pasante_id
-            WHERE dpa.tutor_id = :tid
+            WHERE dpa.departamento_asignado_id = :dept_id
               AND a.estado IN ('Presente','Justificado')
               AND a.fecha >= DATE_FORMAT(NOW(), '%Y-%m-01')
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $puntRow = $this->db->single();
         $pctPuntualidad = ($puntRow && $puntRow->total > 0)
             ? (int)round($puntRow->a_tiempo / $puntRow->total * 100)
@@ -220,17 +230,23 @@ class TutorController extends Controller {
             return;
         }
 
-        // Verificar que el pasante pertenece a este tutor
+        // Departamento del tutor
+        $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+        $this->db->bind(':tid', $tutorId);
+        $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
+        // Verificar que el pasante pertenece al mismo departamento
         $this->db->query("
             SELECT
                 u.id, u.cedula, dp.nombres, dp.apellidos, dp.telefono,
                 d.nombre AS departamento,
                 COALESCE(i.nombre, dpa.institucion_procedencia, 'No especificada') AS institucion,
                 dpa.estado_pasantia,
-                dpa.fecha_inicio_pasantia AS fecha_inicio,
-                dpa.fecha_fin_estimada    AS fecha_fin,
+                dpa.fecha_inicio_pasantia    AS fecha_inicio,
+                dpa.fecha_fin_estimada       AS fecha_fin,
                 dpa.horas_meta,
-                dpa.tutor_id
+                dpa.tutor_id,
+                dpa.departamento_asignado_id AS dept_pasante_id
             FROM usuarios u
             INNER JOIN datos_personales dp ON dp.usuario_id = u.id
             LEFT  JOIN datos_pasante dpa ON dpa.usuario_id = u.id
@@ -242,7 +258,8 @@ class TutorController extends Controller {
         $this->db->bind(':pid', $pasanteId);
         $pasante = $this->db->single();
 
-        if (!$pasante || (int)($pasante->tutor_id ?? 0) !== $tutorId) {
+        // Acceso permitido si el pasante es del mismo departamento
+        if (!$pasante || (int)($pasante->dept_pasante_id ?? 0) !== $deptId) {
             $this->redirect('tutor/pasantes');
             return;
         }
@@ -289,6 +306,11 @@ class TutorController extends Controller {
         $hoy     = date('Y-m-d');
         $vista   = $_GET['vista'] ?? 'diaria';
 
+        // Departamento del tutor
+        $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+        $this->db->bind(':tid', $tutorId);
+        $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
         $fechaInicio = $hoy;
         $fechaFin    = $hoy;
 
@@ -323,11 +345,11 @@ class TutorController extends Controller {
             LEFT  JOIN datos_personales dp ON dp.usuario_id = u.id
             LEFT  JOIN datos_pasante dpa ON dpa.usuario_id = u.id
             LEFT  JOIN departamentos d ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
-            WHERE dpa.tutor_id = :tid
+            WHERE dpa.departamento_asignado_id = :dept_id
               AND a.fecha >= :fi AND a.fecha <= :ff
             ORDER BY a.fecha DESC, a.hora_registro DESC
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $this->db->bind(':fi', $fechaInicio);
         $this->db->bind(':ff', $fechaFin);
         $registros = $this->db->resultSet();
@@ -339,10 +361,10 @@ class TutorController extends Controller {
             INNER JOIN usuarios u ON u.id = dpa.usuario_id
             LEFT  JOIN datos_personales dp ON dp.usuario_id = dpa.usuario_id
             LEFT  JOIN departamentos d ON d.id = dpa.departamento_asignado_id
-            WHERE dpa.tutor_id = :tid AND dpa.estado_pasantia = 'Activo'
+            WHERE dpa.departamento_asignado_id = :dept_id AND dpa.estado_pasantia = 'Activo'
             ORDER BY dp.apellidos ASC
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $misPasantes = $this->db->resultSet();
 
         // Calcular KPIs diarios
@@ -367,6 +389,7 @@ class TutorController extends Controller {
                 $datosSemanales[$depto][$p->id] = [
                     'nombre'  => trim(($p->apellidos ?? '') . ', ' . ($p->nombres ?? '')),
                     'dias'    => [1 => '-', 2 => '-', 3 => '-', 4 => '-', 5 => '-'],
+                    'motivos' => [1 => '', 2 => '', 3 => '', 4 => '', 5 => ''],
                     'totales' => ['P' => 0, 'A' => 0, 'J' => 0],
                 ];
             }
@@ -385,6 +408,7 @@ class TutorController extends Controller {
                         $datosSemanales[$depto][$pid]['dias'][$diaSemana] = 'J';
                         $datosSemanales[$depto][$pid]['totales']['J']++;
                     }
+                    $datosSemanales[$depto][$pid]['motivos'][$diaSemana] = $reg->motivo_justificacion ?? '';
                 }
             }
             $fechaBase = new DateTime();
@@ -423,6 +447,11 @@ class TutorController extends Controller {
     // ────────────────────────────────────────────────────────────
     public function puntualidad(): void {
         $tutorId = (int)Session::get('user_id');
+
+        // Departamento del tutor
+        $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+        $this->db->bind(':tid', $tutorId);
+        $deptId = (int)($this->db->single()->departamento_id ?? 0);
 
         require_once APPROOT . '/helpers/RetardoHelper.php';
 
@@ -469,11 +498,11 @@ class TutorController extends Controller {
             LEFT  JOIN departamentos    d    ON d.id = dpa.departamento_asignado_id
             LEFT  JOIN asignaciones     asig ON asig.pasante_id = a.pasante_id
                                            AND asig.estado = 'activo'
-            WHERE dpa.tutor_id = :tid
+            WHERE dpa.departamento_asignado_id = :dept_id
               AND a.fecha BETWEEN :fi AND :ff
             ORDER BY dp.apellidos ASC, a.fecha DESC
         ");
-        $this->db->bind(':tid', $tutorId);
+        $this->db->bind(':dept_id', $deptId);
         $this->db->bind(':fi',  $fi);
         $this->db->bind(':ff',  $ff);
         $todosRegistros = $this->db->resultSet();
@@ -572,15 +601,25 @@ class TutorController extends Controller {
             exit;
         }
 
-        // Verificar que el pasante sea del tutor
-        $this->db->query("SELECT tutor_id FROM datos_pasante WHERE usuario_id = :pid LIMIT 1");
+        // Verificar que el pasante sea del mismo departamento del tutor
+        $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :tid LIMIT 1");
+        $this->db->bind(':tid', $tutorId);
+        $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
+        $this->db->query("
+            SELECT dpa.departamento_asignado_id, CONCAT(dp.nombres,' ',dp.apellidos) AS nombre
+            FROM datos_pasante dpa
+            LEFT JOIN datos_personales dp ON dp.usuario_id = dpa.usuario_id
+            WHERE dpa.usuario_id = :pid LIMIT 1
+        ");
         $this->db->bind(':pid', $pasanteId);
         $dpa = $this->db->single();
 
-        if (!$dpa || (int)($dpa->tutor_id ?? 0) !== $tutorId) {
-            echo json_encode(['success' => false, 'message' => 'Este pasante no está asignado a ti.']);
+        if (!$dpa || (int)($dpa->departamento_asignado_id ?? 0) !== $deptId) {
+            echo json_encode(['success' => false, 'message' => 'Este pasante no pertenece a tu departamento.']);
             exit;
         }
+        $nombrePas = trim($dpa->nombre ?? "ID:$pasanteId");
 
         // Actualizar el PIN con bcrypt
         $pinHash = password_hash($nuevoPin, PASSWORD_BCRYPT);
@@ -594,10 +633,10 @@ class TutorController extends Controller {
         if ($ok) {
             $this->db->query("
                 INSERT INTO bitacora (usuario_id, accion, descripcion, ip)
-                VALUES (:uid, 'resetear_pin_pasante', CONCAT('Tutor reseteó PIN del pasante ID: ', :pid), :ip)
+                VALUES (:uid, 'RESET_PIN', CONCAT('PIN reseteado — ', :pid), :ip)
             ");
             $this->db->bind(':uid', $tutorId);
-            $this->db->bind(':pid', $pasanteId);
+            $this->db->bind(':pid', $nombrePas);
             $this->db->bind(':ip', $_SERVER['REMOTE_ADDR'] ?? 'N/A');
             $this->db->execute();
         }

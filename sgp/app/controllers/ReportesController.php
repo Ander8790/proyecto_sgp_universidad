@@ -41,7 +41,11 @@ class ReportesController extends Controller
         $userId = (int)Session::get('user_id');
 
         if ($rolId === 2) {
-            // Solo pasantes cuyo tutor_id coincide con el tutor autenticado
+            // Pasantes del mismo departamento que el tutor autenticado
+            $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :uid LIMIT 1");
+            $this->db->bind(':uid', $userId);
+            $deptId = (int)($this->db->single()->departamento_id ?? 0);
+
             $this->db->query("
                 SELECT u.id, CONCAT(dp.nombres, ' ', dp.apellidos) as nombre 
                 FROM usuarios u 
@@ -49,10 +53,10 @@ class ReportesController extends Controller
                 JOIN datos_pasante dpa   ON dpa.usuario_id = u.id
                 WHERE u.rol_id = 3 
                   AND u.estado = 'activo'
-                  AND dpa.tutor_id = :tutor_id
+                  AND dpa.departamento_asignado_id = :dept_id
                 ORDER BY dp.nombres ASC
             ");
-            $this->db->bind(':tutor_id', $userId);
+            $this->db->bind(':dept_id', $deptId);
         } else {
             // Admin — todos los pasantes activos
             $this->db->query("
@@ -94,25 +98,18 @@ class ReportesController extends Controller
             return;
         }
 
-        // RBAC: tutor solo puede exportar sus propios pasantes
+        // RBAC: tutor solo puede exportar pasantes de su departamento
         $rolId    = (int)Session::get('role_id');
         $myUserId = (int)Session::get('user_id');
         if ($rolId === 2) {
-            $this->db->query("SELECT tutor_id FROM datos_pasante WHERE usuario_id = :pid LIMIT 1");
+            $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :uid LIMIT 1");
+            $this->db->bind(':uid', $myUserId);
+            $_deptId = (int)($this->db->single()->departamento_id ?? 0);
+
+            $this->db->query("SELECT departamento_asignado_id FROM datos_pasante WHERE usuario_id = :pid LIMIT 1");
             $this->db->bind(':pid', $pasanteId);
             $chk = $this->db->single();
-            if (!$chk || (int)($chk->tutor_id ?? 0) !== $myUserId) {
-                // [FIX-M4] Registrar intento de acceso no autorizado en bitácora
-                AuditModel::log(
-                    'ACCESO_DENEGADO_REPORTE',
-                    'datos_pasante',
-                    $pasanteId,
-                    [
-                        'tutor_solicitante' => $myUserId,
-                        'tutor_propietario' => $chk->tutor_id ?? null,
-                        'ip'               => $_SERVER['REMOTE_ADDR'] ?? 'UNKNOWN'
-                    ]
-                );
+            if (!$chk || (int)($chk->departamento_asignado_id ?? 0) !== $_deptId) {
                 http_response_code(403);
                 echo 'Acceso denegado.';
                 exit;
@@ -122,15 +119,15 @@ class ReportesController extends Controller
         // Datos del pasante
         $this->db->query("
             SELECT u.id, u.cedula, dp.nombres, dp.apellidos,
-                   d.nombre AS departamento_nombre,
-                   COALESCE(inst.nombre, '') AS institucion_nombre
+                   d.nombre                               AS departamento,
+                   COALESCE(inst.nombre, '—')             AS institucion_nombre,
+                   COALESCE(dpa.horas_acumuladas, 0)      AS horas_acumuladas
             FROM   usuarios u
-            LEFT JOIN datos_personales    dp   ON dp.usuario_id   = u.id
-            LEFT JOIN datos_pasante       dpa  ON dpa.usuario_id  = u.id
-            LEFT JOIN departamentos       d    ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
-            LEFT JOIN instituciones       inst ON inst.id = dpa.institucion_id
+            LEFT JOIN datos_personales dp   ON dp.usuario_id  = u.id
+            LEFT JOIN datos_pasante    dpa  ON dpa.usuario_id = u.id
+            LEFT JOIN departamentos    d    ON d.id = COALESCE(dpa.departamento_asignado_id, u.departamento_id)
+            LEFT JOIN instituciones    inst ON inst.id = dpa.institucion_id
             WHERE u.id = :pid AND u.rol_id = 3
-            GROUP BY u.id, dp.nombres, dp.apellidos, u.cedula, d.nombre
             LIMIT 1
         ");
         $this->db->bind(':pid', $pasanteId);
@@ -141,13 +138,18 @@ class ReportesController extends Controller
             return;
         }
 
-        // Historial completo de asistencias
+        // Historial completo de asistencias con motivo y feriado si aplica
         $this->db->query("
-            SELECT fecha, hora_entrada, hora_salida, estado,
-                   estado AS observacion
-            FROM asistencias
-            WHERE pasante_id = :pid
-            ORDER BY fecha DESC
+            SELECT a.fecha,
+                   COALESCE(a.hora_entrada, '08:00:00') AS hora_entrada,
+                   COALESCE(a.hora_salida,  '16:00:00') AS hora_salida,
+                   a.estado, a.metodo,
+                   COALESCE(NULLIF(a.motivo_justificacion,''), NULLIF(a.observacion,'')) AS motivo,
+                   df.nombre AS feriado_nombre
+            FROM asistencias a
+            LEFT JOIN dias_feriados df ON df.fecha = a.fecha
+            WHERE a.pasante_id = :pid
+            ORDER BY a.fecha DESC
         ");
         $this->db->bind(':pid', $pasanteId);
         $asistencias = $this->db->resultSet();
@@ -161,7 +163,7 @@ class ReportesController extends Controller
         include '../app/views/reportes/pdf_asistencia_individual.php';
         $html = ob_get_clean();
 
-        $this->pdf->renderDomPdf($html, 'Kardex_' . ($pasante->cedula ?? $pasanteId), false);
+        $this->pdf->renderDomPdf($html, 'Ficha_Personal_' . ($pasante->cedula ?? $pasanteId), false);
     }
 
     /**
@@ -202,18 +204,20 @@ class ReportesController extends Controller
                 exit;
             }
 
-            // Si viene un pasante_id explícito, verificar propiedad
+            // Si viene un pasante_id explícito, verificar que sea del mismo departamento
             if ($pasanteIdPost > 0) {
-                $this->db->query("
-                    SELECT tutor_id FROM datos_pasante WHERE usuario_id = :pid LIMIT 1
-                ");
+                $this->db->query("SELECT departamento_id FROM usuarios WHERE id = :uid LIMIT 1");
+                $this->db->bind(':uid', $myUserId);
+                $_deptId = (int)($this->db->single()->departamento_id ?? 0);
+
+                $this->db->query("SELECT departamento_asignado_id FROM datos_pasante WHERE usuario_id = :pid LIMIT 1");
                 $this->db->bind(':pid', $pasanteIdPost);
                 $chk = $this->db->single();
-                if (!$chk || (int)($chk->tutor_id ?? 0) !== $myUserId) {
+                if (!$chk || (int)($chk->departamento_asignado_id ?? 0) !== $_deptId) {
                     header('Content-Type: application/json');
                     echo json_encode([
                         'success' => false,
-                        'message' => 'Acceso denegado: este pasante no está asignado a su tutela.',
+                        'message' => 'Acceso denegado: este pasante no pertenece a su departamento.',
                     ]);
                     exit;
                 }
@@ -802,11 +806,11 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                     exit;
                 }
 
-                $this->db->query("SELECT nombre FROM dias_feriados WHERE fecha = :hoy LIMIT 1");
+                $this->db->query("SELECT nombre FROM dias_feriados WHERE fecha = :hoy AND es_laborable = 0 LIMIT 1");
                 $this->db->bind(':hoy', $fecha);
                 $feriado = $this->db->single();
                 if ($feriado) {
-                    echo json_encode(['success' => false, 'message' => "La fecha seleccionada es un día feriado (" . htmlspecialchars($feriado->nombre) . "). No se genera reporte para días feriados."]);
+                    echo json_encode(['success' => false, 'message' => "La fecha seleccionada es un día feriado no laborable (" . htmlspecialchars($feriado->nombre) . "). No hay jornada activa — el día no cuenta en el cómputo de horas de pasantía."]);
                     exit;
                 }
 
@@ -1232,7 +1236,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 a.fecha,
                 a.hora_entrada,
                 a.hora_salida,
-                a.estado        AS observacion
+                COALESCE(NULLIF(a.motivo_justificacion, ''), a.estado) AS observacion
             FROM asistencias a
             JOIN usuarios         u  ON u.id  = a.pasante_id
             JOIN datos_personales dp ON dp.usuario_id = u.id
@@ -1520,17 +1524,16 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
             return;
         }
 
-        // ── 2. Validar feriado ────────────────────────────────────────────────
-        $this->db->query("SELECT nombre FROM dias_feriados WHERE fecha = :hoy LIMIT 1");
+        // ── 2. Validar feriado no-laborable (los laborables se procesan normalmente) ──
+        $this->db->query("SELECT nombre FROM dias_feriados WHERE fecha = :hoy AND es_laborable = 0 LIMIT 1");
         $this->db->bind(':hoy', $fecha);
         $feriado = $this->db->single();
 
         if ($feriado) {
             $this->renderErrorPage(
                 'Día Feriado — ' . htmlspecialchars($feriado->nombre),
-                'Hoy ' . date('d/m/Y') . ' es día feriado ('
-                . htmlspecialchars($feriado->nombre)
-                . '). No hay jornada laboral activa; las horas de este día se contabilizan como Justificado automáticamente.'
+                'Hoy ' . date('d/m/Y') . ' es "' . htmlspecialchars($feriado->nombre)
+                . '", un día feriado no laborable. No se requiere asistencia y el día no cuenta en el cómputo de horas de pasantía.'
             );
             return;
         }
@@ -1608,6 +1611,7 @@ body { font-family: Helvetica, Arial, sans-serif; font-size: 13px;
                 dpa.fecha_inicio_pasantia  AS fecha_inicio,
                 dpa.fecha_fin_estimada     AS fecha_fin,
                 CONCAT(tp.nombres,' ',tp.apellidos)           AS tutor_nombre,
+                tu.cedula                                     AS tutor_cedula,
                 tp.cargo                                      AS tutor_cargo,
                 adm.nombres                                   AS jefe_nombres,
                 adm.apellidos                                 AS jefe_apellidos,

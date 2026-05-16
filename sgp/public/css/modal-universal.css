@@ -539,25 +539,73 @@
 /* ─── RESPONSIVE ─── */
 @media (max-width: 640px) {
     .sgp-modal {
-        width: 95%;
+        width: 96%;
         max-width: 100%;
         border-radius: 20px;
+        max-height: 92vh;
     }
 
     .sgp-bento-grid {
         grid-template-columns: 1fr;
+        gap: 8px;
     }
 
     .sgp-modal-body {
-        padding: 16px 20px;
+        padding: 14px 16px;
+        max-height: 58vh;
     }
 
     .sgp-modal-header {
-        padding: 20px;
+        padding: 16px 18px;
+    }
+
+    .sgp-modal-header h3 {
+        font-size: 1rem;
     }
 
     .sgp-modal-actions {
-        padding: 0 20px 20px;
+        padding: 0 16px 16px;
         grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    /* Todos los botones de acción a ancho completo en móvil */
+    .sgp-btn-action {
+        padding: 12px 10px;
+        font-size: 0.85rem;
+    }
+
+    .sgp-view-name {
+        font-size: 1rem;
+        word-break: break-word;
+        hyphens: auto;
+    }
+
+    .sgp-view-avatar {
+        width: 60px;
+        height: 60px;
+        font-size: 1.2rem;
+    }
+
+    .sgp-hours-ring {
+        gap: 12px;
+        padding: 12px;
+    }
+
+    .sgp-hours-svg {
+        width: 52px;
+        height: 52px;
+    }
+
+    .sgp-hours-percent {
+        font-size: 1.2rem;
+    }
+
+    .sgp-bento-item {
+        padding: 10px 12px;
+    }
+
+    .sgp-bento-value {
+        font-size: 0.85rem;
     }
 }

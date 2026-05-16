@@ -362,4 +362,7 @@
         init();
     }
 
+    // API pública: permite que otros scripts disparen navegación PJAX
+    window.SGPPjax = { navigate: navigate };
+
 })();

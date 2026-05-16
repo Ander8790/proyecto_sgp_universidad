@@ -279,9 +279,9 @@ $mesesAbrev = ['01'=>'Ene','02'=>'Feb','03'=>'Mar','04'=>'Abr','05'=>'May','06'=
         </p>
     </div>
     <div style="margin-left:auto;z-index:1;text-align:right;flex-shrink:0;">
-        <div style="font-size:2rem;font-weight:900;color:#fff;line-height:1;"><?= $porcAsist ?>%</div>
-        <div style="font-size:.72rem;color:rgba(255,255,255,.7);font-weight:600;">tasa de asistencia</div>
-        <div style="font-size:.68rem;color:rgba(255,255,255,.5);margin-top:2px;"><?= $cPresentes + $cJustificados ?> de <?= $totalReg ?> días marcados</div>
+        <div style="font-size:2rem;font-weight:900;color:#fff;line-height:1;"><?= $pct ?>%</div>
+        <div style="font-size:.72rem;color:rgba(255,255,255,.7);font-weight:600;">progreso de pasantía</div>
+        <div style="font-size:.68rem;color:rgba(255,255,255,.5);margin-top:2px;"><?= number_format($horasAcum) ?>h de <?= number_format($horasMeta) ?>h completadas</div>
     </div>
 </div>
 

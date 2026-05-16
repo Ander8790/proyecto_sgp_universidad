@@ -18,7 +18,7 @@ $correoNF = (stripos($errorMsg, 'correo no encontrado') !== false);
     <link rel="stylesheet" href="<?= URLROOT ?>/css/sweetalert2.min.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/swal-bento-navy.css">
     <link rel="stylesheet" href="<?= URLROOT ?>/css/notifications.css">
-    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css">
+    <link rel="stylesheet" href="<?= URLROOT ?>/css/style.css?v=<?= filemtime(APPROOT.'/../public/css/style.css') ?>">
     <script>const URLROOT = <?php echo json_encode(URLROOT, JSON_UNESCAPED_SLASHES) ?>;</script> <!-- [FIX-C3] -->
 
     <style>

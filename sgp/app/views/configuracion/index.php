@@ -13,6 +13,24 @@ $anioActual      = (int) date('Y');
 $hoy             = date('Y-m-d');
 ?>
 <style>
+    /* ── ESTILOS COMPARTIDOS ────────────────────────── */
+    .cfg-edit-btn {
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+        color: #2563eb;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all .2s;
+    }
+    .cfg-edit-btn:hover {
+        background: #dbeafe;
+    }
+
     /* ── BENTO GRID ─────────────────────────────── */
     .cfg-grid {
         display: grid;
@@ -378,7 +396,7 @@ $hoy             = date('Y-m-d');
     }
 </style>
 
-<div style="width:100%;max-width:1600px;margin:0 auto;padding:20px;">
+<div style="width:100%;">
 
     <!-- ===== BANNER ===== -->
     <style>
@@ -633,7 +651,7 @@ $hoy             = date('Y-m-d');
     <!-- ===== FILA 3: Datos ISP + Kiosco ===== -->
     <div class="cfg-grid">
 
-        <!-- CARD: Datos de la Institución (lectura) -->
+        <!-- CARD: Datos de la Institución (Editable) -->
         <div class="cfg-card cg-4">
             <div class="cfg-card-header">
                 <div class="cfg-card-title">
@@ -646,16 +664,19 @@ $hoy             = date('Y-m-d');
                         </div>
                     </div>
                 </div>
-                <span class="cfg-badge" style="background:#fef3c7;color:#b45309;">Solo lectura</span>
+                <button type="button" onclick="abrirModalISP()" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:4px 10px;border-radius:20px;font-size:0.75rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:4px;transition:all 0.2s;" onmouseover="this.style.background='#dbeafe';" onmouseout="this.style.background='#eff6ff';">
+                    <i class="ti ti-edit"></i> Editar
+                </button>
             </div>
 
             <?php
+            $isp = $data['ispInfo'] ?? [];
             $infoCampos = [
-                ['icon' => 'ti-building-hospital', 'bg' => '#fef3c7', 'clr' => '#d97706', 'label' => 'Nombre', 'value' => 'Instituto de Salud Pública del Estado Bolívar (ISP)'],
-                ['icon' => 'ti-id-badge', 'bg' => '#eff6ff', 'clr' => '#2563eb', 'label' => 'RIF', 'value' => 'G-20000366-9'],
-                ['icon' => 'ti-map', 'bg' => '#f0fdf4', 'clr' => '#059669', 'label' => 'Estado', 'value' => 'Bolívar'],
-                ['icon' => 'ti-map-pin', 'bg' => '#fdf2f8', 'clr' => '#9333ea', 'label' => 'Ciudad', 'value' => 'Ciudad Bolívar'],
-                ['icon' => 'ti-home', 'bg' => '#f8fafc', 'clr' => '#64748b', 'label' => 'Dirección', 'value' => 'Paseo Meneses, Torre ISP, Piso 3'],
+                ['icon' => 'ti-building-hospital', 'bg' => '#fef3c7', 'clr' => '#d97706', 'label' => 'Nombre', 'value' => $isp['nombre'] ?? 'Instituto de Salud Pública del Estado Bolívar (ISP)'],
+                ['icon' => 'ti-id-badge', 'bg' => '#eff6ff', 'clr' => '#2563eb', 'label' => 'RIF', 'value' => $isp['rif'] ?? 'G-20000366-9'],
+                ['icon' => 'ti-map', 'bg' => '#f0fdf4', 'clr' => '#059669', 'label' => 'Estado', 'value' => $isp['estado'] ?? 'Bolívar'],
+                ['icon' => 'ti-map-pin', 'bg' => '#fdf2f8', 'clr' => '#9333ea', 'label' => 'Ciudad', 'value' => $isp['ciudad'] ?? 'Ciudad Bolívar'],
+                ['icon' => 'ti-home', 'bg' => '#f8fafc', 'clr' => '#64748b', 'label' => 'Dirección', 'value' => $isp['direccion'] ?? 'Paseo Meneses, Torre ISP, Piso 3'],
             ];
             foreach ($infoCampos as $c): ?>
                 <div class="cfg-info-row">
@@ -664,7 +685,7 @@ $hoy             = date('Y-m-d');
                     </div>
                     <div style="flex:1;min-width:0;">
                         <div class="cfg-info-label"><?= $c['label'] ?></div>
-                        <div class="cfg-info-value" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                        <div class="cfg-info-value" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="<?= htmlspecialchars($c['value']) ?>">
                             <?= htmlspecialchars($c['value']) ?>
                         </div>
                     </div>
@@ -1069,9 +1090,18 @@ $hoy             = date('Y-m-d');
                 <div style="background:#f5f3ff;border-radius:12px;padding:16px;border:1px solid #ddd6fe;">
                     <!-- Encabezado -->
                     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+                        <?php
+                            $mesesEs = ['1'=>'Ene','2'=>'Feb','3'=>'Mar','4'=>'Abr','5'=>'May','6'=>'Jun','7'=>'Jul','8'=>'Ago','9'=>'Sep','10'=>'Oct','11'=>'Nov','12'=>'Dic'];
+                            $fechaFormateada = date('d') . ' ' . $mesesEs[date('n')] . ' ' . date('Y');
+                        ?>
                         <div>
-                            <p style="margin:0;font-size:0.85rem;font-weight:800;color:#4c1d95;">Ventana de Asistencia</p>
-                            <p id="mfc-subtitle" style="margin:2px 0 0;font-size:0.72rem;color:#8b5cf6;">Tiempo restante hoy — cierre a las 00:00</p>
+                            <div style="display:flex;align-items:center;gap:8px;">
+                                <p style="margin:0;font-size:0.85rem;font-weight:800;color:#4c1d95;">Ventana de Asistencia</p>
+                                <span style="background:#ddd6fe;color:#5b21b6;padding:2px 8px;border-radius:12px;font-size:0.65rem;font-weight:700;display:inline-flex;align-items:center;gap:3px;" title="Fecha del servidor">
+                                    <i class="ti ti-calendar-event"></i> <?= $fechaFormateada ?>
+                                </span>
+                            </div>
+                            <p id="mfc-subtitle" style="margin:4px 0 0;font-size:0.72rem;color:#8b5cf6;">Tiempo restante hoy — cierre a las 00:00</p>
                         </div>
                         <button onclick="mostrarLeyendaReloj()"
                             title="Ver cómo funciona este módulo"
@@ -1126,7 +1156,7 @@ $hoy             = date('Y-m-d');
                             <span id="mfc-pct-label" style="font-size:0.65rem;font-weight:700;color:#8b5cf6;">0%</span>
                         </div>
                         <div style="width:100%;background:#ede9fe;border-radius:50rem;height:6px;overflow:hidden;">
-                            <div id="mfc-daybar" style="height:100%;border-radius:50rem;background:linear-gradient(90deg,#7c3aed,#a78bfa);transition:width 1s linear;width:0%;"></div>
+                            <div id="mfc-daybar" style="height:100%;border-radius:50rem;background:linear-gradient(90deg,#16a34a,#22c55e);transition:width 1s linear,background .8s ease;width:0%;"></div>
                         </div>
                     </div>
 
@@ -1179,19 +1209,22 @@ $hoy             = date('Y-m-d');
                         setTimeout(function(){ el.classList.remove('flip'); }, 80);
                     }
 
+                    var _mfcTimer;
                     function updateClock() {
+                        // Si el elemento raíz ya no existe (navegación PJAX), detener el intervalo
+                        if (!document.getElementById('mfc-count')) {
+                            clearInterval(_mfcTimer); return;
+                        }
                         var now = new Date(), mid = new Date(now);
                         mid.setHours(24, 0, 0, 0);
                         var rem = Math.max(0, Math.floor((mid - now) / 1000));
 
-                        /* 12h format */
                         var h24  = Math.floor(rem / 3600);
-                        var h12  = h24 % 12 || 12;
                         var mins = Math.floor((rem % 3600) / 60);
                         var secs = rem % 60;
 
-                        setDigit('mfc-h1', Math.floor(h12 / 10));
-                        setDigit('mfc-h2', h12 % 10);
+                        setDigit('mfc-h1', Math.floor(h24 / 10));
+                        setDigit('mfc-h2', h24 % 10);
                         setDigit('mfc-m1', Math.floor(mins / 10));
                         setDigit('mfc-m2', mins % 10);
                         setDigit('mfc-s1', Math.floor(secs / 10));
@@ -1204,19 +1237,17 @@ $hoy             = date('Y-m-d');
                         if (bar)    bar.style.width = pct + '%';
                         if (pctLbl) pctLbl.textContent = pct + '%';
 
-                        /* Urgency colors (bar + subtitle + pct label) */
-                        var color, barColor;
+                        /* Urgency — solo la barra cambia de color; reloj permanece morado */
+                        var barColor, barTextColor;
                         if (rem > 14400) {
-                            color = '#16a34a'; barColor = 'linear-gradient(90deg,#16a34a,#22c55e)';
+                            barColor = 'linear-gradient(90deg,#16a34a,#22c55e)'; barTextColor = '#16a34a'; // Verde
                         } else if (rem > 3600) {
-                            color = '#d97706'; barColor = 'linear-gradient(90deg,#d97706,#f59e0b)';
+                            barColor = 'linear-gradient(90deg,#d97706,#f59e0b)'; barTextColor = '#d97706'; // Amarillo
                         } else {
-                            color = '#dc2626'; barColor = 'linear-gradient(90deg,#dc2626,#ef4444)';
+                            barColor = 'linear-gradient(90deg,#dc2626,#ef4444)'; barTextColor = '#dc2626'; // Rojo
                         }
-                        if (pctLbl) pctLbl.style.color = color;
+                        if (pctLbl) pctLbl.style.color = barTextColor;
                         if (bar)    bar.style.background = barColor;
-                        var sub = document.getElementById('mfc-subtitle');
-                        if (sub) sub.style.color = color;
 
                         /* Badge sin marcar */
                         var sinMarcar = parseInt(document.getElementById('mfc-count').textContent) || 0;
@@ -1239,7 +1270,7 @@ $hoy             = date('Y-m-d');
                     }
 
                     updateClock();
-                    setInterval(updateClock, 1000);
+                    _mfcTimer = setInterval(updateClock, 1000);
                 })();
 
                 function mostrarLeyendaReloj(){
@@ -1249,19 +1280,20 @@ $hoy             = date('Y-m-d');
                         html: '<div style="text-align:left;font-size:0.82rem;line-height:1.55;max-height:55vh;overflow-y:auto;padding-right:4px;">'
                             + '<p style="margin:0 0 8px;color:#475569;">Muestra el <b style="color:#1e293b;">tiempo restante del día</b> hasta las 00:00 en formato 12h. Al llegar a cero, los pasantes sin asistencia quedan como <b style="color:#1e293b;">Ausentes</b> automáticamente.</p>'
                             + '<hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0;">'
-                            + '<p style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:0.78rem;text-transform:uppercase;letter-spacing:.4px;">Urgencia — barra de progreso</p>'
+                            + '<p style="font-weight:800;color:#1e293b;margin:0 0 6px;font-size:0.78rem;text-transform:uppercase;letter-spacing:.4px;">Urgencia — Barra de Progreso</p>'
+                            + '<p style="margin:0 0 8px;font-size:0.76rem;color:#64748b;">El reloj permanece morado. Solo la barra cambia de color según el tiempo restante.</p>'
                             + '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">'
-                            +   '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#f5f3ff;border-radius:7px;border-left:3px solid #7c3aed;">'
-                            +     '<span style="width:8px;height:8px;border-radius:50%;background:#7c3aed;flex-shrink:0;"></span>'
-                            +     '<span><b style="color:#7c3aed;">Morado</b> &mdash; Más de 4 horas</span>'
+                            +   '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#f0fdf4;border-radius:7px;border-left:3px solid #16a34a;">'
+                            +     '<span style="width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0;"></span>'
+                            +     '<span><b style="color:#16a34a;">Verde</b> &mdash; Más de 4 horas (tiempo suficiente)</span>'
                             +   '</div>'
                             +   '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#fffbeb;border-radius:7px;border-left:3px solid #d97706;">'
                             +     '<span style="width:8px;height:8px;border-radius:50%;background:#d97706;flex-shrink:0;"></span>'
-                            +     '<span><b style="color:#d97706;">Naranja</b> &mdash; Entre 1 y 4 horas</span>'
+                            +     '<span><b style="color:#d97706;">Amarillo</b> &mdash; Entre 1 y 4 horas (poco tiempo)</span>'
                             +   '</div>'
                             +   '<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#fef2f2;border-radius:7px;border-left:3px solid #dc2626;">'
                             +     '<span style="width:8px;height:8px;border-radius:50%;background:#dc2626;flex-shrink:0;"></span>'
-                            +     '<span><b style="color:#dc2626;">Rojo</b> &mdash; Menos de 1 hora</span>'
+                            +     '<span><b style="color:#dc2626;">Rojo</b> &mdash; Menos de 1 hora (urgente)</span>'
                             +   '</div>'
                             + '</div>'
                             + '<div style="display:flex;align-items:flex-start;gap:8px;padding:7px 10px;background:#fffbeb;border-radius:7px;border:1px solid #fde68a;">'
@@ -1841,26 +1873,90 @@ $hoy             = date('Y-m-d');
     })();
 </script>
 
-<!-- CSS botón editar (compartido) -->
-<style>
-    .cfg-edit-btn {
-        width: 30px;
-        height: 30px;
-        border-radius: 7px;
-        background: #eff6ff;
-        border: 1px solid #bfdbfe;
-        color: #2563eb;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all .2s;
+<!-- ═══════════════════════════════════════════════════════
+     MODAL: Editar Institución (ISP)
+     ═══════════════════════════════════════════════════════ -->
+<div id="modalISP"
+    style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.5);backdrop-filter:blur(4px);align-items:center;justify-content:center;">
+    <div
+        style="background:#fff;border-radius:20px;width:100%;max-width:540px;margin:16px;box-shadow:0 24px 60px rgba(0,0,0,.18);overflow:hidden;">
+
+        <!-- Header -->
+        <div style="background:linear-gradient(135deg,#d97706,#b45309);padding:20px 24px;display:flex;align-items:center;justify-content:space-between;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:42px;height:42px;background:rgba(255,255,255,.15);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;">
+                    <i class="ti ti-building-hospital" style="font-size:1.4rem;"></i>
+                </div>
+                <div>
+                    <h3 style="margin:0;color:#fff;font-size:1.15rem;font-weight:700;">Datos de la Institución</h3>
+                    <span style="color:rgba(255,255,255,.8);font-size:0.8rem;font-weight:500;">Editar información general</span>
+                </div>
+            </div>
+            <button onclick="cerrarModalISP()" style="background:none;border:none;color:#fff;font-size:1.5rem;cursor:pointer;opacity:.7;transition:opacity .2s;" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=.7">
+                <i class="ti ti-x"></i>
+            </button>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:24px;">
+            <form action="<?= URLROOT ?>/configuracion" method="POST" id="formISP">
+                <input type="hidden" name="accion" value="guardar_isp">
+
+                <div class="cfg-form-group">
+                    <label class="cfg-label">Nombre de la Institución <span style="color:#ef4444">*</span></label>
+                    <input type="text" name="isp_nombre" class="cfg-input" value="<?= htmlspecialchars($isp['nombre'] ?? '') ?>" required>
+                </div>
+                <div class="cfg-form-group">
+                    <label class="cfg-label">RIF <span style="color:#ef4444">*</span></label>
+                    <input type="text" name="isp_rif" class="cfg-input" value="<?= htmlspecialchars($isp['rif'] ?? '') ?>" required>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div class="cfg-form-group">
+                        <label class="cfg-label">Estado <span style="color:#ef4444">*</span></label>
+                        <input type="text" name="isp_estado" class="cfg-input" value="<?= htmlspecialchars($isp['estado'] ?? '') ?>" required>
+                    </div>
+                    <div class="cfg-form-group">
+                        <label class="cfg-label">Ciudad <span style="color:#ef4444">*</span></label>
+                        <input type="text" name="isp_ciudad" class="cfg-input" value="<?= htmlspecialchars($isp['ciudad'] ?? '') ?>" required>
+                    </div>
+                </div>
+                <div class="cfg-form-group">
+                    <label class="cfg-label">Dirección <span style="color:#ef4444">*</span></label>
+                    <textarea name="isp_direccion" class="cfg-input" rows="2" required><?= htmlspecialchars($isp['direccion'] ?? '') ?></textarea>
+                </div>
+
+                <div style="margin-top:24px;display:flex;justify-content:flex-end;gap:12px;">
+                    <button type="button" onclick="cerrarModalISP()" style="padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.9rem;border:1px solid #e2e8f0;background:#f8fafc;color:#64748b;cursor:pointer;transition:all .2s;">Cancelar</button>
+                    <button type="submit" style="padding:10px 20px;border-radius:12px;font-weight:600;font-size:0.9rem;border:none;background:linear-gradient(135deg,#d97706,#b45309);color:#fff;cursor:pointer;box-shadow:0 4px 12px rgba(217,119,6,.25);transition:all .2s;">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function abrirModalISP() {
+        const modal = document.getElementById('modalISP');
+        modal.style.display = 'flex';
+        // Animación sencilla
+        const dialog = modal.querySelector('div');
+        dialog.style.opacity = '0';
+        dialog.style.transform = 'translateY(15px)';
+        requestAnimationFrame(() => {
+            dialog.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            dialog.style.opacity = '1';
+            dialog.style.transform = 'translateY(0)';
+        });
     }
 
-    .cfg-edit-btn:hover {
-        background: #dbeafe;
+    function cerrarModalISP() {
+        const modal = document.getElementById('modalISP');
+        const dialog = modal.querySelector('div');
+        dialog.style.opacity = '0';
+        dialog.style.transform = 'translateY(15px)';
+        setTimeout(() => { modal.style.display = 'none'; }, 200);
     }
-</style>
+</script>
 
 <!-- ═══════════════════════════════════════════════════════
      MODAL: Nueva Institución

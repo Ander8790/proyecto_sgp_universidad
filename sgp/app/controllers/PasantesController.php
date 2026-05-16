@@ -42,7 +42,7 @@ class PasantesController extends Controller
         // Contadores para KPI cards
         $total      = count($pasantes);
         $enCurso    = count(array_filter($pasantes, fn($p) => ($p->estado_pasantia ?? '') === 'Activo'));
-        $pendientes = count(array_filter($pasantes, fn($p) => ($p->estado_pasantia ?? '') === 'Pendiente'));
+        $pendientes = count(array_filter($pasantes, fn($p) => in_array($p->estado_pasantia ?? '', ['Pendiente', 'Sin Asignar'])));
         $culminados = count(array_filter($pasantes, fn($p) => ($p->estado_pasantia ?? '') === 'Finalizado'));
 
         // Departamentos activos para el modal de asignación
@@ -100,7 +100,8 @@ class PasantesController extends Controller
                 dpa.institucion_procedencia,
                 dpa.departamento_asignado_id, dpa.tutor_id,
                 COALESCE(dpa.estado_pasantia, 'Sin Asignar') AS estado_pasantia,
-                COALESCE(dpa.horas_acumuladas, 0)            AS horas_acumuladas,
+                -- ✅ PRO-RATA
+                (COALESCE(prog.dias_validos, 0) * 8)          AS horas_acumuladas,
                 COALESCE(dpa.horas_meta, 0)                  AS horas_meta,
                 dpa.fecha_inicio_pasantia                    AS fecha_inicio,
                 dpa.fecha_fin_estimada,
@@ -113,6 +114,13 @@ class PasantesController extends Controller
             LEFT JOIN departamentos    d   ON d.id = dpa.departamento_asignado_id
             LEFT JOIN usuarios         tu  ON tu.id = dpa.tutor_id
             LEFT JOIN datos_personales tup ON tup.usuario_id = tu.id
+            -- ✅ JOIN Pro-Rata
+            LEFT JOIN (
+                SELECT pasante_id, COUNT(*) AS dias_validos
+                FROM asistencias
+                WHERE estado IN ('Presente', 'Justificado')
+                GROUP BY pasante_id
+            ) AS prog ON prog.pasante_id = u.id
             WHERE u.rol_id = 3 AND (u.cedula LIKE :q OR dp.nombres LIKE :q OR dp.apellidos LIKE :q)
             LIMIT 1
         ");
@@ -153,7 +161,10 @@ class PasantesController extends Controller
         $this->db->bind(':id', $pasanteId);
         
         if ($this->db->execute()) {
-            AuditModel::log('RESET_PIN', "Se reseteó el PIN del pasante ID: $pasanteId");
+            $this->db->query("SELECT CONCAT(dp.nombres,' ',dp.apellidos) AS nombre FROM datos_personales dp WHERE dp.usuario_id = :pid LIMIT 1");
+            $this->db->bind(':pid', $pasanteId);
+            $nombrePas = trim($this->db->single()->nombre ?? "ID:$pasanteId");
+            AuditModel::log('RESET_PIN', "PIN reseteado — $nombrePas");
             echo json_encode([
                 'success' => true, 
                 'message' => 'PIN reseteado correctamente.',

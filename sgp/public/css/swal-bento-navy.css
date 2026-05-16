@@ -98,16 +98,38 @@
 .swal-bento-token-long {
     font-size: 1.4rem !important;
     font-weight: 800 !important;
-    color: #1d4ed8 !important; /* Navy brillante */
+    color: #1d4ed8 !important;
     letter-spacing: 2px !important;
     background: #f8fafc !important;
     padding: 14px 24px !important;
     border-radius: 12px !important;
-    border: 2px dashed #cbd5e1 !important; /* Cajita punteada Premium */
+    border: 2px dashed #cbd5e1 !important;
     display: inline-block !important;
     font-family: monospace, sans-serif !important;
     word-break: break-all !important;
 }
+
+/* Wrapper token + botón copiar */
+.swal-token-row {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+}
+.swal-copy-btn {
+    flex-shrink: 0;
+    background: #eff6ff;
+    border: 1.5px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px 12px;
+    cursor: pointer;
+    color: #2563eb;
+    font-size: 1.1rem;
+    transition: background 0.15s, color 0.15s;
+    line-height: 1;
+}
+.swal-copy-btn:hover { background: #dbeafe; color: #1d4ed8; }
+.swal-copy-btn.copied { background: #dcfce7; border-color: #86efac; color: #16a34a; }
 
 /* ── Toast Mode (flash messages & AJAX feedback) ───────────────────── */
 .swal2-toast.sgp-swal-toast {
